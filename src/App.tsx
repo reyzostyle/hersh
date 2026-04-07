@@ -47,9 +47,7 @@ function AuthCallbackHandler() {
         .catch((err) => {
           setStatus('error');
           setErrorMsg(err.message || 'Failed to connect YouTube account');
-          setTimeout(() => {
-            window.history.replaceState({}, '', '/');
-          }, 3000);
+          // Don't auto-redirect — let user read the error
         });
     } else {
       supabase.auth.exchangeCodeForSession(code)
