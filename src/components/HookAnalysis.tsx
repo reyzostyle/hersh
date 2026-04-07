@@ -114,7 +114,7 @@ export function HookAnalysis() {
 
   const connectYouTube = () => {
     const clientId = import.meta.env.VITE_YOUTUBE_CLIENT_ID;
-    const redirectUri = `${window.location.origin}/auth/callback`;
+    const redirectUri = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/youtube-oauth-callback`;
     const scope = 'https://www.googleapis.com/auth/youtube.readonly https://www.googleapis.com/auth/yt-analytics.readonly https://www.googleapis.com/auth/youtube.force-ssl';
     const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?` +
       `client_id=${clientId}&` +
@@ -122,7 +122,8 @@ export function HookAnalysis() {
       `response_type=code&` +
       `scope=${encodeURIComponent(scope)}&` +
       `access_type=offline&` +
-      `prompt=consent`;
+      `prompt=consent&` +
+      `state=${encodeURIComponent(user?.id || '')}`;
     window.location.href = authUrl;
   };
 
