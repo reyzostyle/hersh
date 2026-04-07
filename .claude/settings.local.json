@@ -1,0 +1,37 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__Claude_Preview__preview_start",
+      "Read(//usr/local/bin/**)",
+      "Read(//Users/reyzostyle/.nvm/versions/**)",
+      "Read(//opt/homebrew/**)",
+      "Bash(/usr/local/bin/node --version)",
+      "Read(//usr/local/lib/node_modules/npm/bin/**)",
+      "Read(//usr/local/lib/node_modules/**)",
+      "Bash(npx supabase:*)",
+      "Bash(brew install:*)",
+      "Bash(curl -fsSL https://raw.githubusercontent.com/cli/cli/master/pkg/cmd/root/help_topic.go)",
+      "Bash(curl -s https://api.github.com/repos/supabase/cli/releases/latest)",
+      "Bash(/usr/local/bin/node -e \"const d=require\\('fs'\\).readFileSync\\('/dev/stdin','utf8'\\); const r=JSON.parse\\(d\\); const a=r.assets.find\\(a=>a.name.includes\\('darwin'\\) && a.name.includes\\('arm64'\\) || a.name.includes\\('darwin'\\) && a.name.includes\\('amd64'\\)\\); console.log\\(a?.browser_download_url, a?.name\\);\")",
+      "Bash(/usr/local/bin/node -e \"const d=require\\('fs'\\).readFileSync\\('/dev/stdin','utf8'\\); const r=JSON.parse\\(d\\); const a=r.assets.find\\(a=>a.name.includes\\('darwin_arm64'\\)\\); console.log\\(a?.browser_download_url\\);\")",
+      "Read(//private/tmp/**)",
+      "Bash(curl -fsSL https://github.com/supabase/cli/releases/download/v2.84.2/supabase_darwin_arm64.tar.gz -o supabase.tar.gz)",
+      "Bash(tar -xzf supabase.tar.gz)",
+      "Bash(mv supabase:*)",
+      "Bash(supabase --version)",
+      "Bash(mkdir -p ~/bin)",
+      "Bash(~/bin/supabase --version)",
+      "Bash(~/bin/supabase login:*)",
+      "Bash(~/bin/supabase projects:*)",
+      "Bash(~/bin/supabase link:*)",
+      "Bash(~/bin/supabase db:*)",
+      "Bash(SUPABASE_DB_PASSWORD=gqj2VJSozjOB4yeK ~/bin/supabase db push)",
+      "Bash(grep -l \"competitor_channels\" /Users/reyzostyle/Downloads/project/supabase/migrations/*.sql)",
+      "Bash(~/bin/supabase functions:*)",
+      "Bash('~/bin/supabase' secrets:*)",
+      "Bash(git init:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)"
+    ]
+  }
+}
