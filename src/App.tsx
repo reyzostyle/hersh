@@ -30,7 +30,7 @@ function AuthCallbackHandler() {
     }
 
     if (user) {
-      const redirectUri = 'https://hersh.live/auth/callback';
+      const redirectUri = `${window.location.origin}/auth/callback`;
       fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/youtube-oauth-callback`, {
         method: 'POST',
         headers: {
