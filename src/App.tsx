@@ -5,9 +5,9 @@ import { Loader2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { supabase } from './lib/supabase';
 
-// Handles Supabase Auth callbacks (email magic link, Google OAuth via Supabase)
 function AuthCallbackHandler() {
-  const [status, setStatus] = useState<'processing' | 'error'>('processing');
+  const { user } = useAuth();
+  const [status, setStatus] = useState<'processing' | 'error' | 'success'>('processing');
   const [errorMsg, setErrorMsg] = useState('');
 
   useEffect(() => {
@@ -27,7 +27,39 @@ function AuthCallbackHandler() {
       return;
     }
 
-    // This is a Supabase Auth callback (email/Google sign-in)
+    // Check if this is a YouTube OAuth callback (userId stored before redirect)
+    const youtubeUserId = sessionStorage.getItem('youtube_oauth_user_id');
+
+    if (youtubeUserId) {
+      sessionStorage.removeItem('youtube_oauth_user_id');
+      const redirectUri = 'https://hersh.live/auth/callback';
+
+      fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/youtube-oauth-callback`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ code, userId: youtubeUserId, redirectUri }),
+      })
+        .then(async (res) => {
+          const data = await res.json();
+          if (!res.ok) throw new Error(data.error || 'Failed to connect YouTube');
+          setStatus('success');
+          setTimeout(() => {
+            window.history.replaceState({}, '', '/');
+            window.location.reload();
+          }, 1500);
+        })
+        .catch((err) => {
+          setStatus('error');
+          setErrorMsg(err.message || 'Failed to connect YouTube account');
+          setTimeout(() => window.history.replaceState({}, '', '/'), 4000);
+        });
+      return;
+    }
+
+    // Otherwise it's a Supabase Auth callback
     supabase.auth.exchangeCodeForSession(code)
       .then(({ error }) => {
         if (error) {
@@ -39,6 +71,15 @@ function AuthCallbackHandler() {
         }
       });
   }, []);
+
+  if (status === 'success') {
+    return (
+      <div className="min-h-screen bg-[#212121] flex flex-col items-center justify-center gap-3">
+        <p className="text-emerald-400 text-sm font-medium">✓ YouTube account connected!</p>
+        <p className="text-gray-500 text-xs">Redirecting...</p>
+      </div>
+    );
+  }
 
   if (status === 'error') {
     return (
@@ -56,38 +97,6 @@ function AuthCallbackHandler() {
   );
 }
 
-// Shows success/error after YouTube OAuth (server-side callback redirects here)
-function YouTubeCallbackResult() {
-  const params = new URLSearchParams(window.location.search);
-  const connected = params.get('youtube_connected');
-  const error = params.get('youtube_error');
-
-  useEffect(() => {
-    // Clean up URL and redirect to dashboard after a moment
-    const timer = setTimeout(() => {
-      window.history.replaceState({}, '', '/');
-      window.location.reload();
-    }, connected ? 1500 : 4000);
-    return () => clearTimeout(timer);
-  }, [connected]);
-
-  return (
-    <div className="min-h-screen bg-[#212121] flex flex-col items-center justify-center gap-3">
-      {connected ? (
-        <>
-          <p className="text-emerald-400 text-sm font-medium">✓ YouTube account connected!</p>
-          <p className="text-gray-500 text-xs">Redirecting...</p>
-        </>
-      ) : (
-        <>
-          <p className="text-red-400 text-sm">Failed to connect YouTube: {error}</p>
-          <p className="text-gray-500 text-xs">Redirecting...</p>
-        </>
-      )}
-    </div>
-  );
-}
-
 function AppContent() {
   const { user, loading } = useAuth();
 
@@ -99,14 +108,6 @@ function AppContent() {
     );
   }
 
-  const params = new URLSearchParams(window.location.search);
-
-  // YouTube OAuth server-side callback result
-  if (params.has('youtube_connected') || params.has('youtube_error')) {
-    return <YouTubeCallbackResult />;
-  }
-
-  // Supabase Auth callback
   if (window.location.pathname === '/auth/callback') {
     return <AuthCallbackHandler />;
   }

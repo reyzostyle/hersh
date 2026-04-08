@@ -114,16 +114,17 @@ export function HookAnalysis() {
 
   const connectYouTube = () => {
     const clientId = import.meta.env.VITE_YOUTUBE_CLIENT_ID;
-    const redirectUri = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/youtube-oauth-callback`;
+    const redirectUri = 'https://hersh.live/auth/callback';
     const scope = 'https://www.googleapis.com/auth/youtube.readonly https://www.googleapis.com/auth/yt-analytics.readonly https://www.googleapis.com/auth/youtube.force-ssl';
+    // Store userId so the callback can use it even if auth state hasn't loaded yet
+    sessionStorage.setItem('youtube_oauth_user_id', user?.id || '');
     const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?` +
       `client_id=${clientId}&` +
       `redirect_uri=${encodeURIComponent(redirectUri)}&` +
       `response_type=code&` +
       `scope=${encodeURIComponent(scope)}&` +
       `access_type=offline&` +
-      `prompt=consent&` +
-      `state=${encodeURIComponent(user?.id || '')}`;
+      `prompt=consent`;
     window.location.href = authUrl;
   };
 
