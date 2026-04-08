@@ -1,23 +1,20 @@
 import { useState, useEffect } from 'react';
 import { Video } from '../lib/supabase';
-import { X, FileText, Sparkles, Loader2, Eye, ThumbsUp, MessageSquare, Info } from 'lucide-react';
+import { X, Sparkles, Loader2, Eye, ThumbsUp, MessageSquare } from 'lucide-react';
 
 interface VideoScriptPanelProps {
   video: Video | null;
   open: boolean;
   onClose: () => void;
-  onScriptSave: (videoId: string, script: string, videoContext: string) => Promise<void>;
-  onAnalyze: (videoId: string, script: string, videoContext: string) => void;
+  onAnalyze: (videoId: string, videoContext: string) => void;
   analyzing: boolean;
 }
 
-export function VideoScriptPanel({ video, open, onClose, onScriptSave, onAnalyze, analyzing }: VideoScriptPanelProps) {
-  const [script, setScript] = useState('');
+export function VideoScriptPanel({ video, open, onClose, onAnalyze, analyzing }: VideoScriptPanelProps) {
   const [videoContext, setVideoContext] = useState('');
 
   useEffect(() => {
     if (video) {
-      setScript(video.script || '');
       setVideoContext((video as any).video_context || '');
     }
   }, [video?.video_id]);
@@ -34,10 +31,9 @@ export function VideoScriptPanel({ video, open, onClose, onScriptSave, onAnalyze
     return n.toString();
   };
 
-  const handleAnalyze = async () => {
+  const handleAnalyze = () => {
     if (!video) return;
-    await onScriptSave(video.video_id, script, videoContext);
-    onAnalyze(video.video_id, script, videoContext);
+    onAnalyze(video.video_id, videoContext);
   };
 
   return (
@@ -52,7 +48,7 @@ export function VideoScriptPanel({ video, open, onClose, onScriptSave, onAnalyze
       >
         <div className="flex items-center justify-between px-5 py-4 flex-shrink-0" style={{ borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
           <div className="flex items-center gap-2">
-            <FileText className="w-4 h-4 text-gray-400" />
+            <Sparkles className="w-4 h-4 text-purple-400" />
             <h2 className="text-base font-semibold text-white">Analyze Video</h2>
           </div>
           <button onClick={onClose} className="p-1.5 text-gray-500 hover:text-white hover:bg-gray-800 rounded-lg transition-colors">
@@ -93,56 +89,35 @@ export function VideoScriptPanel({ video, open, onClose, onScriptSave, onAnalyze
               </div>
             </div>
 
-            <div className="p-5 flex-1 flex flex-col gap-4">
+            <div className="p-5 flex-1 flex flex-col gap-5">
               <div>
-                <label className="block text-sm font-medium text-white mb-2">
+                <label className="block text-sm font-medium text-white mb-1.5">
                   Video Context <span className="text-gray-500 font-normal">(optional)</span>
                 </label>
-                <input
-                  type="text"
+                <p className="text-xs text-gray-500 mb-3">
+                  Add context about this video so the analysis is more relevant — e.g. what it's about, who it's for, what you were trying to achieve.
+                </p>
+                <textarea
                   value={videoContext}
                   onChange={e => setVideoContext(e.target.value)}
-                  placeholder="Describe what this specific video is about, e.g. 'Korean dance tutorial for beginners'"
-                  className="w-full rounded-lg px-4 py-3 text-sm text-gray-200 placeholder-gray-600 focus:outline-none transition-colors"
+                  placeholder="e.g. 'Fortnite clutch gameplay, targeting competitive players aged 16-24, trying to hook with the dramatic ending first'"
+                  rows={4}
+                  className="w-full rounded-lg px-4 py-3 text-sm text-gray-200 placeholder-gray-600 focus:outline-none resize-none leading-relaxed transition-colors"
                   style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }}
-                  onFocus={(e) => { e.currentTarget.style.borderColor = '#0EA4E9'; }}
+                  onFocus={(e) => { e.currentTarget.style.borderColor = '#8B5CF6'; }}
                   onBlur={(e) => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)'; }}
                 />
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-white mb-2">
-                  Script <span className="text-gray-500 font-normal">(optional)</span>
-                </label>
-
-                <div className="flex items-start gap-1.5 p-3 rounded-t-lg border-b-0" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' }}>
-                  <Info className="w-3.5 h-3.5 text-gray-500 flex-shrink-0 mt-0.5" />
-                  <p className="text-xs text-gray-500 leading-relaxed">
-                    Without script: basic hook analysis. With script: advanced analysis with specific recommendations.
-                  </p>
-                </div>
-
-                <textarea
-                  value={script}
-                  onChange={e => setScript(e.target.value)}
-                  placeholder="Paste your script for a deeper analysis (optional — basic analysis works without it)"
-                  className="w-full min-h-[380px] rounded-b-lg px-4 py-3 text-sm text-gray-200 placeholder-gray-600 focus:outline-none resize-none leading-relaxed transition-colors"
-                  style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', borderTop: 'none' }}
-                  onFocus={(e) => { e.currentTarget.style.borderColor = '#0EA4E9'; }}
-                  onBlur={(e) => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)'; e.currentTarget.style.borderTop = 'none'; }}
-                />
-              </div>
-
-              <div>
-                <button
-                  onClick={handleAnalyze}
-                  disabled={analyzing}
-                  className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-[#0EA4E9] text-white rounded-lg text-sm font-semibold hover:bg-[#0EA4E9]/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {analyzing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
-                  {analyzing ? 'Analyzing...' : script.trim() ? 'Analyze (Advanced)' : 'Analyze (Basic)'}
-                </button>
-              </div>
+              <button
+                onClick={handleAnalyze}
+                disabled={analyzing}
+                className="w-full flex items-center justify-center gap-2 px-4 py-3 text-white rounded-lg text-sm font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                style={{ background: analyzing ? 'rgba(139,92,246,0.5)' : 'linear-gradient(135deg, #8B5CF6, #0EA4E9)' }}
+              >
+                {analyzing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
+                {analyzing ? 'Analyzing...' : 'Analyze'}
+              </button>
             </div>
           </div>
         )}

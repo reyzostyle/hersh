@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase, Video, Analysis } from '../lib/supabase';
-import { RefreshCw, Sparkles, Loader2, ChevronRight, VideoIcon } from 'lucide-react';
+import { RefreshCw, Sparkles, Loader2 } from 'lucide-react';
 import { VideoCard } from './VideoCard';
 import { AnalysisPanel } from './AnalysisPanel';
 import { VideoScriptPanel } from './VideoScriptPanel';
@@ -11,7 +11,6 @@ export function HookAnalysis() {
   const [videos, setVideos] = useState<Video[]>([]);
   const [analysis, setAnalysis] = useState<Analysis | null>(null);
   const [fetching, setFetching] = useState(false);
-  const [analyzing, setAnalyzing] = useState(false);
   const [error, setError] = useState('');
   const [selectedVideoId, setSelectedVideoId] = useState<string | null>(null);
   const [analysisPanelOpen, setAnalysisPanelOpen] = useState(false);
@@ -71,47 +70,6 @@ export function HookAnalysis() {
     }
   };
 
-  const runAnalysis = async (videoId: string, script: string, videoContext: string = '') => {
-    setAnalyzing(true);
-    setError('');
-    try {
-      const res = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/analyze-hooks`,
-        {
-          method: 'POST',
-          headers: {
-            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ userId: user?.id, videoIds: [videoId], script: script || '', videoContext: videoContext || '' }),
-        }
-      );
-      if (!res.ok) {
-        const d = await res.json();
-        throw new Error(d.error || 'Failed to analyze');
-      }
-      const result = await res.json();
-      if (result.analysis) setAnalysis(result.analysis);
-      setAnalysisPanelOpen(true);
-      setScriptPanelOpen(false);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to analyze');
-    } finally {
-      setAnalyzing(false);
-    }
-  };
-
-  const handleScriptSave = async (videoId: string, script: string, videoContext: string = '') => {
-    await supabase
-      .from('videos')
-      .update({ script: script || null, video_context: videoContext || null })
-      .eq('video_id', videoId)
-      .eq('user_id', user?.id);
-    setVideos(prev => prev.map(v => v.video_id === videoId ? { ...v, script } : v));
-    if (scriptPanelVideo?.video_id === videoId) {
-      setScriptPanelVideo(prev => prev ? { ...prev, script } : prev);
-    }
-  };
 
   const connectYouTube = () => {
     const clientId = import.meta.env.VITE_YOUTUBE_CLIENT_ID;
@@ -172,6 +130,11 @@ export function HookAnalysis() {
     }
   };
 
+  const handleGeminiFromPanel = (videoId: string, videoContext: string) => {
+    setScriptPanelOpen(false);
+    runGeminiAnalysis(videoId, videoContext);
+  };
+
   return (
     <div className="h-full flex flex-col">
       <div className="px-6 py-5 flex-shrink-0" style={{ borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
@@ -209,27 +172,13 @@ export function HookAnalysis() {
             )}
 
             <button
-              onClick={() => {
-                if (!selectedVideoId) return;
-                runGeminiAnalysis(selectedVideoId);
-              }}
-              disabled={!selectedVideoId || geminiAnalyzing || analyzing}
-              title="Gemini watches the video, then Claude analyzes it"
-              className="flex items-center gap-2 px-4 py-2 text-white rounded-lg text-sm font-semibold transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-              style={{ background: 'linear-gradient(135deg, #8B5CF6, #0EA4E9)', opacity: (!selectedVideoId || geminiAnalyzing || analyzing) ? 0.4 : 1 }}
-            >
-              {geminiAnalyzing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <VideoIcon className="w-3.5 h-3.5" />}
-              {geminiAnalyzing ? 'Watching...' : 'Watch & Analyze'}
-            </button>
-
-            <button
               onClick={handleAnalyzeClick}
-              disabled={!selectedVideoId || analyzing || geminiAnalyzing}
-              className="flex items-center gap-2 px-4 py-2 bg-[#0EA4E9] text-white rounded-lg text-sm font-semibold hover:bg-[#0EA4E9]/90 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+              disabled={!selectedVideoId || geminiAnalyzing}
+              className="flex items-center gap-2 px-4 py-2 text-white rounded-lg text-sm font-semibold transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+              style={{ background: 'linear-gradient(135deg, #8B5CF6, #0EA4E9)' }}
             >
-              {analyzing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
-              {analyzing ? 'Analyzing...' : 'Analyze'}
-              {!analyzing && selectedVideoId && <ChevronRight className="w-3.5 h-3.5" />}
+              {geminiAnalyzing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
+              {geminiAnalyzing ? 'Analyzing...' : 'Analyze'}
             </button>
           </div>
         </div>
@@ -289,9 +238,8 @@ export function HookAnalysis() {
         video={scriptPanelVideo}
         open={scriptPanelOpen}
         onClose={() => setScriptPanelOpen(false)}
-        onScriptSave={handleScriptSave}
-        onAnalyze={runAnalysis}
-        analyzing={analyzing}
+        onAnalyze={handleGeminiFromPanel}
+        analyzing={geminiAnalyzing}
       />
     </div>
   );

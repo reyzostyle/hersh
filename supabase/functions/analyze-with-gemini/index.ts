@@ -39,35 +39,41 @@ Respond ONLY with valid JSON, no markdown:
   "overall_energy": "low|medium|high"
 }`;
 
-  const response = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${geminiApiKey}`,
-    {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contents: [{
-          parts: [
-            {
-              file_data: {
-                mime_type: 'video/mp4',
-                file_uri: youtubeUrl,
-              },
-            },
-            { text: prompt },
-          ],
-        }],
-        generationConfig: {
-          temperature: 0.2,
-          maxOutputTokens: 2048,
-        },
-      }),
-    }
-  );
+  const models = ['gemini-2.5-flash', 'gemini-2.5-flash-lite', 'gemini-2.0-flash-001'];
+  const geminiBody = JSON.stringify({
+    contents: [{
+      parts: [
+        { file_data: { mime_type: 'video/mp4', file_uri: youtubeUrl } },
+        { text: prompt },
+      ],
+    }],
+    generationConfig: { temperature: 0.2, maxOutputTokens: 2048 },
+  });
 
-  if (!response.ok) {
-    const errText = await response.text();
-    console.error('[gemini] API error:', errText);
-    throw new Error(`Gemini API error: ${errText}`);
+  let response: Response | null = null;
+  let lastError = '';
+
+  for (const model of models) {
+    console.log(`[gemini] Trying model: ${model}`);
+    for (let attempt = 1; attempt <= 2; attempt++) {
+      response = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${geminiApiKey}`,
+        { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: geminiBody }
+      );
+      if (response.ok) { console.log(`[gemini] Success with ${model}`); break; }
+      const status = response.status;
+      lastError = await response.text();
+      if ((status === 503 || status === 429) && attempt < 2) {
+        console.log(`[gemini] ${model} attempt ${attempt} failed (${status}), retrying in 4s...`);
+        await new Promise(r => setTimeout(r, 4000));
+      } else break;
+    }
+    if (response?.ok) break;
+    console.log(`[gemini] ${model} unavailable, trying next...`);
+  }
+
+  if (!response?.ok) {
+    throw new Error(`Gemini API error: ${lastError}`);
   }
 
   const data = await response.json();

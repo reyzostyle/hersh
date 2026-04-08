@@ -16,7 +16,7 @@ export function SupportPage() {
             Join our Discord to get support, report bugs, suggest features, and connect with other creators using Hersh.
           </p>
           <a
-            href="https://discord.gg/placeholder"
+            href="https://discord.gg/N8S6C95Ry2"
             target="_blank"
             rel="noopener noreferrer"
             className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#5865F2] text-white rounded-lg text-sm font-semibold hover:bg-[#5865F2]/90 transition-colors"
