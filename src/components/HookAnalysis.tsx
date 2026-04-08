@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase, Video, Analysis } from '../lib/supabase';
-import { RefreshCw, Sparkles, Loader2, ChevronRight } from 'lucide-react';
+import { RefreshCw, Sparkles, Loader2, ChevronRight, VideoIcon } from 'lucide-react';
 import { VideoCard } from './VideoCard';
 import { AnalysisPanel } from './AnalysisPanel';
 import { VideoScriptPanel } from './VideoScriptPanel';
@@ -17,6 +17,7 @@ export function HookAnalysis() {
   const [analysisPanelOpen, setAnalysisPanelOpen] = useState(false);
   const [scriptPanelVideo, setScriptPanelVideo] = useState<Video | null>(null);
   const [scriptPanelOpen, setScriptPanelOpen] = useState(false);
+  const [geminiAnalyzing, setGeminiAnalyzing] = useState(false);
 
   useEffect(() => {
     loadVideos();
@@ -132,6 +133,36 @@ export function HookAnalysis() {
     setSelectedVideoId(prev => prev === videoId ? null : videoId);
   };
 
+  const runGeminiAnalysis = async (videoId: string, videoContext: string = '') => {
+    setGeminiAnalyzing(true);
+    setError('');
+    try {
+      const res = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/analyze-with-gemini`,
+        {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ userId: user?.id, videoId, videoContext }),
+        }
+      );
+      if (!res.ok) {
+        const d = await res.json();
+        throw new Error(d.error || 'Failed to analyze');
+      }
+      const result = await res.json();
+      if (result.analysis) setAnalysis(result.analysis);
+      setAnalysisPanelOpen(true);
+      setScriptPanelOpen(false);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Gemini analysis failed');
+    } finally {
+      setGeminiAnalyzing(false);
+    }
+  };
+
   const handleAnalyzeClick = () => {
     if (!selectedVideoId) return;
     const video = videos.find(v => v.video_id === selectedVideoId);
@@ -178,8 +209,22 @@ export function HookAnalysis() {
             )}
 
             <button
+              onClick={() => {
+                if (!selectedVideoId) return;
+                runGeminiAnalysis(selectedVideoId);
+              }}
+              disabled={!selectedVideoId || geminiAnalyzing || analyzing}
+              title="Gemini watches the video, then Claude analyzes it"
+              className="flex items-center gap-2 px-4 py-2 text-white rounded-lg text-sm font-semibold transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+              style={{ background: 'linear-gradient(135deg, #8B5CF6, #0EA4E9)', opacity: (!selectedVideoId || geminiAnalyzing || analyzing) ? 0.4 : 1 }}
+            >
+              {geminiAnalyzing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <VideoIcon className="w-3.5 h-3.5" />}
+              {geminiAnalyzing ? 'Watching...' : 'Watch & Analyze'}
+            </button>
+
+            <button
               onClick={handleAnalyzeClick}
-              disabled={!selectedVideoId || analyzing}
+              disabled={!selectedVideoId || analyzing || geminiAnalyzing}
               className="flex items-center gap-2 px-4 py-2 bg-[#0EA4E9] text-white rounded-lg text-sm font-semibold hover:bg-[#0EA4E9]/90 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
             >
               {analyzing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}

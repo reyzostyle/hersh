@@ -6,7 +6,7 @@ import { useEffect, useState } from 'react';
 import { supabase } from './lib/supabase';
 
 function AuthCallbackHandler() {
-  const { user } = useAuth();
+  const { } = useAuth();
   const [status, setStatus] = useState<'processing' | 'error' | 'success'>('processing');
   const [errorMsg, setErrorMsg] = useState('');
 
