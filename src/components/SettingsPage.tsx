@@ -49,12 +49,15 @@ function ProfileTab({ user }: { user: any }) {
   const [hasYouTube, setHasYouTube] = useState<boolean | null>(null);
 
   useEffect(() => {
-    supabase
-      .from('user_tokens')
-      .select('id')
-      .eq('user_id', user?.id)
-      .maybeSingle()
-      .then(({ data }) => setHasYouTube(!!data));
+    Promise.resolve(
+      supabase
+        .from('user_tokens')
+        .select('id')
+        .eq('user_id', user?.id)
+        .maybeSingle()
+    )
+      .then(({ data }) => setHasYouTube(!!data))
+      .catch(() => setHasYouTube(false));
   }, [user?.id]);
 
   const changePassword = async () => {

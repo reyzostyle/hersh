@@ -15,7 +15,7 @@ export function VideoScriptPanel({ video, open, onClose, onAnalyze, analyzing }:
 
   useEffect(() => {
     if (video) {
-      setVideoContext((video as any).video_context || '');
+      setVideoContext((video as any).video_context ?? '');
     }
   }, [video?.video_id]);
 

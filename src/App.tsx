@@ -6,7 +6,6 @@ import { useEffect, useState } from 'react';
 import { supabase } from './lib/supabase';
 
 function AuthCallbackHandler() {
-  const { } = useAuth();
   const [status, setStatus] = useState<'processing' | 'error' | 'success'>('processing');
   const [errorMsg, setErrorMsg] = useState('');
 
@@ -69,6 +68,11 @@ function AuthCallbackHandler() {
         } else {
           window.history.replaceState({}, '', '/');
         }
+      })
+      .catch((err: unknown) => {
+        setStatus('error');
+        setErrorMsg(err instanceof Error ? err.message : 'Sign in failed');
+        setTimeout(() => window.history.replaceState({}, '', '/'), 3000);
       });
   }, []);
 
