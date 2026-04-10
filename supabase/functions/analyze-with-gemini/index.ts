@@ -96,6 +96,53 @@ Respond ONLY with valid JSON, no markdown:
   }
 }
 
+async function fetchPublicVideoData(videoId: string, accessToken: string): Promise<any> {
+  const res = await fetch(
+    `https://www.googleapis.com/youtube/v3/videos?id=${videoId}&part=snippet,statistics,contentDetails`,
+    { headers: { Authorization: `Bearer ${accessToken}` } }
+  );
+  if (!res.ok) throw new Error(`YouTube API error: ${await res.text()}`);
+  const data = await res.json();
+  const item = data.items?.[0];
+  if (!item) throw new Error('Video not found on YouTube');
+
+  // Parse ISO 8601 duration (PT1M30S → 90)
+  const dur = item.contentDetails.duration || 'PT0S';
+  const durMatch = dur.match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/);
+  const durationSec = durMatch
+    ? (parseInt(durMatch[1] || '0') * 3600 + parseInt(durMatch[2] || '0') * 60 + parseInt(durMatch[3] || '0'))
+    : 0;
+
+  return {
+    video_id: videoId,
+    title: item.snippet.title,
+    thumbnail_url: item.snippet.thumbnails?.medium?.url || item.snippet.thumbnails?.default?.url,
+    views: parseInt(item.statistics.viewCount || '0'),
+    likes_count: parseInt(item.statistics.likeCount || '0'),
+    comment_count: parseInt(item.statistics.commentCount || '0'),
+    duration: durationSec,
+    retention_percentage: null,
+    average_view_duration: null,
+    is_external: true,
+  };
+}
+
+async function refreshAccessToken(refreshToken: string): Promise<string> {
+  const res = await fetch('https://oauth2.googleapis.com/token', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({
+      client_id: Deno.env.get('YOUTUBE_CLIENT_ID')!,
+      client_secret: Deno.env.get('YOUTUBE_CLIENT_SECRET')!,
+      refresh_token: refreshToken,
+      grant_type: 'refresh_token',
+    }),
+  });
+  if (!res.ok) throw new Error(`Token refresh failed: ${await res.text()}`);
+  const tokens = await res.json();
+  return tokens.access_token;
+}
+
 async function analyzeWithClaude(
   video: any,
   geminiData: { transcript: string; hook_visual: string; visual_observations: string; overall_energy: string },
@@ -111,13 +158,13 @@ async function analyzeWithClaude(
     profile.channel_context && `Additional Context: ${profile.channel_context}`,
   ].filter(Boolean).join('\n');
 
+  const hasRetention = video.retention_percentage != null;
   const prompt = `You are analyzing a YouTube Short for hook effectiveness and improvement opportunities.
 
 ## Video Stats
 Title: ${video.title}
 Views: ${video.views?.toLocaleString()}
-Retention: ${video.retention_percentage}%
-Avg View Duration: ${video.average_view_duration}s
+${hasRetention ? `Retention: ${video.retention_percentage}%\nAvg View Duration: ${video.average_view_duration}s` : `Retention: N/A (external video — not from connected channel)`}
 Duration: ${video.duration}s
 
 ## Gemini Video Analysis
@@ -231,16 +278,31 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    // Get video data
-    const { data: video, error: videoError } = await supabase
+    // Get video data — own channel first, then fall back to public YouTube API
+    const { data: ownVideo } = await supabase
       .from('videos')
       .select('*')
       .eq('user_id', userId)
       .eq('video_id', videoId)
       .maybeSingle();
 
-    if (videoError || !video) {
-      throw new Error('Video not found');
+    let video = ownVideo;
+
+    if (!video) {
+      console.log('[analyze-with-gemini] Video not in DB, fetching public YouTube data...');
+      const { data: ytTokens } = await supabase
+        .from('youtube_tokens')
+        .select('refresh_token')
+        .eq('user_id', userId)
+        .maybeSingle();
+
+      if (!ytTokens?.refresh_token) {
+        throw new Error('YouTube account not connected. Please connect your YouTube account first.');
+      }
+
+      const accessToken = await refreshAccessToken(ytTokens.refresh_token);
+      video = await fetchPublicVideoData(videoId, accessToken);
+      console.log('[analyze-with-gemini] External video fetched:', video.title);
     }
 
     // Step 1: Gemini watches the video
@@ -248,8 +310,8 @@ Deno.serve(async (req: Request) => {
     const geminiData = await analyzeVideoWithGemini(videoId);
     console.log('[analyze-with-gemini] Gemini done, transcript length:', geminiData.transcript?.length);
 
-    // Save transcript to video record
-    if (geminiData.transcript) {
+    // Save transcript only for own videos
+    if (geminiData.transcript && !video.is_external) {
       await supabase
         .from('videos')
         .update({ transcript: geminiData.transcript })

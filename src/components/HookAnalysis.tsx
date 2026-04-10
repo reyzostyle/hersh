@@ -17,6 +17,8 @@ export function HookAnalysis() {
   const [scriptPanelVideo, setScriptPanelVideo] = useState<Video | null>(null);
   const [scriptPanelOpen, setScriptPanelOpen] = useState(false);
   const [geminiAnalyzing, setGeminiAnalyzing] = useState(false);
+  const [urlInput, setUrlInput] = useState('');
+  const [urlError, setUrlError] = useState('');
 
   useEffect(() => {
     loadVideos();
@@ -86,6 +88,50 @@ export function HookAnalysis() {
       `access_type=offline&` +
       `prompt=consent`;
     window.location.href = authUrl;
+  };
+
+  const extractVideoId = (url: string): string | null => {
+    const patterns = [
+      /[?&]v=([^&]+)/,
+      /shorts\/([^?&/\n]+)/,
+      /youtu\.be\/([^?&/\n]+)/,
+    ];
+    const trimmed = url.trim();
+    // Maybe it's just a raw video ID (11 chars)
+    if (/^[a-zA-Z0-9_-]{11}$/.test(trimmed)) return trimmed;
+    for (const p of patterns) {
+      const m = trimmed.match(p);
+      if (m) return m[1];
+    }
+    return null;
+  };
+
+  const handleUrlSubmit = () => {
+    setUrlError('');
+    const videoId = extractVideoId(urlInput);
+    if (!videoId) {
+      setUrlError('Invalid YouTube URL');
+      return;
+    }
+    // Check if it's own video
+    const ownVideo = videos.find(v => v.video_id === videoId);
+    if (ownVideo) {
+      setScriptPanelVideo(ownVideo);
+    } else {
+      // External video — create minimal stub, backend fetches public stats
+      setScriptPanelVideo({
+        video_id: videoId,
+        title: urlInput.trim(),
+        thumbnail_url: `https://i.ytimg.com/vi/${videoId}/mqdefault.jpg`,
+        views: 0,
+        likes_count: 0,
+        comment_count: 0,
+        duration: 0,
+        is_external: true,
+      } as any);
+    }
+    setScriptPanelOpen(true);
+    setUrlInput('');
   };
 
   const handleSelect = (videoId: string) => {
@@ -189,6 +235,35 @@ export function HookAnalysis() {
             {error}
           </div>
         )}
+      </div>
+
+      {/* URL input bar */}
+      <div className="px-6 py-3 flex-shrink-0" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+        <div className="flex items-center gap-2">
+          <input
+            type="text"
+            value={urlInput}
+            onChange={e => { setUrlInput(e.target.value); setUrlError(''); }}
+            onKeyDown={e => e.key === 'Enter' && handleUrlSubmit()}
+            placeholder="Paste any YouTube URL to analyze (own or competitor's video)..."
+            className="flex-1 text-sm px-4 py-2 rounded-lg text-gray-200 placeholder-gray-600 focus:outline-none transition-colors"
+            style={{ background: 'rgba(255,255,255,0.05)', border: `1px solid ${urlError ? 'rgba(248,113,113,0.5)' : 'rgba(255,255,255,0.08)'}` }}
+            onFocus={e => { e.currentTarget.style.borderColor = '#8B5CF6'; }}
+            onBlur={e => { e.currentTarget.style.borderColor = urlError ? 'rgba(248,113,113,0.5)' : 'rgba(255,255,255,0.08)'; }}
+          />
+          <button
+            onClick={handleUrlSubmit}
+            disabled={!urlInput.trim()}
+            className="flex items-center gap-1.5 px-4 py-2 text-white rounded-lg text-sm font-medium transition-all disabled:opacity-40 disabled:cursor-not-allowed flex-shrink-0"
+            style={{ background: 'rgba(139,92,246,0.2)', border: '1px solid rgba(139,92,246,0.4)' }}
+            onMouseEnter={e => { if (urlInput.trim()) e.currentTarget.style.background = 'rgba(139,92,246,0.35)'; }}
+            onMouseLeave={e => { e.currentTarget.style.background = 'rgba(139,92,246,0.2)'; }}
+          >
+            <Sparkles className="w-3.5 h-3.5 text-purple-400" />
+            Analyze URL
+          </button>
+        </div>
+        {urlError && <p className="mt-1.5 text-xs text-red-400">{urlError}</p>}
       </div>
 
       <div className="flex-1 overflow-auto px-6 py-5">

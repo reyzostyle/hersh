@@ -68,23 +68,37 @@ export function VideoScriptPanel({ video, open, onClose, onAnalyze, analyzing }:
                   />
                 )}
                 <div className="min-w-0">
-                  <h3 className="text-white text-sm font-medium line-clamp-2 leading-snug mb-2">
-                    {video.title}
-                  </h3>
-                  <div className="flex items-center gap-3 text-xs text-gray-500">
-                    <span className="flex items-center gap-1">
-                      <Eye className="w-3 h-3" />
-                      {fmt(video.views)}
-                    </span>
-                    <span className="flex items-center gap-1">
-                      <ThumbsUp className="w-3 h-3" />
-                      {fmt(video.likes_count ?? 0)}
-                    </span>
-                    <span className="flex items-center gap-1">
-                      <MessageSquare className="w-3 h-3" />
-                      {fmt(video.comment_count ?? 0)}
-                    </span>
-                  </div>
+                  {(video as any).is_external ? (
+                    <>
+                      <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium mb-2" style={{ background: 'rgba(139,92,246,0.15)', color: '#A78BFA' }}>
+                        External video
+                      </div>
+                      <p className="text-gray-400 text-xs font-mono truncate">
+                        youtube.com/watch?v={video.video_id}
+                      </p>
+                      <p className="text-gray-600 text-xs mt-1">Stats will be fetched during analysis</p>
+                    </>
+                  ) : (
+                    <>
+                      <h3 className="text-white text-sm font-medium line-clamp-2 leading-snug mb-2">
+                        {video.title}
+                      </h3>
+                      <div className="flex items-center gap-3 text-xs text-gray-500">
+                        <span className="flex items-center gap-1">
+                          <Eye className="w-3 h-3" />
+                          {fmt(video.views)}
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <ThumbsUp className="w-3 h-3" />
+                          {fmt(video.likes_count ?? 0)}
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <MessageSquare className="w-3 h-3" />
+                          {fmt(video.comment_count ?? 0)}
+                        </span>
+                      </div>
+                    </>
+                  )}
                 </div>
               </div>
             </div>
