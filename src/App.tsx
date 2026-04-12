@@ -5,8 +5,71 @@ import { Loader2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { supabase, getSessionToken } from './lib/supabase';
 
+function SetNewPasswordForm() {
+  const [password, setPassword] = useState('');
+  const [confirm, setConfirm] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+  const [done, setDone] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (password !== confirm) { setError('Passwords do not match'); return; }
+    if (password.length < 6) { setError('Minimum 6 characters'); return; }
+    setSaving(true);
+    setError('');
+    const { error: err } = await supabase.auth.updateUser({ password });
+    setSaving(false);
+    if (err) { setError(err.message); return; }
+    setDone(true);
+    setTimeout(() => { window.location.href = '/'; }, 2000);
+  };
+
+  return (
+    <div className="min-h-screen flex items-center justify-center px-4" style={{ background: 'linear-gradient(160deg, #0A0F1A 0%, #0D1B2A 100%)' }}>
+      <div className="w-full max-w-md rounded-2xl p-8" style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)' }}>
+        {done ? (
+          <div className="text-center">
+            <div className="text-green-400 text-3xl mb-3">✓</div>
+            <p className="text-white font-semibold">Password updated!</p>
+            <p className="text-gray-400 text-sm mt-1">Redirecting...</p>
+          </div>
+        ) : (
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <p className="text-white font-semibold text-lg mb-1">Set new password</p>
+              <p className="text-gray-400 text-sm mb-5">Choose a new password for your account.</p>
+            </div>
+            <input
+              type="password" value={password} onChange={e => setPassword(e.target.value)}
+              placeholder="New password" required
+              className="w-full px-4 py-2.5 rounded-xl text-white focus:outline-none"
+              style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)' }}
+              onFocus={e => { e.currentTarget.style.borderColor = '#0EA4E9'; }}
+              onBlur={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.12)'; }}
+            />
+            <input
+              type="password" value={confirm} onChange={e => setConfirm(e.target.value)}
+              placeholder="Confirm password" required
+              className="w-full px-4 py-2.5 rounded-xl text-white focus:outline-none"
+              style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)' }}
+              onFocus={e => { e.currentTarget.style.borderColor = '#0EA4E9'; }}
+              onBlur={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.12)'; }}
+            />
+            {error && <p className="text-red-400 text-sm bg-red-400/10 border border-red-400/20 rounded-xl p-3">{error}</p>}
+            <button type="submit" disabled={saving} className="w-full py-3 text-white rounded-xl font-semibold disabled:opacity-50" style={{ background: '#0EA4E9' }}>
+              {saving ? 'Saving...' : 'Set new password'}
+            </button>
+          </form>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function AuthCallbackHandler() {
   const [status, setStatus] = useState<'processing' | 'error' | 'success'>('processing');
+  const [isRecovery, setIsRecovery] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
 
   useEffect(() => {
@@ -75,8 +138,7 @@ function AuthCallbackHandler() {
           setErrorMsg(error.message || 'Sign in failed');
           setTimeout(() => window.history.replaceState({}, '', '/'), 3000);
         } else if (type === 'recovery') {
-          // Password reset — redirect to settings so user can set new password
-          window.history.replaceState({}, '', '/settings');
+          setIsRecovery(true);
         } else {
           window.history.replaceState({}, '', '/');
         }
@@ -87,6 +149,10 @@ function AuthCallbackHandler() {
         setTimeout(() => window.history.replaceState({}, '', '/'), 3000);
       });
   }, []);
+
+  if (isRecovery) {
+    return <SetNewPasswordForm />;
+  }
 
   if (status === 'success') {
     return (
