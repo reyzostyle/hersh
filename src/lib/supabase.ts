@@ -7,7 +7,10 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 export async function getSessionToken(): Promise<string | null> {
   const { data: { session } } = await supabase.auth.getSession();
-  return session?.access_token ?? null;
+  if (session?.access_token) return session.access_token;
+  // Session not in memory — try refreshing from storage
+  const { data } = await supabase.auth.refreshSession();
+  return data.session?.access_token ?? null;
 }
 
 export interface Video {

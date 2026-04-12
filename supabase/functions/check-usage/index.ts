@@ -20,7 +20,8 @@ Deno.serve(async (req: Request) => {
   try {
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL')!,
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
+      { auth: { autoRefreshToken: false, persistSession: false, detectSessionInUrl: false } }
     );
 
     const authHeader = req.headers.get('Authorization');
@@ -30,7 +31,8 @@ Deno.serve(async (req: Request) => {
     const token = authHeader.replace('Bearer ', '');
     const { data: { user }, error: authError } = await supabase.auth.getUser(token);
     if (authError || !user) {
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: corsHeaders });
+      console.error('[check-usage] Auth error:', authError?.message);
+      return new Response(JSON.stringify({ error: 'Unauthorized', detail: authError?.message }), { status: 401, headers: corsHeaders });
     }
     const userId = user.id;
 
