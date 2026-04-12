@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { supabase } from '../lib/supabase';
+import { supabase, getSessionToken } from '../lib/supabase';
 import { Zap, Check, Loader2, BarChart2, RefreshCw } from 'lucide-react';
 
 interface UsageData {
@@ -78,15 +78,17 @@ export function UpgradePage() {
   const loadUsage = async () => {
     setLoadingUsage(true);
     try {
+      const token = await getSessionToken();
+      if (!token) { setError('Not authenticated'); setLoadingUsage(false); return; }
       const res = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/check-usage`,
         {
           method: 'POST',
           headers: {
-            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+            Authorization: `Bearer ${token}`,
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({ userId: user?.id }),
+          body: JSON.stringify({}),
         }
       );
       const data = await res.json();
@@ -104,15 +106,17 @@ export function UpgradePage() {
     setError('');
     const priceId = planId === 'pro' ? PRO_PRICE_ID : AGENCY_PRICE_ID;
     try {
+      const token = await getSessionToken();
+      if (!token) { setError('Not authenticated'); setCheckingOut(null); return; }
       const res = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-checkout-session`,
         {
           method: 'POST',
           headers: {
-            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+            Authorization: `Bearer ${token}`,
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({ userId: user?.id, priceId, plan: planId }),
+          body: JSON.stringify({ priceId, plan: planId }),
         }
       );
       const data = await res.json();

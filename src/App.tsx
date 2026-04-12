@@ -3,7 +3,7 @@ import { AuthPage } from './components/AuthPage';
 import { Dashboard } from './components/Dashboard';
 import { Loader2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import { supabase } from './lib/supabase';
+import { supabase, getSessionToken } from './lib/supabase';
 
 function AuthCallbackHandler() {
   const [status, setStatus] = useState<'processing' | 'error' | 'success'>('processing');
@@ -33,23 +33,31 @@ function AuthCallbackHandler() {
       sessionStorage.removeItem('youtube_oauth_user_id');
       const redirectUri = 'https://hersh.live/auth/callback';
 
-      fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/youtube-oauth-callback`, {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ code, userId: youtubeUserId, redirectUri }),
+      getSessionToken().then(token => {
+        if (!token) {
+          setStatus('error');
+          setErrorMsg('Not authenticated. Please sign in again.');
+          setTimeout(() => window.history.replaceState({}, '', '/'), 4000);
+          return Promise.reject(new Error('Not authenticated'));
+        }
+        return fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/youtube-oauth-callback`, {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ code, redirectUri }),
+        });
+      }).then(async (res) => {
+        if (!res) return;
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Failed to connect YouTube');
+        setStatus('success');
+        setTimeout(() => {
+          window.history.replaceState({}, '', '/');
+          window.location.reload();
+        }, 1500);
       })
-        .then(async (res) => {
-          const data = await res.json();
-          if (!res.ok) throw new Error(data.error || 'Failed to connect YouTube');
-          setStatus('success');
-          setTimeout(() => {
-            window.history.replaceState({}, '', '/');
-            window.location.reload();
-          }, 1500);
-        })
         .catch((err) => {
           setStatus('error');
           setErrorMsg(err.message || 'Failed to connect YouTube account');

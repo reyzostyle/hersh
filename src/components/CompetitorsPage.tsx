@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { supabase } from '../lib/supabase';
+import { supabase, getSessionToken } from '../lib/supabase';
 import {
   Plus, Trash2, Loader2, Sparkles, ExternalLink, Eye,
   ChevronDown, ChevronUp, X, TrendingUp, Lightbulb, AlertCircle, Youtube
@@ -89,15 +89,17 @@ export function CompetitorsPage() {
     setAddingLoading(true);
     setAddError('');
     try {
+      const token = await getSessionToken();
+      if (!token) { setAddError('Not authenticated'); setAddingLoading(false); return; }
       const res = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/fetch-competitor-videos`,
         {
           method: 'POST',
           headers: {
-            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+            Authorization: `Bearer ${token}`,
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({ userId: user?.id, channelUrl: addingUrl.trim() }),
+          body: JSON.stringify({ channelUrl: addingUrl.trim() }),
         }
       );
       const data = await res.json();
@@ -135,16 +137,17 @@ export function CompetitorsPage() {
     setAnalyzing(true);
     setAnalyzeError('');
     try {
+      const token = await getSessionToken();
+      if (!token) { setAnalyzeError('Not authenticated'); setAnalyzing(false); return; }
       const res = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/analyze-competitor-hooks`,
         {
           method: 'POST',
           headers: {
-            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+            Authorization: `Bearer ${token}`,
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            userId: user?.id,
             channelIds: channels.map(c => c.channel_id),
           }),
         }

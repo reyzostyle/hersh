@@ -7,7 +7,6 @@ const corsHeaders = {
 };
 
 interface RequestBody {
-  userId: string;
   videoId: string; // YouTube video ID
   videoContext?: string;
 }
@@ -96,11 +95,11 @@ Respond ONLY with valid JSON, no markdown:
   }
 }
 
-async function fetchPublicVideoData(videoId: string, accessToken: string): Promise<any> {
-  const res = await fetch(
-    `https://www.googleapis.com/youtube/v3/videos?id=${videoId}&part=snippet,statistics,contentDetails`,
-    { headers: { Authorization: `Bearer ${accessToken}` } }
-  );
+async function fetchPublicVideoData(videoId: string, accessTokenOrApiKey: string, useApiKey = false): Promise<any> {
+  const url = useApiKey
+    ? `https://www.googleapis.com/youtube/v3/videos?id=${videoId}&part=snippet,statistics,contentDetails&key=${accessTokenOrApiKey}`
+    : `https://www.googleapis.com/youtube/v3/videos?id=${videoId}&part=snippet,statistics,contentDetails`;
+  const res = await fetch(url, useApiKey ? {} : { headers: { Authorization: `Bearer ${accessTokenOrApiKey}` } });
   if (!res.ok) throw new Error(`YouTube API error: ${await res.text()}`);
   const data = await res.json();
   const item = data.items?.[0];
@@ -158,14 +157,16 @@ async function analyzeWithClaude(
     profile.channel_context && `Additional Context: ${profile.channel_context}`,
   ].filter(Boolean).join('\n');
 
+  const hasStats = video.views != null;
   const hasRetention = video.retention_percentage != null;
   const prompt = `You are analyzing a YouTube Short for hook effectiveness and improvement opportunities.
 
 ## Video Stats
 Title: ${video.title}
-Views: ${video.views?.toLocaleString()}
-${hasRetention ? `Retention: ${video.retention_percentage}%\nAvg View Duration: ${video.average_view_duration}s` : `Retention: N/A (external video — not from connected channel)`}
+${hasStats ? `Views: ${video.views?.toLocaleString()}
+Likes: ${video.likes_count?.toLocaleString()}
 Duration: ${video.duration}s
+${hasRetention ? `Retention: ${video.retention_percentage}%\nAvg View Duration: ${video.average_view_duration}s` : `Retention: N/A (external video)`}` : `Stats: Not available (external video — focus analysis on content and visuals only)`}
 
 ## Gemini Video Analysis
 Transcript: ${geminiData.transcript || 'Not available'}
@@ -243,7 +244,18 @@ Deno.serve(async (req: Request) => {
       { auth: { autoRefreshToken: false, persistSession: false, detectSessionInUrl: false } }
     );
 
-    const { userId, videoId, videoContext }: RequestBody = await req.json();
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader?.startsWith('Bearer ')) {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: corsHeaders });
+    }
+    const token = authHeader.replace('Bearer ', '');
+    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+    if (authError || !user) {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: corsHeaders });
+    }
+    const userId = user.id;
+
+    const { videoId, videoContext }: RequestBody = await req.json();
     console.log(`[analyze-with-gemini] user=${userId}, videoId=${videoId}`);
 
     // Check plan limits
@@ -289,20 +301,19 @@ Deno.serve(async (req: Request) => {
     let video = ownVideo;
 
     if (!video) {
-      console.log('[analyze-with-gemini] Video not in DB, fetching public YouTube data...');
-      const { data: ytTokens } = await supabase
-        .from('youtube_tokens')
-        .select('refresh_token')
-        .eq('user_id', userId)
-        .maybeSingle();
-
-      if (!ytTokens?.refresh_token) {
-        throw new Error('YouTube account not connected. Please connect your YouTube account first.');
+      console.log('[analyze-with-gemini] External video — fetching public stats via API key...');
+      const ytApiKey = Deno.env.get('YOUTUBE_API_KEY');
+      if (ytApiKey) {
+        try {
+          video = await fetchPublicVideoData(videoId, ytApiKey, true);
+          console.log('[analyze-with-gemini] External video stats fetched:', video.title);
+        } catch (e) {
+          console.log('[analyze-with-gemini] Could not fetch stats, proceeding without:', e);
+          video = { video_id: videoId, title: `youtube.com/watch?v=${videoId}`, views: null, likes_count: null, comment_count: null, duration: null, retention_percentage: null, average_view_duration: null, is_external: true };
+        }
+      } else {
+        video = { video_id: videoId, title: `youtube.com/watch?v=${videoId}`, views: null, likes_count: null, comment_count: null, duration: null, retention_percentage: null, average_view_duration: null, is_external: true };
       }
-
-      const accessToken = await refreshAccessToken(ytTokens.refresh_token);
-      video = await fetchPublicVideoData(videoId, accessToken);
-      console.log('[analyze-with-gemini] External video fetched:', video.title);
     }
 
     // Step 1: Gemini watches the video

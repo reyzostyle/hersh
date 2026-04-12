@@ -57,19 +57,30 @@ Deno.serve(async (req: Request) => {
   }
 
   try {
-    const { userId, videoId } = await req.json();
-
-    if (!userId || !videoId) {
-      return new Response(
-        JSON.stringify({ error: "userId and videoId are required" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
+
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader?.startsWith("Bearer ")) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: corsHeaders });
+    }
+    const token = authHeader.replace("Bearer ", "");
+    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+    if (authError || !user) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: corsHeaders });
+    }
+    const userId = user.id;
+
+    const { videoId } = await req.json();
+
+    if (!videoId) {
+      return new Response(
+        JSON.stringify({ error: "videoId is required" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
 
     const { data: video, error: videoError } = await supabase
       .from("videos")

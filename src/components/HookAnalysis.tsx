@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { supabase, Video, Analysis } from '../lib/supabase';
+import { supabase, getSessionToken, Video, Analysis } from '../lib/supabase';
 import { RefreshCw, Sparkles, Loader2 } from 'lucide-react';
 import { VideoCard } from './VideoCard';
 import { AnalysisPanel } from './AnalysisPanel';
@@ -49,15 +49,17 @@ export function HookAnalysis() {
     setFetching(true);
     setError('');
     try {
+      const token = await getSessionToken();
+      if (!token) { setError('Not authenticated'); setFetching(false); return; }
       const res = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/fetch-youtube-data`,
         {
           method: 'POST',
           headers: {
-            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+            Authorization: `Bearer ${token}`,
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({ userId: user?.id }),
+          body: JSON.stringify({}),
         }
       );
       if (!res.ok) {
@@ -142,15 +144,17 @@ export function HookAnalysis() {
     setGeminiAnalyzing(true);
     setError('');
     try {
+      const token = await getSessionToken();
+      if (!token) { setError('Not authenticated'); setGeminiAnalyzing(false); return; }
       const res = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/analyze-with-gemini`,
         {
           method: 'POST',
           headers: {
-            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+            Authorization: `Bearer ${token}`,
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({ userId: user?.id, videoId, videoContext }),
+          body: JSON.stringify({ videoId, videoContext }),
         }
       );
       if (!res.ok) {

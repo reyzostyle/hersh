@@ -7,7 +7,6 @@ const corsHeaders = {
 };
 
 interface RequestBody {
-  userId: string;
   videoIds: string[];
 }
 
@@ -260,7 +259,18 @@ Deno.serve(async (req: Request) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     );
 
-    const { userId, videoIds }: RequestBody = await req.json();
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader?.startsWith('Bearer ')) {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: corsHeaders });
+    }
+    const token = authHeader.replace('Bearer ', '');
+    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+    if (authError || !user) {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: corsHeaders });
+    }
+    const userId = user.id;
+
+    const { videoIds }: RequestBody = await req.json();
     console.log(`[main] Fetching transcripts for user ${userId}, videos: ${videoIds.join(', ')}`);
 
     const { data: tokenData, error: tokenError } = await supabase

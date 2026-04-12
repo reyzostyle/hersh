@@ -23,8 +23,18 @@ Deno.serve(async (req: Request) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     );
 
-    const { userId, priceId: requestedPriceId, plan } = await req.json();
-    if (!userId) throw new Error('userId is required');
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader?.startsWith('Bearer ')) {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: corsHeaders });
+    }
+    const token = authHeader.replace('Bearer ', '');
+    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+    if (authError || !user) {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: corsHeaders });
+    }
+    const userId = user.id;
+
+    const { priceId: requestedPriceId, plan } = await req.json();
 
     const proPriceId = Deno.env.get('STRIPE_PRO_PRICE_ID');
     const agencyPriceId = Deno.env.get('STRIPE_AGENCY_PRICE_ID');
