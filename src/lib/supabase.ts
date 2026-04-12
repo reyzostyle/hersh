@@ -6,11 +6,9 @@ const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYm
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 export async function getSessionToken(): Promise<string | null> {
-  const { data: { session }, error } = await supabase.auth.getSession();
-  console.log('[getSessionToken] email:', session?.user?.email, 'has_token:', !!session?.access_token, 'token_start:', session?.access_token?.slice(0, 15), 'error:', error?.message);
+  const { data: { session } } = await supabase.auth.getSession();
   if (session?.access_token) return session.access_token;
-  const { data, error: refreshError } = await supabase.auth.refreshSession();
-  console.log('[getSessionToken] refresh:', !!data.session?.access_token, 'error:', refreshError?.message);
+  const { data } = await supabase.auth.refreshSession();
   return data.session?.access_token ?? null;
 }
 
