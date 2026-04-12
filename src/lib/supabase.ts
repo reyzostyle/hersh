@@ -6,10 +6,11 @@ const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYm
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 export async function getSessionToken(): Promise<string | null> {
-  const { data: { session } } = await supabase.auth.getSession();
+  const { data: { session }, error } = await supabase.auth.getSession();
+  console.log('[getSessionToken] email:', session?.user?.email, 'has_token:', !!session?.access_token, 'token_start:', session?.access_token?.slice(0, 15), 'error:', error?.message);
   if (session?.access_token) return session.access_token;
-  // Session not in memory — try refreshing from storage
-  const { data } = await supabase.auth.refreshSession();
+  const { data, error: refreshError } = await supabase.auth.refreshSession();
+  console.log('[getSessionToken] refresh:', !!data.session?.access_token, 'error:', refreshError?.message);
   return data.session?.access_token ?? null;
 }
 
