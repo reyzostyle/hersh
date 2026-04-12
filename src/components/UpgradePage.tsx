@@ -72,8 +72,8 @@ export function UpgradePage() {
   const [error, setError] = useState('');
 
   useEffect(() => {
-    loadUsage();
-  }, []);
+    if (user) loadUsage();
+  }, [user?.id]);
 
   const loadUsage = async () => {
     setLoadingUsage(true);
