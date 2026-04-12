@@ -66,13 +66,17 @@ function AuthCallbackHandler() {
       return;
     }
 
-    // Otherwise it's a Supabase Auth callback
+    // Otherwise it's a Supabase Auth callback (login, signup confirmation, or password reset)
+    const type = params.get('type');
     supabase.auth.exchangeCodeForSession(code)
       .then(({ error }) => {
         if (error) {
           setStatus('error');
           setErrorMsg(error.message || 'Sign in failed');
           setTimeout(() => window.history.replaceState({}, '', '/'), 3000);
+        } else if (type === 'recovery') {
+          // Password reset — redirect to settings so user can set new password
+          window.history.replaceState({}, '', '/settings');
         } else {
           window.history.replaceState({}, '', '/');
         }

@@ -1,14 +1,32 @@
 import { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
+import { supabase } from '../lib/supabase';
 
 export function AuthPage() {
   const [isLogin, setIsLogin] = useState(true);
+  const [isForgot, setIsForgot] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
+  const [resetSent, setResetSent] = useState(false);
   const { signInWithEmail, signUpWithEmail, signInWithGoogle } = useAuth();
+
+  const handleForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    setLoading(true);
+    const { error: err } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: 'https://hersh.live/auth/callback?type=recovery',
+    });
+    setLoading(false);
+    if (err) {
+      setError(err.message);
+    } else {
+      setResetSent(true);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -77,7 +95,47 @@ export function AuthPage() {
             WebkitBackdropFilter: 'blur(16px)',
           }}
         >
-          <form onSubmit={handleSubmit} className="space-y-5 mb-5">
+          {/* Forgot password screen */}
+          {isForgot && (
+            <div>
+              {resetSent ? (
+                <div className="text-center py-4">
+                  <div className="text-green-400 text-2xl mb-3">✓</div>
+                  <p className="text-white font-medium mb-1">Check your email</p>
+                  <p className="text-gray-400 text-sm mb-6">We sent a reset link to <strong>{email}</strong></p>
+                  <button onClick={() => { setIsForgot(false); setResetSent(false); }} className="text-sm" style={{ color: '#0EA4E9' }}>Back to sign in</button>
+                </div>
+              ) : (
+                <form onSubmit={handleForgotPassword} className="space-y-5">
+                  <div>
+                    <p className="text-white font-semibold mb-1">Reset password</p>
+                    <p className="text-gray-400 text-sm mb-4">Enter your email and we'll send you a reset link.</p>
+                    <input
+                      type="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      placeholder="Email"
+                      className="w-full px-4 py-2.5 rounded-xl text-white focus:outline-none"
+                      style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)' }}
+                      onFocus={(e) => { e.currentTarget.style.borderColor = '#0EA4E9'; }}
+                      onBlur={(e) => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.12)'; }}
+                      required
+                    />
+                  </div>
+                  {error && <div className="text-red-400 text-sm bg-red-400/10 border border-red-400/20 rounded-xl p-3">{error}</div>}
+                  <button type="submit" disabled={loading} className="w-full py-3 text-white rounded-xl font-semibold disabled:opacity-50" style={{ background: '#0EA4E9' }}>
+                    {loading ? 'Sending...' : 'Send reset link'}
+                  </button>
+                  <div className="text-center">
+                    <button type="button" onClick={() => setIsForgot(false)} className="text-sm" style={{ color: '#6B7280' }}>Back to sign in</button>
+                  </div>
+                </form>
+              )}
+            </div>
+          )}
+
+          {/* Normal login/signup */}
+          {!isForgot && <form onSubmit={handleSubmit} className="space-y-5 mb-5">
             <div>
               <label htmlFor="email" className="block text-sm font-medium mb-2" style={{ color: '#D1D5DB' }}>
                 Email
@@ -120,6 +178,16 @@ export function AuthPage() {
               />
             </div>
 
+            {isLogin && (
+              <div className="text-right -mt-2">
+                <button type="button" onClick={() => { setIsForgot(true); setError(''); }} className="text-xs" style={{ color: '#6B7280' }}
+                  onMouseEnter={(e) => { e.currentTarget.style.color = '#0EA4E9'; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.color = '#6B7280'; }}>
+                  Forgot password?
+                </button>
+              </div>
+            )}
+
             {error && (
               <div className="text-red-400 text-sm bg-red-400/10 border border-red-400/20 rounded-xl p-3">
                 {error}
@@ -136,9 +204,9 @@ export function AuthPage() {
             >
               {loading ? 'Loading...' : isLogin ? 'Sign In' : 'Sign Up'}
             </button>
-          </form>
+          </form>}
 
-          <div className="flex items-center gap-3 mb-5">
+          {!isForgot && <div className="flex items-center gap-3 mb-5">
             <div className="flex-1 h-px" style={{ background: 'rgba(255,255,255,0.1)' }} />
             <span className="text-xs uppercase tracking-wider" style={{ color: '#6B7280' }}>or</span>
             <div className="flex-1 h-px" style={{ background: 'rgba(255,255,255,0.1)' }} />
@@ -175,7 +243,7 @@ export function AuthPage() {
             >
               {isLogin ? "Don't have an account? Sign up" : 'Already have an account? Sign in'}
             </button>
-          </div>
+          </div>}
         </div>
       </div>
     </div>
