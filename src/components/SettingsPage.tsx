@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
-import { Save, Loader2, Check, User, Tv, Youtube, Lock } from 'lucide-react';
+import { Save, Loader2, Check, User, Tv, Youtube, Lock, Eye, EyeOff } from 'lucide-react';
 
 type SettingsTab = 'profile' | 'niche';
 
@@ -41,8 +41,10 @@ export function SettingsPage() {
 }
 
 function ProfileTab({ user }: { user: any }) {
+  const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
+  const [showCurrent, setShowCurrent] = useState(false);
+  const [showNew, setShowNew] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState('');
@@ -61,25 +63,21 @@ function ProfileTab({ user }: { user: any }) {
   }, [user?.id]);
 
   const changePassword = async () => {
-    if (!newPassword) return;
-    if (newPassword !== confirmPassword) {
-      setError('Passwords do not match');
-      return;
-    }
-    if (newPassword.length < 6) {
-      setError('Password must be at least 6 characters');
-      return;
-    }
+    if (!currentPassword || !newPassword) return;
+    if (newPassword.length < 6) { setError('New password must be at least 6 characters'); return; }
     setSaving(true);
     setError('');
+    // Verify current password first
+    const { error: signInErr } = await supabase.auth.signInWithPassword({ email: user?.email, password: currentPassword });
+    if (signInErr) { setSaving(false); setError('Current password is incorrect'); return; }
     const { error: err } = await supabase.auth.updateUser({ password: newPassword });
     setSaving(false);
     if (err) {
       setError(err.message);
     } else {
       setSaved(true);
+      setCurrentPassword('');
       setNewPassword('');
-      setConfirmPassword('');
       setTimeout(() => setSaved(false), 2500);
     }
   };
@@ -106,29 +104,39 @@ function ProfileTab({ user }: { user: any }) {
         </h2>
         <div className="space-y-3">
           <div>
-            <label className="block text-xs font-medium text-gray-400 mb-1.5 uppercase tracking-wide">New Password</label>
-            <input
-              type="password"
-              value={newPassword}
-              onChange={e => setNewPassword(e.target.value)}
-              placeholder="Enter new password"
-              className="w-full px-4 py-2.5 bg-[#212121] border border-gray-700 rounded-lg text-white placeholder-gray-600 text-sm focus:border-[#0EA4E9] focus:outline-none"
-            />
+            <label className="block text-xs font-medium text-gray-400 mb-1.5 uppercase tracking-wide">Current Password</label>
+            <div className="relative">
+              <input
+                type={showCurrent ? 'text' : 'password'}
+                value={currentPassword}
+                onChange={e => setCurrentPassword(e.target.value)}
+                placeholder="Enter current password"
+                className="w-full px-4 py-2.5 pr-10 bg-[#212121] border border-gray-700 rounded-lg text-white placeholder-gray-600 text-sm focus:border-[#0EA4E9] focus:outline-none"
+              />
+              <button type="button" onClick={() => setShowCurrent(!showCurrent)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-300">
+                {showCurrent ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              </button>
+            </div>
           </div>
           <div>
-            <label className="block text-xs font-medium text-gray-400 mb-1.5 uppercase tracking-wide">Confirm Password</label>
-            <input
-              type="password"
-              value={confirmPassword}
-              onChange={e => setConfirmPassword(e.target.value)}
-              placeholder="Confirm new password"
-              className="w-full px-4 py-2.5 bg-[#212121] border border-gray-700 rounded-lg text-white placeholder-gray-600 text-sm focus:border-[#0EA4E9] focus:outline-none"
-            />
+            <label className="block text-xs font-medium text-gray-400 mb-1.5 uppercase tracking-wide">New Password</label>
+            <div className="relative">
+              <input
+                type={showNew ? 'text' : 'password'}
+                value={newPassword}
+                onChange={e => setNewPassword(e.target.value)}
+                placeholder="Enter new password"
+                className="w-full px-4 py-2.5 pr-10 bg-[#212121] border border-gray-700 rounded-lg text-white placeholder-gray-600 text-sm focus:border-[#0EA4E9] focus:outline-none"
+              />
+              <button type="button" onClick={() => setShowNew(!showNew)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-300">
+                {showNew ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              </button>
+            </div>
           </div>
           {error && <p className="text-red-400 text-sm">{error}</p>}
           <button
             onClick={changePassword}
-            disabled={saving || !newPassword}
+            disabled={saving || !currentPassword || !newPassword}
             className="flex items-center gap-2 px-5 py-2.5 bg-[#0EA4E9] text-white rounded-lg text-sm font-semibold hover:bg-[#0EA4E9]/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : saved ? <Check className="w-4 h-4" /> : <Save className="w-4 h-4" />}
@@ -188,11 +196,13 @@ function NicheTab({ userId }: { userId?: string }) {
     setError('');
     const { error: err } = await supabase
       .from('user_tokens')
-      .update({ channel_niche: channelNiche, channel_description: channelDescription })
-      .eq('user_id', userId);
+      .upsert(
+        { user_id: userId, channel_niche: channelNiche, channel_description: channelDescription },
+        { onConflict: 'user_id' }
+      );
     setSaving(false);
     if (err) {
-      setError('Failed to save');
+      setError('Failed to save: ' + err.message);
     } else {
       setSaved(true);
       setTimeout(() => setSaved(false), 2500);
