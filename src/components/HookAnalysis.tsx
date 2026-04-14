@@ -1,15 +1,18 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase, getSessionToken, Video, Analysis } from '../lib/supabase';
-import { RefreshCw, Sparkles, Loader2 } from 'lucide-react';
+import { RefreshCw, Sparkles, Loader2, History } from 'lucide-react';
 import { VideoCard } from './VideoCard';
 import { AnalysisPanel } from './AnalysisPanel';
+import { HistoryPanel } from './HistoryPanel';
 import { VideoScriptPanel } from './VideoScriptPanel';
 
 export function HookAnalysis() {
   const { user } = useAuth();
   const [videos, setVideos] = useState<Video[]>([]);
   const [analysis, setAnalysis] = useState<Analysis | null>(null);
+  const [analyses, setAnalyses] = useState<Analysis[]>([]);
+  const [historyPanelOpen, setHistoryPanelOpen] = useState(false);
   const [fetching, setFetching] = useState(false);
   const [error, setError] = useState('');
   const [selectedVideoId, setSelectedVideoId] = useState<string | null>(null);
@@ -22,7 +25,7 @@ export function HookAnalysis() {
 
   useEffect(() => {
     loadVideos();
-    loadLatestAnalysis();
+    loadAllAnalyses();
   }, [user?.id]);
 
   const loadVideos = async () => {
@@ -34,15 +37,16 @@ export function HookAnalysis() {
     setVideos(data || []);
   };
 
-  const loadLatestAnalysis = async () => {
+  const loadAllAnalyses = async () => {
     const { data } = await supabase
       .from('analyses')
       .select('*')
       .eq('user_id', user?.id)
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .maybeSingle();
-    if (data) setAnalysis(data);
+      .order('created_at', { ascending: false });
+    if (data && data.length > 0) {
+      setAnalyses(data);
+      setAnalysis(data[0]);
+    }
   };
 
   const fetchYouTubeData = async () => {
@@ -162,7 +166,10 @@ export function HookAnalysis() {
         throw new Error(d.error || 'Failed to analyze');
       }
       const result = await res.json();
-      if (result.analysis) setAnalysis(result.analysis);
+      if (result.analysis) {
+        setAnalysis(result.analysis);
+        setAnalyses(prev => [result.analysis, ...prev]);
+      }
       setAnalysisPanelOpen(true);
       setScriptPanelOpen(false);
     } catch (err) {
@@ -206,14 +213,14 @@ export function HookAnalysis() {
               <span className="hidden sm:inline">{fetching ? 'Fetching...' : 'Sync'}</span>
             </button>
 
-            {analysis && !analysisPanelOpen && (
+            {analyses.length > 0 && (
               <button
-                onClick={() => setAnalysisPanelOpen(true)}
+                onClick={() => setHistoryPanelOpen(true)}
                 className="flex items-center gap-2 px-4 py-2 text-white hover:opacity-90 rounded-lg text-sm font-medium transition-opacity"
                 style={{ background: '#0EA4E9' }}
               >
-                <Sparkles className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">Last Analysis</span>
+                <History className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">History</span>
               </button>
             )}
 
@@ -299,6 +306,13 @@ export function HookAnalysis() {
           </>
         )}
       </div>
+
+      <HistoryPanel
+        analyses={analyses}
+        open={historyPanelOpen}
+        onClose={() => setHistoryPanelOpen(false)}
+        onSelect={(a) => { setAnalysis(a); setAnalysisPanelOpen(true); }}
+      />
 
       <AnalysisPanel
         analysis={analysis}
