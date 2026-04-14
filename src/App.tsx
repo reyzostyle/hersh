@@ -182,27 +182,15 @@ function AuthCallbackHandler() {
 function AppContent() {
   const { user, loading } = useAuth();
 
-  // Save referral code to user_tokens once after signup
+  // Save referral code to referral_signups once after signup
   useEffect(() => {
     if (!user) return;
     const refCode = localStorage.getItem('hersh_ref');
     if (!refCode) return;
     supabase
-      .from('user_tokens')
-      .select('referral_code')
-      .eq('user_id', user.id)
-      .maybeSingle()
-      .then(({ data }) => {
-        if (data && !data.referral_code) {
-          supabase
-            .from('user_tokens')
-            .update({ referral_code: refCode })
-            .eq('user_id', user.id)
-            .then(() => localStorage.removeItem('hersh_ref'));
-        } else if (data?.referral_code) {
-          localStorage.removeItem('hersh_ref');
-        }
-      });
+      .from('referral_signups')
+      .insert({ user_id: user.id, referral_code: refCode })
+      .then(() => localStorage.removeItem('hersh_ref'));
   }, [user?.id]);
 
   if (loading) {

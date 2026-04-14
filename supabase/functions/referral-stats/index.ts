@@ -72,7 +72,7 @@ Deno.serve(async (req: Request) => {
   async function getStats(codes: any[]) {
     return await Promise.all(codes.map(async (rc) => {
       const [{ count: signups }, { data: convRows }] = await Promise.all([
-        supabase.from('user_tokens').select('*', { count: 'exact', head: true }).eq('referral_code', rc.code),
+        supabase.from('referral_signups').select('*', { count: 'exact', head: true }).eq('referral_code', rc.code),
         supabase.from('referral_conversions').select('commission_cents').eq('referral_code', rc.code),
       ]);
       const conversions = convRows?.length ?? 0;
