@@ -1,7 +1,27 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
-import { Save, Loader2, Check, User, Tv, Youtube, Lock, Eye, EyeOff } from 'lucide-react';
+import { Save, Loader2, Check, User, Tv, Lock, Eye, EyeOff, RefreshCw, Link } from 'lucide-react';
+
+function YouTubeLogo({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="currentColor">
+      <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
+    </svg>
+  );
+}
+
+const glassCard: React.CSSProperties = {
+  background: 'rgba(255,255,255,0.04)',
+  border: '1px solid rgba(255,255,255,0.08)',
+  backdropFilter: 'blur(12px)',
+  WebkitBackdropFilter: 'blur(12px)',
+};
+
+const glassInput: React.CSSProperties = {
+  background: 'rgba(255,255,255,0.06)',
+  border: '1px solid rgba(255,255,255,0.1)',
+};
 
 type SettingsTab = 'profile' | 'niche';
 
@@ -10,11 +30,14 @@ export function SettingsPage() {
   const [activeTab, setActiveTab] = useState<SettingsTab>('profile');
 
   return (
-    <div className="px-6 py-8 max-w-3xl">
-      <h1 className="text-2xl font-bold text-white mb-1">Settings</h1>
-      <p className="text-gray-500 mb-6">Manage your account, channel context, and subscription.</p>
+    <div className="h-full flex flex-col overflow-auto">
+      <div className="px-6 py-5 flex-shrink-0" style={{ borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+        <h1 className="text-2xl font-bold text-white mb-1">Settings</h1>
+        <p className="text-sm text-gray-500">Manage your account, channel context, and subscription.</p>
+      </div>
+      <div className="px-6 py-6 max-w-3xl">
 
-      <div className="flex gap-1 mb-8 bg-[#1A1A1A] rounded-lg p-1 border border-gray-800 w-fit">
+      <div className="flex gap-1 mb-8 rounded-lg p-1 w-fit" style={glassCard}>
         {([
           { id: 'profile', label: 'Profile', icon: <User className="w-3.5 h-3.5" /> },
           { id: 'niche', label: 'Niche & Context', icon: <Tv className="w-3.5 h-3.5" /> },
@@ -24,9 +47,10 @@ export function SettingsPage() {
             onClick={() => setActiveTab(tab.id)}
             className={`flex items-center gap-1.5 px-4 py-2 rounded-md text-sm font-medium transition-all ${
               activeTab === tab.id
-                ? 'bg-[#212121] text-white shadow-sm'
+                ? 'text-white'
                 : 'text-gray-400 hover:text-white'
             }`}
+            style={activeTab === tab.id ? { background: 'rgba(255,255,255,0.08)' } : {}}
           >
             {tab.icon}
             {tab.label}
@@ -36,6 +60,7 @@ export function SettingsPage() {
 
       {activeTab === 'profile' && <ProfileTab user={user} />}
       {activeTab === 'niche' && <NicheTab userId={user?.id} />}
+      </div>
     </div>
   );
 }
@@ -48,26 +73,44 @@ function ProfileTab({ user }: { user: any }) {
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState('');
-  const [hasYouTube, setHasYouTube] = useState<boolean | null>(null);
+  const [youtubeStatus, setYoutubeStatus] = useState<{ connected: boolean; updatedAt?: string } | null>(null);
 
   useEffect(() => {
-    Promise.resolve(
-      supabase
-        .from('user_tokens')
-        .select('id')
-        .eq('user_id', user?.id)
-        .maybeSingle()
-    )
-      .then(({ data }) => setHasYouTube(!!data))
-      .catch(() => setHasYouTube(false));
+    supabase
+      .from('user_tokens')
+      .select('id, updated_at, access_token')
+      .eq('user_id', user?.id)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (data?.access_token) {
+          setYoutubeStatus({ connected: true, updatedAt: data.updated_at });
+        } else {
+          setYoutubeStatus({ connected: false });
+        }
+      })
+      .catch(() => setYoutubeStatus({ connected: false }));
   }, [user?.id]);
+
+  const connectYouTube = () => {
+    if (!user?.id) return;
+    const clientId = import.meta.env.VITE_YOUTUBE_CLIENT_ID;
+    const redirectUri = 'https://hersh.live/auth/callback';
+    const scope = 'https://www.googleapis.com/auth/youtube.readonly https://www.googleapis.com/auth/yt-analytics.readonly https://www.googleapis.com/auth/youtube.force-ssl';
+    sessionStorage.setItem('youtube_oauth_user_id', user.id);
+    window.location.href = `https://accounts.google.com/o/oauth2/v2/auth?` +
+      `client_id=${clientId}&` +
+      `redirect_uri=${encodeURIComponent(redirectUri)}&` +
+      `response_type=code&` +
+      `scope=${encodeURIComponent(scope)}&` +
+      `access_type=offline&` +
+      `prompt=consent`;
+  };
 
   const changePassword = async () => {
     if (!currentPassword || !newPassword) return;
     if (newPassword.length < 6) { setError('New password must be at least 6 characters'); return; }
     setSaving(true);
     setError('');
-    // Verify current password first
     const { error: signInErr } = await supabase.auth.signInWithPassword({ email: user?.email, password: currentPassword });
     if (signInErr) { setSaving(false); setError('Current password is incorrect'); return; }
     const { error: err } = await supabase.auth.updateUser({ password: newPassword });
@@ -83,35 +126,38 @@ function ProfileTab({ user }: { user: any }) {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="bg-[#1A1A1A] rounded-xl border border-gray-800 p-5">
+    <div className="space-y-4">
+      <div className="rounded-xl p-5" style={glassCard}>
         <h2 className="text-base font-semibold text-white mb-4 flex items-center gap-2">
           <User className="w-4 h-4 text-gray-400" />
           Account
         </h2>
         <div>
-          <label className="block text-xs font-medium text-gray-400 mb-1.5 uppercase tracking-wide">Email</label>
-          <div className="px-4 py-2.5 bg-[#212121] border border-gray-800 rounded-lg text-gray-400 text-sm">
+          <label className="block text-xs font-medium text-gray-500 mb-1.5 uppercase tracking-wide">Email</label>
+          <div className="px-4 py-2.5 rounded-lg text-gray-400 text-sm" style={glassInput}>
             {user?.email}
           </div>
         </div>
       </div>
 
-      <div className="bg-[#1A1A1A] rounded-xl border border-gray-800 p-5">
+      <div className="rounded-xl p-5" style={glassCard}>
         <h2 className="text-base font-semibold text-white mb-4 flex items-center gap-2">
           <Lock className="w-4 h-4 text-gray-400" />
           Change Password
         </h2>
         <div className="space-y-3">
           <div>
-            <label className="block text-xs font-medium text-gray-400 mb-1.5 uppercase tracking-wide">Current Password</label>
+            <label className="block text-xs font-medium text-gray-500 mb-1.5 uppercase tracking-wide">Current Password</label>
             <div className="relative">
               <input
                 type={showCurrent ? 'text' : 'password'}
                 value={currentPassword}
                 onChange={e => setCurrentPassword(e.target.value)}
                 placeholder="Enter current password"
-                className="w-full px-4 py-2.5 pr-10 bg-[#212121] border border-gray-700 rounded-lg text-white placeholder-gray-600 text-sm focus:border-[#0EA4E9] focus:outline-none"
+                className="w-full px-4 py-2.5 pr-10 rounded-lg text-white placeholder-gray-600 text-sm focus:outline-none transition-colors"
+                style={glassInput}
+                onFocus={e => { e.currentTarget.style.borderColor = '#0EA4E9'; }}
+                onBlur={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)'; }}
               />
               <button type="button" onClick={() => setShowCurrent(!showCurrent)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-300">
                 {showCurrent ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
@@ -119,14 +165,17 @@ function ProfileTab({ user }: { user: any }) {
             </div>
           </div>
           <div>
-            <label className="block text-xs font-medium text-gray-400 mb-1.5 uppercase tracking-wide">New Password</label>
+            <label className="block text-xs font-medium text-gray-500 mb-1.5 uppercase tracking-wide">New Password</label>
             <div className="relative">
               <input
                 type={showNew ? 'text' : 'password'}
                 value={newPassword}
                 onChange={e => setNewPassword(e.target.value)}
                 placeholder="Enter new password"
-                className="w-full px-4 py-2.5 pr-10 bg-[#212121] border border-gray-700 rounded-lg text-white placeholder-gray-600 text-sm focus:border-[#0EA4E9] focus:outline-none"
+                className="w-full px-4 py-2.5 pr-10 rounded-lg text-white placeholder-gray-600 text-sm focus:outline-none transition-colors"
+                style={glassInput}
+                onFocus={e => { e.currentTarget.style.borderColor = '#0EA4E9'; }}
+                onBlur={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)'; }}
               />
               <button type="button" onClick={() => setShowNew(!showNew)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-300">
                 {showNew ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
@@ -137,7 +186,8 @@ function ProfileTab({ user }: { user: any }) {
           <button
             onClick={changePassword}
             disabled={saving || !currentPassword || !newPassword}
-            className="flex items-center gap-2 px-5 py-2.5 bg-[#0EA4E9] text-white rounded-lg text-sm font-semibold hover:bg-[#0EA4E9]/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex items-center gap-2 px-5 py-2.5 text-white rounded-lg text-sm font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            style={{ background: '#0EA4E9' }}
           >
             {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : saved ? <Check className="w-4 h-4" /> : <Save className="w-4 h-4" />}
             {saving ? 'Saving...' : saved ? 'Password Updated!' : 'Update Password'}
@@ -145,22 +195,49 @@ function ProfileTab({ user }: { user: any }) {
         </div>
       </div>
 
-      <div className="bg-[#1A1A1A] rounded-xl border border-gray-800 p-5">
+      <div className="rounded-xl p-5" style={glassCard}>
         <h2 className="text-base font-semibold text-white mb-4 flex items-center gap-2">
-          <Youtube className="w-4 h-4 text-gray-400" />
-          Connected YouTube Account
+          <YouTubeLogo className="w-4 h-4 text-[#FF0000]" />
+          YouTube Account
         </h2>
-        {hasYouTube === null ? (
-          <div className="h-8 flex items-center"><Loader2 className="w-4 h-4 text-gray-500 animate-spin" /></div>
-        ) : hasYouTube ? (
-          <div className="flex items-center gap-3">
-            <div className="w-2 h-2 rounded-full bg-emerald-400" />
-            <span className="text-sm text-gray-300">YouTube account connected</span>
+        {youtubeStatus === null ? (
+          <div className="h-10 flex items-center"><Loader2 className="w-4 h-4 text-gray-500 animate-spin" /></div>
+        ) : youtubeStatus.connected ? (
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-2 h-2 rounded-full bg-emerald-400 shrink-0" />
+              <div>
+                <p className="text-sm text-gray-200 font-medium">Connected</p>
+                {youtubeStatus.updatedAt && (
+                  <p className="text-xs text-gray-500 mt-0.5">
+                    Last synced {new Date(youtubeStatus.updatedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                  </p>
+                )}
+              </div>
+            </div>
+            <button
+              onClick={connectYouTube}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-400 rounded-lg hover:text-gray-200 transition-colors"
+              style={{ border: '1px solid rgba(255,255,255,0.12)' }}
+            >
+              <RefreshCw className="w-3 h-3" />
+              Reconnect
+            </button>
           </div>
         ) : (
-          <div className="flex items-center gap-3">
-            <div className="w-2 h-2 rounded-full bg-gray-600" />
-            <span className="text-sm text-gray-500">No YouTube account connected</span>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-2 h-2 rounded-full bg-gray-600 shrink-0" />
+              <p className="text-sm text-gray-500">No account connected</p>
+            </div>
+            <button
+              onClick={connectYouTube}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-white rounded-lg transition-colors"
+              style={{ background: '#FF0000' }}
+            >
+              <Link className="w-3 h-3" />
+              Connect
+            </button>
           </div>
         )}
       </div>
@@ -194,12 +271,22 @@ function NicheTab({ userId }: { userId?: string }) {
   const save = async () => {
     setSaving(true);
     setError('');
-    const { error: err } = await supabase
+    const { data: existing } = await supabase
       .from('user_tokens')
-      .upsert(
-        { user_id: userId, channel_niche: channelNiche, channel_description: channelDescription },
-        { onConflict: 'user_id' }
-      );
+      .select('user_id')
+      .eq('user_id', userId)
+      .maybeSingle();
+    let err;
+    if (existing) {
+      ({ error: err } = await supabase
+        .from('user_tokens')
+        .update({ channel_niche: channelNiche, channel_description: channelDescription })
+        .eq('user_id', userId));
+    } else {
+      ({ error: err } = await supabase
+        .from('user_tokens')
+        .insert({ user_id: userId, channel_niche: channelNiche, channel_description: channelDescription, access_token: '', refresh_token: '' }));
+    }
     setSaving(false);
     if (err) {
       setError('Failed to save: ' + err.message);
@@ -214,8 +301,8 @@ function NicheTab({ userId }: { userId?: string }) {
   }
 
   return (
-    <div className="space-y-5">
-      <div className="bg-[#1A1A1A] rounded-xl border border-gray-800 p-5">
+    <div className="space-y-4">
+      <div className="rounded-xl p-5" style={glassCard}>
         <div className="mb-5">
           <h2 className="text-base font-semibold text-white mb-1">Niche & Context</h2>
           <p className="text-sm text-gray-500">
@@ -225,24 +312,30 @@ function NicheTab({ userId }: { userId?: string }) {
 
         <div className="space-y-4">
           <div>
-            <label className="block text-xs font-medium text-gray-400 mb-1.5 uppercase tracking-wide">Channel Niche</label>
+            <label className="block text-xs font-medium text-gray-500 mb-1.5 uppercase tracking-wide">Channel Niche</label>
             <input
               type="text"
               value={channelNiche}
               onChange={e => setChannelNiche(e.target.value)}
               placeholder="e.g. Personal finance for millennials, fitness & weight loss, tech reviews..."
-              className="w-full px-4 py-2.5 bg-[#212121] border border-gray-700 rounded-lg text-white placeholder-gray-600 text-sm focus:border-[#0EA4E9] focus:outline-none"
+              className="w-full px-4 py-2.5 rounded-lg text-white placeholder-gray-600 text-sm focus:outline-none transition-colors"
+              style={glassInput}
+              onFocus={e => { e.currentTarget.style.borderColor = '#0EA4E9'; }}
+              onBlur={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)'; }}
             />
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-gray-400 mb-1.5 uppercase tracking-wide">Channel Description</label>
+            <label className="block text-xs font-medium text-gray-500 mb-1.5 uppercase tracking-wide">Channel Description</label>
             <textarea
               value={channelDescription}
               onChange={e => setChannelDescription(e.target.value)}
               placeholder="Describe your channel, content style, tone, and target audience. The more detail you give, the better the analysis."
               rows={4}
-              className="w-full px-4 py-3 bg-[#212121] border border-gray-700 rounded-lg text-white placeholder-gray-600 text-sm focus:border-[#0EA4E9] focus:outline-none resize-none leading-relaxed"
+              className="w-full px-4 py-3 rounded-lg text-white placeholder-gray-600 text-sm focus:outline-none resize-none leading-relaxed transition-colors"
+              style={glassInput}
+              onFocus={e => { e.currentTarget.style.borderColor = '#0EA4E9'; }}
+              onBlur={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)'; }}
             />
           </div>
         </div>
@@ -253,7 +346,8 @@ function NicheTab({ userId }: { userId?: string }) {
           <button
             onClick={save}
             disabled={saving}
-            className="flex items-center gap-2 px-5 py-2.5 bg-[#0EA4E9] text-white rounded-lg text-sm font-semibold hover:bg-[#0EA4E9]/90 transition-colors disabled:opacity-50"
+            className="flex items-center gap-2 px-5 py-2.5 text-white rounded-lg text-sm font-semibold transition-colors disabled:opacity-50"
+            style={{ background: '#0EA4E9' }}
           >
             {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : saved ? <Check className="w-4 h-4" /> : <Save className="w-4 h-4" />}
             {saving ? 'Saving...' : saved ? 'Saved!' : 'Save'}
@@ -263,4 +357,3 @@ function NicheTab({ userId }: { userId?: string }) {
     </div>
   );
 }
-

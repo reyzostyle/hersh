@@ -1,8 +1,11 @@
-import { useState } from 'react';
-import { Sparkles, Settings, MessageCircle, LogOut, Menu, X, Zap } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Sparkles, Settings, MessageCircle, LogOut, Menu, X, Zap, Users } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import { supabase } from '../lib/supabase';
 
-export type NavTab = 'hooks' | 'upgrade' | 'settings' | 'support';
+export type NavTab = 'hooks' | 'upgrade' | 'settings' | 'support' | 'partners';
+
+const ADMIN_EMAIL = 'reyzostyle@gmail.com';
 
 interface NavItem {
   id: NavTab;
@@ -17,16 +20,35 @@ interface AppShellProps {
   children: React.ReactNode;
 }
 
-const navItems: NavItem[] = [
+const baseNavItems: NavItem[] = [
   { id: 'hooks', label: 'Shorts Analysis', icon: <Sparkles className="w-4 h-4" /> },
   { id: 'upgrade', label: 'Upgrade', icon: <Zap className="w-4 h-4" />, highlight: true },
   { id: 'settings', label: 'Settings', icon: <Settings className="w-4 h-4" /> },
   { id: 'support', label: 'Support', icon: <MessageCircle className="w-4 h-4" /> },
 ];
 
+const partnersItem: NavItem = { id: 'partners', label: 'Partners', icon: <Users className="w-4 h-4" /> };
+
 export function AppShell({ activeTab, onTabChange, children }: AppShellProps) {
   const { user, signOut } = useAuth();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [isPartner, setIsPartner] = useState(false);
+
+  const isAdmin = user?.email === ADMIN_EMAIL;
+
+  useEffect(() => {
+    if (!user || isAdmin) return;
+    supabase
+      .from('referral_codes')
+      .select('id')
+      .eq('owner_user_id', user.id)
+      .maybeSingle()
+      .then(({ data }) => setIsPartner(!!data));
+  }, [user?.id]);
+
+  const navItems = (isAdmin || isPartner)
+    ? [baseNavItems[0], baseNavItems[1], partnersItem, baseNavItems[2], baseNavItems[3]]
+    : baseNavItems;
 
   return (
     <div className="h-screen flex overflow-hidden relative" style={{ background: 'linear-gradient(160deg, #0A0F1A 0%, #0D1B2A 100%)' }}>

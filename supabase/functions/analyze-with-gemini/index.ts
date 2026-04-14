@@ -177,7 +177,10 @@ Visual Observations: ${geminiData.visual_observations || 'Not available'}
 
 Overall Energy: ${geminiData.overall_energy}
 
-${profileSection ? `## Channel Profile\n${profileSection}\n` : ''}
+${profileSection ? `## Channel Profile (the user who requested this analysis)
+${profileSection}
+Note: If this video is from a completely different niche than the channel profile above, ignore the profile and analyze the video objectively. If it's related or could be relevant as inspiration, use the profile to tailor recommendations.
+` : ''}
 ${videoContext?.trim() ? `## Additional Context\n${videoContext}\n` : ''}
 
 Analyze the hook and overall video performance. Use both the transcript AND visual data from Gemini.

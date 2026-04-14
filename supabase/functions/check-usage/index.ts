@@ -18,25 +18,33 @@ Deno.serve(async (req: Request) => {
   }
 
   try {
-    const supabase = createClient(
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader?.startsWith('Bearer ')) {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: corsHeaders });
+    }
+
+    const userRes = await fetch(`${Deno.env.get('SUPABASE_URL')}/auth/v1/user`, {
+      headers: {
+        Authorization: authHeader,
+        apikey: Deno.env.get('SUPABASE_ANON_KEY')!,
+      },
+    });
+    if (!userRes.ok) {
+      return new Response(
+        JSON.stringify({ error: 'Unauthorized' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+    const authUser = await userRes.json();
+    const userId = authUser.id;
+
+    const supabaseAdmin = createClient(
       Deno.env.get('SUPABASE_URL')!,
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
       { auth: { autoRefreshToken: false, persistSession: false, detectSessionInUrl: false } }
     );
 
-    const authHeader = req.headers.get('Authorization');
-    if (!authHeader?.startsWith('Bearer ')) {
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: corsHeaders });
-    }
-    const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
-    if (authError || !user) {
-      console.error('[check-usage] Auth error:', authError?.message);
-      return new Response(JSON.stringify({ error: 'Unauthorized', detail: authError?.message }), { status: 401, headers: corsHeaders });
-    }
-    const userId = user.id;
-
-    const { data: tokenRow, error } = await supabase
+    const { data: tokenRow, error } = await supabaseAdmin
       .from('user_tokens')
       .select('plan, analyses_used, analyses_reset_at')
       .eq('user_id', userId)
@@ -53,7 +61,7 @@ Deno.serve(async (req: Request) => {
       if (new Date() > resetAt) {
         const newResetAt = new Date();
         newResetAt.setDate(newResetAt.getDate() + 30);
-        await supabase
+        await supabaseAdmin
           .from('user_tokens')
           .update({ analyses_used: 0, analyses_reset_at: newResetAt.toISOString() })
           .eq('user_id', userId);

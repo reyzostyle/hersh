@@ -188,54 +188,48 @@ export function HookAnalysis() {
 
   return (
     <div className="h-full flex flex-col">
+      {/* Header */}
       <div className="px-6 py-5 flex-shrink-0" style={{ borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
         <div className="flex items-start justify-between gap-4">
           <div>
             <h1 className="text-2xl font-bold text-white mb-1">Shorts Analysis</h1>
-            <p className="text-sm text-gray-500">
-              Click a video to select it and analyze it
-            </p>
+            <p className="text-sm text-gray-500">Select a video and analyze it</p>
           </div>
           <div className="flex items-center gap-2 flex-shrink-0">
             <button
               onClick={fetchYouTubeData}
               disabled={fetching}
-              className="flex items-center gap-2 px-4 py-2 text-white rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
-              style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)' }}
-              onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.25)'; }}
-              onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.12)'; }}
+              className="flex items-center gap-2 px-4 py-2 text-white hover:opacity-90 rounded-lg text-sm font-medium transition-opacity disabled:opacity-50"
+              style={{ background: '#374151' }}
             >
               {fetching ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
-              {fetching ? 'Fetching...' : 'Sync'}
+              <span className="hidden sm:inline">{fetching ? 'Fetching...' : 'Sync'}</span>
             </button>
 
             {analysis && !analysisPanelOpen && (
               <button
                 onClick={() => setAnalysisPanelOpen(true)}
-                className="flex items-center gap-2 px-4 py-2 text-[#0EA4E9] rounded-lg text-sm font-medium transition-colors"
-                style={{ background: 'rgba(14,164,233,0.08)', border: '1px solid rgba(14,164,233,0.3)' }}
-                onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#0EA4E9'; }}
-                onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'rgba(14,164,233,0.3)'; }}
+                className="flex items-center gap-2 px-4 py-2 text-white hover:opacity-90 rounded-lg text-sm font-medium transition-opacity"
+                style={{ background: '#0EA4E9' }}
               >
                 <Sparkles className="w-3.5 h-3.5" />
-                Last Analysis
+                <span className="hidden sm:inline">Last Analysis</span>
               </button>
             )}
 
             <button
               onClick={handleAnalyzeClick}
               disabled={!selectedVideoId || geminiAnalyzing}
-              className="flex items-center gap-2 px-4 py-2 text-white rounded-lg text-sm font-semibold transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+              className="flex items-center gap-2 px-4 py-2 text-white hover:opacity-90 rounded-lg text-sm font-semibold transition-opacity disabled:cursor-not-allowed"
               style={{ background: 'linear-gradient(135deg, #8B5CF6, #0EA4E9)' }}
             >
               {geminiAnalyzing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
-              {geminiAnalyzing ? 'Analyzing...' : 'Analyze'}
+              <span className="hidden sm:inline">{geminiAnalyzing ? 'Analyzing...' : 'Analyze'}</span>
             </button>
           </div>
         </div>
-
         {error && (
-          <div className="mt-4 text-sm text-red-400 bg-red-400/10 border border-red-400/20 rounded-lg px-4 py-3">
+          <div className="mt-3 text-sm text-red-400 bg-red-400/10 border border-red-400/20 rounded-lg px-4 py-3">
             {error}
           </div>
         )}
@@ -249,22 +243,20 @@ export function HookAnalysis() {
             value={urlInput}
             onChange={e => { setUrlInput(e.target.value); setUrlError(''); }}
             onKeyDown={e => e.key === 'Enter' && handleUrlSubmit()}
-            placeholder="Paste any YouTube URL to analyze (own or competitor's video)..."
-            className="flex-1 text-sm px-4 py-2 rounded-lg text-gray-200 placeholder-gray-600 focus:outline-none transition-colors"
-            style={{ background: 'rgba(255,255,255,0.05)', border: `1px solid ${urlError ? 'rgba(248,113,113,0.5)' : 'rgba(255,255,255,0.08)'}` }}
+            placeholder="Paste a YouTube URL to analyze..."
+            className="flex-1 text-sm px-4 py-2.5 rounded-lg text-white placeholder-gray-600 focus:outline-none transition-all"
+            style={{ background: 'rgba(255,255,255,0.06)', border: `1px solid ${urlError ? 'rgba(248,113,113,0.5)' : 'rgba(255,255,255,0.1)'}` }}
             onFocus={e => { e.currentTarget.style.borderColor = '#8B5CF6'; }}
-            onBlur={e => { e.currentTarget.style.borderColor = urlError ? 'rgba(248,113,113,0.5)' : 'rgba(255,255,255,0.08)'; }}
+            onBlur={e => { e.currentTarget.style.borderColor = urlError ? 'rgba(248,113,113,0.5)' : 'rgba(255,255,255,0.1)'; }}
           />
           <button
             onClick={handleUrlSubmit}
             disabled={!urlInput.trim()}
-            className="flex items-center gap-1.5 px-4 py-2 text-white rounded-lg text-sm font-medium transition-all disabled:opacity-40 disabled:cursor-not-allowed flex-shrink-0"
-            style={{ background: 'rgba(139,92,246,0.2)', border: '1px solid rgba(139,92,246,0.4)' }}
-            onMouseEnter={e => { if (urlInput.trim()) e.currentTarget.style.background = 'rgba(139,92,246,0.35)'; }}
-            onMouseLeave={e => { e.currentTarget.style.background = 'rgba(139,92,246,0.2)'; }}
+            className="flex items-center gap-1.5 px-4 py-2.5 text-white hover:opacity-90 rounded-lg text-sm font-semibold transition-opacity disabled:cursor-not-allowed flex-shrink-0"
+            style={{ background: '#8B5CF6' }}
           >
-            <Sparkles className="w-3.5 h-3.5 text-purple-400" />
-            Analyze URL
+            <Sparkles className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">Analyze URL</span>
           </button>
         </div>
         {urlError && <p className="mt-1.5 text-xs text-red-400">{urlError}</p>}
@@ -294,7 +286,7 @@ export function HookAnalysis() {
                 </button>
               )}
             </div>
-            <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-8 gap-3">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
               {videos.map(video => (
                 <VideoCard
                   key={video.id}

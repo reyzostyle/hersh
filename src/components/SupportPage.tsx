@@ -2,11 +2,13 @@ import { MessageCircle, ExternalLink } from 'lucide-react';
 
 export function SupportPage() {
   return (
-    <div className="px-6 py-8 max-w-2xl">
-      <h1 className="text-2xl font-bold text-white mb-1">Support</h1>
-      <p className="text-gray-500 mb-8">Get help, share feedback, or connect with other creators.</p>
-
-      <div className="bg-[#1A1A1A] rounded-xl border border-gray-800 p-6 flex items-start gap-4">
+    <div className="h-full flex flex-col overflow-auto">
+      <div className="px-6 py-5 flex-shrink-0" style={{ borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+        <h1 className="text-2xl font-bold text-white mb-1">Support</h1>
+        <p className="text-sm text-gray-500">Get help, share feedback, or connect with other creators.</p>
+      </div>
+      <div className="px-6 py-6 max-w-2xl">
+      <div className="rounded-xl p-6 flex items-start gap-4" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)' }}>
         <div className="w-12 h-12 rounded-xl bg-[#5865F2]/15 flex items-center justify-center flex-shrink-0">
           <MessageCircle className="w-6 h-6 text-[#5865F2]" />
         </div>
@@ -26,6 +28,7 @@ export function SupportPage() {
             <ExternalLink className="w-3.5 h-3.5 opacity-70" />
           </a>
         </div>
+      </div>
       </div>
     </div>
   );

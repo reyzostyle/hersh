@@ -76,6 +76,37 @@ Deno.serve(async (req: Request) => {
         .eq('user_id', userId);
 
       console.log(`[stripe-webhook] Updated user ${userId} to plan=${plan}`);
+
+      // Record referral conversion if user came via a ref link
+      const amountCents = session.amount_total ?? 0;
+      if (amountCents > 0) {
+        const { data: tokenRow } = await supabase
+          .from('user_tokens')
+          .select('referral_code')
+          .eq('user_id', userId)
+          .maybeSingle();
+
+        if (tokenRow?.referral_code) {
+          const { data: refCode } = await supabase
+            .from('referral_codes')
+            .select('commission_percent')
+            .eq('code', tokenRow.referral_code)
+            .maybeSingle();
+
+          if (refCode) {
+            const commissionCents = Math.round(amountCents * refCode.commission_percent / 100);
+            await supabase.from('referral_conversions').insert({
+              referral_code: tokenRow.referral_code,
+              referred_user_id: userId,
+              plan,
+              amount_cents: amountCents,
+              commission_cents: commissionCents,
+              stripe_subscription_id: subscriptionId || null,
+            });
+            console.log(`[stripe-webhook] Referral conversion: code=${tokenRow.referral_code} commission=$${commissionCents / 100}`);
+          }
+        }
+      }
     }
 
     if (event.type === 'customer.subscription.deleted') {

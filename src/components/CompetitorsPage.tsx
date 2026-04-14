@@ -187,7 +187,7 @@ export function CompetitorsPage() {
 
   return (
     <div className="h-full flex flex-col">
-      <div className="px-6 py-5 border-b border-gray-800 flex-shrink-0">
+      <div className="px-6 py-5 flex-shrink-0" style={{ borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
         <div className="flex items-start justify-between gap-4">
           <div>
             <h1 className="text-2xl font-bold text-white mb-1">Competitors</h1>

@@ -16,7 +16,7 @@ const AGENCY_PRICE_ID = import.meta.env.VITE_STRIPE_AGENCY_PRICE_ID;
 const plans = [
   {
     id: 'free',
-    name: 'Free',
+    name: 'Trial',
     price: '$0',
     period: 'forever',
     analyses: '3 total',
@@ -31,7 +31,7 @@ const plans = [
   },
   {
     id: 'pro',
-    name: 'Pro',
+    name: 'Plus',
     price: '$8',
     period: '/month',
     analyses: '30/month',
@@ -43,11 +43,11 @@ const plans = [
       'Hook ideas & weak spots',
       'Channel profile context',
     ],
-    cta: 'Upgrade to Pro',
+    cta: 'Upgrade to Plus',
   },
   {
     id: 'agency',
-    name: 'Agency',
+    name: 'Pro',
     price: '$19',
     period: '/month',
     analyses: '200/month',
@@ -60,7 +60,7 @@ const plans = [
       'Channel profile context',
       'Priority support',
     ],
-    cta: 'Upgrade to Agency',
+    cta: 'Upgrade to Pro',
   },
 ];
 
@@ -134,7 +134,7 @@ export function UpgradePage() {
 
   return (
     <div className="h-full overflow-auto">
-      <div className="px-6 py-5 border-b border-gray-800">
+      <div className="px-6 py-5" style={{ borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
         <h1 className="text-2xl font-bold text-white mb-1">Plans & Billing</h1>
         <p className="text-sm text-gray-500">Manage your subscription and analysis usage</p>
       </div>
@@ -146,7 +146,7 @@ export function UpgradePage() {
           </div>
         )}
 
-        <div className="mb-8 p-5 bg-[#1A1A1A] border border-gray-800 rounded-xl">
+        <div className="mb-8 p-5 rounded-xl" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)' }}>
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
               <BarChart2 className="w-4 h-4 text-gray-400" />
@@ -182,7 +182,7 @@ export function UpgradePage() {
                   )}
                 </span>
               </div>
-              <div className="w-full h-2 bg-gray-800 rounded-full overflow-hidden">
+              <div className="w-full h-2 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.08)' }}>
                 <div
                   className={`h-full rounded-full transition-all duration-500 ${
                     usagePercent >= 90 ? 'bg-red-500' : usagePercent >= 70 ? 'bg-amber-500' : 'bg-[#0EA4E9]'
@@ -210,13 +210,13 @@ export function UpgradePage() {
             return (
               <div
                 key={plan.id}
-                className={`relative flex flex-col p-5 rounded-xl border transition-all ${
-                  plan.id === 'pro'
-                    ? 'border-[#0EA4E9]/50 bg-[#0EA4E9]/5'
-                    : isCurrent
-                    ? 'border-gray-600 bg-[#1A1A1A]'
-                    : 'border-gray-800 bg-[#1A1A1A] hover:border-gray-700'
-                }`}
+                className="relative flex flex-col p-5 rounded-xl transition-all"
+                style={{
+                  background: plan.id === 'pro' ? 'rgba(14,164,233,0.06)' : 'rgba(255,255,255,0.04)',
+                  border: plan.id === 'pro' ? '1px solid rgba(14,164,233,0.4)' : isCurrent ? '1px solid rgba(255,255,255,0.15)' : '1px solid rgba(255,255,255,0.08)',
+                  backdropFilter: 'blur(12px)',
+                  WebkitBackdropFilter: 'blur(12px)',
+                }}
               >
                 {plan.id === 'pro' && !isCurrent && (
                   <div className="absolute -top-3 left-1/2 -translate-x-1/2">
@@ -248,7 +248,7 @@ export function UpgradePage() {
                 </ul>
 
                 {isCurrent ? (
-                  <div className="w-full py-2.5 text-center text-sm font-medium text-gray-500 border border-gray-700 rounded-lg">
+                  <div className="w-full py-2.5 text-center text-sm font-medium text-gray-500 rounded-lg" style={{ border: '1px solid rgba(255,255,255,0.1)' }}>
                     Current Plan
                   </div>
                 ) : isHigher ? (
@@ -269,7 +269,7 @@ export function UpgradePage() {
                     {checkingOut === plan.id ? 'Redirecting...' : plan.cta}
                   </button>
                 ) : (
-                  <div className="w-full py-2.5 text-center text-sm font-medium text-gray-600 border border-gray-800 rounded-lg">
+                  <div className="w-full py-2.5 text-center text-sm font-medium text-gray-600 rounded-lg" style={{ border: '1px solid rgba(255,255,255,0.06)' }}>
                     {plan.id === 'free' ? 'Downgrade' : plan.cta}
                   </div>
                 )}
