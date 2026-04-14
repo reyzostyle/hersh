@@ -2,7 +2,7 @@ import { createClient } from 'npm:@supabase/supabase-js@2.57.4';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+  'Access-Control-Allow-Methods': 'GET, POST, PATCH, DELETE, OPTIONS',
   'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Client-Info, Apikey',
 };
 
@@ -49,6 +49,21 @@ Deno.serve(async (req: Request) => {
       commission_percent: 50,
       owner_user_id,
     });
+    if (error) return new Response(JSON.stringify({ error: error.message }), { status: 400, headers: corsHeaders });
+    return new Response(JSON.stringify({ ok: true }), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+  }
+
+  // ── PATCH: assign owner email to existing partner (admin only) ───────
+  if (req.method === 'PATCH') {
+    if (!isAdmin) return new Response(JSON.stringify({ error: 'Forbidden' }), { status: 403, headers: corsHeaders });
+    const { code, owner_email } = await req.json();
+    if (!code || !owner_email) return new Response(JSON.stringify({ error: 'code and owner_email required' }), { status: 400, headers: corsHeaders });
+
+    const { data: users } = await supabase.auth.admin.listUsers();
+    const found = users?.users?.find((u: any) => u.email === owner_email);
+    if (!found) return new Response(JSON.stringify({ error: `No user found with email: ${owner_email}` }), { status: 400, headers: corsHeaders });
+
+    const { error } = await supabase.from('referral_codes').update({ owner_user_id: found.id }).eq('code', code);
     if (error) return new Response(JSON.stringify({ error: error.message }), { status: 400, headers: corsHeaders });
     return new Response(JSON.stringify({ ok: true }), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
   }

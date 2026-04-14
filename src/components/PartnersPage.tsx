@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase, getSessionToken } from '../lib/supabase';
-import { Copy, Check, Users, TrendingUp, DollarSign, Loader2, Plus, RefreshCw } from 'lucide-react';
+import { Copy, Check, Users, TrendingUp, DollarSign, Loader2, Plus, RefreshCw, Trash2, Link } from 'lucide-react';
 
 const ADMIN_EMAIL = 'reyzostyle@gmail.com';
 
@@ -13,6 +13,7 @@ const glassCard: React.CSSProperties = {
 };
 
 interface PartnerStats {
+  id: string;
   code: string;
   partner_name: string;
   commission_percent: number;
@@ -144,6 +145,10 @@ function AdminView() {
   const [newCode, setNewCode] = useState('');
   const [newName, setNewName] = useState('');
   const [newEmail, setNewEmail] = useState('');
+  // assign email to existing partner
+  const [assigningCode, setAssigningCode] = useState<string | null>(null);
+  const [assignEmail, setAssignEmail] = useState('');
+  const [assignLoading, setAssignLoading] = useState(false);
 
   useEffect(() => { loadAll(); }, []);
 
@@ -181,10 +186,42 @@ function AdminView() {
       setNewCode(''); setNewName(''); setNewEmail('');
       setShowForm(false);
       loadAll();
-    } catch (e) {
+    } catch {
       alert('Request failed or timed out. Check that the edge function is deployed.');
     } finally {
       setCreating(false);
+    }
+  };
+
+  const deletePartner = async (code: string) => {
+    if (!confirm(`Delete partner "${code}"? This cannot be undone.`)) return;
+    await supabase.from('referral_codes').delete().eq('code', code);
+    loadAll();
+  };
+
+  const assignOwner = async (code: string) => {
+    if (!assignEmail.trim()) return;
+    setAssignLoading(true);
+    try {
+      const token = await getSessionToken();
+      const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/referral-stats`, {
+        method: 'PATCH',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code, owner_email: assignEmail.trim() }),
+        signal: AbortSignal.timeout(15000),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        alert(err.error || 'Failed to assign');
+        return;
+      }
+      setAssigningCode(null);
+      setAssignEmail('');
+      loadAll();
+    } catch {
+      alert('Request failed or timed out.');
+    } finally {
+      setAssignLoading(false);
     }
   };
 
@@ -246,30 +283,69 @@ function AdminView() {
         ) : (
           <div className="space-y-2">
             {partners.map(p => (
-              <div key={p.code} className="flex items-center gap-4 px-4 py-3 rounded-lg" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
-                    <span className="text-white font-medium text-sm">{p.partner_name}</span>
-                    <span className="text-xs text-gray-600 font-mono">?ref={p.code}</span>
-                    {!p.active && <span className="text-xs text-red-400">inactive</span>}
+              <div key={p.code}>
+                <div className="flex items-center gap-4 px-4 py-3 rounded-lg" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span className="text-white font-medium text-sm">{p.partner_name}</span>
+                      <span className="text-xs text-gray-600 font-mono">?ref={p.code}</span>
+                      {!p.active && <span className="text-xs text-red-400">inactive</span>}
+                      {!p.owner_user_id && <span className="text-xs text-amber-500">no account linked</span>}
+                    </div>
+                    <p className="text-xs text-gray-600 mt-0.5">{p.commission_percent}% commission</p>
                   </div>
-                  <p className="text-xs text-gray-600 mt-0.5">{p.commission_percent}% commission</p>
+                  <div className="flex items-center gap-6 text-sm flex-shrink-0">
+                    <div className="text-center">
+                      <p className="text-white font-semibold">{p.signups}</p>
+                      <p className="text-xs text-gray-600">signups</p>
+                    </div>
+                    <div className="text-center">
+                      <p className="text-white font-semibold">{p.conversions}</p>
+                      <p className="text-xs text-gray-600">paid</p>
+                    </div>
+                    <div className="text-center">
+                      <p className="text-emerald-400 font-semibold">${(p.total_commission_cents / 100).toFixed(2)}</p>
+                      <p className="text-xs text-gray-600">earned</p>
+                    </div>
+                    <CopyButton text={`https://hersh.live?ref=${p.code}`} />
+                    <button
+                      onClick={() => { setAssigningCode(assigningCode === p.code ? null : p.code); setAssignEmail(''); }}
+                      className="p-1.5 text-gray-500 hover:text-blue-400 transition-colors rounded"
+                      title="Link account"
+                    >
+                      <Link className="w-3.5 h-3.5" />
+                    </button>
+                    <button
+                      onClick={() => deletePartner(p.code)}
+                      className="p-1.5 text-gray-500 hover:text-red-400 transition-colors rounded"
+                      title="Delete"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
                 </div>
-                <div className="flex items-center gap-6 text-sm flex-shrink-0">
-                  <div className="text-center">
-                    <p className="text-white font-semibold">{p.signups}</p>
-                    <p className="text-xs text-gray-600">signups</p>
+
+                {assigningCode === p.code && (
+                  <div className="mt-1 px-4 py-3 rounded-lg flex items-center gap-3" style={{ background: 'rgba(14,164,233,0.06)', border: '1px solid rgba(14,164,233,0.15)' }}>
+                    <input
+                      value={assignEmail}
+                      onChange={e => setAssignEmail(e.target.value)}
+                      placeholder="partner@email.com"
+                      type="email"
+                      className="flex-1 px-3 py-1.5 rounded-lg text-white text-sm focus:outline-none"
+                      style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }}
+                    />
+                    <button
+                      onClick={() => assignOwner(p.code)}
+                      disabled={assignLoading || !assignEmail}
+                      className="px-3 py-1.5 text-sm font-medium text-white rounded-lg disabled:opacity-50"
+                      style={{ background: '#0EA4E9' }}
+                    >
+                      {assignLoading ? 'Linking...' : 'Link account'}
+                    </button>
+                    <button onClick={() => setAssigningCode(null)} className="text-sm text-gray-500 hover:text-white">Cancel</button>
                   </div>
-                  <div className="text-center">
-                    <p className="text-white font-semibold">{p.conversions}</p>
-                    <p className="text-xs text-gray-600">paid</p>
-                  </div>
-                  <div className="text-center">
-                    <p className="text-emerald-400 font-semibold">${(p.total_commission_cents / 100).toFixed(2)}</p>
-                    <p className="text-xs text-gray-600">earned</p>
-                  </div>
-                  <CopyButton text={`https://hersh.live?ref=${p.code}`} />
-                </div>
+                )}
               </div>
             ))}
           </div>
