@@ -144,26 +144,34 @@ export function HookAnalysis() {
     try {
       if (!user?.id) throw new Error('Not authenticated');
 
-      // Step 1: Upload to Supabase Storage via REST API (bypasses TUS protocol issues)
-      const safeName = file.name.replace(/[^a-zA-Z0-9.\-_]/g, '_');
-      storagePath = `${user.id}/${Date.now()}_${safeName}`;
+      // Step 1: Get signed upload URL from edge function (uses service role, bypasses RLS + TUS)
       const token0 = await getSessionToken();
       if (!token0) throw new Error('Not authenticated');
-      const uploadRes = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/storage/v1/object/video-uploads/${storagePath}`,
+      const urlRes = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/get-upload-url`,
         {
           method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${token0}`,
-            'Content-Type': file.type || 'video/mp4',
-            'x-upsert': 'false',
-          },
-          body: file,
+          headers: { Authorization: `Bearer ${token0}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ fileName: file.name }),
         }
       );
+      if (!urlRes.ok) {
+        let msg = `HTTP ${urlRes.status}`;
+        try { const d = await urlRes.json(); msg = d.error || msg; } catch {}
+        throw new Error(msg);
+      }
+      const { signedUrl, storagePath: sp } = await urlRes.json();
+      storagePath = sp;
+
+      // Step 2: Upload file directly to signed URL (PUT, no TUS, no RLS)
+      const uploadRes = await fetch(signedUrl, {
+        method: 'PUT',
+        headers: { 'Content-Type': file.type || 'video/mp4' },
+        body: file,
+      });
       if (!uploadRes.ok) {
         const errText = await uploadRes.text();
-        throw new Error(`Storage upload failed: ${uploadRes.status} - ${errText}`);
+        throw new Error(`Upload failed: ${uploadRes.status} - ${errText}`);
       }
 
       setUploadStep('analyzing');
