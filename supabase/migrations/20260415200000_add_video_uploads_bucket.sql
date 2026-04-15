@@ -4,7 +4,7 @@ VALUES (
   'video-uploads',
   'video-uploads',
   false,
-  209715200,
+  314572800,
   ARRAY['video/mp4', 'video/quicktime', 'video/webm', 'video/x-msvideo', 'video/mpeg', 'video/mov']
 ) ON CONFLICT (id) DO NOTHING;
 

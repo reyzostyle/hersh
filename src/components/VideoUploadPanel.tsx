@@ -11,7 +11,7 @@ interface VideoUploadPanelProps {
 }
 
 const ACCEPTED_TYPES = ['video/mp4', 'video/quicktime', 'video/webm', 'video/x-msvideo'];
-const MAX_SIZE_MB = 200;
+const MAX_SIZE_MB = 300;
 
 export function VideoUploadPanel({ open, onClose, onAnalyze, analyzing, isPro, uploadStep }: VideoUploadPanelProps) {
   const [file, setFile] = useState<File | null>(null);
