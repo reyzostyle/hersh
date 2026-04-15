@@ -144,13 +144,27 @@ export function HookAnalysis() {
     try {
       if (!user?.id) throw new Error('Not authenticated');
 
-      // Step 1: Upload to Supabase Storage (bypasses edge function body size limit)
+      // Step 1: Upload to Supabase Storage via REST API (bypasses TUS protocol issues)
       const safeName = file.name.replace(/[^a-zA-Z0-9.\-_]/g, '_');
       storagePath = `${user.id}/${Date.now()}_${safeName}`;
-      const { error: uploadError } = await supabase.storage
-        .from('video-uploads')
-        .upload(storagePath, file, { contentType: file.type, upsert: false });
-      if (uploadError) throw new Error(`Storage upload failed: ${uploadError.message}`);
+      const token0 = await getSessionToken();
+      if (!token0) throw new Error('Not authenticated');
+      const uploadRes = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/storage/v1/object/video-uploads/${storagePath}`,
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token0}`,
+            'Content-Type': file.type || 'video/mp4',
+            'x-upsert': 'false',
+          },
+          body: file,
+        }
+      );
+      if (!uploadRes.ok) {
+        const errText = await uploadRes.text();
+        throw new Error(`Storage upload failed: ${uploadRes.status} - ${errText}`);
+      }
 
       setUploadStep('analyzing');
 
