@@ -162,45 +162,22 @@ export function HookAnalysis() {
       const { uploadUrl } = await sessionRes.json();
       if (!uploadUrl) throw new Error('No upload URL received');
 
-      // Step 2: Upload file in 3MB chunks through relay edge function → Gemini
-      const CHUNK_SIZE = 3 * 1024 * 1024;
-      const buffer = await file.arrayBuffer();
-      const totalChunks = Math.ceil(file.size / CHUNK_SIZE);
-      let geminiFileName = '';
-
-      for (let i = 0; i < totalChunks; i++) {
-        const offset = i * CHUNK_SIZE;
-        const chunkSize = Math.min(CHUNK_SIZE, file.size - offset);
-        const chunkView = new Uint8Array(buffer, offset, chunkSize);
-        const isLast = i === totalChunks - 1;
-
-        // Base64 encode in 8KB sub-chunks to avoid stack overflow
-        let binary = '';
-        const SUB = 8192;
-        for (let j = 0; j < chunkView.byteLength; j += SUB) {
-          binary += String.fromCharCode(...chunkView.subarray(j, j + SUB));
-        }
-        const chunkBase64 = btoa(binary);
-
-        const chunkRes = await fetch(
-          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/upload-video-chunk`,
-          {
-            method: 'POST',
-            headers: { Authorization: `Bearer ${token0}`, 'Content-Type': 'application/json' },
-            body: JSON.stringify({ uploadUrl, chunkBase64, offset, isLast, mimeType: file.type || 'video/mp4' }),
-          }
-        );
-        if (!chunkRes.ok) {
-          let msg = `Upload failed at chunk ${i + 1}/${totalChunks}`;
-          try { const d = await chunkRes.json(); msg = d.error || msg; } catch {}
-          throw new Error(msg);
-        }
-        const chunkData = await chunkRes.json();
-        if (isLast) {
-          geminiFileName = chunkData.geminiFileName;
-          if (!geminiFileName) throw new Error('No Gemini file name after upload');
-        }
+      // Step 2: Upload file directly from browser to Gemini (single request, no chunking)
+      const uploadRes = await fetch(uploadUrl, {
+        method: 'POST',
+        headers: {
+          'X-Goog-Upload-Offset': '0',
+          'X-Goog-Upload-Command': 'upload, finalize',
+        },
+        body: file,
+      });
+      if (!uploadRes.ok) {
+        const errText = await uploadRes.text();
+        throw new Error(`Gemini upload failed: ${uploadRes.status} - ${errText}`);
       }
+      const uploadData = await uploadRes.json();
+      const geminiFileName = uploadData.file?.name;
+      if (!geminiFileName) throw new Error('No Gemini file name after upload');
 
       setUploadStep('analyzing');
 
