@@ -28,7 +28,6 @@ Deno.serve(async (req: Request) => {
       return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: corsHeaders });
     }
 
-    // Check Pro plan
     const { data: tokenRow } = await supabase
       .from('user_tokens')
       .select('plan')
@@ -45,21 +44,37 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    const { fileName } = await req.json();
+    const { fileName, fileSize, mimeType } = await req.json();
     const safeName = (fileName || 'video').replace(/[^a-zA-Z0-9.\-_]/g, '_');
-    const storagePath = `${user.id}/${Date.now()}_${safeName}`;
 
-    // Generate signed upload URL using service role (bypasses RLS entirely)
-    const { data, error } = await supabase.storage
-      .from('video-uploads')
-      .createSignedUploadUrl(storagePath);
+    const geminiApiKey = Deno.env.get('GEMINI_API_KEY');
+    if (!geminiApiKey) throw new Error('Gemini API key not configured');
 
-    if (error) throw new Error(`Failed to create upload URL: ${error.message}`);
+    // Start Gemini File API resumable upload session (bypasses Supabase Storage entirely)
+    const initRes = await fetch(
+      `https://generativelanguage.googleapis.com/upload/v1beta/files?uploadType=resumable&key=${geminiApiKey}`,
+      {
+        method: 'POST',
+        headers: {
+          'X-Goog-Upload-Protocol': 'resumable',
+          'X-Goog-Upload-Command': 'start',
+          'X-Goog-Upload-Header-Content-Length': String(fileSize || 0),
+          'X-Goog-Upload-Header-Content-Type': mimeType || 'video/mp4',
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ file: { display_name: safeName } }),
+      }
+    );
 
-    console.log(`[get-upload-url] user=${user.id}, path=${storagePath}`);
+    if (!initRes.ok) throw new Error(`Failed to start Gemini upload: ${await initRes.text()}`);
+
+    const uploadUrl = initRes.headers.get('X-Goog-Upload-URL');
+    if (!uploadUrl) throw new Error('No upload URL from Gemini');
+
+    console.log(`[get-upload-url] Gemini session started, user=${user.id}, file=${safeName}, size=${fileSize}`);
 
     return new Response(
-      JSON.stringify({ signedUrl: data.signedUrl, storagePath, token: data.token }),
+      JSON.stringify({ uploadUrl }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   } catch (error) {

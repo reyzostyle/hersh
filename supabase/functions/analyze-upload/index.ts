@@ -8,69 +8,12 @@ const corsHeaders = {
 
 const ADMIN_EMAIL = 'reyzostyle@gmail.com';
 
-async function uploadToGeminiFileApi(fileBytes: Uint8Array, mimeType: string, displayName: string): Promise<{ uri: string; name: string }> {
+function deleteGeminiFile(geminiFileName: string) {
   const geminiApiKey = Deno.env.get('GEMINI_API_KEY');
-  if (!geminiApiKey) throw new Error('Gemini API key not configured');
-
-  const fileSize = fileBytes.length;
-  console.log(`[gemini-file] Starting upload, size=${fileSize}, mime=${mimeType}`);
-
-  // Initiate resumable upload
-  const initRes = await fetch(
-    `https://generativelanguage.googleapis.com/upload/v1beta/files?uploadType=resumable&key=${geminiApiKey}`,
-    {
-      method: 'POST',
-      headers: {
-        'X-Goog-Upload-Protocol': 'resumable',
-        'X-Goog-Upload-Command': 'start',
-        'X-Goog-Upload-Header-Content-Length': String(fileSize),
-        'X-Goog-Upload-Header-Content-Type': mimeType,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ file: { display_name: displayName } }),
-    }
-  );
-
-  if (!initRes.ok) throw new Error(`Gemini File API init failed: ${await initRes.text()}`);
-
-  const uploadUrl = initRes.headers.get('X-Goog-Upload-URL');
-  if (!uploadUrl) throw new Error('No upload URL from Gemini File API');
-  console.log('[gemini-file] Got upload URL');
-
-  // Upload bytes
-  const uploadRes = await fetch(uploadUrl, {
-    method: 'POST',
-    headers: {
-      'Content-Length': String(fileSize),
-      'X-Goog-Upload-Offset': '0',
-      'X-Goog-Upload-Command': 'upload, finalize',
-    },
-    body: fileBytes,
-  });
-
-  if (!uploadRes.ok) throw new Error(`Gemini file upload failed: ${await uploadRes.text()}`);
-
-  const uploadData = await uploadRes.json();
-  const geminiFileName = uploadData.file?.name;
-  if (!geminiFileName) throw new Error('No file name from Gemini File API');
-
-  console.log(`[gemini-file] Uploaded: ${geminiFileName}, state: ${uploadData.file?.state}`);
-
-  // Poll until ACTIVE
-  for (let i = 0; i < 30; i++) {
-    const stateRes = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/${geminiFileName}?key=${geminiApiKey}`
-    );
-    if (!stateRes.ok) throw new Error(`Poll failed: ${await stateRes.text()}`);
-    const stateData = await stateRes.json();
-    console.log(`[gemini-file] Poll ${i + 1}: state=${stateData.state}`);
-
-    if (stateData.state === 'ACTIVE') return { uri: stateData.uri, name: geminiFileName };
-    if (stateData.state === 'FAILED') throw new Error('Gemini file processing failed');
-    await new Promise(r => setTimeout(r, 3000));
+  if (geminiApiKey && geminiFileName) {
+    fetch(`https://generativelanguage.googleapis.com/v1beta/${geminiFileName}?key=${geminiApiKey}`, { method: 'DELETE' })
+      .catch(e => console.log('[analyze-upload] Gemini cleanup error:', e));
   }
-
-  throw new Error('Gemini file processing timed out');
 }
 
 async function analyzeVideoWithGeminiFile(fileUri: string, mimeType: string): Promise<{
@@ -236,15 +179,13 @@ Deno.serve(async (req: Request) => {
     }
     const userId = user.id;
 
-    // Expect JSON body with storagePath
-    const { storagePath, videoContext, fileName } = await req.json();
-    if (!storagePath) {
-      return new Response(JSON.stringify({ error: 'storagePath required' }), { status: 400, headers: corsHeaders });
+    const { geminiFileName, videoContext, fileName, mimeType } = await req.json();
+    if (!geminiFileName) {
+      return new Response(JSON.stringify({ error: 'geminiFileName required' }), { status: 400, headers: corsHeaders });
     }
 
-    console.log(`[analyze-upload] user=${userId}, path=${storagePath}`);
+    console.log(`[analyze-upload] user=${userId}, geminiFileName=${geminiFileName}`);
 
-    // Check plan — Pro (agency) required
     const { data: tokenRow } = await supabase
       .from('user_tokens')
       .select('plan, analyses_used, analyses_reset_at, channel_niche, channel_description, channel_context')
@@ -255,8 +196,7 @@ Deno.serve(async (req: Request) => {
     const isAdmin = user.email === ADMIN_EMAIL;
 
     if (!isAdmin && plan !== 'agency') {
-      // Cleanup storage
-      await supabase.storage.from('video-uploads').remove([storagePath]);
+      deleteGeminiFile(geminiFileName);
       return new Response(
         JSON.stringify({ error: 'Video file upload requires the Pro plan.' }),
         { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -278,35 +218,43 @@ Deno.serve(async (req: Request) => {
     }
 
     if (analysesUsed >= analysesLimit) {
-      await supabase.storage.from('video-uploads').remove([storagePath]);
+      deleteGeminiFile(geminiFileName);
       return new Response(
         JSON.stringify({ error: 'Analysis limit reached. Please upgrade your plan.' }),
         { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    // Download file from Supabase Storage
-    console.log('[analyze-upload] Downloading from storage...');
-    const { data: fileBlob, error: dlError } = await supabase.storage.from('video-uploads').download(storagePath);
-    if (dlError || !fileBlob) throw new Error(`Storage download failed: ${dlError?.message}`);
-
-    const fileBytes = new Uint8Array(await fileBlob.arrayBuffer());
-    const mimeType = fileBlob.type || 'video/mp4';
-    console.log(`[analyze-upload] Downloaded ${fileBytes.length} bytes`);
-
-    // Cleanup storage right away
-    supabase.storage.from('video-uploads').remove([storagePath]).catch(e => console.log('[analyze-upload] Storage cleanup error:', e));
-
-    let geminiFileName = '';
     try {
-      // Upload to Gemini File API
-      console.log('[analyze-upload] Uploading to Gemini...');
-      const { uri: geminiFileUri, name } = await uploadToGeminiFileApi(fileBytes, mimeType, fileName || 'video');
-      geminiFileName = name;
-      console.log('[analyze-upload] Gemini ready:', geminiFileUri);
+      const geminiApiKey = Deno.env.get('GEMINI_API_KEY');
+      if (!geminiApiKey) throw new Error('Gemini API key not configured');
 
-      // Analyze with Gemini
-      const geminiData = await analyzeVideoWithGeminiFile(geminiFileUri, mimeType);
+      // Poll until Gemini file is ACTIVE
+      console.log('[analyze-upload] Polling for ACTIVE state...');
+      let geminiFileUri = '';
+      let fileMimeType = mimeType || 'video/mp4';
+
+      for (let i = 0; i < 30; i++) {
+        const stateRes = await fetch(
+          `https://generativelanguage.googleapis.com/v1beta/${geminiFileName}?key=${geminiApiKey}`
+        );
+        if (!stateRes.ok) throw new Error(`Poll failed: ${await stateRes.text()}`);
+        const stateData = await stateRes.json();
+        console.log(`[analyze-upload] Poll ${i + 1}: state=${stateData.state}`);
+
+        if (stateData.state === 'ACTIVE') {
+          geminiFileUri = stateData.uri;
+          fileMimeType = stateData.mimeType || fileMimeType;
+          break;
+        }
+        if (stateData.state === 'FAILED') throw new Error('Gemini file processing failed');
+        await new Promise(r => setTimeout(r, 3000));
+      }
+
+      if (!geminiFileUri) throw new Error('Gemini file processing timed out');
+      console.log('[analyze-upload] File ACTIVE, analyzing...');
+
+      const geminiData = await analyzeVideoWithGeminiFile(geminiFileUri, fileMimeType);
       console.log('[analyze-upload] Gemini analysis done');
 
       const profile = {
@@ -315,11 +263,9 @@ Deno.serve(async (req: Request) => {
         channel_context: tokenRow?.channel_context || '',
       };
 
-      // Analyze with Claude
       const videoTitle = (fileName || 'video').replace(/\.[^.]+$/, '');
       const analysis = await analyzeWithClaude(videoTitle, geminiData, profile, videoContext, supabase);
 
-      // Save analysis
       const { data: analysisData, error: analysisError } = await supabase
         .from('analyses')
         .insert({
@@ -342,14 +288,7 @@ Deno.serve(async (req: Request) => {
         { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     } finally {
-      // Always delete Gemini file
-      if (geminiFileName) {
-        const geminiApiKey = Deno.env.get('GEMINI_API_KEY');
-        if (geminiApiKey) {
-          fetch(`https://generativelanguage.googleapis.com/v1beta/${geminiFileName}?key=${geminiApiKey}`, { method: 'DELETE' })
-            .catch(e => console.log('[analyze-upload] Gemini cleanup error:', e));
-        }
-      }
+      deleteGeminiFile(geminiFileName);
     }
   } catch (error) {
     console.error('[analyze-upload] Error:', error);

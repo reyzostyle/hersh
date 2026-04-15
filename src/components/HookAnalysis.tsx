@@ -140,43 +140,71 @@ export function HookAnalysis() {
     setUploadAnalyzing(true);
     setUploadStep('uploading');
     setError('');
-    let storagePath = '';
     try {
       if (!user?.id) throw new Error('Not authenticated');
-
-      // Step 1: Get signed upload URL from edge function (uses service role, bypasses RLS + TUS)
       const token0 = await getSessionToken();
       if (!token0) throw new Error('Not authenticated');
-      const urlRes = await fetch(
+
+      // Step 1: Start Gemini upload session via edge function
+      const sessionRes = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/get-upload-url`,
         {
           method: 'POST',
           headers: { Authorization: `Bearer ${token0}`, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ fileName: file.name }),
+          body: JSON.stringify({ fileName: file.name, fileSize: file.size, mimeType: file.type || 'video/mp4' }),
         }
       );
-      if (!urlRes.ok) {
-        let msg = `HTTP ${urlRes.status}`;
-        try { const d = await urlRes.json(); msg = d.error || msg; } catch {}
+      if (!sessionRes.ok) {
+        let msg = `Session failed: HTTP ${sessionRes.status}`;
+        try { const d = await sessionRes.json(); msg = d.error || msg; } catch {}
         throw new Error(msg);
       }
-      const { signedUrl, storagePath: sp } = await urlRes.json();
-      storagePath = sp;
+      const { uploadUrl } = await sessionRes.json();
+      if (!uploadUrl) throw new Error('No upload URL received');
 
-      // Step 2: Upload file directly to signed URL (PUT, no TUS, no RLS)
-      const uploadRes = await fetch(signedUrl, {
-        method: 'PUT',
-        headers: { 'Content-Type': file.type || 'video/mp4' },
-        body: file,
-      });
-      if (!uploadRes.ok) {
-        const errText = await uploadRes.text();
-        throw new Error(`Upload failed: ${uploadRes.status} - ${errText}`);
+      // Step 2: Upload file in 3MB chunks through relay edge function → Gemini
+      const CHUNK_SIZE = 3 * 1024 * 1024;
+      const buffer = await file.arrayBuffer();
+      const totalChunks = Math.ceil(file.size / CHUNK_SIZE);
+      let geminiFileName = '';
+
+      for (let i = 0; i < totalChunks; i++) {
+        const offset = i * CHUNK_SIZE;
+        const chunkSize = Math.min(CHUNK_SIZE, file.size - offset);
+        const chunkView = new Uint8Array(buffer, offset, chunkSize);
+        const isLast = i === totalChunks - 1;
+
+        // Base64 encode in 8KB sub-chunks to avoid stack overflow
+        let binary = '';
+        const SUB = 8192;
+        for (let j = 0; j < chunkView.byteLength; j += SUB) {
+          binary += String.fromCharCode(...chunkView.subarray(j, j + SUB));
+        }
+        const chunkBase64 = btoa(binary);
+
+        const chunkRes = await fetch(
+          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/upload-video-chunk`,
+          {
+            method: 'POST',
+            headers: { Authorization: `Bearer ${token0}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ uploadUrl, chunkBase64, offset, isLast, mimeType: file.type || 'video/mp4' }),
+          }
+        );
+        if (!chunkRes.ok) {
+          let msg = `Upload failed at chunk ${i + 1}/${totalChunks}`;
+          try { const d = await chunkRes.json(); msg = d.error || msg; } catch {}
+          throw new Error(msg);
+        }
+        const chunkData = await chunkRes.json();
+        if (isLast) {
+          geminiFileName = chunkData.geminiFileName;
+          if (!geminiFileName) throw new Error('No Gemini file name after upload');
+        }
       }
 
       setUploadStep('analyzing');
 
-      // Step 2: Call edge function with storage path (small JSON body)
+      // Step 3: Analyze
       const token = await getSessionToken();
       if (!token) throw new Error('Not authenticated');
       const res = await fetch(
@@ -184,11 +212,11 @@ export function HookAnalysis() {
         {
           method: 'POST',
           headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ storagePath, videoContext, fileName: file.name }),
+          body: JSON.stringify({ geminiFileName, videoContext, fileName: file.name, mimeType: file.type || 'video/mp4' }),
         }
       );
       if (!res.ok) {
-        let errMsg = `HTTP ${res.status}`;
+        let errMsg = `Analysis failed: HTTP ${res.status}`;
         try { const d = await res.json(); errMsg = d.error || errMsg; } catch {}
         throw new Error(errMsg);
       }
@@ -200,10 +228,6 @@ export function HookAnalysis() {
       setUploadPanelOpen(false);
       setAnalysisPanelOpen(true);
     } catch (err) {
-      // Cleanup storage on error if upload succeeded but analysis failed
-      if (storagePath) {
-        supabase.storage.from('video-uploads').remove([storagePath]).catch(() => {});
-      }
       setError(err instanceof Error ? err.message : 'Upload analysis failed');
     } finally {
       setUploadAnalyzing(false);
