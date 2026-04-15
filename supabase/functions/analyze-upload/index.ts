@@ -256,7 +256,7 @@ Deno.serve(async (req: Request) => {
 
     if (!isAdmin && plan !== 'agency') {
       // Cleanup storage
-      await supabase.storage.from('video-uploads').remove([storagePath]);
+      await supabase.storage.from('video-upload').remove([storagePath]);
       return new Response(
         JSON.stringify({ error: 'Video file upload requires the Pro plan.' }),
         { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -278,7 +278,7 @@ Deno.serve(async (req: Request) => {
     }
 
     if (analysesUsed >= analysesLimit) {
-      await supabase.storage.from('video-uploads').remove([storagePath]);
+      await supabase.storage.from('video-upload').remove([storagePath]);
       return new Response(
         JSON.stringify({ error: 'Analysis limit reached. Please upgrade your plan.' }),
         { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -287,7 +287,7 @@ Deno.serve(async (req: Request) => {
 
     // Download file from Supabase Storage
     console.log('[analyze-upload] Downloading from storage...');
-    const { data: fileBlob, error: dlError } = await supabase.storage.from('video-uploads').download(storagePath);
+    const { data: fileBlob, error: dlError } = await supabase.storage.from('video-upload').download(storagePath);
     if (dlError || !fileBlob) throw new Error(`Storage download failed: ${dlError?.message}`);
 
     const fileBytes = new Uint8Array(await fileBlob.arrayBuffer());
@@ -295,7 +295,7 @@ Deno.serve(async (req: Request) => {
     console.log(`[analyze-upload] Downloaded ${fileBytes.length} bytes`);
 
     // Cleanup storage right away
-    supabase.storage.from('video-uploads').remove([storagePath]).catch(e => console.log('[analyze-upload] Storage cleanup error:', e));
+    supabase.storage.from('video-upload').remove([storagePath]).catch(e => console.log('[analyze-upload] Storage cleanup error:', e));
 
     let geminiFileName = '';
     try {
