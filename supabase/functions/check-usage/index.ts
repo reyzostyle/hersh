@@ -9,7 +9,7 @@ const corsHeaders = {
 const PLAN_LIMITS: Record<string, number> = {
   free: 3,
   pro: 30,
-  agency: 200,
+  agency: 50,
 };
 
 Deno.serve(async (req: Request) => {
