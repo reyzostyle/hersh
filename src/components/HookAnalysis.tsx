@@ -148,7 +148,7 @@ export function HookAnalysis() {
       const safeName = file.name.replace(/[^a-zA-Z0-9.\-_]/g, '_');
       storagePath = `${user.id}/${Date.now()}_${safeName}`;
       const { error: uploadError } = await supabase.storage
-        .from('video-upload')
+        .from('video-uploads')
         .upload(storagePath, file, { contentType: file.type, upsert: false });
       if (uploadError) throw new Error(`Storage upload failed: ${uploadError.message}`);
 
@@ -180,7 +180,7 @@ export function HookAnalysis() {
     } catch (err) {
       // Cleanup storage on error if upload succeeded but analysis failed
       if (storagePath) {
-        supabase.storage.from('video-upload').remove([storagePath]).catch(() => {});
+        supabase.storage.from('video-uploads').remove([storagePath]).catch(() => {});
       }
       setError(err instanceof Error ? err.message : 'Upload analysis failed');
     } finally {
