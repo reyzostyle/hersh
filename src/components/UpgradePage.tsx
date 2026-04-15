@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase, getSessionToken } from '../lib/supabase';
-import { Zap, Check, Loader2, BarChart2, RefreshCw } from 'lucide-react';
+import { Zap, Check, Loader2, BarChart2, RefreshCw, Film } from 'lucide-react';
 
 interface UsageData {
   plan: string;
@@ -10,8 +10,15 @@ interface UsageData {
   canAnalyze: boolean;
 }
 
-const PRO_PRICE_ID = import.meta.env.VITE_STRIPE_PRO_PRICE_ID;
-const AGENCY_PRICE_ID = import.meta.env.VITE_STRIPE_AGENCY_PRICE_ID;
+const PLUS_PRICE_ID = import.meta.env.VITE_STRIPE_PRO_PRICE_ID;
+const PRO_PRICE_ID = import.meta.env.VITE_STRIPE_AGENCY_PRICE_ID;
+
+// DB value → display name
+const PLAN_DISPLAY: Record<string, string> = {
+  free: 'Trial',
+  pro: 'Plus',
+  agency: 'Pro',
+};
 
 const plans = [
   {
@@ -20,13 +27,13 @@ const plans = [
     price: '$0',
     period: 'forever',
     analyses: '3 total',
-    analysesNum: 3,
     priceId: null,
     features: [
       '3 lifetime analyses',
       'Basic hook analysis',
       'Hook ideas & weak spots',
     ],
+    fileUpload: false,
     cta: 'Current Plan',
   },
   {
@@ -35,14 +42,14 @@ const plans = [
     price: '$8',
     period: '/month',
     analyses: '30/month',
-    analysesNum: 30,
-    priceId: PRO_PRICE_ID,
+    priceId: PLUS_PRICE_ID,
     features: [
       '30 analyses per month',
-      'Script-based advanced analysis',
+      'Advanced AI analysis',
       'Hook ideas & weak spots',
       'Channel profile context',
     ],
+    fileUpload: false,
     cta: 'Upgrade to Plus',
   },
   {
@@ -50,16 +57,16 @@ const plans = [
     name: 'Pro',
     price: '$19',
     period: '/month',
-    analyses: '200/month',
-    analysesNum: 200,
-    priceId: AGENCY_PRICE_ID,
+    analyses: '50/month',
+    priceId: PRO_PRICE_ID,
     features: [
-      '200 analyses per month',
-      'Script-based advanced analysis',
+      '50 analyses per month',
+      'Advanced AI analysis',
       'Hook ideas & weak spots',
       'Channel profile context',
-      'Priority support',
+      'Video file upload',
     ],
+    fileUpload: true,
     cta: 'Upgrade to Pro',
   },
 ];
@@ -104,7 +111,7 @@ export function UpgradePage() {
   const handleUpgrade = async (planId: string) => {
     setCheckingOut(planId);
     setError('');
-    const priceId = planId === 'pro' ? PRO_PRICE_ID : AGENCY_PRICE_ID;
+    const priceId = planId === 'pro' ? PLUS_PRICE_ID : PRO_PRICE_ID;
     try {
       const token = await getSessionToken();
       if (!token) { setError('Not authenticated'); setCheckingOut(null); return; }
@@ -130,6 +137,7 @@ export function UpgradePage() {
   };
 
   const currentPlan = usage?.plan || 'free';
+  const currentPlanDisplay = PLAN_DISPLAY[currentPlan] ?? currentPlan;
   const usagePercent = usage ? Math.min((usage.analysesUsed / usage.analysesLimit) * 100, 100) : 0;
 
   return (
@@ -146,6 +154,7 @@ export function UpgradePage() {
           </div>
         )}
 
+        {/* Usage card */}
         <div className="mb-8 p-5 rounded-xl" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)' }}>
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
@@ -173,8 +182,8 @@ export function UpgradePage() {
                   {usage.analysesUsed}
                   <span className="text-lg text-gray-500 font-normal">/{usage.analysesLimit}</span>
                 </span>
-                <span className="text-sm text-gray-500 capitalize">
-                  {currentPlan} plan
+                <span className="text-sm text-gray-500">
+                  {currentPlanDisplay} Plan
                   {currentPlan !== 'free' && (
                     <span className="ml-2 text-xs px-2 py-0.5 bg-[#0EA4E9]/15 text-[#0EA4E9] rounded-full">
                       Active
@@ -199,6 +208,7 @@ export function UpgradePage() {
           ) : null}
         </div>
 
+        {/* Plans grid */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {plans.map(plan => {
             const isCurrent = currentPlan === plan.id;
@@ -206,19 +216,20 @@ export function UpgradePage() {
               (plan.id === 'pro' && currentPlan === 'free') ||
               (plan.id === 'agency' && (currentPlan === 'free' || currentPlan === 'pro'))
             );
+            const isPopular = plan.id === 'agency';
 
             return (
               <div
                 key={plan.id}
                 className="relative flex flex-col p-5 rounded-xl transition-all"
                 style={{
-                  background: plan.id === 'pro' ? 'rgba(14,164,233,0.06)' : 'rgba(255,255,255,0.04)',
-                  border: plan.id === 'pro' ? '1px solid rgba(14,164,233,0.4)' : isCurrent ? '1px solid rgba(255,255,255,0.15)' : '1px solid rgba(255,255,255,0.08)',
+                  background: isPopular ? 'rgba(14,164,233,0.06)' : 'rgba(255,255,255,0.04)',
+                  border: isPopular ? '1px solid rgba(14,164,233,0.4)' : isCurrent ? '1px solid rgba(255,255,255,0.15)' : '1px solid rgba(255,255,255,0.08)',
                   backdropFilter: 'blur(12px)',
                   WebkitBackdropFilter: 'blur(12px)',
                 }}
               >
-                {plan.id === 'pro' && !isCurrent && (
+                {isPopular && !isCurrent && (
                   <div className="absolute -top-3 left-1/2 -translate-x-1/2">
                     <span className="px-3 py-1 bg-[#0EA4E9] text-white text-xs font-semibold rounded-full">
                       Most Popular
@@ -228,7 +239,7 @@ export function UpgradePage() {
 
                 <div className="mb-4">
                   <div className="flex items-center gap-2 mb-2">
-                    <Zap className={`w-4 h-4 ${plan.id === 'free' ? 'text-gray-500' : plan.id === 'pro' ? 'text-[#0EA4E9]' : 'text-amber-400'}`} />
+                    <Zap className={`w-4 h-4 ${plan.id === 'free' ? 'text-gray-500' : isPopular ? 'text-[#0EA4E9]' : 'text-[#0EA4E9]/70'}`} />
                     <span className="text-white font-semibold">{plan.name}</span>
                   </div>
                   <div className="flex items-baseline gap-1">
@@ -241,7 +252,11 @@ export function UpgradePage() {
                 <ul className="flex-1 space-y-2 mb-5">
                   {plan.features.map(feature => (
                     <li key={feature} className="flex items-start gap-2 text-sm text-gray-400">
-                      <Check className="w-4 h-4 text-[#0EA4E9] flex-shrink-0 mt-0.5" />
+                      {feature === 'Video file upload' ? (
+                        <Film className="w-4 h-4 text-emerald-400 flex-shrink-0 mt-0.5" />
+                      ) : (
+                        <Check className="w-4 h-4 text-[#0EA4E9] flex-shrink-0 mt-0.5" />
+                      )}
                       {feature}
                     </li>
                   ))}
@@ -256,9 +271,9 @@ export function UpgradePage() {
                     onClick={() => handleUpgrade(plan.id)}
                     disabled={checkingOut === plan.id}
                     className={`w-full flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
-                      plan.id === 'pro'
+                      isPopular
                         ? 'bg-[#0EA4E9] text-white hover:bg-[#0EA4E9]/90'
-                        : 'bg-amber-500 text-white hover:bg-amber-400'
+                        : 'bg-[#0EA4E9]/60 text-white hover:bg-[#0EA4E9]/70'
                     }`}
                   >
                     {checkingOut === plan.id ? (

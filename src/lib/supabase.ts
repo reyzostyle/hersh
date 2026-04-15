@@ -43,6 +43,7 @@ export interface Analysis {
   video_ids: string[];
   hook_analysis: {
     overall_assessment: string;
+    overall_score?: number;
     patterns: string[];
   };
   weak_spots: string[];

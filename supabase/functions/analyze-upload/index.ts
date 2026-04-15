@@ -6,12 +6,86 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Client-Info, Apikey',
 };
 
-interface RequestBody {
-  videoId: string; // YouTube video ID
-  videoContext?: string;
+const ADMIN_EMAIL = 'reyzostyle@gmail.com';
+
+async function uploadToGeminiFileApi(fileBytes: Uint8Array, mimeType: string, displayName: string): Promise<string> {
+  const geminiApiKey = Deno.env.get('GEMINI_API_KEY');
+  if (!geminiApiKey) throw new Error('Gemini API key not configured');
+
+  const fileSize = fileBytes.length;
+  console.log(`[gemini-file] Starting resumable upload, size=${fileSize}, mime=${mimeType}`);
+
+  // Step 1: Initiate resumable upload
+  const initRes = await fetch(
+    `https://generativelanguage.googleapis.com/upload/v1beta/files?uploadType=resumable&key=${geminiApiKey}`,
+    {
+      method: 'POST',
+      headers: {
+        'X-Goog-Upload-Protocol': 'resumable',
+        'X-Goog-Upload-Command': 'start',
+        'X-Goog-Upload-Header-Content-Length': String(fileSize),
+        'X-Goog-Upload-Header-Content-Type': mimeType,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ file: { display_name: displayName } }),
+    }
+  );
+
+  if (!initRes.ok) {
+    throw new Error(`Gemini File API init failed: ${await initRes.text()}`);
+  }
+
+  const uploadUrl = initRes.headers.get('X-Goog-Upload-URL');
+  if (!uploadUrl) throw new Error('No upload URL returned from Gemini File API');
+  console.log('[gemini-file] Got upload URL');
+
+  // Step 2: Upload the file bytes
+  const uploadRes = await fetch(uploadUrl, {
+    method: 'POST',
+    headers: {
+      'Content-Length': String(fileSize),
+      'X-Goog-Upload-Offset': '0',
+      'X-Goog-Upload-Command': 'upload, finalize',
+    },
+    body: fileBytes,
+  });
+
+  if (!uploadRes.ok) {
+    throw new Error(`Gemini File API upload failed: ${await uploadRes.text()}`);
+  }
+
+  const uploadData = await uploadRes.json();
+  const fileName = uploadData.file?.name;
+  if (!fileName) throw new Error('No file name returned from Gemini File API');
+
+  console.log(`[gemini-file] Uploaded: ${fileName}, state: ${uploadData.file?.state}`);
+
+  // Step 3: Poll until ACTIVE
+  let pollCount = 0;
+  const maxPolls = 30;
+  while (pollCount < maxPolls) {
+    const stateRes = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/${fileName}?key=${geminiApiKey}`
+    );
+    if (!stateRes.ok) throw new Error(`Failed to poll file state: ${await stateRes.text()}`);
+    const stateData = await stateRes.json();
+    const state = stateData.state;
+    console.log(`[gemini-file] Poll ${pollCount + 1}: state=${state}`);
+
+    if (state === 'ACTIVE') {
+      return stateData.uri;
+    }
+    if (state === 'FAILED') {
+      throw new Error('Gemini File API processing failed');
+    }
+    pollCount++;
+    await new Promise(r => setTimeout(r, 3000));
+  }
+
+  throw new Error('Gemini File API processing timed out');
 }
 
-async function analyzeVideoWithGemini(videoId: string): Promise<{
+async function analyzeVideoWithGeminiFile(fileUri: string, mimeType: string): Promise<{
   transcript: string;
   hook_visual: string;
   visual_observations: string;
@@ -20,10 +94,7 @@ async function analyzeVideoWithGemini(videoId: string): Promise<{
   const geminiApiKey = Deno.env.get('GEMINI_API_KEY');
   if (!geminiApiKey) throw new Error('Gemini API key not configured');
 
-  const youtubeUrl = `https://www.youtube.com/watch?v=${videoId}`;
-  console.log('[gemini] Analyzing video:', youtubeUrl);
-
-  const prompt = `Analyze this YouTube Short video carefully. Watch it fully and provide:
+  const prompt = `Analyze this video carefully. Watch it fully and provide:
 
 1. TRANSCRIPT: Full word-for-word transcript of everything spoken/said in the video
 2. HOOK_VISUAL: Describe exactly what happens visually in the first 3-5 seconds (text on screen, visuals, energy, what grabs attention)
@@ -42,7 +113,7 @@ Respond ONLY with valid JSON, no markdown:
   const geminiBody = JSON.stringify({
     contents: [{
       parts: [
-        { file_data: { mime_type: 'video/mp4', file_uri: youtubeUrl } },
+        { file_data: { mime_type: mimeType, file_uri: fileUri } },
         { text: prompt },
       ],
     }],
@@ -63,7 +134,6 @@ Respond ONLY with valid JSON, no markdown:
       const status = response.status;
       lastError = await response.text();
       if ((status === 503 || status === 429) && attempt < 2) {
-        console.log(`[gemini] ${model} attempt ${attempt} failed (${status}), retrying in 4s...`);
         await new Promise(r => setTimeout(r, 4000));
       } else break;
     }
@@ -71,13 +141,10 @@ Respond ONLY with valid JSON, no markdown:
     console.log(`[gemini] ${model} unavailable, trying next...`);
   }
 
-  if (!response?.ok) {
-    throw new Error(`Gemini API error: ${lastError}`);
-  }
+  if (!response?.ok) throw new Error(`Gemini API error: ${lastError}`);
 
   const data = await response.json();
   const content = data.candidates?.[0]?.content?.parts?.[0]?.text;
-
   if (!content) throw new Error('Empty response from Gemini');
 
   try {
@@ -85,74 +152,20 @@ Respond ONLY with valid JSON, no markdown:
     if (jsonMatch) return JSON.parse(jsonMatch[0]);
     throw new Error('No JSON in Gemini response');
   } catch {
-    // Fallback if JSON parse fails
-    return {
-      transcript: content,
-      hook_visual: '',
-      visual_observations: '',
-      overall_energy: 'medium',
-    };
+    return { transcript: content, hook_visual: '', visual_observations: '', overall_energy: 'medium' };
   }
 }
 
-async function fetchPublicVideoData(videoId: string, accessTokenOrApiKey: string, useApiKey = false): Promise<any> {
-  const url = useApiKey
-    ? `https://www.googleapis.com/youtube/v3/videos?id=${videoId}&part=snippet,statistics,contentDetails&key=${accessTokenOrApiKey}`
-    : `https://www.googleapis.com/youtube/v3/videos?id=${videoId}&part=snippet,statistics,contentDetails`;
-  const res = await fetch(url, useApiKey ? {} : { headers: { Authorization: `Bearer ${accessTokenOrApiKey}` } });
-  if (!res.ok) throw new Error(`YouTube API error: ${await res.text()}`);
-  const data = await res.json();
-  const item = data.items?.[0];
-  if (!item) throw new Error('Video not found on YouTube');
-
-  // Parse ISO 8601 duration (PT1M30S → 90)
-  const dur = item.contentDetails.duration || 'PT0S';
-  const durMatch = dur.match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/);
-  const durationSec = durMatch
-    ? (parseInt(durMatch[1] || '0') * 3600 + parseInt(durMatch[2] || '0') * 60 + parseInt(durMatch[3] || '0'))
-    : 0;
-
-  return {
-    video_id: videoId,
-    title: item.snippet.title,
-    thumbnail_url: item.snippet.thumbnails?.medium?.url || item.snippet.thumbnails?.default?.url,
-    views: parseInt(item.statistics.viewCount || '0'),
-    likes_count: parseInt(item.statistics.likeCount || '0'),
-    comment_count: parseInt(item.statistics.commentCount || '0'),
-    duration: durationSec,
-    retention_percentage: null,
-    average_view_duration: null,
-    is_external: true,
-  };
-}
-
-async function refreshAccessToken(refreshToken: string): Promise<string> {
-  const res = await fetch('https://oauth2.googleapis.com/token', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: new URLSearchParams({
-      client_id: Deno.env.get('YOUTUBE_CLIENT_ID')!,
-      client_secret: Deno.env.get('YOUTUBE_CLIENT_SECRET')!,
-      refresh_token: refreshToken,
-      grant_type: 'refresh_token',
-    }),
-  });
-  if (!res.ok) throw new Error(`Token refresh failed: ${await res.text()}`);
-  const tokens = await res.json();
-  return tokens.access_token;
-}
-
 async function analyzeWithClaude(
-  video: any,
+  video: { title: string; is_uploaded: boolean },
   geminiData: { transcript: string; hook_visual: string; visual_observations: string; overall_energy: string },
-  profile: any,
+  profile: { channel_niche: string; channel_description: string; channel_context: string },
   videoContext?: string,
   supabase?: any
 ) {
   const anthropicApiKey = Deno.env.get('ANTHROPIC_API_KEY');
   if (!anthropicApiKey) throw new Error('Anthropic API key not configured');
 
-  // Fetch knowledge base
   let knowledgeBaseSection = '';
   if (supabase) {
     const { data: kbRecords } = await supabase
@@ -181,21 +194,15 @@ Give your analysis as a content director talking to a creator — direct, specif
 
 Focus on: what's the real problem, why it matters, and exactly how to fix it. Maximum 3 key points. Be brutally honest but constructive.`;
 
-  // Don't use channel profile for external videos — they're someone else's content
-  const profileSection = video.is_external ? '' : [
+  const profileSection = [
     profile.channel_niche && `Channel Niche: ${profile.channel_niche}`,
     profile.channel_description && `Channel Description: ${profile.channel_description}`,
     profile.channel_context && `Additional Context: ${profile.channel_context}`,
   ].filter(Boolean).join('\n');
 
-  const hasStats = video.views != null;
-  const hasRetention = video.retention_percentage != null;
-  const prompt = `## Video Stats
+  const prompt = `## Video
 Title: ${video.title}
-${hasStats ? `Views: ${video.views?.toLocaleString()}
-Likes: ${video.likes_count?.toLocaleString()}
-Duration: ${video.duration}s
-${hasRetention ? `Retention: ${video.retention_percentage}%\nAvg View Duration: ${video.average_view_duration}s` : `Retention: N/A (external video)`}` : `Stats: Not available (external video — focus analysis on content and visuals only)`}
+${video.is_uploaded ? 'Note: This is an unpublished video uploaded directly for pre-publish analysis.' : ''}
 
 ## Gemini Video Analysis
 Transcript: ${geminiData.transcript || 'Not available'}
@@ -206,10 +213,7 @@ Visual Observations: ${geminiData.visual_observations || 'Not available'}
 
 Overall Energy: ${geminiData.overall_energy}
 
-${profileSection ? `## Channel Profile (the user who requested this analysis)
-${profileSection}
-Note: If this video is from a completely different niche than the channel profile above, ignore the profile and analyze the video objectively. If it's related or could be relevant as inspiration, use the profile to tailor recommendations.
-` : ''}
+${profileSection ? `## Channel Profile\n${profileSection}\n` : ''}
 ${videoContext?.trim() ? `## Additional Context\n${videoContext}\n` : ''}
 
 Analyze the hook and overall video performance. Use both the transcript AND visual data from Gemini.
@@ -245,10 +249,7 @@ Respond with valid JSON only:
     }),
   });
 
-  if (!response.ok) {
-    const errText = await response.text();
-    throw new Error(`Claude API error: ${errText}`);
-  }
+  if (!response.ok) throw new Error(`Claude API error: ${await response.text()}`);
 
   const data = await response.json();
   const content = data.content[0].text;
@@ -258,11 +259,21 @@ Respond with valid JSON only:
     if (jsonMatch) return JSON.parse(jsonMatch[0]);
     throw new Error('No JSON in Claude response');
   } catch {
-    return {
-      overall_assessment: content.substring(0, 500),
-      weak_spots: [],
-      new_hook_ideas: [],
-    };
+    return { overall_assessment: content.substring(0, 500), weak_spots: [], new_hook_ideas: [] };
+  }
+}
+
+async function deleteGeminiFile(fileName: string) {
+  const geminiApiKey = Deno.env.get('GEMINI_API_KEY');
+  if (!geminiApiKey) return;
+  try {
+    await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/${fileName}?key=${geminiApiKey}`,
+      { method: 'DELETE' }
+    );
+    console.log(`[gemini-file] Deleted ${fileName}`);
+  } catch (e) {
+    console.log(`[gemini-file] Could not delete file: ${e}`);
   }
 }
 
@@ -289,20 +300,49 @@ Deno.serve(async (req: Request) => {
     }
     const userId = user.id;
 
-    const { videoId, videoContext }: RequestBody = await req.json();
-    console.log(`[analyze-with-gemini] user=${userId}, videoId=${videoId}`);
+    // Parse multipart form data
+    const contentType = req.headers.get('Content-Type') || '';
+    if (!contentType.includes('multipart/form-data')) {
+      return new Response(JSON.stringify({ error: 'Expected multipart/form-data' }), { status: 400, headers: corsHeaders });
+    }
 
-    // Check plan limits
+    const formData = await req.formData();
+    const file = formData.get('file') as File | null;
+    const videoContext = (formData.get('videoContext') as string) || '';
+    const fileName = (formData.get('fileName') as string) || 'uploaded_video';
+
+    if (!file) {
+      return new Response(JSON.stringify({ error: 'No file provided' }), { status: 400, headers: corsHeaders });
+    }
+
+    const MAX_SIZE = 200 * 1024 * 1024; // 200MB
+    if (file.size > MAX_SIZE) {
+      return new Response(JSON.stringify({ error: 'File too large. Maximum size is 200MB.' }), { status: 400, headers: corsHeaders });
+    }
+
+    const mimeType = file.type || 'video/mp4';
+    console.log(`[analyze-upload] user=${userId}, file=${fileName}, size=${file.size}, mime=${mimeType}`);
+
+    // Check plan — PRO required
     const { data: tokenRow } = await supabase
       .from('user_tokens')
       .select('plan, analyses_used, analyses_reset_at, channel_niche, channel_description, channel_context')
       .eq('user_id', userId)
       .maybeSingle();
 
-    const PLAN_LIMITS: Record<string, number> = { free: 3, pro: 30, agency: 50 };
     const plan = tokenRow?.plan || 'free';
+    const isAdmin = user.email === ADMIN_EMAIL;
+
+    if (!isAdmin && plan !== 'agency') {
+      return new Response(
+        JSON.stringify({ error: 'Video file upload requires the Pro plan.' }),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const PLAN_LIMITS: Record<string, number> = { free: 3, pro: 30, agency: 200 };
     let analysesUsed = tokenRow?.analyses_used || 0;
-    const analysesLimit = user.email === 'reyzostyle@gmail.com' ? Infinity : (PLAN_LIMITS[plan] ?? 3);
+    const analysesLimit = isAdmin ? Infinity : (PLAN_LIMITS[plan] ?? 3);
 
     if (plan !== 'free' && tokenRow?.analyses_reset_at) {
       const resetAt = new Date(tokenRow.analyses_reset_at);
@@ -324,83 +364,67 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    // Get video data — own channel first, then fall back to public YouTube API
-    const { data: ownVideo } = await supabase
-      .from('videos')
-      .select('*')
-      .eq('user_id', userId)
-      .eq('video_id', videoId)
-      .maybeSingle();
+    // Upload to Gemini File API
+    console.log('[analyze-upload] Uploading to Gemini File API...');
+    const fileBytes = new Uint8Array(await file.arrayBuffer());
+    const geminiFileUri = await uploadToGeminiFileApi(fileBytes, mimeType, fileName);
+    console.log('[analyze-upload] File ready:', geminiFileUri);
 
-    let video = ownVideo;
+    // Extract the file name for cleanup
+    const geminiFileName = geminiFileUri.split('/').slice(-2).join('/'); // files/abc123
 
-    if (!video) {
-      console.log('[analyze-with-gemini] External video — fetching public stats via API key...');
-      const ytApiKey = Deno.env.get('YOUTUBE_API_KEY');
-      if (ytApiKey) {
-        try {
-          video = await fetchPublicVideoData(videoId, ytApiKey, true);
-          console.log('[analyze-with-gemini] External video stats fetched:', video.title);
-        } catch (e) {
-          console.log('[analyze-with-gemini] Could not fetch stats, proceeding without:', e);
-          video = { video_id: videoId, title: `youtube.com/watch?v=${videoId}`, views: null, likes_count: null, comment_count: null, duration: null, retention_percentage: null, average_view_duration: null, is_external: true };
-        }
-      } else {
-        video = { video_id: videoId, title: `youtube.com/watch?v=${videoId}`, views: null, likes_count: null, comment_count: null, duration: null, retention_percentage: null, average_view_duration: null, is_external: true };
-      }
-    }
+    try {
+      // Analyze with Gemini
+      console.log('[analyze-upload] Calling Gemini for analysis...');
+      const geminiData = await analyzeVideoWithGeminiFile(geminiFileUri, mimeType);
+      console.log('[analyze-upload] Gemini done, transcript length:', geminiData.transcript?.length);
 
-    // Step 1: Gemini watches the video
-    console.log('[analyze-with-gemini] Calling Gemini...');
-    const geminiData = await analyzeVideoWithGemini(videoId);
-    console.log('[analyze-with-gemini] Gemini done, transcript length:', geminiData.transcript?.length);
+      const profile = {
+        channel_niche: tokenRow?.channel_niche || '',
+        channel_description: tokenRow?.channel_description || '',
+        channel_context: tokenRow?.channel_context || '',
+      };
 
-    // Save transcript only for own videos
-    if (geminiData.transcript && !video.is_external) {
+      const video = { title: fileName.replace(/\.[^.]+$/, ''), is_uploaded: true };
+
+      // Analyze with Claude
+      console.log('[analyze-upload] Calling Claude...');
+      const analysis = await analyzeWithClaude(video, geminiData, profile, videoContext, supabase);
+
+      // Save analysis
+      const { data: analysisData, error: analysisError } = await supabase
+        .from('analyses')
+        .insert({
+          user_id: userId,
+          video_ids: [],
+          hook_analysis: {
+            overall_assessment: analysis.overall_assessment,
+            overall_score: analysis.overall_score,
+          },
+          weak_spots: analysis.weak_spots,
+          new_hook_ideas: analysis.new_hook_ideas,
+          analysis_type: 'advanced',
+        })
+        .select()
+        .single();
+
+      if (analysisError) throw analysisError;
+
       await supabase
-        .from('videos')
-        .update({ transcript: geminiData.transcript })
-        .eq('user_id', userId)
-        .eq('video_id', videoId);
+        .from('user_tokens')
+        .update({ analyses_used: analysesUsed + 1 })
+        .eq('user_id', userId);
+
+      return new Response(
+        JSON.stringify({ success: true, analysis: analysisData }),
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    } finally {
+      // Always clean up the uploaded file from Gemini
+      await deleteGeminiFile(`files/${geminiFileName}`);
     }
-
-    const profile = {
-      channel_niche: tokenRow?.channel_niche || '',
-      channel_description: tokenRow?.channel_description || '',
-      channel_context: tokenRow?.channel_context || '',
-    };
-
-    // Step 2: Claude analyzes everything
-    console.log('[analyze-with-gemini] Calling Claude...');
-    const analysis = await analyzeWithClaude(video, geminiData, profile, videoContext, supabase);
-
-    // Save analysis
-    const { data: analysisData, error: analysisError } = await supabase
-      .from('analyses')
-      .insert({
-        user_id: userId,
-        video_ids: [videoId],
-        hook_analysis: { overall_assessment: analysis.overall_assessment, overall_score: analysis.overall_score },
-        weak_spots: analysis.weak_spots,
-        new_hook_ideas: analysis.new_hook_ideas,
-        analysis_type: 'advanced',
-      })
-      .select()
-      .single();
-
-    if (analysisError) throw analysisError;
-
-    await supabase
-      .from('user_tokens')
-      .update({ analyses_used: analysesUsed + 1 })
-      .eq('user_id', userId);
-
-    return new Response(
-      JSON.stringify({ success: true, analysis: analysisData, gemini: geminiData }),
-      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
   } catch (error) {
-    console.error('[analyze-with-gemini] Error:', error);
+    console.error('[analyze-upload] Error:', error);
     return new Response(
       JSON.stringify({ error: error instanceof Error ? error.message : 'Internal server error' }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

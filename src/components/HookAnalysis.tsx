@@ -1,11 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase, getSessionToken, Video, Analysis } from '../lib/supabase';
-import { RefreshCw, Sparkles, Loader2, History } from 'lucide-react';
-import { VideoCard } from './VideoCard';
+import { Sparkles, Loader2, History, Film, Link, Lock } from 'lucide-react';
 import { AnalysisPanel } from './AnalysisPanel';
 import { HistoryPanel } from './HistoryPanel';
 import { VideoScriptPanel } from './VideoScriptPanel';
+import { VideoUploadPanel } from './VideoUploadPanel';
 
 export function HookAnalysis() {
   const { user } = useAuth();
@@ -13,87 +13,58 @@ export function HookAnalysis() {
   const [analysis, setAnalysis] = useState<Analysis | null>(null);
   const [analyses, setAnalyses] = useState<Analysis[]>([]);
   const [historyPanelOpen, setHistoryPanelOpen] = useState(false);
-  const [fetching, setFetching] = useState(false);
   const [error, setError] = useState('');
-  const [selectedVideoId, setSelectedVideoId] = useState<string | null>(null);
   const [analysisPanelOpen, setAnalysisPanelOpen] = useState(false);
   const [scriptPanelVideo, setScriptPanelVideo] = useState<Video | null>(null);
   const [scriptPanelOpen, setScriptPanelOpen] = useState(false);
   const [geminiAnalyzing, setGeminiAnalyzing] = useState(false);
   const [urlInput, setUrlInput] = useState('');
   const [urlError, setUrlError] = useState('');
+  const [uploadPanelOpen, setUploadPanelOpen] = useState(false);
+  const [uploadAnalyzing, setUploadAnalyzing] = useState(false);
+  const [userPlan, setUserPlan] = useState<string>('free');
+  const [fileDragOver, setFileDragOver] = useState(false);
+  const fileDropRef = useRef<HTMLDivElement>(null);
+
+  const isPro = userPlan === 'agency';
 
   useEffect(() => {
     loadVideos();
     loadAllAnalyses();
+    loadUserPlan();
   }, [user?.id]);
 
+  const loadUserPlan = async () => {
+    if (!user?.id) return;
+    const { data } = await supabase
+      .from('user_tokens')
+      .select('plan')
+      .eq('user_id', user.id)
+      .maybeSingle();
+    setUserPlan(data?.plan || 'free');
+  };
+
   const loadVideos = async () => {
+    if (!user?.id) return;
     const { data } = await supabase
       .from('videos')
       .select('*')
-      .eq('user_id', user?.id)
+      .eq('user_id', user.id)
       .order('published_at', { ascending: false });
     setVideos(data || []);
   };
 
   const loadAllAnalyses = async () => {
+    if (!user?.id) return;
     const { data } = await supabase
       .from('analyses')
       .select('*')
-      .eq('user_id', user?.id)
+      .eq('user_id', user.id)
       .order('created_at', { ascending: false });
     if (data && data.length > 0) {
       setAnalyses(data);
       setAnalysis(data[0]);
     }
-  };
-
-  const fetchYouTubeData = async () => {
-    setFetching(true);
-    setError('');
-    try {
-      const token = await getSessionToken();
-      if (!token) { setError('Not authenticated'); setFetching(false); return; }
-      const res = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/fetch-youtube-data`,
-        {
-          method: 'POST',
-          headers: {
-            Authorization: `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({}),
-        }
-      );
-      if (!res.ok) {
-        const d = await res.json();
-        throw new Error(d.error || 'Failed to fetch');
-      }
-      await loadVideos();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to fetch YouTube data');
-    } finally {
-      setFetching(false);
-    }
-  };
-
-
-  const connectYouTube = () => {
-    if (!user?.id) return;
-    const clientId = import.meta.env.VITE_YOUTUBE_CLIENT_ID;
-    const redirectUri = 'https://hersh.live/auth/callback';
-    const scope = 'https://www.googleapis.com/auth/youtube.readonly https://www.googleapis.com/auth/yt-analytics.readonly https://www.googleapis.com/auth/youtube.force-ssl';
-    // Store userId so the callback can use it even if auth state hasn't loaded yet
-    sessionStorage.setItem('youtube_oauth_user_id', user.id);
-    const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?` +
-      `client_id=${clientId}&` +
-      `redirect_uri=${encodeURIComponent(redirectUri)}&` +
-      `response_type=code&` +
-      `scope=${encodeURIComponent(scope)}&` +
-      `access_type=offline&` +
-      `prompt=consent`;
-    window.location.href = authUrl;
   };
 
   const extractVideoId = (url: string): string | null => {
@@ -103,7 +74,6 @@ export function HookAnalysis() {
       /youtu\.be\/([^?&/\n]+)/,
     ];
     const trimmed = url.trim();
-    // Maybe it's just a raw video ID (11 chars)
     if (/^[a-zA-Z0-9_-]{11}$/.test(trimmed)) return trimmed;
     for (const p of patterns) {
       const m = trimmed.match(p);
@@ -115,33 +85,20 @@ export function HookAnalysis() {
   const handleUrlSubmit = () => {
     setUrlError('');
     const videoId = extractVideoId(urlInput);
-    if (!videoId) {
-      setUrlError('Invalid YouTube URL');
-      return;
-    }
-    // Check if it's own video
+    if (!videoId) { setUrlError('Invalid YouTube URL or video ID'); return; }
     const ownVideo = videos.find(v => v.video_id === videoId);
     if (ownVideo) {
       setScriptPanelVideo(ownVideo);
     } else {
-      // External video — create minimal stub, backend fetches public stats
       setScriptPanelVideo({
         video_id: videoId,
         title: urlInput.trim(),
         thumbnail_url: `https://i.ytimg.com/vi/${videoId}/mqdefault.jpg`,
-        views: 0,
-        likes_count: 0,
-        comment_count: 0,
-        duration: 0,
-        is_external: true,
+        views: 0, likes_count: 0, comment_count: 0, duration: 0, is_external: true,
       } as any);
     }
     setScriptPanelOpen(true);
     setUrlInput('');
-  };
-
-  const handleSelect = (videoId: string) => {
-    setSelectedVideoId(prev => prev === videoId ? null : videoId);
   };
 
   const runGeminiAnalysis = async (videoId: string, videoContext: string = '') => {
@@ -154,17 +111,11 @@ export function HookAnalysis() {
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/analyze-with-gemini`,
         {
           method: 'POST',
-          headers: {
-            Authorization: `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
+          headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
           body: JSON.stringify({ videoId, videoContext }),
         }
       );
-      if (!res.ok) {
-        const d = await res.json();
-        throw new Error(d.error || 'Failed to analyze');
-      }
+      if (!res.ok) { const d = await res.json(); throw new Error(d.error || 'Failed to analyze'); }
       const result = await res.json();
       if (result.analysis) {
         setAnalysis(result.analysis);
@@ -173,18 +124,9 @@ export function HookAnalysis() {
       setAnalysisPanelOpen(true);
       setScriptPanelOpen(false);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Gemini analysis failed');
+      setError(err instanceof Error ? err.message : 'Analysis failed');
     } finally {
       setGeminiAnalyzing(false);
-    }
-  };
-
-  const handleAnalyzeClick = () => {
-    if (!selectedVideoId) return;
-    const video = videos.find(v => v.video_id === selectedVideoId);
-    if (video) {
-      setScriptPanelVideo(video);
-      setScriptPanelOpen(true);
     }
   };
 
@@ -193,47 +135,68 @@ export function HookAnalysis() {
     runGeminiAnalysis(videoId, videoContext);
   };
 
+  const runUploadAnalysis = async (file: File, videoContext: string) => {
+    setUploadAnalyzing(true);
+    setError('');
+    try {
+      const token = await getSessionToken();
+      if (!token) { setError('Not authenticated'); setUploadAnalyzing(false); return; }
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('videoContext', videoContext);
+      formData.append('fileName', file.name);
+      const res = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/analyze-upload`,
+        {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${token}` },
+          body: formData,
+        }
+      );
+      if (!res.ok) { const d = await res.json(); throw new Error(d.error || 'Upload analysis failed'); }
+      const result = await res.json();
+      if (result.analysis) {
+        setAnalysis(result.analysis);
+        setAnalyses(prev => [result.analysis, ...prev]);
+      }
+      setUploadPanelOpen(false);
+      setAnalysisPanelOpen(true);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Upload analysis failed');
+    } finally {
+      setUploadAnalyzing(false);
+    }
+  };
+
+  const handleFileDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setFileDragOver(false);
+    if (!isPro) { setUploadPanelOpen(true); return; }
+    const f = e.dataTransfer.files[0];
+    if (f) setUploadPanelOpen(true);
+  };
+
+  const analyzing = geminiAnalyzing || uploadAnalyzing;
+
   return (
     <div className="h-full flex flex-col">
       {/* Header */}
       <div className="px-6 py-5 flex-shrink-0" style={{ borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
-        <div className="flex items-start justify-between gap-4">
+        <div className="flex items-center justify-between gap-4">
           <div>
             <h1 className="text-2xl font-bold text-white mb-1">Shorts Analysis</h1>
-            <p className="text-sm text-gray-500">Select a video and analyze it</p>
+            <p className="text-sm text-gray-500">Paste a YouTube URL or upload your video file</p>
           </div>
-          <div className="flex items-center gap-2 flex-shrink-0">
+          {analyses.length > 0 && (
             <button
-              onClick={fetchYouTubeData}
-              disabled={fetching}
-              className="flex items-center gap-2 px-4 py-2 text-white hover:opacity-90 rounded-lg text-sm font-medium transition-opacity disabled:opacity-50"
-              style={{ background: '#374151' }}
+              onClick={() => setHistoryPanelOpen(true)}
+              className="flex items-center gap-2 px-4 py-2 text-white hover:opacity-90 rounded-lg text-sm font-medium transition-opacity flex-shrink-0"
+              style={{ background: 'rgba(14,164,233,0.2)', border: '1px solid rgba(14,164,233,0.3)' }}
             >
-              {fetching ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
-              <span className="hidden sm:inline">{fetching ? 'Fetching...' : 'Sync'}</span>
+              <History className="w-3.5 h-3.5 text-[#0EA4E9]" />
+              <span className="text-[#0EA4E9]">History</span>
             </button>
-
-            {analyses.length > 0 && (
-              <button
-                onClick={() => setHistoryPanelOpen(true)}
-                className="flex items-center gap-2 px-4 py-2 text-white hover:opacity-90 rounded-lg text-sm font-medium transition-opacity"
-                style={{ background: '#0EA4E9' }}
-              >
-                <History className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">History</span>
-              </button>
-            )}
-
-            <button
-              onClick={handleAnalyzeClick}
-              disabled={!selectedVideoId || geminiAnalyzing}
-              className="flex items-center gap-2 px-4 py-2 text-white hover:opacity-90 rounded-lg text-sm font-semibold transition-opacity disabled:cursor-not-allowed"
-              style={{ background: 'linear-gradient(135deg, #8B5CF6, #0EA4E9)' }}
-            >
-              {geminiAnalyzing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
-              <span className="hidden sm:inline">{geminiAnalyzing ? 'Analyzing...' : 'Analyze'}</span>
-            </button>
-          </div>
+          )}
         </div>
         {error && (
           <div className="mt-3 text-sm text-red-400 bg-red-400/10 border border-red-400/20 rounded-lg px-4 py-3">
@@ -242,69 +205,112 @@ export function HookAnalysis() {
         )}
       </div>
 
-      {/* URL input bar */}
-      <div className="px-6 py-3 flex-shrink-0" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
-        <div className="flex items-center gap-2">
-          <input
-            type="text"
-            value={urlInput}
-            onChange={e => { setUrlInput(e.target.value); setUrlError(''); }}
-            onKeyDown={e => e.key === 'Enter' && handleUrlSubmit()}
-            placeholder="Paste a YouTube URL to analyze..."
-            className="flex-1 text-sm px-4 py-2.5 rounded-lg text-white placeholder-gray-600 focus:outline-none transition-all"
-            style={{ background: 'rgba(255,255,255,0.06)', border: `1px solid ${urlError ? 'rgba(248,113,113,0.5)' : 'rgba(255,255,255,0.1)'}` }}
-            onFocus={e => { e.currentTarget.style.borderColor = '#8B5CF6'; }}
-            onBlur={e => { e.currentTarget.style.borderColor = urlError ? 'rgba(248,113,113,0.5)' : 'rgba(255,255,255,0.1)'; }}
-          />
-          <button
-            onClick={handleUrlSubmit}
-            disabled={!urlInput.trim()}
-            className="flex items-center gap-1.5 px-4 py-2.5 text-white hover:opacity-90 rounded-lg text-sm font-semibold transition-opacity disabled:cursor-not-allowed flex-shrink-0"
-            style={{ background: '#8B5CF6' }}
-          >
-            <Sparkles className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">Analyze URL</span>
-          </button>
-        </div>
-        {urlError && <p className="mt-1.5 text-xs text-red-400">{urlError}</p>}
-      </div>
+      {/* Main content */}
+      <div className="flex-1 overflow-auto px-6 py-8">
+        <div className="max-w-2xl mx-auto space-y-4">
 
-      <div className="flex-1 overflow-auto px-6 py-5">
-        {videos.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-64 text-center">
-            <p className="text-gray-400 mb-5 text-base">Connect your YouTube account to get started</p>
-            <button
-              onClick={connectYouTube}
-              className="px-6 py-2.5 bg-[#0EA4E9] text-white rounded-xl text-sm font-semibold hover:bg-[#0EA4E9]/90 transition-colors"
-            >
-              Connect YouTube Account
-            </button>
+          {/* URL Card */}
+          <div className="rounded-2xl p-6" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}>
+            <div className="flex items-center gap-2 mb-4">
+              <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: 'rgba(139,92,246,0.15)' }}>
+                <Link className="w-4 h-4 text-purple-400" />
+              </div>
+              <div>
+                <h2 className="text-white font-semibold text-sm">Analyze by URL</h2>
+                <p className="text-gray-500 text-xs">Paste any YouTube Shorts link</p>
+              </div>
+            </div>
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={urlInput}
+                onChange={e => { setUrlInput(e.target.value); setUrlError(''); }}
+                onKeyDown={e => e.key === 'Enter' && urlInput.trim() && handleUrlSubmit()}
+                placeholder="youtube.com/shorts/... or paste a video ID"
+                className="flex-1 text-sm px-4 py-3 rounded-xl text-white placeholder-gray-600 focus:outline-none transition-all"
+                style={{
+                  background: 'rgba(255,255,255,0.06)',
+                  border: `1px solid ${urlError ? 'rgba(248,113,113,0.5)' : 'rgba(255,255,255,0.1)'}`,
+                }}
+                onFocus={e => { e.currentTarget.style.borderColor = '#8B5CF6'; }}
+                onBlur={e => { e.currentTarget.style.borderColor = urlError ? 'rgba(248,113,113,0.5)' : 'rgba(255,255,255,0.1)'; }}
+              />
+              <button
+                onClick={handleUrlSubmit}
+                disabled={!urlInput.trim() || analyzing}
+                className="flex items-center gap-2 px-5 py-3 text-white rounded-xl text-sm font-semibold transition-opacity hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed flex-shrink-0"
+                style={{ background: 'linear-gradient(135deg, #8B5CF6, #6D28D9)' }}
+              >
+                {geminiAnalyzing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
+                {geminiAnalyzing ? 'Analyzing...' : 'Analyze'}
+              </button>
+            </div>
+            {urlError && <p className="mt-2 text-xs text-red-400">{urlError}</p>}
           </div>
-        ) : (
-          <>
-            <div className="flex items-center justify-between mb-4">
-              <p className="text-sm text-gray-500">{videos.length} videos</p>
-              {selectedVideoId && (
-                <button
-                  onClick={() => setSelectedVideoId(null)}
-                  className="text-xs text-gray-500 hover:text-white transition-colors"
-                >
-                  Clear selection
-                </button>
+
+          {/* File Upload Card */}
+          <div
+            ref={fileDropRef}
+            onClick={() => setUploadPanelOpen(true)}
+            onDragOver={e => { e.preventDefault(); setFileDragOver(true); }}
+            onDragLeave={() => setFileDragOver(false)}
+            onDrop={handleFileDrop}
+            className="rounded-2xl p-6 cursor-pointer transition-all"
+            style={{
+              background: fileDragOver && isPro
+                ? 'rgba(52,211,153,0.08)'
+                : isPro
+                  ? 'rgba(52,211,153,0.04)'
+                  : 'rgba(255,255,255,0.03)',
+              border: `1px solid ${fileDragOver && isPro ? 'rgba(52,211,153,0.4)' : isPro ? 'rgba(52,211,153,0.2)' : 'rgba(255,255,255,0.07)'}`,
+            }}
+          >
+            <div className="flex items-center gap-2 mb-4">
+              <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: isPro ? 'rgba(52,211,153,0.15)' : 'rgba(255,255,255,0.06)' }}>
+                <Film className={`w-4 h-4 ${isPro ? 'text-emerald-400' : 'text-gray-500'}`} />
+              </div>
+              <div className="flex-1">
+                <div className="flex items-center gap-2">
+                  <h2 className={`font-semibold text-sm ${isPro ? 'text-white' : 'text-gray-400'}`}>
+                    Analyze by File
+                  </h2>
+                  <span className="text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/25">
+                    Pro
+                  </span>
+                </div>
+                <p className={`text-xs ${isPro ? 'text-gray-500' : 'text-gray-600'}`}>
+                  Upload before publishing to get feedback first
+                </p>
+              </div>
+              {!isPro && <Lock className="w-4 h-4 text-gray-600 flex-shrink-0" />}
+            </div>
+
+            <div
+              className="rounded-xl flex flex-col items-center justify-center gap-2 py-7 transition-all"
+              style={{
+                border: `2px dashed ${fileDragOver && isPro ? 'rgba(52,211,153,0.5)' : isPro ? 'rgba(52,211,153,0.2)' : 'rgba(255,255,255,0.07)'}`,
+                background: isPro ? 'rgba(52,211,153,0.03)' : 'rgba(255,255,255,0.02)',
+              }}
+            >
+              {isPro ? (
+                <>
+                  <Film className={`w-8 h-8 ${fileDragOver ? 'text-emerald-400' : 'text-gray-600'}`} />
+                  <p className="text-gray-400 text-sm font-medium">
+                    {fileDragOver ? 'Drop to analyze' : 'Click or drag & drop your video'}
+                  </p>
+                  <p className="text-gray-600 text-xs">MP4, MOV, WebM, AVI — up to 200MB</p>
+                </>
+              ) : (
+                <>
+                  <Lock className="w-7 h-7 text-gray-700" />
+                  <p className="text-gray-500 text-sm font-medium">Available on Pro plan</p>
+                  <p className="text-gray-600 text-xs">Upgrade to analyze unpublished videos</p>
+                </>
               )}
             </div>
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
-              {videos.map(video => (
-                <VideoCard
-                  key={video.id}
-                  video={video}
-                  isSelected={selectedVideoId === video.video_id}
-                  onSelect={handleSelect}
-                />
-              ))}
-            </div>
-          </>
-        )}
+          </div>
+
+        </div>
       </div>
 
       <HistoryPanel
@@ -326,6 +332,14 @@ export function HookAnalysis() {
         onClose={() => setScriptPanelOpen(false)}
         onAnalyze={handleGeminiFromPanel}
         analyzing={geminiAnalyzing}
+      />
+
+      <VideoUploadPanel
+        open={uploadPanelOpen}
+        onClose={() => setUploadPanelOpen(false)}
+        onAnalyze={runUploadAnalysis}
+        analyzing={uploadAnalyzing}
+        isPro={isPro}
       />
     </div>
   );

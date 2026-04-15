@@ -21,10 +21,19 @@ Deno.serve(async (req: Request) => {
     Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
   );
 
+  // Decode JWT to inspect claims
+  const token = authHeader.replace('Bearer ', '');
+  try {
+    const payload = JSON.parse(atob(token.split('.')[1]));
+    const now = Math.floor(Date.now() / 1000);
+    console.log('JWT exp:', payload.exp, 'now:', now, 'expired:', payload.exp < now, 'email:', payload.email);
+  } catch(e) { console.log('JWT decode error:', e); }
+
   // Verify JWT
   const userRes = await fetch(`${Deno.env.get('SUPABASE_URL')}/auth/v1/user`, {
     headers: { Authorization: authHeader, apikey: Deno.env.get('SUPABASE_ANON_KEY')! },
   });
+  console.log('auth response status:', userRes.status);
   if (!userRes.ok) return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: corsHeaders });
   const authUser = await userRes.json();
   const isAdmin = authUser.email === ADMIN_EMAIL;

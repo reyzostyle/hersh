@@ -56,10 +56,23 @@ export function AnalysisPanel({ analysis, open, onClose }: AnalysisPanelProps) {
           ) : (
             <>
               <div>
-                <h3 className="text-white font-semibold mb-2 flex items-center gap-2 text-sm uppercase tracking-wide">
-                  <TrendingUp className="w-4 h-4 text-[#0EA4E9]" />
-                  Overall Assessment
-                </h3>
+                <div className="flex items-center justify-between mb-2">
+                  <h3 className="text-white font-semibold flex items-center gap-2 text-sm uppercase tracking-wide">
+                    <TrendingUp className="w-4 h-4 text-[#0EA4E9]" />
+                    Overall Assessment
+                  </h3>
+                  {analysis.hook_analysis?.overall_score != null && (
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-xs text-gray-500 uppercase tracking-wide">Score</span>
+                      <span className={`text-lg font-bold ${
+                        analysis.hook_analysis.overall_score >= 7 ? 'text-emerald-400' :
+                        analysis.hook_analysis.overall_score >= 4 ? 'text-yellow-400' : 'text-red-400'
+                      }`}>
+                        {analysis.hook_analysis.overall_score}<span className="text-xs text-gray-600 font-normal">/10</span>
+                      </span>
+                    </div>
+                  )}
+                </div>
                 <p className="text-gray-300 text-sm leading-relaxed">
                   {analysis.hook_analysis?.overall_assessment}
                 </p>
