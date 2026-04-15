@@ -7,12 +7,13 @@ interface VideoUploadPanelProps {
   onAnalyze: (file: File, videoContext: string) => void;
   analyzing: boolean;
   isPro: boolean;
+  uploadStep?: 'uploading' | 'analyzing' | null;
 }
 
 const ACCEPTED_TYPES = ['video/mp4', 'video/quicktime', 'video/webm', 'video/x-msvideo'];
 const MAX_SIZE_MB = 200;
 
-export function VideoUploadPanel({ open, onClose, onAnalyze, analyzing, isPro }: VideoUploadPanelProps) {
+export function VideoUploadPanel({ open, onClose, onAnalyze, analyzing, isPro, uploadStep }: VideoUploadPanelProps) {
   const [file, setFile] = useState<File | null>(null);
   const [videoContext, setVideoContext] = useState('');
   const [dragOver, setDragOver] = useState(false);
@@ -210,7 +211,7 @@ export function VideoUploadPanel({ open, onClose, onAnalyze, analyzing, isPro }:
               style={{ background: analyzing || !file ? 'rgba(52,211,153,0.3)' : 'linear-gradient(135deg, #34D399, #0EA4E9)' }}
             >
               {analyzing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
-              {analyzing ? 'Analyzing...' : 'Analyze Video'}
+              {uploadStep === 'uploading' ? 'Uploading...' : uploadStep === 'analyzing' ? 'Analyzing...' : analyzing ? 'Processing...' : 'Analyze Video'}
             </button>
           </div>
         )}

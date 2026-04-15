@@ -22,6 +22,7 @@ export function HookAnalysis() {
   const [urlError, setUrlError] = useState('');
   const [uploadPanelOpen, setUploadPanelOpen] = useState(false);
   const [uploadAnalyzing, setUploadAnalyzing] = useState(false);
+  const [uploadStep, setUploadStep] = useState<'uploading' | 'analyzing' | null>(null);
   const [userPlan, setUserPlan] = useState<string>('free');
   const [fileDragOver, setFileDragOver] = useState(false);
   const fileDropRef = useRef<HTMLDivElement>(null);
@@ -137,23 +138,37 @@ export function HookAnalysis() {
 
   const runUploadAnalysis = async (file: File, videoContext: string) => {
     setUploadAnalyzing(true);
+    setUploadStep('uploading');
     setError('');
+    let storagePath = '';
     try {
+      if (!user?.id) throw new Error('Not authenticated');
+
+      // Step 1: Upload to Supabase Storage (bypasses edge function body size limit)
+      storagePath = `${user.id}/${Date.now()}_${file.name}`;
+      const { error: uploadError } = await supabase.storage
+        .from('video-uploads')
+        .upload(storagePath, file, { contentType: file.type, upsert: false });
+      if (uploadError) throw new Error(`Storage upload failed: ${uploadError.message}`);
+
+      setUploadStep('analyzing');
+
+      // Step 2: Call edge function with storage path (small JSON body)
       const token = await getSessionToken();
-      if (!token) { setError('Not authenticated'); setUploadAnalyzing(false); return; }
-      const formData = new FormData();
-      formData.append('file', file);
-      formData.append('videoContext', videoContext);
-      formData.append('fileName', file.name);
+      if (!token) throw new Error('Not authenticated');
       const res = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/analyze-upload`,
         {
           method: 'POST',
-          headers: { Authorization: `Bearer ${token}` },
-          body: formData,
+          headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ storagePath, videoContext, fileName: file.name }),
         }
       );
-      if (!res.ok) { const d = await res.json(); throw new Error(d.error || 'Upload analysis failed'); }
+      if (!res.ok) {
+        let errMsg = `HTTP ${res.status}`;
+        try { const d = await res.json(); errMsg = d.error || errMsg; } catch {}
+        throw new Error(errMsg);
+      }
       const result = await res.json();
       if (result.analysis) {
         setAnalysis(result.analysis);
@@ -162,9 +177,14 @@ export function HookAnalysis() {
       setUploadPanelOpen(false);
       setAnalysisPanelOpen(true);
     } catch (err) {
+      // Cleanup storage on error if upload succeeded but analysis failed
+      if (storagePath) {
+        supabase.storage.from('video-uploads').remove([storagePath]).catch(() => {});
+      }
       setError(err instanceof Error ? err.message : 'Upload analysis failed');
     } finally {
       setUploadAnalyzing(false);
+      setUploadStep(null);
     }
   };
 
@@ -340,6 +360,7 @@ export function HookAnalysis() {
         onAnalyze={runUploadAnalysis}
         analyzing={uploadAnalyzing}
         isPro={isPro}
+        uploadStep={uploadStep}
       />
     </div>
   );
