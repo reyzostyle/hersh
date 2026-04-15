@@ -162,21 +162,28 @@ export function HookAnalysis() {
       const { uploadUrl } = await sessionRes.json();
       if (!uploadUrl) throw new Error('No upload URL received');
 
-      // Step 2: Upload file directly from browser to Gemini (single request, no chunking)
-      const uploadRes = await fetch(uploadUrl, {
-        method: 'POST',
-        headers: {
-          'X-Goog-Upload-Offset': '0',
-          'X-Goog-Upload-Command': 'upload, finalize',
-        },
-        body: file,
-      });
+      // Step 2: Stream file through edge function proxy → Gemini (no buffering, no size limit)
+      const uploadRes = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/upload-video-chunk`,
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token0}`,
+            'Content-Type': file.type || 'video/mp4',
+            'X-Upload-Url': uploadUrl,
+            'X-Upload-Offset': '0',
+            'X-Is-Last': 'true',
+          },
+          body: file,
+        }
+      );
       if (!uploadRes.ok) {
-        const errText = await uploadRes.text();
-        throw new Error(`Gemini upload failed: ${uploadRes.status} - ${errText}`);
+        let msg = `Upload failed: HTTP ${uploadRes.status}`;
+        try { const d = await uploadRes.json(); msg = d.error || msg; } catch {}
+        throw new Error(msg);
       }
       const uploadData = await uploadRes.json();
-      const geminiFileName = uploadData.file?.name;
+      const geminiFileName = uploadData.geminiFileName;
       if (!geminiFileName) throw new Error('No Gemini file name after upload');
 
       setUploadStep('analyzing');
