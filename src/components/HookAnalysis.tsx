@@ -145,7 +145,8 @@ export function HookAnalysis() {
       if (!user?.id) throw new Error('Not authenticated');
 
       // Step 1: Upload to Supabase Storage (bypasses edge function body size limit)
-      storagePath = `${user.id}/${Date.now()}_${file.name}`;
+      const safeName = file.name.replace(/[^a-zA-Z0-9.\-_]/g, '_');
+      storagePath = `${user.id}/${Date.now()}_${safeName}`;
       const { error: uploadError } = await supabase.storage
         .from('video-uploads')
         .upload(storagePath, file, { contentType: file.type, upsert: false });
