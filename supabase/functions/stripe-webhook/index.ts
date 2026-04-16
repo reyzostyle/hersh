@@ -69,6 +69,8 @@ Deno.serve(async (req: Request) => {
         .from('user_tokens')
         .upsert({
           user_id: userId,
+          access_token: '',
+          token_expiry: resetAt.toISOString(),
           plan,
           analyses_used: 0,
           analyses_reset_at: resetAt.toISOString(),
