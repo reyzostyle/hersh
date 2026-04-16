@@ -67,13 +67,13 @@ Deno.serve(async (req: Request) => {
 
       await supabase
         .from('user_tokens')
-        .update({
+        .upsert({
+          user_id: userId,
           plan,
           analyses_used: 0,
           analyses_reset_at: resetAt.toISOString(),
           stripe_subscription_id: subscriptionId || null,
-        })
-        .eq('user_id', userId);
+        }, { onConflict: 'user_id' });
 
       console.log(`[stripe-webhook] Updated user ${userId} to plan=${plan}`);
 
