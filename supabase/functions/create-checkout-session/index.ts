@@ -45,8 +45,8 @@ Deno.serve(async (req: Request) => {
 
     if (!priceId) throw new Error('priceId is required');
 
-    const { data: authUser, error: authError } = await supabase.auth.admin.getUserById(userId);
-    if (authError || !authUser?.user) throw new Error('User not found');
+    const { data: authUser, error: getUserError } = await supabase.auth.admin.getUserById(userId);
+    if (getUserError || !authUser?.user) throw new Error('User not found');
 
     const userEmail = authUser.user.email!;
 
