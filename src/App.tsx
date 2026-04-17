@@ -182,11 +182,18 @@ function AuthCallbackHandler() {
 function AppContent() {
   const { user, loading } = useAuth();
 
-  // Save referral code to referral_signups once after signup
+  // Save referral code to referral_signups once after signup (new users only)
   useEffect(() => {
     if (!user) return;
     const refCode = localStorage.getItem('hersh_ref');
     if (!refCode) return;
+    // Only record referral for accounts created within the last 10 minutes
+    const createdAt = new Date((user as any).created_at || '').getTime();
+    const isNewUser = Date.now() - createdAt < 10 * 60 * 1000;
+    if (!isNewUser) {
+      localStorage.removeItem('hersh_ref');
+      return;
+    }
     supabase
       .from('referral_signups')
       .insert({ user_id: user.id, referral_code: refCode })

@@ -23,26 +23,22 @@ Deno.serve(async (req: Request) => {
       return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: corsHeaders });
     }
 
-    const userRes = await fetch(`${Deno.env.get('SUPABASE_URL')}/auth/v1/user`, {
-      headers: {
-        Authorization: authHeader,
-        apikey: Deno.env.get('SUPABASE_ANON_KEY')!,
-      },
-    });
-    if (!userRes.ok) {
-      return new Response(
-        JSON.stringify({ error: 'Unauthorized' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-    const authUser = await userRes.json();
-    const userId = authUser.id;
-
     const supabaseAdmin = createClient(
       Deno.env.get('SUPABASE_URL')!,
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
       { auth: { autoRefreshToken: false, persistSession: false, detectSessionInUrl: false } }
     );
+
+    const token = authHeader.replace('Bearer ', '');
+    const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token);
+    if (authError || !user) {
+      console.error('[check-usage] Auth error:', authError?.message);
+      return new Response(
+        JSON.stringify({ error: 'Unauthorized' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+    const userId = user.id;
 
     const { data: tokenRow, error } = await supabaseAdmin
       .from('user_tokens')

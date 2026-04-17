@@ -54,6 +54,7 @@ Deno.serve(async (req: Request) => {
       }
 
       const subscriptionId = session.subscription as string;
+      const customerId = session.customer as string;
       let plan = 'pro';
 
       if (subscriptionId) {
@@ -65,7 +66,7 @@ Deno.serve(async (req: Request) => {
       const resetAt = new Date();
       resetAt.setDate(resetAt.getDate() + 30);
 
-      await supabase
+      const { error: upsertError } = await supabase
         .from('user_tokens')
         .upsert({
           user_id: userId,
@@ -75,37 +76,42 @@ Deno.serve(async (req: Request) => {
           analyses_used: 0,
           analyses_reset_at: resetAt.toISOString(),
           stripe_subscription_id: subscriptionId || null,
+          stripe_customer_id: customerId || null,
         }, { onConflict: 'user_id' });
 
-      console.log(`[stripe-webhook] Updated user ${userId} to plan=${plan}`);
+      if (upsertError) {
+        console.error('[stripe-webhook] Upsert error:', JSON.stringify(upsertError));
+      }
+
+      console.log(`[stripe-webhook] Updated user ${userId} to plan=${plan}, customer=${customerId}`);
 
       // Record referral conversion if user came via a ref link
       const amountCents = session.amount_total ?? 0;
       if (amountCents > 0) {
-        const { data: tokenRow } = await supabase
-          .from('user_tokens')
+        const { data: refSignup } = await supabase
+          .from('referral_signups')
           .select('referral_code')
           .eq('user_id', userId)
           .maybeSingle();
 
-        if (tokenRow?.referral_code) {
+        if (refSignup?.referral_code) {
           const { data: refCode } = await supabase
             .from('referral_codes')
             .select('commission_percent')
-            .eq('code', tokenRow.referral_code)
+            .eq('code', refSignup.referral_code)
             .maybeSingle();
 
           if (refCode) {
             const commissionCents = Math.round(amountCents * refCode.commission_percent / 100);
             await supabase.from('referral_conversions').insert({
-              referral_code: tokenRow.referral_code,
+              referral_code: refSignup.referral_code,
               referred_user_id: userId,
               plan,
               amount_cents: amountCents,
               commission_cents: commissionCents,
               stripe_subscription_id: subscriptionId || null,
             });
-            console.log(`[stripe-webhook] Referral conversion: code=${tokenRow.referral_code} commission=$${commissionCents / 100}`);
+            console.log(`[stripe-webhook] Referral conversion: code=${refSignup.referral_code} commission=$${commissionCents / 100}`);
           }
         }
       }
