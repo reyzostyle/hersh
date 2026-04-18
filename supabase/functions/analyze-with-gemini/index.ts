@@ -147,7 +147,8 @@ async function analyzeWithClaude(
   geminiData: { transcript: string; hook_visual: string; visual_observations: string; overall_energy: string },
   profile: any,
   videoContext?: string,
-  supabase?: any
+  supabase?: any,
+  creatorLevel?: string,
 ) {
   const anthropicApiKey = Deno.env.get('ANTHROPIC_API_KEY');
   if (!anthropicApiKey) throw new Error('Anthropic API key not configured');
@@ -166,10 +167,19 @@ async function analyzeWithClaude(
     }
   }
 
+  const levelInstructions: Record<string, string> = {
+    beginner: 'The creator is a beginner — explain concepts clearly, avoid jargon, be encouraging but honest. Focus on the 1-2 most impactful fundamentals.',
+    intermediate: 'The creator knows the basics — skip fundamentals, focus on execution details and what separates okay videos from great ones.',
+    advanced: 'The creator is experienced — be nuanced, reference advanced concepts (pattern interrupts, retention curves, loop mechanics). Challenge their assumptions.',
+  };
+  const levelNote = levelInstructions[creatorLevel || 'intermediate'] || levelInstructions.intermediate;
+
   const systemPrompt = `You are a world-class content director who has studied thousands of viral YouTube Shorts.
 You think like a viewer, not like a checklist.
 
 You have deep knowledge of what makes Shorts go viral — hooks, retention, loops, emotional triggers, pacing. This knowledge is your instinct, not a rulebook. Use it to form genuine opinions about what will work and what will fail.
+
+Creator level: ${levelNote}
 
 ${knowledgeBaseSection ? `Knowledge base:\n${knowledgeBaseSection}\n` : ''}
 When you analyze a Short, think like this:
@@ -295,7 +305,7 @@ Deno.serve(async (req: Request) => {
     // Check plan limits
     const { data: tokenRow } = await supabase
       .from('user_tokens')
-      .select('plan, analyses_used, analyses_reset_at, channel_niche, channel_description, channel_context')
+      .select('plan, analyses_used, analyses_reset_at, channel_niche, channel_description, channel_context, creator_level')
       .eq('user_id', userId)
       .maybeSingle();
 
@@ -368,11 +378,12 @@ Deno.serve(async (req: Request) => {
       channel_niche: tokenRow?.channel_niche || '',
       channel_description: tokenRow?.channel_description || '',
       channel_context: tokenRow?.channel_context || '',
+      creator_level: tokenRow?.creator_level || 'intermediate',
     };
 
     // Step 2: Claude analyzes everything
     console.log('[analyze-with-gemini] Calling Claude...');
-    const analysis = await analyzeWithClaude(video, geminiData, profile, videoContext, supabase);
+    const analysis = await analyzeWithClaude(video, geminiData, profile, videoContext, supabase, profile.creator_level);
 
     // Save analysis
     const { data: analysisData, error: analysisError } = await supabase

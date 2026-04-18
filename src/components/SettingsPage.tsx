@@ -245,9 +245,16 @@ function ProfileTab({ user }: { user: any }) {
   );
 }
 
+const CREATOR_LEVELS = [
+  { value: 'beginner', label: 'Beginner', hint: 'New to Shorts, learning fundamentals' },
+  { value: 'intermediate', label: 'Intermediate', hint: 'Know the basics, working on execution' },
+  { value: 'advanced', label: 'Advanced', hint: 'Experienced creator, want nuance' },
+];
+
 function NicheTab({ userId }: { userId?: string }) {
   const [channelNiche, setChannelNiche] = useState('');
   const [channelDescription, setChannelDescription] = useState('');
+  const [creatorLevel, setCreatorLevel] = useState('intermediate');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -256,13 +263,14 @@ function NicheTab({ userId }: { userId?: string }) {
   useEffect(() => {
     supabase
       .from('user_tokens')
-      .select('channel_niche, channel_description')
+      .select('channel_niche, channel_description, creator_level')
       .eq('user_id', userId)
       .maybeSingle()
       .then(({ data }) => {
         if (data) {
           setChannelNiche(data.channel_niche || '');
           setChannelDescription(data.channel_description || '');
+          setCreatorLevel(data.creator_level || 'intermediate');
         }
         setLoading(false);
       });
@@ -280,12 +288,12 @@ function NicheTab({ userId }: { userId?: string }) {
     if (existing) {
       ({ error: err } = await supabase
         .from('user_tokens')
-        .update({ channel_niche: channelNiche, channel_description: channelDescription })
+        .update({ channel_niche: channelNiche, channel_description: channelDescription, creator_level: creatorLevel })
         .eq('user_id', userId));
     } else {
       ({ error: err } = await supabase
         .from('user_tokens')
-        .insert({ user_id: userId, channel_niche: channelNiche, channel_description: channelDescription, access_token: '', refresh_token: '' }));
+        .insert({ user_id: userId, channel_niche: channelNiche, channel_description: channelDescription, creator_level: creatorLevel, access_token: '', refresh_token: '' }));
     }
     setSaving(false);
     if (err) {
@@ -337,6 +345,27 @@ function NicheTab({ userId }: { userId?: string }) {
               onFocus={e => { e.currentTarget.style.borderColor = '#0EA4E9'; }}
               onBlur={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)'; }}
             />
+          </div>
+
+          <div>
+            <label className="block text-xs font-medium text-gray-500 mb-1.5 uppercase tracking-wide">Your Level</label>
+            <select
+              value={creatorLevel}
+              onChange={e => setCreatorLevel(e.target.value)}
+              className="w-full px-4 py-2.5 rounded-lg text-white text-sm focus:outline-none transition-colors appearance-none cursor-pointer"
+              style={{ ...glassInput, backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 14px center' }}
+              onFocus={e => { e.currentTarget.style.borderColor = '#0EA4E9'; }}
+              onBlur={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)'; }}
+            >
+              {CREATOR_LEVELS.map(l => (
+                <option key={l.value} value={l.value} style={{ background: '#0D1B2A' }}>
+                  {l.label}
+                </option>
+              ))}
+            </select>
+            <p className="mt-1.5 text-xs text-gray-600">
+              {CREATOR_LEVELS.find(l => l.value === creatorLevel)?.hint}
+            </p>
           </div>
         </div>
 
