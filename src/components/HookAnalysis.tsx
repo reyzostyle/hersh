@@ -271,7 +271,7 @@ export function HookAnalysis() {
                 <p className="text-gray-500 text-xs">Paste any YouTube Shorts link</p>
               </div>
             </div>
-            <div className="flex gap-2">
+            <div className="flex flex-col sm:flex-row gap-2">
               <input
                 type="text"
                 value={urlInput}
@@ -289,7 +289,7 @@ export function HookAnalysis() {
               <button
                 onClick={handleUrlSubmit}
                 disabled={!urlInput.trim() || analyzing}
-                className="flex items-center gap-2 px-5 py-3 text-white rounded-xl text-sm font-semibold transition-opacity hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed flex-shrink-0"
+                className="flex items-center justify-center gap-2 px-5 py-3 text-white rounded-xl text-sm font-semibold transition-opacity hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed sm:flex-shrink-0"
                 style={{ background: 'linear-gradient(135deg, #8B5CF6, #6D28D9)' }}
               >
                 {geminiAnalyzing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}

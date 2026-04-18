@@ -111,16 +111,16 @@ export function AppShell({ activeTab, onTabChange, children }: AppShellProps) {
       )}
 
       <div className="flex-1 flex flex-col min-w-0 lg:ml-56 relative" style={{ zIndex: 1 }}>
-        <header className="lg:hidden flex items-center justify-between px-4 py-4 flex-shrink-0" style={{ borderBottom: '1px solid rgba(255,255,255,0.08)', background: 'rgba(10,15,26,0.8)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)' }}>
-          <span className="text-white font-semibold text-sm">
-            {navItems.find(i => i.id === activeTab)?.label ?? 'Hersh'}
-          </span>
+        <header className="lg:hidden flex items-center gap-3 px-4 py-4 flex-shrink-0" style={{ borderBottom: '1px solid rgba(255,255,255,0.08)', background: 'rgba(10,15,26,0.8)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)' }}>
           <button
             onClick={() => setMobileOpen(!mobileOpen)}
-            className="p-2 text-gray-400 hover:text-white transition-colors"
+            className="p-2 text-gray-400 hover:text-white transition-colors flex-shrink-0"
           >
             {mobileOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
           </button>
+          <span className="text-white font-semibold text-sm">
+            {navItems.find(i => i.id === activeTab)?.label ?? 'Hersh'}
+          </span>
         </header>
 
         <main className="flex-1 overflow-auto">
