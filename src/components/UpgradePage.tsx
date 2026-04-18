@@ -26,7 +26,7 @@ const plans = [
     name: 'Trial',
     price: '$0',
     period: 'forever',
-    analyses: '3 total',
+    analyses: '3 analyses total',
     priceId: null,
     features: [
       '3 lifetime analyses',
@@ -41,7 +41,7 @@ const plans = [
     name: 'Plus',
     price: '$8',
     period: '/month',
-    analyses: '30/month',
+    analyses: '30 analyses / month',
     priceId: PLUS_PRICE_ID,
     features: [
       '30 analyses per month',
@@ -57,7 +57,7 @@ const plans = [
     name: 'Pro',
     price: '$19',
     period: '/month',
-    analyses: '50/month',
+    analyses: '50 analyses / month',
     priceId: PRO_PRICE_ID,
     features: [
       '50 analyses per month',
@@ -246,7 +246,7 @@ export function UpgradePage() {
                     <span className="text-3xl font-bold text-white">{plan.price}</span>
                     <span className="text-sm text-gray-500">{plan.period}</span>
                   </div>
-                  <p className="mt-1 text-xs text-gray-500">{plan.analyses} analyses</p>
+                  <p className="mt-1 text-xs text-gray-500">{plan.analyses}</p>
                 </div>
 
                 <ul className="flex-1 space-y-2 mb-5">
