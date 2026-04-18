@@ -117,24 +117,33 @@ When you analyze a Short, think like this:
 
 Give your analysis as a content director talking to a creator — direct, specific, opinionated. Lead with the most important insight first. Maximum 3 key points. Be brutally honest but constructive.`;
 
-  const profileSection = [
-    profile.channel_niche && `Channel Niche: ${profile.channel_niche}`,
-    profile.channel_description && `Channel Description: ${profile.channel_description}`,
-    profile.channel_context && `Additional Context: ${profile.channel_context}`,
-  ].filter(Boolean).join('\n');
+  const hasProfile = profile.channel_niche || profile.channel_description;
+  const profileSection = hasProfile
+    ? `Niche: ${profile.channel_niche || 'N/A'}\nDescription: ${profile.channel_description || 'N/A'}${profile.channel_context ? `\nAdditional Context: ${profile.channel_context}` : ''}`
+    : `N/A — channel profile not provided`;
 
-  const prompt = `## Video
-Title: ${videoTitle}
-Note: This is an unpublished video uploaded for pre-publish analysis.
+  const prompt = `## Video Stats
+Title: ${videoTitle || 'N/A'}
+Duration: N/A — not yet available
+Views: N/A — not published yet
+Likes: N/A — not published yet
+Source: Uploaded file
 
-## Gemini Video Analysis
-Transcript: ${geminiData.transcript || 'Not available'}
-Visual Hook (first 3-5 sec): ${geminiData.hook_visual || 'Not available'}
-Visual Observations: ${geminiData.visual_observations || 'Not available'}
-Overall Energy: ${geminiData.overall_energy}
+## Retention Data
+N/A — retention data not available for this video.
+Analyze based on structure, hook, and content only.
 
-${profileSection ? `## Channel Profile\n${profileSection}\n` : ''}
-${videoContext?.trim() ? `## Additional Context\n${videoContext}\n` : ''}
+## Video Analysis (from Gemini)
+Transcript: ${geminiData.transcript || 'N/A — transcript not available'}
+Visual hook (0-3 sec): ${geminiData.hook_visual || 'N/A — visual hook not captured'}
+Visual observations: ${geminiData.visual_observations || 'N/A — no visual observations'}
+Energy level: ${geminiData.overall_energy || 'N/A'}
+
+## Channel Profile
+${profileSection}
+
+## User Context
+${videoContext?.trim() || 'N/A — no extra context provided'}
 
 Respond with valid JSON only:
 {

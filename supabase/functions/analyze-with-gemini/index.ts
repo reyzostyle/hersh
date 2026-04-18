@@ -191,36 +191,43 @@ Give your analysis as a content director talking to a creator — direct, specif
 
 Focus on: what's the real problem, why it matters, and exactly how to fix it. Maximum 3 key points. Be brutally honest but constructive.`;
 
+  const dur = video.duration ? `${video.duration}s` : 'N/A';
+  const views = video.views != null ? video.views.toLocaleString() : 'N/A — not published yet or no access';
+  const likes = video.likes_count != null ? video.likes_count.toLocaleString() : 'N/A';
+  const source = 'YouTube URL';
+
+  const hasRetention = video.retention_percentage != null && video.average_view_duration != null;
+  const retentionSection = hasRetention
+    ? `Avg view duration: ${video.average_view_duration}s (${video.retention_percentage}%)\nBiggest drops: N/A — drop data not available`
+    : `N/A — retention data not available for this video.\nAnalyze based on structure, hook, and content only.`;
+
   // Don't use channel profile for external videos — they're someone else's content
-  const profileSection = video.is_external ? '' : [
-    profile.channel_niche && `Channel Niche: ${profile.channel_niche}`,
-    profile.channel_description && `Channel Description: ${profile.channel_description}`,
-    profile.channel_context && `Additional Context: ${profile.channel_context}`,
-  ].filter(Boolean).join('\n');
+  const hasProfile = !video.is_external && (profile.channel_niche || profile.channel_description);
+  const profileSection = hasProfile
+    ? `Niche: ${profile.channel_niche || 'N/A'}\nDescription: ${profile.channel_description || 'N/A'}${profile.channel_context ? `\nAdditional Context: ${profile.channel_context}` : ''}`
+    : `N/A — channel profile not provided`;
 
-  const hasStats = video.views != null;
-  const hasRetention = video.retention_percentage != null;
   const prompt = `## Video Stats
-Title: ${video.title}
-${hasStats ? `Views: ${video.views?.toLocaleString()}
-Likes: ${video.likes_count?.toLocaleString()}
-Duration: ${video.duration}s
-${hasRetention ? `Retention: ${video.retention_percentage}%\nAvg View Duration: ${video.average_view_duration}s` : `Retention: N/A (external video)`}` : `Stats: Not available (external video — focus analysis on content and visuals only)`}
+Title: ${video.title || 'N/A'}
+Duration: ${dur}
+Views: ${views}
+Likes: ${likes}
+Source: ${source}
 
-## Gemini Video Analysis
-Transcript: ${geminiData.transcript || 'Not available'}
+## Retention Data
+${retentionSection}
 
-Visual Hook (first 3-5 sec): ${geminiData.hook_visual || 'Not available'}
+## Video Analysis (from Gemini)
+Transcript: ${geminiData.transcript || 'N/A — transcript not available'}
+Visual hook (0-3 sec): ${geminiData.hook_visual || 'N/A — visual hook not captured'}
+Visual observations: ${geminiData.visual_observations || 'N/A — no visual observations'}
+Energy level: ${geminiData.overall_energy || 'N/A'}
 
-Visual Observations: ${geminiData.visual_observations || 'Not available'}
-
-Overall Energy: ${geminiData.overall_energy}
-
-${profileSection ? `## Channel Profile (the user who requested this analysis)
+## Channel Profile
 ${profileSection}
-Note: If this video is from a completely different niche than the channel profile above, ignore the profile and analyze the video objectively. If it's related or could be relevant as inspiration, use the profile to tailor recommendations.
-` : ''}
-${videoContext?.trim() ? `## Additional Context\n${videoContext}\n` : ''}
+
+## User Context
+${videoContext?.trim() || 'N/A — no extra context provided'}
 
 Analyze the hook and overall video performance. Use both the transcript AND visual data from Gemini.
 
