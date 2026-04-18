@@ -349,7 +349,7 @@ export function HookAnalysis() {
                   <p className="text-gray-400 text-sm font-medium">
                     {fileDragOver ? 'Drop to analyze' : 'Click or drag & drop your video'}
                   </p>
-                  <p className="text-gray-600 text-xs">MP4, MOV, WebM, AVI — up to 300MB</p>
+                  <p className="text-gray-600 text-xs">MP4, MOV, WebM, AVI - up to 300MB</p>
                 </>
               ) : (
                 <>

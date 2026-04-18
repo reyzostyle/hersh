@@ -147,7 +147,7 @@ export function VideoUploadPanel({ open, onClose, onAnalyze, analyzing, isPro, u
                     <p className="text-white text-sm font-medium">Drop your video here</p>
                     <p className="text-gray-500 text-xs mt-1">or click to browse</p>
                   </div>
-                  <p className="text-gray-600 text-xs">MP4, MOV, WebM, AVI — up to {MAX_SIZE_MB}MB</p>
+                  <p className="text-gray-600 text-xs">MP4, MOV, WebM, AVI - up to {MAX_SIZE_MB}MB</p>
                 </div>
               ) : (
                 <div className="rounded-xl px-4 py-3 flex items-center gap-3" style={{ background: 'rgba(52,211,153,0.08)', border: '1px solid rgba(52,211,153,0.2)' }}>

@@ -185,9 +185,20 @@ HARD RULES
 6. Maximum 3 key points. If you have fewer real issues, say fewer. Don't pad.
 
 OUTPUT FORMAT (for overall_assessment)
-- Open with "Real problem: <one sentence naming the single biggest issue>"
-- Then 3 labeled points (or fewer), each: "<label>: <specific issue> — <exact fix>"
-- Close with "Fix this first: <the one change that will move the needle most>"
+Structure the text as THREE separate blocks, separated by a BLANK LINE (\\n\\n):
+
+Block 1 - "Real problem: <one sentence naming the single biggest issue>"
+
+Block 2 - The analysis body. Write it as 2-3 short labeled sub-sections, each on its own line, using this exact shape:
+Hook: <what's wrong and why>
+Structure: <what's wrong and why>
+Visuals: <what's wrong and why>
+(Pick the 2-3 labels that actually apply. Labels can also be: Pacing, Audio, Ending, CTA, Retention. One label per line, blank line between block 2 and block 3.)
+
+Block 3 - "Fix this first: <the one change that will move the needle most>"
+
+PUNCTUATION
+Never use em-dash (—) or en-dash (–) anywhere in output. Only use the regular hyphen-minus (-). This applies to every field: overall_assessment, weak_spots, new_hook_ideas.
 
 TONE
 Peer-to-peer senior creator notes. Zero fluff. Direct, specific, opinionated. Talk like you're texting a friend who asked for a real review, not writing a performance report.
@@ -273,13 +284,24 @@ Respond with valid JSON only:
   const data = await response.json();
   const content = data.content[0].text;
 
+  const stripDashes = (s: any): any => {
+    if (typeof s === 'string') return s.replace(/[—–]/g, '-');
+    if (Array.isArray(s)) return s.map(stripDashes);
+    if (s && typeof s === 'object') {
+      const out: any = {};
+      for (const k of Object.keys(s)) out[k] = stripDashes(s[k]);
+      return out;
+    }
+    return s;
+  };
+
   try {
     const jsonMatch = content.match(/\{[\s\S]*\}/);
-    if (jsonMatch) return JSON.parse(jsonMatch[0]);
+    if (jsonMatch) return stripDashes(JSON.parse(jsonMatch[0]));
     throw new Error('No JSON in Claude response');
   } catch {
     return {
-      overall_assessment: content.substring(0, 500),
+      overall_assessment: content.substring(0, 500).replace(/[—–]/g, '-'),
       weak_spots: [],
       new_hook_ideas: [],
     };

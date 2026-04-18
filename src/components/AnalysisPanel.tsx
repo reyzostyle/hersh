@@ -73,7 +73,7 @@ export function AnalysisPanel({ analysis, open, onClose }: AnalysisPanelProps) {
                     </div>
                   )}
                 </div>
-                <p className="text-gray-300 text-sm leading-relaxed">
+                <p className="text-gray-300 text-sm leading-relaxed whitespace-pre-line">
                   {analysis.hook_analysis?.overall_assessment}
                 </p>
               </div>

@@ -109,7 +109,7 @@ export function VideoScriptPanel({ video, open, onClose, onAnalyze, analyzing }:
                   Video Context <span className="text-gray-500 font-normal">(optional)</span>
                 </label>
                 <p className="text-xs text-gray-500 mb-3">
-                  Add context about this video so the analysis is more relevant — e.g. what it's about, who it's for, what you were trying to achieve.
+                  Add context about this video so the analysis is more relevant - e.g. what it's about, who it's for, what you were trying to achieve.
                 </p>
                 <textarea
                   value={videoContext}
