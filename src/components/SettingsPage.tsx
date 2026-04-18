@@ -320,6 +320,27 @@ function NicheTab({ userId }: { userId?: string }) {
 
         <div className="space-y-4">
           <div>
+            <label className="block text-xs font-medium text-gray-500 mb-1.5 uppercase tracking-wide">Your Level</label>
+            <select
+              value={creatorLevel}
+              onChange={e => setCreatorLevel(e.target.value)}
+              className="w-full px-4 py-2.5 rounded-lg text-white text-sm focus:outline-none transition-colors appearance-none cursor-pointer"
+              style={{ ...glassInput, backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 14px center' }}
+              onFocus={e => { e.currentTarget.style.borderColor = '#0EA4E9'; }}
+              onBlur={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)'; }}
+            >
+              {CREATOR_LEVELS.map(l => (
+                <option key={l.value} value={l.value} style={{ background: '#0D1B2A' }}>
+                  {l.label}
+                </option>
+              ))}
+            </select>
+            <p className="mt-1.5 text-xs text-gray-600">
+              {CREATOR_LEVELS.find(l => l.value === creatorLevel)?.hint}
+            </p>
+          </div>
+
+          <div>
             <label className="block text-xs font-medium text-gray-500 mb-1.5 uppercase tracking-wide">Channel Niche</label>
             <input
               type="text"
@@ -347,26 +368,6 @@ function NicheTab({ userId }: { userId?: string }) {
             />
           </div>
 
-          <div>
-            <label className="block text-xs font-medium text-gray-500 mb-1.5 uppercase tracking-wide">Your Level</label>
-            <select
-              value={creatorLevel}
-              onChange={e => setCreatorLevel(e.target.value)}
-              className="w-full px-4 py-2.5 rounded-lg text-white text-sm focus:outline-none transition-colors appearance-none cursor-pointer"
-              style={{ ...glassInput, backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 14px center' }}
-              onFocus={e => { e.currentTarget.style.borderColor = '#0EA4E9'; }}
-              onBlur={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)'; }}
-            >
-              {CREATOR_LEVELS.map(l => (
-                <option key={l.value} value={l.value} style={{ background: '#0D1B2A' }}>
-                  {l.label}
-                </option>
-              ))}
-            </select>
-            <p className="mt-1.5 text-xs text-gray-600">
-              {CREATOR_LEVELS.find(l => l.value === creatorLevel)?.hint}
-            </p>
-          </div>
         </div>
 
         {error && <p className="mt-3 text-red-400 text-sm">{error}</p>}
