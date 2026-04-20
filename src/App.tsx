@@ -182,22 +182,50 @@ function AuthCallbackHandler() {
 function AppContent() {
   const { user, loading } = useAuth();
 
-  // Save referral code to referral_signups once after signup (new users only)
+  // Save referral code to referral_signups once after signup.
+  // UNIQUE(user_id) in DB ensures this is a no-op for users who already have a row,
+  // so it's safe to attempt on every login — only the first ever insert sticks.
   useEffect(() => {
     if (!user) return;
     const refCode = localStorage.getItem('hersh_ref');
     if (!refCode) return;
-    // Only record referral for accounts created within the last 10 minutes
-    const createdAt = new Date((user as any).created_at || '').getTime();
-    const isNewUser = Date.now() - createdAt < 10 * 60 * 1000;
-    if (!isNewUser) {
+
+    // Guard: only record for genuinely new accounts (first sign-in).
+    // created_at ≈ last_sign_in_at (within 5 min) means this is the first session.
+    const createdAt = new Date((user as any).created_at || 0).getTime();
+    const lastSignIn = new Date((user as any).last_sign_in_at || 0).getTime();
+    const isFirstSession =
+      Number.isFinite(createdAt) && Number.isFinite(lastSignIn)
+        ? Math.abs(lastSignIn - createdAt) < 5 * 60 * 1000
+        : false;
+
+    console.log('[referral] attempting insert', {
+      userId: user.id,
+      refCode,
+      createdAt: (user as any).created_at,
+      lastSignIn: (user as any).last_sign_in_at,
+      isFirstSession,
+    });
+
+    if (!isFirstSession) {
+      console.log('[referral] not first session, clearing ref');
       localStorage.removeItem('hersh_ref');
       return;
     }
+
     supabase
       .from('referral_signups')
       .insert({ user_id: user.id, referral_code: refCode })
-      .then(() => localStorage.removeItem('hersh_ref'));
+      .then(({ error }) => {
+        if (error) {
+          console.error('[referral] insert failed:', error);
+          // If it's a duplicate (user already has a row), clear ref too.
+          if (error.code === '23505') localStorage.removeItem('hersh_ref');
+          return;
+        }
+        console.log('[referral] signup recorded:', refCode);
+        localStorage.removeItem('hersh_ref');
+      });
   }, [user?.id]);
 
   if (loading) {
