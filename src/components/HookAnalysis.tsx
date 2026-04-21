@@ -27,7 +27,7 @@ export function HookAnalysis() {
   const [fileDragOver, setFileDragOver] = useState(false);
   const fileDropRef = useRef<HTMLDivElement>(null);
 
-  const isPro = userPlan === 'agency';
+  const isPro = userPlan === 'agency' || userPlan === 'pro';
 
   useEffect(() => {
     loadVideos();

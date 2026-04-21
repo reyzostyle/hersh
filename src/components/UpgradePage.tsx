@@ -138,7 +138,7 @@ export function UpgradePage() {
 
   return (
     <div className="h-full overflow-auto">
-      <div className="px-6 py-5" style={{ borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+      <div className="px-6 py-5 animate-fade-in-up" style={{ borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
         <h1 className="text-2xl font-bold text-white mb-1">Plans & Billing</h1>
         <p className="text-sm text-gray-500">Manage your subscription and analysis usage</p>
       </div>
@@ -151,7 +151,7 @@ export function UpgradePage() {
         )}
 
         {/* Usage card */}
-        <div className="mb-8 p-5 rounded-xl" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)' }}>
+        <div className="mb-8 p-5 rounded-xl motion-card animate-fade-in-up delay-100" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)' }}>
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
               <BarChart2 className="w-4 h-4 text-gray-400" />
@@ -216,7 +216,8 @@ export function UpgradePage() {
             return (
               <div
                 key={plan.id}
-                className="relative flex flex-col p-5 rounded-xl transition-all"
+                className="relative flex flex-col p-5 rounded-xl motion-card animate-fade-in-up"
+                style={{ animationDelay: `${plans.indexOf(plan) * 80}ms` }}
                 style={{
                   background: isPopular ? 'rgba(14,164,233,0.06)' : 'rgba(255,255,255,0.04)',
                   border: isPopular ? '1px solid rgba(14,164,233,0.4)' : isCurrent ? '1px solid rgba(255,255,255,0.15)' : '1px solid rgba(255,255,255,0.08)',

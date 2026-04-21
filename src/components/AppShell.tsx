@@ -123,7 +123,7 @@ export function AppShell({ activeTab, onTabChange, children }: AppShellProps) {
           </span>
         </header>
 
-        <main className="flex-1 overflow-auto">
+        <main key={activeTab} className="flex-1 overflow-auto animate-tab-in">
           {children}
         </main>
       </div>
