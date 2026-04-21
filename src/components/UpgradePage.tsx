@@ -84,7 +84,7 @@ export function UpgradePage() {
       const token = await getSessionToken();
       if (!token) { setError('Not authenticated'); setLoadingUsage(false); return; }
       const res = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/check-usage`,
+        `https://ezlousklksipvwuinpzq.supabase.co/functions/v1/check-usage`,
         {
           method: 'POST',
           headers: {
@@ -112,7 +112,7 @@ export function UpgradePage() {
       const token = await getSessionToken();
       if (!token) { setError('Not authenticated'); setCheckingOut(null); return; }
       const res = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-checkout-session`,
+        `https://ezlousklksipvwuinpzq.supabase.co/functions/v1/create-checkout-session`,
         {
           method: 'POST',
           headers: {
