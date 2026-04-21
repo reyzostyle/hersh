@@ -1,5 +1,5 @@
 import { AuthProvider, useAuth } from './contexts/AuthContext';
-import { AuthPage } from './components/AuthPage';
+import { LandingPage } from './components/LandingPage';
 import { Dashboard } from './components/Dashboard';
 import { Loader2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
@@ -240,7 +240,7 @@ function AppContent() {
     return <AuthCallbackHandler />;
   }
 
-  return user ? <Dashboard /> : <AuthPage />;
+  return user ? <Dashboard /> : <LandingPage />;
 }
 
 // Capture ?ref=code on landing and save to localStorage

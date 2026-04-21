@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase, getSessionToken } from '../lib/supabase';
-import { Zap, Check, Loader2, BarChart2, RefreshCw, Film } from 'lucide-react';
+import { Zap, Check, Loader2, BarChart2, RefreshCw } from 'lucide-react';
 
 interface UsageData {
   plan: string;
@@ -20,20 +20,29 @@ const PLAN_DISPLAY: Record<string, string> = {
   agency: 'Pro',
 };
 
+const PAID_FEATURES = [
+  'Advanced AI analysis',
+  'Hook score & assessment',
+  'Weak spot breakdown',
+  'Hook ideas & rewrites',
+  'Video file upload',
+  'Channel profile context',
+];
+
 const plans = [
   {
     id: 'free',
-    name: 'Trial',
+    name: 'Free',
     price: '$0',
-    period: 'forever',
-    analyses: '3 analyses total',
+    period: 'to get started',
+    analyses: '3 analyses',
     priceId: null,
     features: [
-      '3 lifetime analyses',
-      'Basic hook analysis',
-      'Hook ideas & weak spots',
+      '3 analyses to get started',
+      'Hook score & assessment',
+      'Weak spot breakdown',
+      'Hook ideas & rewrites',
     ],
-    fileUpload: false,
     cta: 'Current Plan',
   },
   {
@@ -43,13 +52,7 @@ const plans = [
     period: '/month',
     analyses: '30 analyses / month',
     priceId: PLUS_PRICE_ID,
-    features: [
-      '30 analyses per month',
-      'Advanced AI analysis',
-      'Hook ideas & weak spots',
-      'Channel profile context',
-    ],
-    fileUpload: false,
+    features: PAID_FEATURES,
     cta: 'Upgrade to Plus',
   },
   {
@@ -57,16 +60,9 @@ const plans = [
     name: 'Pro',
     price: '$19',
     period: '/month',
-    analyses: '50 analyses / month',
+    analyses: '100 analyses / month',
     priceId: PRO_PRICE_ID,
-    features: [
-      '50 analyses per month',
-      'Advanced AI analysis',
-      'Hook ideas & weak spots',
-      'Channel profile context',
-      'Video file upload',
-    ],
-    fileUpload: true,
+    features: PAID_FEATURES,
     cta: 'Upgrade to Pro',
   },
 ];
@@ -200,9 +196,8 @@ export function UpgradePage() {
                 />
               </div>
               <p className="mt-2 text-xs text-gray-600">
-                {currentPlan === 'free'
-                  ? `${usage.analysesLimit - usage.analysesUsed} analyses remaining (lifetime)`
-                  : `${usage.analysesLimit - usage.analysesUsed} analyses remaining this month`}
+                {usage.analysesLimit - usage.analysesUsed} analyses remaining
+                {currentPlan !== 'free' && ' this month'}
               </p>
             </>
           ) : null}
@@ -216,7 +211,7 @@ export function UpgradePage() {
               (plan.id === 'pro' && currentPlan === 'free') ||
               (plan.id === 'agency' && (currentPlan === 'free' || currentPlan === 'pro'))
             );
-            const isPopular = plan.id === 'agency';
+            const isPopular = plan.id === 'pro';
 
             return (
               <div
@@ -252,11 +247,7 @@ export function UpgradePage() {
                 <ul className="flex-1 space-y-2 mb-5">
                   {plan.features.map(feature => (
                     <li key={feature} className="flex items-start gap-2 text-sm text-gray-400">
-                      {feature === 'Video file upload' ? (
-                        <Film className="w-4 h-4 text-emerald-400 flex-shrink-0 mt-0.5" />
-                      ) : (
-                        <Check className="w-4 h-4 text-[#0EA4E9] flex-shrink-0 mt-0.5" />
-                      )}
+                      <Check className="w-4 h-4 text-[#0EA4E9] flex-shrink-0 mt-0.5" />
                       {feature}
                     </li>
                   ))}

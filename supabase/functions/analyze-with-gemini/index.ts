@@ -341,7 +341,7 @@ Deno.serve(async (req: Request) => {
       .eq('user_id', userId)
       .maybeSingle();
 
-    const PLAN_LIMITS: Record<string, number> = { free: 3, pro: 30, agency: 50 };
+    const PLAN_LIMITS: Record<string, number> = { free: 3, pro: 30, agency: 100 };
     const plan = tokenRow?.plan || 'free';
     let analysesUsed = tokenRow?.analyses_used || 0;
     const analysesLimit = user.email === 'reyzostyle@gmail.com' ? Infinity : (PLAN_LIMITS[plan] ?? 3);
