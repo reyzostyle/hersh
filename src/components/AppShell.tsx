@@ -22,7 +22,7 @@ interface AppShellProps {
 
 const baseNavItems: NavItem[] = [
   { id: 'hooks', label: 'Shorts Analysis', icon: <Sparkles className="w-4 h-4" /> },
-  { id: 'niche', label: 'Ниша', icon: <Target className="w-4 h-4" /> },
+  { id: 'niche', label: 'Niche', icon: <Target className="w-4 h-4" /> },
   { id: 'upgrade', label: 'Upgrade', icon: <Zap className="w-4 h-4" />, highlight: true },
   { id: 'settings', label: 'Settings', icon: <Settings className="w-4 h-4" /> },
   { id: 'support', label: 'Support', icon: <MessageCircle className="w-4 h-4" /> },
