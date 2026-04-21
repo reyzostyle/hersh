@@ -117,7 +117,6 @@ function SetupSection({
 
     const filled = urls.map(u => u.trim()).filter(Boolean);
 
-    // Delete existing channels and re-insert
     await supabase.from('niche_competitor_channels').delete().eq('user_id', user.id);
 
     let savedChannels: CompetitorChannel[] = [];
@@ -126,11 +125,10 @@ function SetupSection({
         .from('niche_competitor_channels')
         .insert(filled.map(url => ({ user_id: user.id, channel_url: url })))
         .select();
-      if (insertErr) { setError('Ошибка сохранения: ' + insertErr.message); setSaving(false); return; }
+      if (insertErr) { setError('Failed to save: ' + insertErr.message); setSaving(false); return; }
       savedChannels = data || [];
     }
 
-    // Save style
     const { data: existing } = await supabase.from('user_tokens').select('user_id').eq('user_id', user.id).maybeSingle();
     if (existing) {
       await supabase.from('user_tokens').update({ my_style: style }).eq('user_id', user.id);
@@ -149,9 +147,9 @@ function SetupSection({
       <div className="rounded-xl p-5" style={glassCard}>
         <h2 className="text-base font-semibold text-white mb-1 flex items-center gap-2">
           <Target className="w-4 h-4 text-[#0EA4E9]" />
-          Конкуренты
+          Competitors
         </h2>
-        <p className="text-sm text-gray-500 mb-4">Добавь YouTube-каналы конкурентов (до 5). URL, @handle или ID канала.</p>
+        <p className="text-sm text-gray-500 mb-4">Add competitor YouTube channels (up to 5). URL, @handle, or channel ID.</p>
 
         <div className="space-y-2">
           {urls.map((url, i) => (
@@ -160,7 +158,7 @@ function SetupSection({
                 type="text"
                 value={url}
                 onChange={e => updateUrl(i, e.target.value)}
-                placeholder="https://youtube.com/@handle или @handle"
+                placeholder="https://youtube.com/@handle or @handle"
                 className="flex-1 px-4 py-2.5 rounded-lg text-white placeholder-gray-600 text-sm focus:outline-none transition-colors"
                 style={glassInput}
                 onFocus={e => { e.currentTarget.style.borderColor = '#0EA4E9'; }}
@@ -184,7 +182,7 @@ function SetupSection({
             className="mt-3 flex items-center gap-1.5 text-xs text-gray-500 hover:text-gray-300 transition-colors"
           >
             <Plus className="w-3.5 h-3.5" />
-            Добавить канал
+            Add channel
           </button>
         )}
       </div>
@@ -192,13 +190,13 @@ function SetupSection({
       <div className="rounded-xl p-5" style={glassCard}>
         <h2 className="text-base font-semibold text-white mb-1 flex items-center gap-2">
           <Film className="w-4 h-4 text-[#0EA4E9]" />
-          Мой стиль
+          My Style
         </h2>
-        <p className="text-sm text-gray-500 mb-3">Опиши свой канал, стиль подачи и аудиторию. Используется для персонализации сценариев.</p>
+        <p className="text-sm text-gray-500 mb-3">Describe your channel, content style, and audience. Used to personalize generated scripts.</p>
         <textarea
           value={style}
           onChange={e => setStyle(e.target.value)}
-          placeholder="Например: канал о личных финансах для молодых специалистов. Стиль — прямой, без воды. Говорю от первого лица, даю конкретные шаги. Аудитория: 25-35 лет, хотят больше зарабатывать и меньше тратить."
+          placeholder="e.g. Personal finance channel for young professionals. Direct, no fluff. I speak in first person and give concrete steps. Audience: 25-35, want to earn more and spend less."
           rows={5}
           className="w-full px-4 py-3 rounded-lg text-white placeholder-gray-600 text-sm focus:outline-none resize-none leading-relaxed transition-colors"
           style={glassInput}
@@ -216,7 +214,7 @@ function SetupSection({
         style={{ background: '#0EA4E9' }}
       >
         {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : saved ? <Check className="w-4 h-4" /> : <Save className="w-4 h-4" />}
-        {saving ? 'Сохраняю...' : saved ? 'Сохранено!' : 'Сохранить'}
+        {saving ? 'Saving...' : saved ? 'Saved!' : 'Save'}
       </button>
     </div>
   );
@@ -235,7 +233,6 @@ function TrendsBlock({ videos, timeFilter, onTimeFilterChange }: {
   const avgLikes = filtered.length ? Math.round(filtered.reduce((s, v) => s + v.likes, 0) / filtered.length) : 0;
   const topByViews = [...filtered].sort((a, b) => b.views - a.views).slice(0, 3);
 
-  // Simple top topics: pick most common meaningful words from titles
   const wordFreq: Record<string, number> = {};
   for (const v of filtered) {
     v.title.toLowerCase().split(/\s+/).forEach(w => {
@@ -250,7 +247,7 @@ function TrendsBlock({ videos, timeFilter, onTimeFilterChange }: {
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-base font-semibold text-white flex items-center gap-2">
           <TrendingUp className="w-4 h-4 text-[#0EA4E9]" />
-          Тренды
+          Trends
         </h2>
         <div className="flex gap-1 rounded-lg p-1" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}>
           {([7, 14, 30] as TimeFilter[]).map(d => (
@@ -260,34 +257,34 @@ function TrendsBlock({ videos, timeFilter, onTimeFilterChange }: {
               className={`px-3 py-1 rounded-md text-xs font-medium transition-all ${timeFilter === d ? 'text-white' : 'text-gray-500 hover:text-gray-300'}`}
               style={timeFilter === d ? { background: 'rgba(255,255,255,0.1)' } : {}}
             >
-              {d}д
+              {d}d
             </button>
           ))}
         </div>
       </div>
 
       {filtered.length === 0 ? (
-        <p className="text-gray-500 text-sm">Нет видео за выбранный период.</p>
+        <p className="text-gray-500 text-sm">No videos in the selected period.</p>
       ) : (
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           <div className="rounded-lg p-3" style={{ background: 'rgba(14,164,233,0.08)', border: '1px solid rgba(14,164,233,0.15)' }}>
             <div className="flex items-center gap-1.5 mb-1">
               <Eye className="w-3.5 h-3.5 text-[#0EA4E9]" />
-              <span className="text-xs text-gray-400">Ср. просмотры</span>
+              <span className="text-xs text-gray-400">Avg views</span>
             </div>
             <p className="text-lg font-bold text-white">{formatNumber(avgViews)}</p>
           </div>
           <div className="rounded-lg p-3" style={{ background: 'rgba(52,211,153,0.08)', border: '1px solid rgba(52,211,153,0.15)' }}>
             <div className="flex items-center gap-1.5 mb-1">
               <ThumbsUp className="w-3.5 h-3.5 text-emerald-400" />
-              <span className="text-xs text-gray-400">Ср. лайки</span>
+              <span className="text-xs text-gray-400">Avg likes</span>
             </div>
             <p className="text-lg font-bold text-white">{formatNumber(avgLikes)}</p>
           </div>
           <div className="rounded-lg p-3 col-span-2" style={{ background: 'rgba(139,92,246,0.08)', border: '1px solid rgba(139,92,246,0.15)' }}>
             <div className="flex items-center gap-1.5 mb-2">
               <Sparkles className="w-3.5 h-3.5 text-violet-400" />
-              <span className="text-xs text-gray-400">Топ темы</span>
+              <span className="text-xs text-gray-400">Top topics</span>
             </div>
             {topWords.length > 0 ? (
               <div className="flex flex-wrap gap-1.5">
@@ -298,7 +295,7 @@ function TrendsBlock({ videos, timeFilter, onTimeFilterChange }: {
                 ))}
               </div>
             ) : (
-              <p className="text-xs text-gray-500">Недостаточно данных</p>
+              <p className="text-xs text-gray-500">Not enough data</p>
             )}
           </div>
         </div>
@@ -306,14 +303,14 @@ function TrendsBlock({ videos, timeFilter, onTimeFilterChange }: {
 
       {topByViews.length > 0 && (
         <div className="mt-4">
-          <p className="text-xs text-gray-500 uppercase tracking-wide mb-2">Лучшие за период</p>
+          <p className="text-xs text-gray-500 uppercase tracking-wide mb-2">Top this period</p>
           <div className="space-y-1.5">
             {topByViews.map(v => (
               <div key={v.videoId} className="flex items-center gap-3">
                 <img src={v.thumbnailUrl} alt="" className="w-10 h-7 object-cover rounded flex-shrink-0" style={{ background: 'rgba(255,255,255,0.05)' }} />
                 <div className="flex-1 min-w-0">
                   <p className="text-xs text-gray-300 truncate">{v.title}</p>
-                  <p className="text-xs text-gray-600">{v.channelName} · {formatNumber(v.views)} просмотров</p>
+                  <p className="text-xs text-gray-600">{v.channelName} · {formatNumber(v.views)} views</p>
                 </div>
               </div>
             ))}
@@ -363,7 +360,7 @@ function VideoCard({ video, onClick }: { video: NicheVideo; onClick: () => void 
           <span className="flex items-center gap-1"><Eye className="w-3 h-3" />{formatNumber(video.views)}</span>
           <span className="flex items-center gap-1"><ThumbsUp className="w-3 h-3" />{formatNumber(video.likes)}</span>
           <span className="ml-auto opacity-0 group-hover:opacity-100 transition-opacity text-[#0EA4E9] flex items-center gap-0.5">
-            Анализ <ChevronRight className="w-3 h-3" />
+            Analyze <ChevronRight className="w-3 h-3" />
           </span>
         </div>
       </div>
@@ -408,11 +405,11 @@ function VideoDetailPanel({
         }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Ошибка анализа');
+      if (!res.ok) throw new Error(data.error || 'Analysis failed');
       setAnalysis(data.analysis);
       setScripts(data.scripts || []);
     } catch (e: any) {
-      setError(e.message || 'Не удалось выполнить анализ');
+      setError(e.message || 'Could not complete analysis');
     } finally {
       setAnalyzing(false);
     }
@@ -435,12 +432,12 @@ function VideoDetailPanel({
         }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Ошибка генерации');
+      if (!res.ok) throw new Error(data.error || 'Generation failed');
       setScripts(data.scripts || []);
       setActiveScript(0);
       setSavedIdxs(new Set());
     } catch (e: any) {
-      setError(e.message || 'Не удалось сгенерировать сценарии');
+      setError(e.message || 'Could not generate scripts');
     } finally {
       setGenerating(false);
     }
@@ -465,14 +462,13 @@ function VideoDetailPanel({
     <div className="fixed inset-0 z-50 flex" style={{ background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)' }} onClick={onClose}>
       <div className="ml-auto h-full w-full max-w-xl overflow-y-auto" style={{ background: 'linear-gradient(160deg, #0A0F1A 0%, #0D1B2A 100%)', borderLeft: '1px solid rgba(255,255,255,0.08)' }} onClick={e => e.stopPropagation()}>
         <div className="sticky top-0 z-10 flex items-center justify-between px-5 py-4" style={{ borderBottom: '1px solid rgba(255,255,255,0.08)', background: 'rgba(10,15,26,0.9)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)' }}>
-          <h2 className="text-sm font-semibold text-white">Видео</h2>
+          <h2 className="text-sm font-semibold text-white">Video</h2>
           <button onClick={onClose} className="p-1.5 text-gray-500 hover:text-white transition-colors">
             <X className="w-4 h-4" />
           </button>
         </div>
 
         <div className="p-5 space-y-4">
-          {/* Thumbnail + stats */}
           <div>
             <img src={video.thumbnailUrl} alt={video.title} className="w-full rounded-xl object-cover" style={{ aspectRatio: '16/9', background: 'rgba(255,255,255,0.05)' }} />
             <p className="mt-3 text-xs text-gray-500">{video.channelName}</p>
@@ -482,12 +478,11 @@ function VideoDetailPanel({
               <span className="flex items-center gap-1"><ThumbsUp className="w-3 h-3" />{formatNumber(video.likes)}</span>
               <span>{formatDuration(video.duration)}</span>
               <span className="ml-auto font-semibold" style={{ color: video.score >= 70 ? '#34D399' : video.score >= 40 ? '#0EA4E9' : '#6B7280' }}>
-                Скор: {video.score}
+                Score: {video.score}
               </span>
             </div>
           </div>
 
-          {/* Analyze button */}
           {!analysis && (
             <button
               onClick={analyze}
@@ -496,32 +491,29 @@ function VideoDetailPanel({
               style={{ background: 'linear-gradient(135deg, #8B5CF6, #6D28D9)' }}
             >
               {analyzing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
-              {analyzing ? 'Анализирую...' : 'Анализировать видео'}
+              {analyzing ? 'Analyzing...' : 'Analyze video'}
             </button>
           )}
 
           {error && <p className="text-red-400 text-sm rounded-lg px-4 py-3" style={{ background: 'rgba(248,113,113,0.08)', border: '1px solid rgba(248,113,113,0.2)' }}>{error}</p>}
 
-          {/* Analysis results */}
           {analysis && (
             <div className="rounded-xl p-4 space-y-4" style={glassCard}>
               <h3 className="text-sm font-semibold text-white flex items-center gap-2">
                 <Sparkles className="w-4 h-4 text-violet-400" />
-                AI-анализ
+                AI Analysis
               </h3>
-
-              <AnalysisBlock label="О чём видео" text={analysis.about} />
-              <AnalysisBlock label="Оригинальный хук" text={analysis.hook} accent />
-              <AnalysisBlock label="Почему залетело" text={analysis.why_it_worked} />
-              <AnalysisBlock label="Что оставить при адаптации" text={analysis.what_to_keep} />
+              <AnalysisBlock label="What it's about" text={analysis.about} />
+              <AnalysisBlock label="Original hook" text={analysis.hook} accent />
+              <AnalysisBlock label="Why it performed" text={analysis.why_it_worked} />
+              <AnalysisBlock label="What to keep when adapting" text={analysis.what_to_keep} />
             </div>
           )}
 
-          {/* Scripts */}
           {analysis && scripts.length > 0 && (
             <div className="space-y-3">
               <div className="flex items-center justify-between">
-                <h3 className="text-sm font-semibold text-white">Сценарии</h3>
+                <h3 className="text-sm font-semibold text-white">Scripts</h3>
                 <button
                   onClick={generateScripts}
                   disabled={generating}
@@ -529,7 +521,7 @@ function VideoDetailPanel({
                   style={{ border: '1px solid rgba(255,255,255,0.1)' }}
                 >
                   {generating ? <Loader2 className="w-3 h-3 animate-spin" /> : <RefreshCw className="w-3 h-3" />}
-                  Перегенерировать
+                  Regenerate
                 </button>
               </div>
 
@@ -541,7 +533,7 @@ function VideoDetailPanel({
                     className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${activeScript === i ? 'text-white' : 'text-gray-500 hover:text-gray-300'}`}
                     style={activeScript === i ? { background: 'rgba(139,92,246,0.2)', border: '1px solid rgba(139,92,246,0.4)' } : { border: '1px solid rgba(255,255,255,0.08)' }}
                   >
-                    Вариант {i + 1}
+                    Variant {i + 1}
                   </button>
                 ))}
               </div>
@@ -549,17 +541,17 @@ function VideoDetailPanel({
               {scripts[activeScript] && (
                 <div className="rounded-xl p-4 space-y-4" style={{ ...glassCard, border: '1px solid rgba(139,92,246,0.2)' }}>
                   <div>
-                    <p className="text-xs text-gray-500 uppercase tracking-wide mb-1.5">Хук</p>
-                    <p className="text-sm text-white font-medium leading-relaxed" style={{ color: '#A78BFA' }}>
+                    <p className="text-xs text-gray-500 uppercase tracking-wide mb-1.5">Hook</p>
+                    <p className="text-sm font-medium leading-relaxed" style={{ color: '#A78BFA' }}>
                       {scripts[activeScript].hookVariant}
                     </p>
                   </div>
                   <div>
-                    <p className="text-xs text-gray-500 uppercase tracking-wide mb-1.5">Первый кадр</p>
+                    <p className="text-xs text-gray-500 uppercase tracking-wide mb-1.5">First frame</p>
                     <p className="text-sm text-gray-300 italic">{scripts[activeScript].firstFrame}</p>
                   </div>
                   <div>
-                    <p className="text-xs text-gray-500 uppercase tracking-wide mb-1.5">Сценарий</p>
+                    <p className="text-xs text-gray-500 uppercase tracking-wide mb-1.5">Script</p>
                     <pre className="text-sm text-gray-200 whitespace-pre-wrap leading-relaxed font-sans">{scripts[activeScript].script}</pre>
                   </div>
                   <button
@@ -571,14 +563,13 @@ function VideoDetailPanel({
                       : { background: 'rgba(14,164,233,0.15)', color: '#0EA4E9', border: '1px solid rgba(14,164,233,0.3)' }}
                   >
                     {savedIdxs.has(activeScript) ? <Check className="w-4 h-4" /> : <BookmarkPlus className="w-4 h-4" />}
-                    {savedIdxs.has(activeScript) ? 'Сохранено в идеи' : 'Сохранить как идею'}
+                    {savedIdxs.has(activeScript) ? 'Saved to ideas' : 'Save as idea'}
                   </button>
                 </div>
               )}
             </div>
           )}
 
-          {/* Generate scripts button (after analysis, before scripts) */}
           {analysis && scripts.length === 0 && (
             <button
               onClick={generateScripts}
@@ -587,7 +578,7 @@ function VideoDetailPanel({
               style={{ background: '#0EA4E9' }}
             >
               {generating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Zap className="w-4 h-4" />}
-              {generating ? 'Генерирую сценарии...' : 'Сгенерировать сценарий'}
+              {generating ? 'Generating scripts...' : 'Generate script'}
             </button>
           )}
         </div>
@@ -601,7 +592,7 @@ function AnalysisBlock({ label, text, accent }: { label: string; text: string; a
     <div>
       <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">{label}</p>
       <p className={`text-sm leading-relaxed ${accent ? 'font-medium' : 'text-gray-300'}`} style={accent ? { color: '#A78BFA' } : {}}>
-        {text || '—'}
+        {text || '-'}
       </p>
     </div>
   );
@@ -650,10 +641,10 @@ export function NicheTab() {
         body: JSON.stringify({ channelUrls, daysBack: days }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Ошибка загрузки');
+      if (!res.ok) throw new Error(data.error || 'Failed to load videos');
       setVideos(data.videos || []);
     } catch (e: any) {
-      setFetchError(e.message || 'Не удалось загрузить видео');
+      setFetchError(e.message || 'Could not load videos');
     } finally {
       setVideosLoading(false);
     }
@@ -701,8 +692,8 @@ export function NicheTab() {
     <div className="h-full flex flex-col overflow-auto">
       <div className="px-6 py-5 flex-shrink-0 flex items-center justify-between" style={{ borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
         <div>
-          <h1 className="text-2xl font-bold text-white mb-1">Ниша</h1>
-          <p className="text-sm text-gray-500">Анализируй конкурентов и адаптируй их лучшие видео под свой канал.</p>
+          <h1 className="text-2xl font-bold text-white mb-1">Niche</h1>
+          <p className="text-sm text-gray-500">Analyze competitors and adapt their best videos for your channel.</p>
         </div>
         <button
           onClick={() => setShowSetup(s => !s)}
@@ -710,27 +701,24 @@ export function NicheTab() {
           style={{ border: '1px solid rgba(255,255,255,0.1)' }}
         >
           <Target className="w-4 h-4" />
-          {hasChannels ? 'Настройки' : 'Настроить'}
+          {hasChannels ? 'Settings' : 'Set up'}
         </button>
       </div>
 
       <div className="flex-1 px-6 py-6 space-y-6 max-w-5xl">
-        {/* Setup section — always visible if no channels, collapsible otherwise */}
         {(!hasChannels || showSetup) && (
           <SetupSection channels={channels} myStyle={myStyle} onSaved={handleSetupSaved} />
         )}
 
         {hasChannels && !showSetup && (
           <>
-            {/* Trends */}
             <TrendsBlock videos={videos} timeFilter={timeFilter} onTimeFilterChange={handleTimeFilterChange} />
 
-            {/* Video Bank */}
             <div>
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-base font-semibold text-white flex items-center gap-2">
                   <Film className="w-4 h-4 text-[#0EA4E9]" />
-                  Видеобанк
+                  Video Bank
                   {!videosLoading && <span className="text-xs text-gray-500 font-normal">({filteredVideos.length})</span>}
                 </h2>
                 <button
@@ -742,13 +730,12 @@ export function NicheTab() {
                 </button>
               </div>
 
-              {/* Filters + Sort */}
               <div className="flex items-center gap-2 flex-wrap mb-4">
                 <div className="flex gap-1 rounded-lg p-1" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}>
                   {([
-                    { id: 'all', label: 'Все' },
-                    { id: 'shortlist', label: 'Шортлист' },
-                    { id: 'easy', label: 'Легко адаптировать' },
+                    { id: 'all', label: 'All' },
+                    { id: 'shortlist', label: 'Shortlist' },
+                    { id: 'easy', label: 'Easy to adapt' },
                   ] as { id: VideoFilter; label: string }[]).map(f => (
                     <button
                       key={f.id}
@@ -762,9 +749,9 @@ export function NicheTab() {
                 </div>
                 <div className="flex gap-1 rounded-lg p-1 ml-auto" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}>
                   {([
-                    { id: 'score', label: 'По скору' },
-                    { id: 'date', label: 'По дате' },
-                    { id: 'views', label: 'По просмотрам' },
+                    { id: 'score', label: 'By score' },
+                    { id: 'date', label: 'By date' },
+                    { id: 'views', label: 'By views' },
                   ] as { id: SortBy; label: string }[]).map(s => (
                     <button
                       key={s.id}
@@ -788,15 +775,15 @@ export function NicheTab() {
                 <div className="flex items-center justify-center py-16">
                   <div className="text-center space-y-3">
                     <Loader2 className="w-6 h-6 text-[#0EA4E9] animate-spin mx-auto" />
-                    <p className="text-sm text-gray-500">Загружаю шортсы конкурентов...</p>
+                    <p className="text-sm text-gray-500">Loading competitor shorts...</p>
                   </div>
                 </div>
               ) : filteredVideos.length === 0 ? (
                 <div className="flex items-center justify-center py-16">
                   <div className="text-center space-y-2">
                     <Film className="w-8 h-8 text-gray-700 mx-auto" />
-                    <p className="text-sm text-gray-500">Нет видео по выбранным фильтрам</p>
-                    <p className="text-xs text-gray-600">Попробуй другой период или фильтр</p>
+                    <p className="text-sm text-gray-500">No videos match the selected filters</p>
+                    <p className="text-xs text-gray-600">Try a different period or filter</p>
                   </div>
                 </div>
               ) : (
