@@ -217,8 +217,8 @@ export function UpgradePage() {
               <div
                 key={plan.id}
                 className="relative flex flex-col p-5 rounded-xl motion-card animate-fade-in-up"
-                style={{ animationDelay: `${plans.indexOf(plan) * 80}ms` }}
                 style={{
+                  animationDelay: `${plans.indexOf(plan) * 80}ms`,
                   background: isPopular ? 'rgba(14,164,233,0.06)' : 'rgba(255,255,255,0.04)',
                   border: isPopular ? '1px solid rgba(14,164,233,0.4)' : isCurrent ? '1px solid rgba(255,255,255,0.15)' : '1px solid rgba(255,255,255,0.08)',
                   backdropFilter: 'blur(12px)',
