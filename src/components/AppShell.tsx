@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
-import { Sparkles, Settings, MessageCircle, LogOut, Menu, X, Zap, Users, Target } from 'lucide-react';
+import { Sparkles, Settings, MessageCircle, LogOut, Menu, X, Zap, Users } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
 
-export type NavTab = 'hooks' | 'niche' | 'upgrade' | 'settings' | 'support' | 'partners';
+export type NavTab = 'hooks' | 'upgrade' | 'settings' | 'support' | 'partners';
 
 const ADMIN_EMAIL = 'reyzostyle@gmail.com';
 
@@ -22,7 +22,6 @@ interface AppShellProps {
 
 const baseNavItems: NavItem[] = [
   { id: 'hooks', label: 'Shorts Analysis', icon: <Sparkles className="w-4 h-4" /> },
-  { id: 'niche', label: 'Niche', icon: <Target className="w-4 h-4" /> },
   { id: 'upgrade', label: 'Upgrade', icon: <Zap className="w-4 h-4" />, highlight: true },
   { id: 'settings', label: 'Settings', icon: <Settings className="w-4 h-4" /> },
   { id: 'support', label: 'Support', icon: <MessageCircle className="w-4 h-4" /> },
@@ -48,7 +47,7 @@ export function AppShell({ activeTab, onTabChange, children }: AppShellProps) {
   }, [user?.id]);
 
   const navItems = (isAdmin || isPartner)
-    ? [baseNavItems[0], baseNavItems[1], baseNavItems[2], partnersItem, baseNavItems[3], baseNavItems[4]]
+    ? [baseNavItems[0], baseNavItems[1], partnersItem, baseNavItems[2], baseNavItems[3]]
     : baseNavItems;
 
   return (
