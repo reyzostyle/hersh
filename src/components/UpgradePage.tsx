@@ -3,6 +3,8 @@ import { useAuth } from '../contexts/AuthContext';
 import { supabase, getSessionToken } from '../lib/supabase';
 import { Zap, Check, Loader2, BarChart2, RefreshCw } from 'lucide-react';
 
+const PLAN_LIMITS: Record<string, number> = { free: 3, pro: 30, agency: 100 };
+
 interface UsageData {
   plan: string;
   analysesUsed: number;
@@ -79,24 +81,24 @@ export function UpgradePage() {
   }, [user?.id]);
 
   const loadUsage = async () => {
+    if (!user) return;
     setLoadingUsage(true);
+    setError('');
     try {
-      const token = await getSessionToken();
-      if (!token) { setError('Not authenticated'); setLoadingUsage(false); return; }
-      const res = await fetch(
-        `https://ezlousklksipvwuinpzq.supabase.co/functions/v1/check-usage`,
-        {
-          method: 'POST',
-          headers: {
-            Authorization: `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({}),
-        }
-      );
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Failed to load usage');
-      setUsage(data);
+      const { data: tokenRow, error: dbError } = await supabase
+        .from('user_tokens')
+        .select('plan, analyses_used, analyses_reset_at')
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      if (dbError) throw dbError;
+
+      const plan = tokenRow?.plan || 'free';
+      const analysesUsed = tokenRow?.analyses_used || 0;
+      const analysesLimit = PLAN_LIMITS[plan] ?? 3;
+      const canAnalyze = analysesUsed < analysesLimit;
+
+      setUsage({ plan, analysesUsed, analysesLimit, canAnalyze });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load usage');
     } finally {
