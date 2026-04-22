@@ -17,16 +17,24 @@ export function AnalysisPanel({ analysis, open, onClose }: AnalysisPanelProps) {
     return () => document.removeEventListener('keydown', handleKey);
   }, [open, onClose]);
 
+  if (!open) return null;
+
   return (
-    <>
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div
-        className={`fixed inset-0 bg-black/50 z-40 transition-opacity duration-300 ${open ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}
+        className="absolute inset-0 bg-black/60"
+        style={{ backdropFilter: 'blur(4px)', WebkitBackdropFilter: 'blur(4px)' }}
         onClick={onClose}
       />
-
       <div
-        className={`fixed top-0 right-0 h-full w-full max-w-xl z-50 flex flex-col transition-transform duration-300 ease-in-out ${open ? 'translate-x-0' : 'translate-x-full'}`}
-        style={{ background: 'rgba(10,15,26,0.85)', borderLeft: '1px solid rgba(255,255,255,0.08)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)' }}
+        className="relative w-full max-w-xl flex flex-col rounded-2xl animate-scale-in"
+        style={{
+          background: 'rgba(10,15,26,0.98)',
+          border: '1px solid rgba(255,255,255,0.1)',
+          backdropFilter: 'blur(24px)',
+          WebkitBackdropFilter: 'blur(24px)',
+          maxHeight: '90vh',
+        }}
       >
         <div className="flex items-center justify-between px-6 py-4 flex-shrink-0" style={{ borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
           <div className="flex items-center gap-2.5">
@@ -130,6 +138,6 @@ export function AnalysisPanel({ analysis, open, onClose }: AnalysisPanelProps) {
           )}
         </div>
       </div>
-    </>
+    </div>
   );
 }
