@@ -109,14 +109,18 @@ export function HookAnalysis() {
       const token = await getSessionToken();
       if (!token) { setError('Not authenticated'); setGeminiAnalyzing(false); return; }
       const res = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/analyze-with-gemini`,
+        `https://ezlousklksipvwuinpzq.supabase.co/functions/v1/analyze-with-gemini`,
         {
           method: 'POST',
           headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
           body: JSON.stringify({ videoId, videoContext }),
         }
       );
-      if (!res.ok) { const d = await res.json(); throw new Error(d.error || 'Failed to analyze'); }
+      if (!res.ok) {
+        let errMsg = `HTTP ${res.status}`;
+        try { const d = await res.json(); errMsg = d.error || d.message || JSON.stringify(d) || errMsg; } catch {}
+        throw new Error(errMsg);
+      }
       const result = await res.json();
       if (result.analysis) {
         setAnalysis(result.analysis);
