@@ -358,7 +358,7 @@ export function HookAnalysis() {
               ) : (
                 <>
                   <Lock className="w-7 h-7 text-gray-700" />
-                  <p className="text-gray-500 text-sm font-medium">Available on Pro plan</p>
+                  <p className="text-gray-500 text-sm font-medium">Upload a video file</p>
                   <p className="text-gray-600 text-xs">Upgrade to analyze unpublished videos</p>
                 </>
               )}

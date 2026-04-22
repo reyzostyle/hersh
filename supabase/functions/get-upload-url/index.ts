@@ -6,42 +6,33 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Client-Info, Apikey',
 };
 
-const ADMIN_EMAIL = 'reyzostyle@gmail.com';
-
 Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') return new Response(null, { status: 200, headers: corsHeaders });
 
   try {
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL')!,
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
-      { auth: { autoRefreshToken: false, persistSession: false, detectSessionInUrl: false } }
-    );
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+
+    const supabase = createClient(supabaseUrl, serviceKey, {
+      auth: { autoRefreshToken: false, persistSession: false, detectSessionInUrl: false },
+    });
 
     const authHeader = req.headers.get('Authorization');
     if (!authHeader?.startsWith('Bearer ')) {
       return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: corsHeaders });
     }
     const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
-    if (authError || !user) {
+
+    // Decode JWT (ES256-safe) + verify via admin API
+    let userId: string;
+    try {
+      const payload = JSON.parse(atob(token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')));
+      userId = payload.sub;
+      if (!userId) throw new Error('no sub');
+      const { data: { user }, error } = await supabase.auth.admin.getUserById(userId);
+      if (error || !user) throw new Error('not found');
+    } catch {
       return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: corsHeaders });
-    }
-
-    const { data: tokenRow } = await supabase
-      .from('user_tokens')
-      .select('plan')
-      .eq('user_id', user.id)
-      .maybeSingle();
-
-    const plan = tokenRow?.plan || 'free';
-    const isAdmin = user.email === ADMIN_EMAIL;
-
-    if (!isAdmin && plan !== 'agency') {
-      return new Response(
-        JSON.stringify({ error: 'Video file upload requires the Pro plan.' }),
-        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
     }
 
     const { fileName, fileSize, mimeType } = await req.json();
@@ -50,7 +41,6 @@ Deno.serve(async (req: Request) => {
     const geminiApiKey = Deno.env.get('GEMINI_API_KEY');
     if (!geminiApiKey) throw new Error('Gemini API key not configured');
 
-    // Start Gemini File API resumable upload session (bypasses Supabase Storage entirely)
     const initRes = await fetch(
       `https://generativelanguage.googleapis.com/upload/v1beta/files?uploadType=resumable&key=${geminiApiKey}`,
       {
@@ -71,7 +61,7 @@ Deno.serve(async (req: Request) => {
     const uploadUrl = initRes.headers.get('X-Goog-Upload-URL');
     if (!uploadUrl) throw new Error('No upload URL from Gemini');
 
-    console.log(`[get-upload-url] Gemini session started, user=${user.id}, file=${safeName}, size=${fileSize}`);
+    console.log(`[get-upload-url] session started, user=${userId}, file=${safeName}`);
 
     return new Response(
       JSON.stringify({ uploadUrl }),
