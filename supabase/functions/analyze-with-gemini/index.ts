@@ -314,22 +314,30 @@ Deno.serve(async (req: Request) => {
   }
 
   try {
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL')!,
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
-      { auth: { autoRefreshToken: false, persistSession: false, detectSessionInUrl: false } }
-    );
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const anonKey = Deno.env.get('SUPABASE_ANON_KEY') || serviceKey;
+
+    // Admin client for DB operations
+    const supabase = createClient(supabaseUrl, serviceKey, {
+      auth: { autoRefreshToken: false, persistSession: false, detectSessionInUrl: false },
+    });
 
     const authHeader = req.headers.get('Authorization');
     if (!authHeader?.startsWith('Bearer ')) {
       return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: corsHeaders });
     }
-    const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
-    if (authError || !user) {
+
+    // Verify user via REST — works reliably in edge functions
+    const userRes = await fetch(`${supabaseUrl}/auth/v1/user`, {
+      headers: { Authorization: authHeader, apikey: anonKey },
+    });
+    if (!userRes.ok) {
+      console.error('[analyze-with-gemini] auth failed:', userRes.status, await userRes.text());
       return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: corsHeaders });
     }
-    const userId = user.id;
+    const authUser = await userRes.json();
+    const userId = authUser.id;
 
     const { videoId, videoContext }: RequestBody = await req.json();
     console.log(`[analyze-with-gemini] user=${userId}, videoId=${videoId}`);
@@ -344,7 +352,7 @@ Deno.serve(async (req: Request) => {
     const PLAN_LIMITS: Record<string, number> = { free: 3, pro: 30, agency: 100 };
     const plan = tokenRow?.plan || 'free';
     let analysesUsed = tokenRow?.analyses_used || 0;
-    const analysesLimit = user.email === 'reyzostyle@gmail.com' ? Infinity : (PLAN_LIMITS[plan] ?? 3);
+    const analysesLimit = authUser.email === 'reyzostyle@gmail.com' ? Infinity : (PLAN_LIMITS[plan] ?? 3);
 
     if (plan !== 'free' && tokenRow?.analyses_reset_at) {
       const resetAt = new Date(tokenRow.analyses_reset_at);

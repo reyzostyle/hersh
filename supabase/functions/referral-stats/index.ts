@@ -16,17 +16,20 @@ Deno.serve(async (req: Request) => {
     return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: corsHeaders });
   }
 
-  const supabase = createClient(
-    Deno.env.get('SUPABASE_URL')!,
-    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
-  );
+  const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+  const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+  const anonKey = Deno.env.get('SUPABASE_ANON_KEY') || serviceKey;
 
-  const token = authHeader.replace('Bearer ', '');
-  const { data: { user: authUser }, error: authError } = await supabase.auth.getUser(token);
-  if (authError || !authUser) {
-    console.log('[referral-stats] auth error:', authError);
+  const supabase = createClient(supabaseUrl, serviceKey);
+
+  // Verify user via REST
+  const userRes = await fetch(`${supabaseUrl}/auth/v1/user`, {
+    headers: { Authorization: authHeader, apikey: anonKey },
+  });
+  if (!userRes.ok) {
     return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: corsHeaders });
   }
+  const authUser = await userRes.json();
   const isAdmin = authUser.email === ADMIN_EMAIL;
 
   // ── POST: create new partner (admin only) ──────────────────────────────
