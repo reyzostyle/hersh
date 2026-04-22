@@ -190,37 +190,17 @@ function AppContent() {
     const refCode = localStorage.getItem('hersh_ref');
     if (!refCode) return;
 
-    // Guard: only record for genuinely new accounts (first sign-in).
-    // created_at ≈ last_sign_in_at (within 5 min) means this is the first session.
-    const createdAt = new Date((user as any).created_at || 0).getTime();
-    const lastSignIn = new Date((user as any).last_sign_in_at || 0).getTime();
-    const isFirstSession =
-      Number.isFinite(createdAt) && Number.isFinite(lastSignIn)
-        ? Math.abs(lastSignIn - createdAt) < 5 * 60 * 1000
-        : false;
-
-    console.log('[referral] attempting insert', {
-      userId: user.id,
-      refCode,
-      createdAt: (user as any).created_at,
-      lastSignIn: (user as any).last_sign_in_at,
-      isFirstSession,
-    });
-
-    if (!isFirstSession) {
-      console.log('[referral] not first session, clearing ref');
-      localStorage.removeItem('hersh_ref');
-      return;
-    }
-
     supabase
       .from('referral_signups')
       .insert({ user_id: user.id, referral_code: refCode })
       .then(({ error }) => {
         if (error) {
+          // Duplicate = already recorded, clear ref and move on
+          if (error.code === '23505') {
+            localStorage.removeItem('hersh_ref');
+            return;
+          }
           console.error('[referral] insert failed:', error);
-          // If it's a duplicate (user already has a row), clear ref too.
-          if (error.code === '23505') localStorage.removeItem('hersh_ref');
           return;
         }
         console.log('[referral] signup recorded:', refCode);

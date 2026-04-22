@@ -86,7 +86,7 @@ function PartnerView({ userId }: { userId?: string }) {
     try {
       const token = await getSessionToken();
       if (!token) return;
-      const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/referral-stats`, {
+      const res = await fetch(`https://ezlousklksipvwuinpzq.supabase.co/functions/v1/referral-stats`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (!res.ok) { setStats(null); return; }
@@ -157,7 +157,7 @@ function AdminView() {
     try {
       const token = await getSessionToken();
       if (!token) return;
-      const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/referral-stats`, {
+      const res = await fetch(`https://ezlousklksipvwuinpzq.supabase.co/functions/v1/referral-stats`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       const data = await res.json();
@@ -172,7 +172,7 @@ function AdminView() {
     setCreating(true);
     try {
       const token = await getSessionToken();
-      const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/referral-stats`, {
+      const res = await fetch(`https://ezlousklksipvwuinpzq.supabase.co/functions/v1/referral-stats`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({ code: newCode.trim().toLowerCase(), partner_name: newName.trim(), owner_email: newEmail.trim() || undefined }),
@@ -204,7 +204,7 @@ function AdminView() {
     setAssignLoading(true);
     try {
       const token = await getSessionToken();
-      const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/referral-stats`, {
+      const res = await fetch(`https://ezlousklksipvwuinpzq.supabase.co/functions/v1/referral-stats`, {
         method: 'PATCH',
         headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({ code, owner_email: assignEmail.trim() }),
