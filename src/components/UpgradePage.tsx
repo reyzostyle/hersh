@@ -227,7 +227,7 @@ export function UpgradePage() {
                   WebkitBackdropFilter: 'blur(12px)',
                 }}
               >
-                {isPopular && !isCurrent && (
+                {isPopular && !isCurrent && isHigher && (
                   <div className="absolute -top-3 left-1/2 -translate-x-1/2">
                     <span className="px-3 py-1 bg-[#0EA4E9] text-white text-xs font-semibold rounded-full">
                       Most Popular
@@ -279,7 +279,7 @@ export function UpgradePage() {
                   </button>
                 ) : (
                   <div className="w-full py-2.5 text-center text-sm font-medium text-gray-600 rounded-lg" style={{ border: '1px solid rgba(255,255,255,0.06)' }}>
-                    {plan.id === 'free' ? 'Downgrade' : plan.cta}
+                    Downgrade
                   </div>
                 )}
               </div>
