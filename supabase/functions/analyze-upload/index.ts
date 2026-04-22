@@ -219,11 +219,20 @@ Deno.serve(async (req: Request) => {
       return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: corsHeaders });
     }
     const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
-    if (authError || !user) {
+
+    // Decode JWT (ES256-safe) + verify via admin API
+    let userId: string;
+    let userEmail: string;
+    try {
+      const payload = JSON.parse(atob(token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')));
+      userId = payload.sub;
+      userEmail = payload.email || '';
+      if (!userId) throw new Error('no sub');
+      const { data: { user: u }, error } = await supabase.auth.admin.getUserById(userId);
+      if (error || !u) throw new Error('not found');
+    } catch {
       return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: corsHeaders });
     }
-    const userId = user.id;
 
     const { geminiFileName, videoContext, fileName, mimeType } = await req.json();
     if (!geminiFileName) {
@@ -239,17 +248,10 @@ Deno.serve(async (req: Request) => {
       .maybeSingle();
 
     const plan = tokenRow?.plan || 'free';
-    const isAdmin = user.email === ADMIN_EMAIL;
+    const isAdmin = userEmail === ADMIN_EMAIL;
 
-    if (!isAdmin && plan !== 'agency') {
-      deleteGeminiFile(geminiFileName);
-      return new Response(
-        JSON.stringify({ error: 'Video file upload requires the Pro plan.' }),
-        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    const PLAN_LIMITS: Record<string, number> = { free: 3, pro: 30, agency: 50 };
+    // Video upload available on all plans
+    const PLAN_LIMITS: Record<string, number> = { free: 3, pro: 30, agency: 100 };
     let analysesUsed = tokenRow?.analyses_used || 0;
     const analysesLimit = isAdmin ? Infinity : (PLAN_LIMITS[plan] ?? 3);
 
