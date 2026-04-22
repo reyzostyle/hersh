@@ -44,6 +44,7 @@ const plans = [
       'Hook score & assessment',
       'Weak spot breakdown',
       'Hook ideas & rewrites',
+      'Video file upload',
     ],
     cta: 'Current Plan',
   },

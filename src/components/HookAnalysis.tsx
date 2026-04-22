@@ -27,7 +27,7 @@ export function HookAnalysis() {
   const [fileDragOver, setFileDragOver] = useState(false);
   const fileDropRef = useRef<HTMLDivElement>(null);
 
-  const isPro = userPlan === 'agency' || userPlan === 'pro';
+  const isPro = true; // file upload available on all plans
 
   useEffect(() => {
     loadVideos();
