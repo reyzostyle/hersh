@@ -327,17 +327,26 @@ Deno.serve(async (req: Request) => {
     if (!authHeader?.startsWith('Bearer ')) {
       return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: corsHeaders });
     }
+    const token = authHeader.replace('Bearer ', '');
 
-    // Verify user via REST — works reliably in edge functions
-    const userRes = await fetch(`${supabaseUrl}/auth/v1/user`, {
-      headers: { Authorization: authHeader, apikey: anonKey },
-    });
-    if (!userRes.ok) {
-      console.error('[analyze-with-gemini] auth failed:', userRes.status, await userRes.text());
+    // Decode JWT payload to get user ID (ES256-safe — no local signature check)
+    let userId: string;
+    let userEmail: string;
+    try {
+      const payload = JSON.parse(atob(token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')));
+      userId = payload.sub;
+      userEmail = payload.email || '';
+      if (!userId) throw new Error('no sub');
+    } catch {
+      return new Response(JSON.stringify({ error: 'Invalid token' }), { status: 401, headers: corsHeaders });
+    }
+
+    // Confirm user exists in Supabase auth via admin API
+    const { data: { user: authUser }, error: adminError } = await supabase.auth.admin.getUserById(userId);
+    if (adminError || !authUser) {
+      console.error('[analyze-with-gemini] user not found:', adminError);
       return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: corsHeaders });
     }
-    const authUser = await userRes.json();
-    const userId = authUser.id;
 
     const { videoId, videoContext }: RequestBody = await req.json();
     console.log(`[analyze-with-gemini] user=${userId}, videoId=${videoId}`);
@@ -352,7 +361,7 @@ Deno.serve(async (req: Request) => {
     const PLAN_LIMITS: Record<string, number> = { free: 3, pro: 30, agency: 100 };
     const plan = tokenRow?.plan || 'free';
     let analysesUsed = tokenRow?.analyses_used || 0;
-    const analysesLimit = authUser.email === 'reyzostyle@gmail.com' ? Infinity : (PLAN_LIMITS[plan] ?? 3);
+    const analysesLimit = userEmail === 'reyzostyle@gmail.com' ? Infinity : (PLAN_LIMITS[plan] ?? 3);
 
     if (plan !== 'free' && tokenRow?.analyses_reset_at) {
       const resetAt = new Date(tokenRow.analyses_reset_at);

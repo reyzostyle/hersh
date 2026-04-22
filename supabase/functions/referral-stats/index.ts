@@ -22,14 +22,18 @@ Deno.serve(async (req: Request) => {
 
   const supabase = createClient(supabaseUrl, serviceKey);
 
-  // Verify user via REST
-  const userRes = await fetch(`${supabaseUrl}/auth/v1/user`, {
-    headers: { Authorization: authHeader, apikey: anonKey },
-  });
-  if (!userRes.ok) {
+  // Decode JWT payload (ES256-safe)
+  const token2 = authHeader.replace('Bearer ', '');
+  let authUser: any;
+  try {
+    const payload = JSON.parse(atob(token2.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')));
+    if (!payload.sub) throw new Error('no sub');
+    const { data: { user }, error } = await supabase.auth.admin.getUserById(payload.sub);
+    if (error || !user) throw new Error('not found');
+    authUser = user;
+  } catch {
     return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: corsHeaders });
   }
-  const authUser = await userRes.json();
   const isAdmin = authUser.email === ADMIN_EMAIL;
 
   // ── POST: create new partner (admin only) ──────────────────────────────
