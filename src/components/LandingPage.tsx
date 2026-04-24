@@ -274,7 +274,7 @@ function DemoSection() {
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mt-1">
               {[
                 { label: 'Hook', text: 'Opens with a category statement. No unresolved tension to pull the viewer forward.' },
-                { label: 'Structure', text: 'Payoff arrives at 0:38. That's 65% of the Short used for setup.' },
+                { label: 'Structure', text: "Payoff arrives at 0:38. That's 65% of the Short used for setup." },
                 { label: 'Pacing', text: 'Static talking-head, no cuts in the first 8 seconds. Thumb already swiping.' },
               ].map(({ label, text }) => (
                 <div key={label} className="rounded-lg p-3" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
