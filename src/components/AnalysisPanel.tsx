@@ -183,7 +183,10 @@ export function AnalysisPanel({ analysis, open, onClose }: AnalysisPanelProps) {
                         analysis.hook_analysis.overall_score >= 7 ? 'text-emerald-400' :
                         analysis.hook_analysis.overall_score >= 4 ? 'text-yellow-400' : 'text-red-400'
                       }`}>
-                        {analysis.hook_analysis.overall_score}<span className="text-xs text-gray-600 font-normal">/10</span>
+                        {Number(analysis.hook_analysis.overall_score) % 1 === 0
+                          ? analysis.hook_analysis.overall_score
+                          : Number(analysis.hook_analysis.overall_score).toFixed(1)
+                        }<span className="text-xs text-gray-600 font-normal">/10</span>
                       </span>
                     </div>
                   )}
