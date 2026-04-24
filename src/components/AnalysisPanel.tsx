@@ -191,6 +191,20 @@ export function AnalysisPanel({ analysis, open, onClose }: AnalysisPanelProps) {
                     </div>
                   )}
                 </div>
+                {(analysis.hook_analysis?.hook_type || analysis.hook_analysis?.video_format) && (
+                  <div className="flex flex-wrap gap-1.5 mb-3">
+                    {analysis.hook_analysis?.hook_type && (
+                      <span className="text-[11px] px-2 py-0.5 rounded-full font-medium" style={{ background: 'rgba(139,92,246,0.12)', color: '#A78BFA', border: '1px solid rgba(139,92,246,0.25)' }}>
+                        {analysis.hook_analysis.hook_type}
+                      </span>
+                    )}
+                    {analysis.hook_analysis?.video_format && (
+                      <span className="text-[11px] px-2 py-0.5 rounded-full font-medium" style={{ background: 'rgba(14,164,233,0.1)', color: '#38BDF8', border: '1px solid rgba(14,164,233,0.2)' }}>
+                        {analysis.hook_analysis.video_format}
+                      </span>
+                    )}
+                  </div>
+                )}
                 <p className="text-gray-300 text-sm leading-relaxed whitespace-pre-line">
                   {analysis.hook_analysis?.overall_assessment}
                 </p>
