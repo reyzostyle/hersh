@@ -1,0 +1,26 @@
+name: Update Knowledge Base
+
+on:
+  schedule:
+    - cron: '0 22 * * *'  # 22:00 UTC = midnight Vienna (UTC+2 summer / UTC+1 winter)
+  workflow_dispatch:      # also runnable manually from GitHub UI
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Call update-knowledge-base edge function
+        run: |
+          response=$(curl -s -o /tmp/response.json -w "%{http_code}" \
+            -X POST \
+            -H "Content-Type: application/json" \
+            -H "x-admin-secret: ${{ secrets.ADMIN_SECRET }}" \
+            https://ezlousklksipvwuinpzq.supabase.co/functions/v1/update-knowledge-base)
+
+          echo "HTTP status: $response"
+          cat /tmp/response.json
+
+          if [ "$response" != "200" ]; then
+            echo "Failed with status $response"
+            exit 1
+          fi
