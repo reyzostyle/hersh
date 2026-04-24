@@ -68,7 +68,7 @@ function SetNewPasswordForm() {
 }
 
 function AuthCallbackHandler() {
-  const [status, setStatus] = useState<'processing' | 'error' | 'success'>('processing');
+  const [status, setStatus] = useState<'processing' | 'error' | 'success' | 'confirmed'>('processing');
   const [isRecovery, setIsRecovery] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
 
@@ -140,7 +140,9 @@ function AuthCallbackHandler() {
         } else if (type === 'recovery') {
           setIsRecovery(true);
         } else {
-          window.history.replaceState({}, '', '/');
+          // Email signup confirmation — show a screen instead of auto-redirecting
+          // so cross-device users (confirmed on phone, app open on PC) aren't confused
+          setStatus('confirmed');
         }
       })
       .catch((err: unknown) => {
@@ -152,6 +154,29 @@ function AuthCallbackHandler() {
 
   if (isRecovery) {
     return <SetNewPasswordForm />;
+  }
+
+  if (status === 'confirmed') {
+    return (
+      <div className="min-h-screen flex items-center justify-center px-4" style={{ background: 'linear-gradient(160deg, #0A0F1A 0%, #0D1B2A 100%)' }}>
+        <div className="w-full max-w-sm text-center">
+          <div className="w-14 h-14 rounded-full bg-emerald-500/15 flex items-center justify-center mx-auto mb-5">
+            <span className="text-emerald-400 text-3xl">✓</span>
+          </div>
+          <h1 className="text-white font-bold text-xl mb-2">Email confirmed!</h1>
+          <p className="text-gray-400 text-sm mb-6 leading-relaxed">
+            Your account is ready. Go back to the browser where you signed up and click <span className="text-white font-medium">"Already confirmed? Sign in"</span>.
+          </p>
+          <button
+            onClick={() => { window.history.replaceState({}, '', '/'); window.location.reload(); }}
+            className="w-full py-3 text-white rounded-xl font-semibold text-sm"
+            style={{ background: '#0EA4E9' }}
+          >
+            Open Hersh on this device
+          </button>
+        </div>
+      </div>
+    );
   }
 
   if (status === 'success') {

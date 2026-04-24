@@ -128,7 +128,7 @@ function AuthModal({ initialMode, onClose }: { initialMode: 'login' | 'signup'; 
               className="w-full py-2.5 text-white rounded-xl font-semibold text-sm mb-3"
               style={{ background: '#0EA4E9' }}
             >
-              Already confirmed? Sign in
+              I confirmed my email — Sign in
             </button>
             <button onClick={handleGoogle} disabled={googleLoading}
               className="w-full flex items-center justify-center gap-3 px-4 py-2.5 bg-white text-gray-900 rounded-xl font-semibold text-sm hover:bg-gray-100 disabled:opacity-50"
