@@ -261,24 +261,28 @@ function DemoSection() {
           <p className="text-sm text-white font-medium">Why Your Morning Routine Is Sabotaging Your Day</p>
           <p className="text-xs text-gray-500">247K views · 0:58 · @productivitylab</p>
         </div>
-        <div className="ml-auto">
-          <div className="px-2.5 py-1 rounded-full text-xs font-bold" style={{ background: 'rgba(251,146,60,0.15)', color: '#FB923C', border: '1px solid rgba(251,146,60,0.25)' }}>
-            Score: 4/10
-          </div>
-        </div>
       </div>
 
       <div className="grid md:grid-cols-2 gap-4">
         <div className="rounded-xl p-5 md:col-span-2 motion-card" style={glass}>
-          <p className="text-xs text-gray-500 uppercase tracking-wide mb-3">Overall Assessment</p>
-          <div className="space-y-3 text-sm text-gray-300 leading-relaxed">
-            <p className="text-white font-medium">Real problem: the hook tells instead of hooks. It describes what the video is about instead of creating a reason to keep watching.</p>
-            <div className="space-y-1.5 pl-3" style={{ borderLeft: '2px solid rgba(255,255,255,0.08)' }}>
-              <p><span className="text-gray-400 font-medium">Hook:</span> Opens with "Today I want to talk about morning routines." A category statement, not a hook. The viewer has no unresolved tension pulling them forward.</p>
-              <p><span className="text-gray-400 font-medium">Structure:</span> The payoff doesn't arrive until 0:38. That's 65% of a Short used for setup. Retention likely drops below 30% before the key idea lands.</p>
-              <p><span className="text-gray-400 font-medium">Pacing:</span> Static talking-head with no cuts in the first 8 seconds. On mobile, the thumb is already swiping.</p>
+          <div className="flex items-center justify-between mb-3">
+            <p className="text-xs text-gray-500 uppercase tracking-wide">Overall Assessment</p>
+            <div className="px-2.5 py-1 rounded-full text-xs font-bold" style={{ background: 'rgba(251,146,60,0.15)', color: '#FB923C', border: '1px solid rgba(251,146,60,0.25)' }}>Score: 4/10</div>
+          </div>
+          <div className="space-y-2.5 text-sm text-gray-300 leading-relaxed">
+            <p className="text-white font-medium">The hook tells instead of hooks — it describes the topic instead of creating tension.</p>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mt-1">
+              {[
+                { label: 'Hook', text: 'Opens with a category statement. No unresolved tension to pull the viewer forward.' },
+                { label: 'Structure', text: 'Payoff arrives at 0:38. That's 65% of the Short used for setup.' },
+                { label: 'Pacing', text: 'Static talking-head, no cuts in the first 8 seconds. Thumb already swiping.' },
+              ].map(({ label, text }) => (
+                <div key={label} className="rounded-lg p-3" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
+                  <p className="text-gray-400 font-medium text-xs mb-1">{label}</p>
+                  <p className="text-gray-400 text-xs leading-relaxed">{text}</p>
+                </div>
+              ))}
             </div>
-            <p><span className="text-white font-medium">Fix this first:</span> Lead with the counterintuitive finding, not the topic. The insight is good. The delivery buries it.</p>
           </div>
         </div>
 
@@ -389,7 +393,7 @@ export function LandingPage() {
           </h1>
 
           <p className="animate-fade-in-up delay-200 text-lg text-gray-400 leading-relaxed mb-10 max-w-xl mx-auto">
-            Hersh analyzes your YouTube Shorts with AI. Shows exactly what's wrong with your hook and gives you 3 better versions, ready to record.
+            AI hook analysis for YouTube Shorts — score, weak spots, and 3 better versions. Ready in seconds.
           </p>
 
           <div className="animate-fade-in-up delay-300 flex flex-col sm:flex-row items-center justify-center gap-3">
@@ -410,7 +414,6 @@ export function LandingPage() {
           <RevealSection className="text-center mb-10">
             <p className="text-xs text-gray-600 uppercase tracking-widest mb-2">Example analysis</p>
             <h2 className="text-2xl font-bold text-white">See what you've been missing</h2>
-            <p className="text-gray-500 text-sm mt-2">This is what Hersh shows you after analyzing a real Short.</p>
           </RevealSection>
 
           <div className="relative">
@@ -428,9 +431,9 @@ export function LandingPage() {
 
           <div className="grid md:grid-cols-3 gap-4">
             {[
-              { step: '01', title: 'Paste your Short URL', desc: 'Drop in any YouTube Shorts link. No downloads, no installs.', icon: '🔗' },
-              { step: '02', title: 'AI watches your video', desc: 'Gemini watches the full Short. Claude reads every frame and the transcript.', icon: '👁️' },
-              { step: '03', title: 'Get your fix list', desc: 'Hook score, exact weak spots, and 3 ready-to-record hook rewrites.', icon: '⚡' },
+              { step: '01', title: 'Paste your Short URL', desc: 'Any Shorts link, or upload a file before it goes live.', icon: '🔗' },
+              { step: '02', title: 'AI watches your video', desc: 'Gemini analyzes every second. No manual work.', icon: '👁️' },
+              { step: '03', title: 'Get your fix list', desc: 'Hook score, weak spots, and 3 ready-to-record rewrites.', icon: '⚡' },
             ].map((item, i) => (
               <RevealSection key={i} delay={i * 100}>
                 <div className="relative rounded-xl p-6 h-full motion-card" style={glass}>
