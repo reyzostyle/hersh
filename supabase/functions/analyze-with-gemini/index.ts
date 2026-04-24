@@ -176,6 +176,36 @@ CREATOR LEVEL: ${level}
 - intermediate: Skip fundamentals. Assume they know what a hook, retention, and CTA are. Focus on execution: what separates okay from great. Be specific about what to change.
 - advanced: Reference advanced concepts (pattern interrupts, retention curves, loop mechanics, cold opens, visual hierarchy). Challenge assumptions. Don't explain basics. Be nuanced and opinionated.
 
+SCORING RUBRIC (overall_score, 1-10)
+Score based on hook strength, structure, and execution. Use the full scale — do not cluster around 5-7.
+1-2: Fundamentally broken. No hook, no structure, viewer leaves in 2 seconds.
+3-4: Weak hook, generic content, clear retention killers. Fixable but needs major rework.
+5-6: Average. Has a point but hook is soft, pacing drags, or ending fails. Common for newer creators.
+7-8: Solid execution. Hook works, structure holds, one or two fixable issues.
+9: Near-perfect. Strong hook, tight structure, excellent pacing. Rare.
+10: Exceptional. Everything works — hook, tension, payoff, CTA. Almost never happens.
+Be honest. A video that goes viral can still score 6 if the hook is weak and it succeeded on luck/topic. A video with 1k views can score 8 if execution is clean.
+
+HOOK TYPES (identify which type this video uses, then evaluate if it's executed correctly)
+- Curiosity gap: withholds information to create tension ("The mistake 90% make...")
+- Pattern interrupt: breaks expected visual/audio pattern immediately
+- Contrarian: challenges a common belief ("Stop doing X")
+- Story cold open: drops viewer into a scene mid-action
+- Transformation/result first: shows the outcome before the process
+- Question: direct question that targets the viewer's pain
+- Shock/surprise: unexpected visual or statement in frame 1
+- List/number: "5 reasons...", "3 things..."
+
+VIDEO FORMATS (identify which format this video follows)
+- Storytime/narrative: personal story with arc (setup, tension, resolution)
+- Tutorial/how-to: step by step instruction
+- Listicle: numbered points
+- POV/day-in-life: immersive first-person perspective
+- Talking head/commentary: direct address, opinion or analysis
+- Voiceover + visuals: narration over footage or screen recording
+- Reaction/duet: responding to external content
+- Showcase: product, place, or result-focused
+
 HARD RULES
 1. Every claim must be grounded in evidence from the transcript, visuals, or stats provided. If you can't cite it, don't say it.
 2. Never invent retention numbers, view counts, or stats. If retention data is N/A, say so and analyze on structure/hook/content only.
@@ -183,6 +213,7 @@ HARD RULES
 4. Banned generic phrases: "engaging content", "great hook", "good pacing", "keep it up", "consider adding", "you could try", "just make sure", "overall this is a solid video".
 5. No flattery. No recap of what the video does. Creators know what they made — tell them what's wrong.
 6. Maximum 3 key points. If you have fewer real issues, say fewer. Don't pad.
+7. Evaluate the hook IN CONTEXT of its type. A storytime cold open should be judged differently than a curiosity gap hook. Don't penalize format choice — penalize poor execution of that format.
 
 OUTPUT FORMAT (for overall_assessment)
 Structure the text as THREE separate blocks, separated by a BLANK LINE (\\n\\n):
@@ -203,7 +234,7 @@ Never use em-dash (—) or en-dash (–) anywhere in output. Only use the regula
 TONE
 Peer-to-peer senior creator notes. Zero fluff. Direct, specific, opinionated. Talk like you're texting a friend who asked for a real review, not writing a performance report.
 
-${knowledgeBaseSection ? `Knowledge base (use as instinct, don't quote):\n${knowledgeBaseSection}\n` : ''}`;
+${knowledgeBaseSection ? `KNOWLEDGE BASE (patterns learned from real creator feedback — use as instinct, do not quote directly, treat as priors not rules):\n${knowledgeBaseSection}\n` : ''}`;
 
   const dur = video.duration ? `${video.duration}s` : 'N/A';
   const views = video.views != null ? video.views.toLocaleString() : 'N/A — not published yet or no access';
@@ -247,7 +278,9 @@ Analyze the hook and overall video performance. Use both the transcript AND visu
 
 Respond with valid JSON only:
 {
-  "overall_score": 6,
+  "overall_score": <integer 1-10, use full scale per rubric above>,
+  "hook_type": "<identified hook type from the list above>",
+  "video_format": "<identified video format from the list above>",
   "overall_assessment": "3-4 sentences about hook effectiveness, what works and what doesn't, referencing both audio/transcript and visuals",
   "weak_spots": [
     "Specific issue + actionable fix (max 2 sentences)",

@@ -1,11 +1,118 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Analysis } from '../lib/supabase';
-import { Sparkles, AlertCircle, Lightbulb, X, TrendingUp } from 'lucide-react';
+import { Sparkles, AlertCircle, Lightbulb, X, TrendingUp, ThumbsUp, ThumbsDown, Send } from 'lucide-react';
+import { supabase } from '../lib/supabase';
+import { useAuth } from '../contexts/AuthContext';
 
 interface AnalysisPanelProps {
   analysis: Analysis | null;
   open: boolean;
   onClose: () => void;
+}
+
+function FeedbackSection({ analysisId }: { analysisId: string }) {
+  const { user } = useAuth();
+  const [rating, setRating] = useState<'good' | 'bad' | null>(null);
+  const [reason, setReason] = useState('');
+  const [submitted, setSubmitted] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+
+  const submit = async (selectedRating: 'good' | 'bad') => {
+    if (!user || submitted) return;
+    setRating(selectedRating);
+
+    if (selectedRating === 'good') {
+      // Submit immediately for thumbs up
+      setSubmitting(true);
+      await supabase.from('analysis_feedback').insert({
+        analysis_id: analysisId,
+        user_id: user.id,
+        rating: selectedRating,
+        reason: null,
+      });
+      setSubmitting(false);
+      setSubmitted(true);
+    }
+    // For thumbs down, wait for reason
+  };
+
+  const submitWithReason = async () => {
+    if (!user || !rating || submitted) return;
+    setSubmitting(true);
+    await supabase.from('analysis_feedback').insert({
+      analysis_id: analysisId,
+      user_id: user.id,
+      rating,
+      reason: reason.trim() || null,
+    });
+    setSubmitting(false);
+    setSubmitted(true);
+  };
+
+  if (submitted) {
+    return (
+      <div className="flex items-center gap-2 text-emerald-400 text-sm">
+        <span>✓</span>
+        <span>Thanks, this helps Hersh improve.</span>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-3">
+      <p className="text-xs text-gray-500 uppercase tracking-wide">Was this analysis helpful?</p>
+      <div className="flex items-center gap-2">
+        <button
+          onClick={() => submit('good')}
+          disabled={submitting}
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
+            rating === 'good'
+              ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40'
+              : 'text-gray-400 hover:text-white border border-white/10 hover:border-white/20'
+          }`}
+        >
+          <ThumbsUp className="w-3.5 h-3.5" />
+          Yes
+        </button>
+        <button
+          onClick={() => submit('bad')}
+          disabled={submitting}
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
+            rating === 'bad'
+              ? 'bg-red-500/15 text-red-400 border border-red-500/30'
+              : 'text-gray-400 hover:text-white border border-white/10 hover:border-white/20'
+          }`}
+        >
+          <ThumbsDown className="w-3.5 h-3.5" />
+          No
+        </button>
+      </div>
+
+      {rating === 'bad' && (
+        <div className="space-y-2 animate-fade-in">
+          <textarea
+            value={reason}
+            onChange={e => setReason(e.target.value)}
+            placeholder="What was off? (optional)"
+            rows={2}
+            className="w-full rounded-lg px-3 py-2 text-sm text-gray-200 placeholder-gray-600 focus:outline-none resize-none"
+            style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)' }}
+            onFocus={e => { e.currentTarget.style.borderColor = 'rgba(248,113,113,0.4)'; }}
+            onBlur={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)'; }}
+          />
+          <button
+            onClick={submitWithReason}
+            disabled={submitting}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium text-white disabled:opacity-50"
+            style={{ background: 'rgba(255,255,255,0.08)' }}
+          >
+            <Send className="w-3 h-3" />
+            {submitting ? 'Sending...' : 'Send feedback'}
+          </button>
+        </div>
+      )}
+    </div>
+  );
 }
 
 export function AnalysisPanel({ analysis, open, onClose }: AnalysisPanelProps) {
@@ -129,7 +236,8 @@ export function AnalysisPanel({ analysis, open, onClose }: AnalysisPanelProps) {
                 </div>
               )}
 
-              <div className="pt-2" style={{ borderTop: '1px solid rgba(255,255,255,0.08)' }}>
+              <div className="pt-4 space-y-4" style={{ borderTop: '1px solid rgba(255,255,255,0.08)' }}>
+                <FeedbackSection analysisId={analysis.id} />
                 <p className="text-xs text-gray-600">
                   Generated {new Date(analysis.created_at).toLocaleDateString()} at {new Date(analysis.created_at).toLocaleTimeString()}
                 </p>
