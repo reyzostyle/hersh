@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { supabase, getSessionToken } from '../lib/supabase';
-import { Copy, Check, Users, TrendingUp, DollarSign, Loader2, Plus, RefreshCw, Trash2, Link } from 'lucide-react';
+import { getSessionToken } from '../lib/supabase';
+import { Copy, Check, Users, TrendingUp, DollarSign, Loader2, Plus, RefreshCw, Trash2, Link, Handshake } from 'lucide-react';
 
 const ADMIN_EMAIL = 'reyzostyle@gmail.com';
 
@@ -30,28 +30,26 @@ export function PartnersPage() {
   const isAdmin = user?.email === ADMIN_EMAIL;
 
   return (
-    <div className="h-full flex flex-col overflow-auto">
-      <div className="px-6 py-5 flex-shrink-0" style={{ borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
-        <h1 className="text-2xl font-bold text-white mb-1">Partners</h1>
-        <p className="text-sm text-gray-500">
-          {isAdmin ? 'Manage referral partners and track conversions' : 'Your referral stats and link'}
-        </p>
-      </div>
-      <div className="flex-1 overflow-auto px-6 py-6 max-w-4xl">
+    <div className="max-w-4xl mx-auto px-4 sm:px-6 pt-4 sm:pt-6 pb-12 animate-fade-in-up">
+        <div className="hidden sm:block mb-6">
+          <h1 className="text-2xl font-bold text-white mb-1">Partners</h1>
+          <p className="text-sm text-gray-500">{isAdmin ? 'Manage referral partners and track conversions' : 'Your referral stats and link'}</p>
+        </div>
         {isAdmin ? <AdminView /> : <PartnerView userId={user?.id} />}
-      </div>
     </div>
   );
 }
 
 function StatCard({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
   return (
-    <div className="rounded-xl p-4" style={glassCard}>
-      <div className="flex items-center gap-2 mb-2 text-gray-400">
-        {icon}
-        <span className="text-xs font-medium uppercase tracking-wide">{label}</span>
+    <div className="rounded-xl p-3 sm:p-4 flex flex-col gap-2" style={glassCard}>
+      <div className="w-6 h-6 rounded-md flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(255,255,255,0.06)' }}>
+        <span className="text-gray-400 [&>svg]:w-3.5 [&>svg]:h-3.5">{icon}</span>
       </div>
-      <p className="text-2xl font-bold text-white">{value}</p>
+      <div>
+        <p className="text-[10px] font-medium uppercase tracking-wide text-gray-500 mb-0.5">{label}</p>
+        <p className="text-xl sm:text-2xl font-bold text-white">{value}</p>
+      </div>
     </div>
   );
 }
@@ -111,7 +109,7 @@ function PartnerView({ userId }: { userId?: string }) {
     );
   }
 
-  const refLink = `https://hersh.live?ref=${stats.code}`;
+  const refLink = `https://hershymedia.com?ref=${stats.code}`;
   const earned = (stats.total_commission_cents / 100).toFixed(2);
 
   return (
@@ -127,10 +125,10 @@ function PartnerView({ userId }: { userId?: string }) {
         <p className="mt-2 text-xs text-gray-600">{stats.commission_percent}% commission on every paid conversion</p>
       </div>
 
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-3 gap-2 sm:gap-4">
         <StatCard icon={<Users className="w-4 h-4" />} label="Signups" value={String(stats.signups)} />
-        <StatCard icon={<TrendingUp className="w-4 h-4" />} label="Paid conversions" value={String(stats.conversions)} />
-        <StatCard icon={<DollarSign className="w-4 h-4" />} label="Total earned" value={`$${earned}`} />
+        <StatCard icon={<TrendingUp className="w-4 h-4" />} label="Conversions" value={String(stats.conversions)} />
+        <StatCard icon={<DollarSign className="w-4 h-4" />} label="Earned" value={`$${earned}`} />
       </div>
     </div>
   );
@@ -195,8 +193,23 @@ function AdminView() {
 
   const deletePartner = async (code: string) => {
     if (!confirm(`Delete partner "${code}"? This cannot be undone.`)) return;
-    await supabase.from('referral_codes').delete().eq('code', code);
-    loadAll();
+    try {
+      const token = await getSessionToken();
+      const res = await fetch(`https://ezlousklksipvwuinpzq.supabase.co/functions/v1/referral-stats`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code }),
+        signal: AbortSignal.timeout(15000),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        alert(err.error || 'Failed to delete partner');
+        return;
+      }
+      loadAll();
+    } catch {
+      alert('Request failed or timed out.');
+    }
   };
 
   const assignOwner = async (code: string) => {
@@ -231,10 +244,10 @@ function AdminView() {
 
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-3 gap-4">
-        <StatCard icon={<Users className="w-4 h-4" />} label="Total signups" value={String(totalSignups)} />
-        <StatCard icon={<TrendingUp className="w-4 h-4" />} label="Paid conversions" value={String(totalConversions)} />
-        <StatCard icon={<DollarSign className="w-4 h-4" />} label="Total commission paid" value={`$${(totalEarned / 100).toFixed(2)}`} />
+      <div className="grid grid-cols-3 gap-2 sm:gap-4">
+        <StatCard icon={<Users className="w-4 h-4" />} label="Signups" value={String(totalSignups)} />
+        <StatCard icon={<TrendingUp className="w-4 h-4" />} label="Conversions" value={String(totalConversions)} />
+        <StatCard icon={<DollarSign className="w-4 h-4" />} label="Commission" value={`$${(totalEarned / 100).toFixed(2)}`} />
       </div>
 
       <div className="rounded-xl p-5" style={glassCard}>
@@ -253,7 +266,7 @@ function AdminView() {
 
         {showForm && (
           <div className="mb-4 p-4 rounded-lg space-y-3" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}>
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div>
                 <label className="block text-xs text-gray-500 mb-1">Code (in URL)</label>
                 <input value={newCode} onChange={e => setNewCode(e.target.value)} placeholder="marcus" className="w-full px-3 py-2 rounded-lg text-white text-sm focus:outline-none" style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }} />
@@ -284,66 +297,68 @@ function AdminView() {
           <div className="space-y-2">
             {partners.map(p => (
               <div key={p.code}>
-                <div className="flex items-center gap-4 px-4 py-3 rounded-lg" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <span className="text-white font-medium text-sm">{p.partner_name}</span>
-                      <span className="text-xs text-gray-600 font-mono">?ref={p.code}</span>
-                      {!p.active && <span className="text-xs text-red-400">inactive</span>}
-                      {!p.owner_user_id && <span className="text-xs text-amber-500">no account linked</span>}
+                <div className="px-4 py-3 rounded-lg space-y-2" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
+                  {/* Top row: name + actions */}
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="text-white font-medium text-sm">{p.partner_name}</span>
+                        <span className="text-xs text-gray-600 font-mono">?ref={p.code}</span>
+                        {!p.active && <span className="text-xs text-red-400">inactive</span>}
+                        {!p.owner_user_id && <span className="text-xs text-amber-500">no account linked</span>}
+                      </div>
+                      <p className="text-xs text-gray-600">{p.commission_percent}% commission</p>
                     </div>
-                    <p className="text-xs text-gray-600 mt-0.5">{p.commission_percent}% commission</p>
+                    <div className="flex items-center gap-1 flex-shrink-0">
+                      <button onClick={() => { setAssigningCode(assigningCode === p.code ? null : p.code); setAssignEmail(''); }} className="p-1.5 text-gray-500 hover:text-blue-400 transition-colors rounded" title="Link account">
+                        <Link className="w-3.5 h-3.5" />
+                      </button>
+                      <button onClick={() => deletePartner(p.code)} className="p-1.5 text-gray-500 hover:text-red-400 transition-colors rounded" title="Delete">
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-6 text-sm flex-shrink-0">
-                    <div className="text-center">
-                      <p className="text-white font-semibold">{p.signups}</p>
-                      <p className="text-xs text-gray-600">signups</p>
+                  {/* Bottom row: stats + copy */}
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-4 text-sm">
+                      <div className="flex items-center gap-1">
+                        <span className="text-white font-semibold">{p.signups}</span>
+                        <span className="text-xs text-gray-600">signups</span>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <span className="text-white font-semibold">{p.conversions}</span>
+                        <span className="text-xs text-gray-600">paid</span>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <span className="text-emerald-400 font-semibold">${(p.total_commission_cents / 100).toFixed(2)}</span>
+                        <span className="text-xs text-gray-600">earned</span>
+                      </div>
                     </div>
-                    <div className="text-center">
-                      <p className="text-white font-semibold">{p.conversions}</p>
-                      <p className="text-xs text-gray-600">paid</p>
-                    </div>
-                    <div className="text-center">
-                      <p className="text-emerald-400 font-semibold">${(p.total_commission_cents / 100).toFixed(2)}</p>
-                      <p className="text-xs text-gray-600">earned</p>
-                    </div>
-                    <CopyButton text={`https://hersh.live?ref=${p.code}`} />
-                    <button
-                      onClick={() => { setAssigningCode(assigningCode === p.code ? null : p.code); setAssignEmail(''); }}
-                      className="p-1.5 text-gray-500 hover:text-blue-400 transition-colors rounded"
-                      title="Link account"
-                    >
-                      <Link className="w-3.5 h-3.5" />
-                    </button>
-                    <button
-                      onClick={() => deletePartner(p.code)}
-                      className="p-1.5 text-gray-500 hover:text-red-400 transition-colors rounded"
-                      title="Delete"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
+                    <CopyButton text={`https://hershymedia.com?ref=${p.code}`} />
                   </div>
                 </div>
 
                 {assigningCode === p.code && (
-                  <div className="mt-1 px-4 py-3 rounded-lg flex items-center gap-3" style={{ background: 'rgba(14,164,233,0.06)', border: '1px solid rgba(14,164,233,0.15)' }}>
+                  <div className="mt-1 px-4 py-3 rounded-lg space-y-2" style={{ background: 'rgba(14,164,233,0.06)', border: '1px solid rgba(14,164,233,0.15)' }}>
                     <input
                       value={assignEmail}
                       onChange={e => setAssignEmail(e.target.value)}
                       placeholder="partner@email.com"
                       type="email"
-                      className="flex-1 px-3 py-1.5 rounded-lg text-white text-sm focus:outline-none"
+                      className="w-full px-3 py-2 rounded-lg text-white text-sm focus:outline-none"
                       style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }}
                     />
-                    <button
-                      onClick={() => assignOwner(p.code)}
-                      disabled={assignLoading || !assignEmail}
-                      className="px-3 py-1.5 text-sm font-medium text-white rounded-lg disabled:opacity-50"
-                      style={{ background: '#0EA4E9' }}
-                    >
-                      {assignLoading ? 'Linking...' : 'Link account'}
-                    </button>
-                    <button onClick={() => setAssigningCode(null)} className="text-sm text-gray-500 hover:text-white">Cancel</button>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => assignOwner(p.code)}
+                        disabled={assignLoading || !assignEmail}
+                        className="flex-1 py-2 text-sm font-medium text-white rounded-lg disabled:opacity-50"
+                        style={{ background: '#0EA4E9' }}
+                      >
+                        {assignLoading ? 'Linking...' : 'Link account'}
+                      </button>
+                      <button onClick={() => setAssigningCode(null)} className="px-4 py-2 text-sm text-gray-400 hover:text-white rounded-lg" style={{ background: 'rgba(255,255,255,0.06)' }}>Cancel</button>
+                    </div>
                   </div>
                 )}
               </div>

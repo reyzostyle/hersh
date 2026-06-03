@@ -75,6 +75,17 @@ Deno.serve(async (req: Request) => {
     return new Response(JSON.stringify({ ok: true }), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
   }
 
+  // ── DELETE: remove partner (admin only) ─────────────────────────────────
+  if (req.method === 'DELETE') {
+    if (!isAdmin) return new Response(JSON.stringify({ error: 'Forbidden' }), { status: 403, headers: corsHeaders });
+    const { code } = await req.json();
+    if (!code) return new Response(JSON.stringify({ error: 'code required' }), { status: 400, headers: corsHeaders });
+
+    const { error } = await supabase.from('referral_codes').delete().eq('code', code);
+    if (error) return new Response(JSON.stringify({ error: error.message }), { status: 400, headers: corsHeaders });
+    return new Response(JSON.stringify({ ok: true }), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+  }
+
   // ── GET: fetch stats ───────────────────────────────────────────────────
   async function getStats(codes: any[]) {
     return await Promise.all(codes.map(async (rc) => {
