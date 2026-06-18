@@ -1,10 +1,10 @@
 import { useState, useRef, useEffect } from 'react';
-import { X, Upload, Sparkles, Loader2, Film, AlertCircle } from 'lucide-react';
+import { X, Upload, Sparkles, Loader2, Film, AlertCircle, Info } from 'lucide-react';
 
 interface VideoUploadPanelProps {
   open: boolean;
   onClose: () => void;
-  onAnalyze: (file: File, videoContext: string) => void;
+  onAnalyze: (file: File, videoContext: string, isMyVideo: boolean) => void;
   analyzing: boolean;
   isPro: boolean;
   uploadStep?: 'uploading' | 'analyzing' | null;
@@ -16,8 +16,10 @@ const MAX_SIZE_MB = 300;
 export function VideoUploadPanel({ open, onClose, onAnalyze, analyzing, uploadStep }: VideoUploadPanelProps) {
   const [file, setFile] = useState<File | null>(null);
   const [videoContext, setVideoContext] = useState('');
+  const [isMyVideo, setIsMyVideo] = useState(true);
   const [dragOver, setDragOver] = useState(false);
   const [fileError, setFileError] = useState('');
+  const [showInfo, setShowInfo] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -108,19 +110,14 @@ export function VideoUploadPanel({ open, onClose, onAnalyze, analyzing, uploadSt
                 onDragOver={e => { e.preventDefault(); setDragOver(true); }}
                 onDragLeave={() => setDragOver(false)}
                 onDrop={handleDrop}
-                className="rounded-xl cursor-pointer transition-all flex flex-col items-center justify-center gap-3 py-12 px-6 text-center"
+                className="rounded-xl cursor-pointer transition-all flex flex-col items-center justify-center gap-2 py-8 px-6 text-center"
                 style={{
                   border: `2px dashed ${dragOver ? 'rgba(52,211,153,0.6)' : 'rgba(255,255,255,0.12)'}`,
                   background: dragOver ? 'rgba(52,211,153,0.05)' : 'rgba(255,255,255,0.03)',
                 }}
               >
-                <div className="w-12 h-12 rounded-full bg-gray-800 flex items-center justify-center">
-                  <Film className="w-6 h-6 text-gray-400" />
-                </div>
-                <div>
-                  <p className="text-white text-sm font-medium">Drop your video here</p>
-                  <p className="text-gray-500 text-xs mt-1">or click to browse</p>
-                </div>
+                <Film className={`w-7 h-7 ${dragOver ? 'text-emerald-400' : 'text-gray-500'}`} />
+                <p className="text-gray-300 text-sm font-medium">{dragOver ? 'Drop to analyze' : 'Tap to select video'}</p>
                 <p className="text-gray-600 text-xs">MP4, MOV, WebM, AVI — up to {MAX_SIZE_MB}MB</p>
               </div>
             ) : (
@@ -148,15 +145,14 @@ export function VideoUploadPanel({ open, onClose, onAnalyze, analyzing, uploadSt
 
           {/* Context */}
           <div>
-            <label className="block text-sm font-medium text-white mb-1">
-              Video Context <span className="text-gray-500 font-normal">(optional)</span>
+            <label className="block text-sm font-medium text-white mb-2">
+              Context <span className="text-gray-600 font-normal text-xs">(optional)</span>
             </label>
-            <p className="text-xs text-gray-500 mb-2">Tell us what this video is about, who it's for, what you were trying to achieve.</p>
             <textarea
               value={videoContext}
               onChange={e => setVideoContext(e.target.value)}
-              placeholder="e.g. 'Fortnite clutch moment, targeting competitive players, trying to hook with the dramatic play first'"
-              rows={3}
+              placeholder="Niche, target audience, what you were trying to achieve..."
+              rows={2}
               className="w-full rounded-lg px-4 py-3 text-sm text-gray-200 placeholder-gray-600 focus:outline-none resize-none leading-relaxed"
               style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }}
               onFocus={e => { e.currentTarget.style.borderColor = '#34D399'; }}
@@ -164,17 +160,28 @@ export function VideoUploadPanel({ open, onClose, onAnalyze, analyzing, uploadSt
             />
           </div>
 
-          {/* Info */}
-          <div className="rounded-lg px-4 py-3 flex items-start gap-2" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)' }}>
-            <AlertCircle className="w-3.5 h-3.5 text-gray-500 flex-shrink-0 mt-0.5" />
-            <p className="text-gray-500 text-xs leading-relaxed">
-              Your video is uploaded temporarily to Gemini for analysis only and deleted immediately after. Never stored on our servers.
-            </p>
+          {/* Info icon */}
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setShowInfo(v => !v)}
+              className="flex items-center gap-1.5 text-gray-600 hover:text-gray-400 transition-colors text-xs"
+            >
+              <Info className="w-3.5 h-3.5" />
+              How is my video used?
+            </button>
           </div>
+          {showInfo && (
+            <div className="rounded-lg px-4 py-3" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)' }}>
+              <p className="text-gray-500 text-xs leading-relaxed">
+                Your video is uploaded temporarily to Gemini for analysis only and deleted immediately after. Never stored on our servers.
+              </p>
+            </div>
+          )}
 
           {/* Analyze button */}
           <button
-            onClick={() => file && onAnalyze(file, videoContext)}
+            onClick={() => file && onAnalyze(file, videoContext, isMyVideo)}
             disabled={!file || analyzing}
             className="w-full flex items-center justify-center gap-2 px-4 py-3 text-white rounded-xl text-sm font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed"
             style={{ background: analyzing || !file ? 'rgba(52,211,153,0.3)' : 'linear-gradient(135deg, #34D399, #0EA4E9)' }}

@@ -1,7 +1,7 @@
 import { createClient } from 'npm:@supabase/supabase-js@2.57.4';
 
 const REDIRECT_URI = 'https://ezlousklksipvwuinpzq.supabase.co/functions/v1/youtube-oauth-callback';
-const APP_URL = 'https://hersh.live';
+const APP_URL = 'https://hershymedia.com';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -65,11 +65,33 @@ Deno.serve(async (req: Request) => {
       const expiryDate = new Date();
       expiryDate.setSeconds(expiryDate.getSeconds() + (tokens.expires_in || 3600));
 
+      // Fetch YouTube channel name
+      let youtubeChannelName = '';
+      let youtubeChannelThumbnail = '';
+      try {
+        const channelRes = await fetch(
+          'https://www.googleapis.com/youtube/v3/channels?part=snippet&mine=true',
+          { headers: { Authorization: `Bearer ${tokens.access_token}` } }
+        );
+        if (channelRes.ok) {
+          const channelData = await channelRes.json();
+          const ch = channelData.items?.[0];
+          if (ch) {
+            youtubeChannelName = ch.snippet.title || '';
+            youtubeChannelThumbnail = ch.snippet.thumbnails?.default?.url || '';
+          }
+        }
+      } catch (e) {
+        console.log('[GET] Could not fetch channel name:', e);
+      }
+
       const upsertData: Record<string, unknown> = {
         user_id: state,
         access_token: tokens.access_token,
         token_expiry: expiryDate.toISOString(),
         updated_at: new Date().toISOString(),
+        youtube_channel_name: youtubeChannelName || null,
+        youtube_channel_thumbnail: youtubeChannelThumbnail || null,
       };
       if (tokens.refresh_token) {
         upsertData.refresh_token = tokens.refresh_token;

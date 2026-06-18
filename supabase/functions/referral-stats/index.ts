@@ -22,14 +22,13 @@ Deno.serve(async (req: Request) => {
 
   const supabase = createClient(supabaseUrl, serviceKey);
 
-  // Decode JWT payload (ES256-safe)
+  // Verify the JWT signature via the auth server — never trust a decoded-only
+  // token. (A forged token with the admin's UUID as `sub` would otherwise pass.)
   const token2 = authHeader.replace('Bearer ', '');
   let authUser: any;
   try {
-    const payload = JSON.parse(atob(token2.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')));
-    if (!payload.sub) throw new Error('no sub');
-    const { data: { user }, error } = await supabase.auth.admin.getUserById(payload.sub);
-    if (error || !user) throw new Error('not found');
+    const { data: { user }, error } = await supabase.auth.getUser(token2);
+    if (error || !user) throw new Error('invalid token');
     authUser = user;
   } catch {
     return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: corsHeaders });

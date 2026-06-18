@@ -53,7 +53,7 @@ function FeedbackSection({ analysisId }: { analysisId: string }) {
     return (
       <div className="flex items-center gap-2 text-emerald-400 text-sm">
         <span>✓</span>
-        <span>Thanks, this helps Hersh improve.</span>
+        <span>Thanks, this helps Hershy improve.</span>
       </div>
     );
   }
@@ -134,7 +134,7 @@ export function AnalysisPanel({ analysis, open, onClose }: AnalysisPanelProps) {
         onClick={onClose}
       />
       <div
-        className="relative w-full max-w-xl flex flex-col rounded-2xl animate-scale-in"
+        className="relative w-full max-w-2xl flex flex-col rounded-2xl animate-scale-in"
         style={{
           background: 'rgba(10,15,26,0.98)',
           border: '1px solid rgba(255,255,255,0.1)',
@@ -154,6 +154,11 @@ export function AnalysisPanel({ analysis, open, onClose }: AnalysisPanelProps) {
                   : 'bg-gray-700/60 text-gray-400 border border-gray-600/40'
               }`}>
                 {analysis.analysis_type === 'advanced' ? 'Advanced' : 'Basic'}
+              </span>
+            )}
+            {analysis?.is_my_video && (
+              <span className="text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full" style={{ background: 'rgba(14,164,233,0.1)', color: '#38BDF8', border: '1px solid rgba(14,164,233,0.2)' }}>
+                My video
               </span>
             )}
           </div>
@@ -210,6 +215,25 @@ export function AnalysisPanel({ analysis, open, onClose }: AnalysisPanelProps) {
                 </p>
               </div>
 
+              {(analysis as any).strong_spots && (analysis as any).strong_spots.length > 0 && (
+                <div>
+                  <h3 className="text-white font-semibold mb-3 flex items-center gap-2 text-sm uppercase tracking-wide">
+                    <ThumbsUp className="w-4 h-4 text-emerald-400" />
+                    What Works
+                  </h3>
+                  <div className="space-y-2">
+                    {(analysis as any).strong_spots.map((spot: string, idx: number) => (
+                      <div key={idx} className="rounded-lg p-3" style={{ background: 'rgba(52,211,153,0.06)', border: '1px solid rgba(52,211,153,0.15)' }}>
+                        <div className="flex gap-2">
+                          <span className="text-emerald-400 font-bold text-xs mt-0.5 flex-shrink-0">{idx + 1}</span>
+                          <p className="text-gray-300 text-sm leading-snug">{spot}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               {analysis.weak_spots && analysis.weak_spots.length > 0 && (
                 <div>
                   <h3 className="text-white font-semibold mb-3 flex items-center gap-2 text-sm uppercase tracking-wide">
@@ -237,7 +261,7 @@ export function AnalysisPanel({ analysis, open, onClose }: AnalysisPanelProps) {
                   </h3>
                   <div className="space-y-3">
                     {analysis.new_hook_ideas.map((idea, idx) => (
-                      <div key={idx} className="rounded-lg p-4" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}>
+                      <div key={idx} className="rounded-lg p-4" style={{ background: 'rgba(26,31,42,0.85)', border: '1px solid rgba(255,255,255,0.1)', backdropFilter: 'blur(20px) saturate(140%)', WebkitBackdropFilter: 'blur(20px) saturate(140%)', boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.06)' }}>
                         <div className="flex items-start gap-3">
                           <div className="w-6 h-6 rounded-full bg-[#0EA4E9]/20 flex items-center justify-center flex-shrink-0 mt-0.5">
                             <span className="text-[#0EA4E9] font-bold text-xs">{idx + 1}</span>

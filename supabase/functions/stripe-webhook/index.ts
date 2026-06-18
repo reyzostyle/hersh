@@ -21,6 +21,10 @@ Deno.serve(async (req: Request) => {
     const stripeSecretKey = Deno.env.get('STRIPE_SECRET_KEY');
     const webhookSecret = Deno.env.get('STRIPE_WEBHOOK_SECRET');
     if (!stripeSecretKey) throw new Error('Stripe secret key not configured');
+    // Always require a webhook secret. Without it we'd be trusting an unsigned
+    // body, letting anyone POST a fake "checkout.session.completed" to upgrade
+    // their plan for free. Refuse rather than parse blindly.
+    if (!webhookSecret) throw new Error('Stripe webhook secret not configured');
 
     const stripe = new Stripe(stripeSecretKey, { apiVersion: '2024-06-20' });
 
@@ -32,13 +36,9 @@ Deno.serve(async (req: Request) => {
     const body = await req.text();
     let event: Stripe.Event;
 
-    if (webhookSecret) {
-      const signature = req.headers.get('stripe-signature');
-      if (!signature) throw new Error('Missing stripe-signature header');
-      event = await stripe.webhooks.constructEventAsync(body, signature, webhookSecret);
-    } else {
-      event = JSON.parse(body) as Stripe.Event;
-    }
+    const signature = req.headers.get('stripe-signature');
+    if (!signature) throw new Error('Missing stripe-signature header');
+    event = await stripe.webhooks.constructEventAsync(body, signature, webhookSecret);
 
     console.log(`[stripe-webhook] event=${event.type}`);
 

@@ -18,18 +18,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    let done = false;
+    const finish = (session: { user: User } | null) => {
+      if (done) return;
+      done = true;
+      setUser(session?.user ?? null);
+      setLoading(false);
+    };
+
+    supabase.auth.getSession()
+      .then(({ data: { session } }) => finish(session))
+      .catch(() => finish(null));
+
+    // Fallback: if getSession() hangs (e.g. navigator.locks contention across
+    // multiple tabs), don't block the UI on an infinite spinner.
+    const timeout = setTimeout(() => finish(null), 3000);
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null);
       setLoading(false);
     });
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      (async () => {
-        setUser(session?.user ?? null);
-      })();
-    });
-
-    return () => subscription.unsubscribe();
+    return () => { clearTimeout(timeout); subscription.unsubscribe(); };
   }, []);
 
   const signInWithEmail = async (email: string, password: string) => {

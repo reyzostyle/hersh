@@ -22,50 +22,58 @@ const PLAN_DISPLAY: Record<string, string> = {
   agency: 'Pro',
 };
 
-const PAID_FEATURES = [
-  'Advanced AI analysis',
-  'Hook score & assessment',
-  'Weak spot breakdown',
-  'Hook ideas & rewrites',
-  'Video file upload',
-  'Channel profile context',
-];
-
 const plans = [
   {
     id: 'free',
     name: 'Free',
     price: '$0',
-    period: 'to get started',
-    analyses: '3 analyses',
+    period: 'free forever',
+    analyses: '10 hook checks / mo',
     priceId: null,
     features: [
-      '3 analyses to get started',
+      '10 hook checks every month',
+      '3 video analyses to start',
       'Hook score & assessment',
       'Weak spot breakdown',
       'Hook ideas & rewrites',
       'Video file upload',
+      'Channel profile context',
     ],
     cta: 'Current Plan',
   },
   {
     id: 'pro',
     name: 'Plus',
-    price: '$8',
+    price: '$29',
     period: '/month',
     analyses: '30 analyses / month',
     priceId: PLUS_PRICE_ID,
-    features: PAID_FEATURES,
+    features: [
+      '30 hook analyses / month',
+      'Hook score & assessment',
+      'Weak spot breakdown',
+      'Hook ideas & rewrites',
+      'Video file upload',
+      'Channel profile context',
+      'Competitor tracking',
+      'AI idea extraction & outlines',
+    ],
     cta: 'Upgrade to Plus',
   },
   {
     id: 'agency',
     name: 'Pro',
-    price: '$19',
+    price: '$49',
     period: '/month',
     analyses: '100 analyses / month',
     priceId: PRO_PRICE_ID,
-    features: PAID_FEATURES,
+    features: [
+      '100 hook analyses / month',
+      'Everything in Plus',
+      'Channel analytics dashboard',
+      'Deep channel analysis (5/mo)',
+      'Competitor script writing',
+    ],
     cta: 'Upgrade to Pro',
   },
 ];
@@ -140,13 +148,12 @@ export function UpgradePage() {
   const usagePercent = usage ? Math.min((usage.analysesUsed / usage.analysesLimit) * 100, 100) : 0;
 
   return (
-    <div className="h-full overflow-auto">
-      <div className="px-6 py-5 animate-fade-in-up" style={{ borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
-        <h1 className="text-2xl font-bold text-white mb-1">Plans & Billing</h1>
-        <p className="text-sm text-gray-500">Manage your subscription and analysis usage</p>
-      </div>
-
-      <div className="px-6 py-6 max-w-4xl">
+    <div className="max-w-4xl mx-auto px-6 pt-6 pb-12 animate-fade-in-up">
+        <div className="hidden sm:block mb-6">
+          <h1 className="text-2xl font-bold text-white mb-1">Plans & Billing</h1>
+          <p className="text-sm text-gray-500">Manage your subscription and analysis usage</p>
+        </div>
+      <div>
         {error && (
           <div className="mb-6 text-sm text-red-400 bg-red-400/10 border border-red-400/20 rounded-lg px-4 py-3">
             {error}
@@ -154,7 +161,7 @@ export function UpgradePage() {
         )}
 
         {/* Usage card */}
-        <div className="mb-8 p-5 rounded-xl motion-card animate-fade-in-up delay-100" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)' }}>
+        <div className="mb-8 p-5 rounded-xl motion-card animate-fade-in-up delay-100" style={{ background: 'rgba(26,31,42,0.85)', border: '1px solid rgba(255,255,255,0.1)', backdropFilter: 'blur(20px) saturate(140%)', WebkitBackdropFilter: 'blur(20px) saturate(140%)', boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.06)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)' }}>
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
               <BarChart2 className="w-4 h-4 text-gray-400" />
@@ -241,7 +248,7 @@ export function UpgradePage() {
                     <Zap className={`w-4 h-4 ${plan.id === 'free' ? 'text-gray-500' : isPopular ? 'text-[#0EA4E9]' : 'text-[#0EA4E9]/70'}`} />
                     <span className="text-white font-semibold">{plan.name}</span>
                   </div>
-                  <div className="flex items-baseline gap-1">
+                  <div className="flex items-baseline gap-1 select-none">
                     <span className="text-3xl font-bold text-white">{plan.price}</span>
                     <span className="text-sm text-gray-500">{plan.period}</span>
                   </div>

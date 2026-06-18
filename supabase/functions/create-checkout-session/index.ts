@@ -94,8 +94,8 @@ Deno.serve(async (req: Request) => {
       payment_method_types: ['card'],
       line_items: [{ price: priceId, quantity: 1 }],
       mode: 'subscription',
-      success_url: 'https://hersh.live/?checkout=success',
-      cancel_url: 'https://hersh.live/',
+      success_url: 'https://hershymedia.com/?checkout=success',
+      cancel_url: 'https://hershymedia.com/',
       metadata: { userId },
     });
 

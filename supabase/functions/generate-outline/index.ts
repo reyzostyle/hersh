@@ -1,0 +1,179 @@
+import { createClient } from 'npm:@supabase/supabase-js@2.57.4';
+
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+  'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Client-Info, Apikey',
+};
+
+// Verifies the JWT signature via the auth server (not just decoding it) and
+// returns the authenticated user id. Throws on any invalid/forged token.
+async function getUserIdFromToken(supabase: any, token: string): Promise<string> {
+  const { data: { user }, error } = await supabase.auth.getUser(token);
+  if (error || !user) throw new Error('invalid token');
+  return user.id;
+}
+
+function stripDashes(s: unknown): unknown {
+  if (typeof s === 'string') return s.replace(/[—–]/g, '-');
+  if (Array.isArray(s)) return s.map(stripDashes);
+  if (s && typeof s === 'object') {
+    const out: Record<string, unknown> = {};
+    for (const k of Object.keys(s as object)) out[k] = stripDashes((s as Record<string, unknown>)[k]);
+    return out;
+  }
+  return s;
+}
+
+async function generateOutline(
+  videoTitle: string,
+  adaptedIdea: string,
+  anthropicApiKey: string
+): Promise<{ hook: string; sections: Array<{ title: string; content: string; duration: string }>; cta: string }> {
+  const prompt = `You are a YouTube Shorts expert. Generate a concise video outline for a Short based on this adapted idea.
+
+Video idea: ${adaptedIdea}
+Inspired by competitor video: "${videoTitle}"
+
+Create a Short outline for a 45-90 second video. Follow this exact JSON format:
+
+{
+  "hook": "exact hook text spoken in first 3 seconds - make it punchy and attention-grabbing",
+  "sections": [
+    { "title": "Section name", "content": "what to say or show in this section", "duration": "10s" },
+    { "title": "Section name", "content": "what to say or show in this section", "duration": "15s" },
+    { "title": "Section name", "content": "what to say or show in this section", "duration": "20s" }
+  ],
+  "cta": "closing line that drives engagement or follow"
+}
+
+Rules:
+- 3 to 4 sections total
+- Hook must be the first thing said, not an intro
+- Sections should build logically toward a payoff
+- CTA should feel natural, not forced
+- No em-dash or en-dash, only regular hyphen (-)
+- Respond with JSON only, no markdown`;
+
+  let response: Response | null = null;
+  for (let attempt = 0; attempt < 3; attempt++) {
+    if (attempt > 0) await new Promise(r => setTimeout(r, attempt * 3000));
+    response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': anthropicApiKey,
+        'anthropic-version': '2023-06-01',
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-6',
+        max_tokens: 1000,
+        messages: [{ role: 'user', content: prompt }],
+      }),
+    });
+    if (response.ok || response.status !== 529) break;
+  }
+
+  if (!response?.ok) {
+    const errText = await response?.text() ?? 'No response';
+    throw new Error(`Claude API error: ${errText}`);
+  }
+
+  const data = await response.json();
+  const content = data.content[0].text;
+
+  try {
+    const jsonMatch = content.match(/\{[\s\S]*\}/);
+    if (jsonMatch) {
+      return stripDashes(JSON.parse(jsonMatch[0])) as { hook: string; sections: Array<{ title: string; content: string; duration: string }>; cta: string };
+    }
+    throw new Error('No JSON in response');
+  } catch {
+    throw new Error('Failed to parse outline from Claude response');
+  }
+}
+
+Deno.serve(async (req: Request) => {
+  if (req.method === 'OPTIONS') {
+    return new Response(null, { status: 200, headers: corsHeaders });
+  }
+
+  try {
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const anthropicApiKey = Deno.env.get('ANTHROPIC_API_KEY');
+    if (!anthropicApiKey) throw new Error('Anthropic API key not configured');
+
+    const supabase = createClient(supabaseUrl, serviceKey, {
+      auth: { autoRefreshToken: false, persistSession: false, detectSessionInUrl: false },
+    });
+
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader?.startsWith('Bearer ')) {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: corsHeaders });
+    }
+    const token = authHeader.replace('Bearer ', '');
+
+    let userId: string;
+    try {
+      userId = await getUserIdFromToken(supabase, token);
+    } catch {
+      return new Response(JSON.stringify({ error: 'Invalid token' }), { status: 401, headers: corsHeaders });
+    }
+
+    const { data: { user: authUser }, error: adminError } = await supabase.auth.admin.getUserById(userId);
+    if (adminError || !authUser) {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: corsHeaders });
+    }
+
+    const { ideaId } = await req.json();
+    if (!ideaId) {
+      return new Response(
+        JSON.stringify({ error: 'ideaId is required' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const { data: idea, error: ideaError } = await supabase
+      .from('competitor_ideas')
+      .select('*')
+      .eq('id', ideaId)
+      .eq('user_id', userId)
+      .single();
+
+    if (ideaError || !idea) {
+      return new Response(
+        JSON.stringify({ error: 'Idea not found' }),
+        { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    console.log('[generate-outline] Generating outline for idea:', ideaId);
+    const outline = await generateOutline(
+      idea.video_title || '',
+      idea.adapted_idea || '',
+      anthropicApiKey
+    );
+
+    const { data: updated, error: updateError } = await supabase
+      .from('competitor_ideas')
+      .update({ outline })
+      .eq('id', ideaId)
+      .eq('user_id', userId)
+      .select()
+      .single();
+
+    if (updateError) throw updateError;
+
+    return new Response(
+      JSON.stringify({ success: true, idea: updated }),
+      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+  } catch (error) {
+    console.error('[generate-outline] Error:', error);
+    return new Response(
+      JSON.stringify({ error: error instanceof Error ? error.message : 'Internal server error' }),
+      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+  }
+});

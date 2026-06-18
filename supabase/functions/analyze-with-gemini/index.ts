@@ -172,82 +172,53 @@ async function analyzeWithClaude(
   const systemPrompt = `You analyze YouTube Shorts and tell creators exactly what's killing performance and how to fix it.
 
 CREATOR LEVEL: ${level}
-- beginner: Explain the "why" behind every point. Avoid insider jargon. Focus on the 1-2 fundamentals that matter most. Be encouraging but honest — don't soften real problems.
-- intermediate: Skip fundamentals. Assume they know what a hook, retention, and CTA are. Focus on execution: what separates okay from great. Be specific about what to change.
-- advanced: Reference advanced concepts (pattern interrupts, retention curves, loop mechanics, cold opens, visual hierarchy). Challenge assumptions. Don't explain basics. Be nuanced and opinionated.
+- beginner: explain the "why", avoid jargon, focus on the 1-2 fundamentals that matter most. Encouraging but honest.
+- intermediate: skip fundamentals (they know hook/retention/CTA). Focus on execution and what to change specifically.
+- advanced: reference advanced concepts (pattern interrupts, retention curves, loop mechanics, cold opens). Challenge assumptions, be opinionated.
 
-SCORING RUBRIC (overall_score, range 1.0-10.0, use .5 increments)
-Score based on hook strength, structure, and execution. Use the FULL scale including half-points — do not cluster around 5-7.
-1.0-2.0: Fundamentally broken. No hook, no structure, viewer leaves in 2 seconds.
-2.5-3.5: Very weak. Hook barely exists, content is generic, clear retention killers.
-4.0-4.5: Below average. Has an idea but execution is poor. Needs major rework.
-5.0-5.5: Average. Hook is soft, pacing drags, or ending fails. Common for newer creators.
-6.0-6.5: Decent. Works but has clear fixable issues holding it back.
-7.0-7.5: Solid. Hook lands, structure holds, one or two specific issues.
-8.0-8.5: Strong. Near-clean execution, only minor improvements possible.
-9.0-9.5: Exceptional. Strong hook, tight structure, excellent pacing. Very rare.
-10.0: Perfect. Almost never happens.
-Use .5 when a video is clearly between two tiers. Be honest — viral views don't equal a good hook score.
+SCORING (overall_score 1.0-10.0, .5 steps). Use the FULL range in BOTH directions. Do NOT cap at 7 or magnetize to 6-7. Viral views ≠ good hook.
+1-2: broken, no hook, viewer leaves in 2s
+2.5-3.5: very weak, generic, clear retention killers
+4-4.5: below avg, poor execution, needs rework
+5-5.5: average, soft hook / dragging pace / weak ending
+6-6.5: decent, fixable issues holding it back
+7-7.5: solid, hook lands, 1-2 specific issues
+8-8.5: strong, near-clean, minor improvements only
+9-9.5: exceptional, rare
+10: perfect, almost never
+Calibrate fairly: a genuinely strong Short DESERVES an 8 or 9 — give it when earned, don't hedge down to 7. But never inflate a weak or average video just to be nice. Reserve 9+ for the truly exceptional.
 
-HOOK TYPES (identify which type, then judge execution quality for THAT type)
-- Curiosity gap: withholds info to create tension ("The mistake 90% make...")
-- Pattern interrupt: breaks expected visual/audio pattern in frame 1
-- Contrarian: challenges a common belief ("Stop doing X")
-- Story cold open: drops viewer into a scene mid-action, no setup
-- Transformation/result first: shows outcome before the process
-- Question: direct question targeting the viewer's specific pain
-- Shock/surprise: unexpected visual or statement in frame 1
-- List/number: "5 reasons...", "3 things..."
+HOOK TYPES (id the type, judge execution for THAT type): curiosity gap, pattern interrupt, contrarian, story cold open, transformation/result-first, direct question, shock/surprise, list/number.
 
-VIDEO FORMATS (identify format, then evaluate within its own rules)
-- Storytime/narrative: personal story with arc — setup, tension, resolution. Hook = the most dramatic moment or stakes, NOT an intro. Judge: does it drop into the story immediately? Is there genuine tension? Does the arc resolve satisfyingly?
-- Tutorial/how-to: step by step. Hook = the end result or the pain solved upfront.
-- Listicle: numbered points. Hook = the most surprising item or the promise of the list.
-- POV/day-in-life: immersive first-person. Hook = something visually unexpected or emotionally immediate.
-- Talking head/commentary: direct address. Hook = the most provocative claim or question, stated immediately.
-- Voiceover + visuals: narration over footage. Hook = first line of VO must be a strong statement, not a setup.
-- Reaction/duet: Hook = the moment of genuine reaction, not the intro.
-- Showcase: product or result-focused. Hook = the most impressive visual moment, shown first.
+FORMATS (id format first, evaluate by its own rules):
+- Storytime: hook = most dramatic moment/stakes, NOT intro
+- Tutorial: hook = end result or pain solved upfront
+- Listicle: hook = most surprising item / list promise
+- POV: hook = visually unexpected or emotionally immediate
+- Talking head: hook = most provocative claim/question, stated first
+- Voiceover: hook = strong first VO line, not setup
+- Reaction: hook = genuine reaction moment, not intro
+- Showcase: hook = most impressive visual, shown first
 
-STORYTELLING RULES (apply when format is storytime/narrative)
-Storytime Shorts work differently from other formats. Do NOT apply tutorial or talking-head logic to them.
-- The hook for a storytime is the most dramatic, emotional, or unexpected moment — not an information promise.
-- Slow buildup with character and scene-setting is sometimes intentional and correct for this format. Only flag it if it genuinely kills tension.
-- Evaluate: does the story have a clear inciting moment? Is there a reason to stay for the ending? Does the arc close with a payoff?
-- Common mistake to flag: story opens with context instead of conflict ("So I was at the store one day..." vs "I got kicked out of the store mid-checkout...")
-- Do NOT penalize a storytime for not delivering information fast. Penalize it for not creating emotional stakes fast.
+STORYTIME (when format=storytime): hook = most dramatic/emotional moment, not info promise. Slow buildup can be intentional - only flag if it kills tension. Flag opening with context instead of conflict. Judge speed of emotional stakes, not speed of info. Never apply tutorial/talking-head logic here.
 
 HARD RULES
-1. Every claim must be grounded in evidence from the transcript, visuals, or stats provided. If you can't cite it, don't say it.
-2. Never invent retention numbers, view counts, or stats. If retention data is N/A, say so and analyze on structure/hook/content only.
-3. If niche or channel profile is N/A, analyze the video on its own merits. Don't guess the niche.
+1. Ground every claim in the transcript, visuals, or stats. If you can't cite it, don't say it.
+2. Never invent retention numbers, views, or stats. If retention is N/A, analyze on structure/hook/content only.
+3. If niche/channel profile is N/A, analyze the video on its own merits. Don't guess the niche.
 4. Banned generic phrases: "engaging content", "great hook", "good pacing", "keep it up", "consider adding", "you could try", "just make sure", "overall this is a solid video".
-5. No flattery. No recap of what the video does. Creators know what they made — tell them what's wrong.
-6. Maximum 3 key points. If you have fewer real issues, say fewer. Don't pad.
-7. Always identify the format first. Then evaluate using that format's own logic. Never apply tutorial rules to a storytime or vice versa.
+5. No flattery. No recap of what the video does. Tell them what's wrong.
+6. strong_spots and weak_spots: only what's genuinely true, min 1 max 3 each. Don't pad.
 
-OUTPUT FORMAT (for overall_assessment)
-Structure the text as THREE separate blocks, separated by a BLANK LINE (\\n\\n):
+OUTPUT (overall_assessment): 3-4 sentences, senior creator to a peer. No fixed template, vary your opening. Cover the main issue, how the hook performs specifically, one structural/visual observation, and end with the single most important fix. Sound like a real person, not a report.
 
-Block 1 - "Real problem: <one sentence naming the single biggest issue. Must reference the specific format/hook type you identified — e.g. 'For a curiosity gap hook, the payoff arrives too late' or 'This storytime opens with context instead of conflict'>"
+new_hook_ideas: 3 hooks that are genuinely different angles (different hook types), not rewrites of the same idea. Mix lengths (one punchy 3-5 words, one extended 8-12+ words). Use specificity (numbers, timeframes, concrete outcomes). No generic phrases unless made specific.
 
-Block 2 - The analysis body. Write it as 2-3 short labeled sub-sections using this shape:
-Hook: <evaluate specifically for the hook type identified — what the hook promised, whether it delivered, what's wrong>
-Structure: <evaluate for the video format identified — e.g. for storytime: does the arc work? for tutorial: is the result shown first?>
-Visuals: <editing, pacing, text overlays relevant to this format>
-(Pick only labels that apply. Other valid labels: Pacing, Audio, Ending, CTA, Retention. One label per line.)
+PUNCTUATION: never use em-dash (—) or en-dash (–) anywhere. Only the regular hyphen (-).
 
-Block 3 - "Fix this first: <one specific change, named in context of this format/hook type>"
+TONE: peer-to-peer senior creator notes. Zero fluff, direct, specific, opinionated. Like texting a friend a real review.
 
-For new_hook_ideas: all 3 hooks must match the identified hook type and video format. If it's a storytime, give storytime cold opens. If it's a curiosity gap, give curiosity gap rewrites. Never give generic hooks that could apply to any video.
-
-PUNCTUATION
-Never use em-dash (—) or en-dash (–) anywhere in output. Only use the regular hyphen-minus (-). This applies to every field: overall_assessment, weak_spots, new_hook_ideas.
-
-TONE
-Peer-to-peer senior creator notes. Zero fluff. Direct, specific, opinionated. Talk like you're texting a friend who asked for a real review, not writing a performance report.
-
-${knowledgeBaseSection ? `KNOWLEDGE BASE (patterns learned from real creator feedback — use as instinct, do not quote directly, treat as priors not rules):\n${knowledgeBaseSection}\n` : ''}`;
+${knowledgeBaseSection ? `KNOWLEDGE BASE (learned patterns - use as instinct, don't quote, treat as priors not rules):\n${knowledgeBaseSection}\n` : ''}`;
 
   const dur = video.duration ? `${video.duration}s` : 'N/A';
   const views = video.views != null ? video.views.toLocaleString() : 'N/A — not published yet or no access';
@@ -295,35 +266,37 @@ Respond with valid JSON only:
   "hook_type": "<identified hook type from the list above>",
   "video_format": "<identified video format from the list above>",
   "overall_assessment": "3-4 sentences about hook effectiveness, what works and what doesn't, referencing both audio/transcript and visuals",
+  "strong_spots": [
+    "What specifically works and why it works (max 2 sentences)"
+  ],
   "weak_spots": [
-    "Specific issue + actionable fix (max 2 sentences)",
-    "Specific issue + actionable fix (max 2 sentences)",
     "Specific issue + actionable fix (max 2 sentences)"
   ],
   "new_hook_ideas": [
-    {"hook": "exact hook text ready to use", "reasoning": "why this works for this channel"},
-    {"hook": "exact hook text ready to use", "reasoning": "why this works for this channel"},
     {"hook": "exact hook text ready to use", "reasoning": "why this works for this channel"}
   ]
 }`;
 
-  const response = await fetch('https://api.anthropic.com/v1/messages', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-api-key': anthropicApiKey,
-      'anthropic-version': '2023-06-01',
-    },
-    body: JSON.stringify({
-      model: 'claude-opus-4-5',
-      max_tokens: 2500,
-      system: systemPrompt,
-      messages: [{ role: 'user', content: prompt }],
-    }),
+  const claudeBody = JSON.stringify({
+    model: 'claude-sonnet-4-6',
+    max_tokens: 2500,
+    system: systemPrompt,
+    messages: [{ role: 'user', content: prompt }],
   });
 
-  if (!response.ok) {
-    const errText = await response.text();
+  let response: Response | null = null;
+  for (let attempt = 0; attempt < 3; attempt++) {
+    if (attempt > 0) await new Promise(r => setTimeout(r, attempt * 3000));
+    response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-api-key': anthropicApiKey, 'anthropic-version': '2023-06-01' },
+      body: claudeBody,
+    });
+    if (response.ok || response.status !== 529) break;
+  }
+
+  if (!response || !response.ok) {
+    const errText = await response?.text() ?? 'No response';
     throw new Error(`Claude API error: ${errText}`);
   }
 
@@ -375,22 +348,17 @@ Deno.serve(async (req: Request) => {
     }
     const token = authHeader.replace('Bearer ', '');
 
-    // Decode JWT payload to get user ID (ES256-safe — no local signature check)
+    // Verify the JWT signature via the auth server, then read id/email from the
+    // VERIFIED user. Never trust raw token claims — the signature isn't checked
+    // by the gateway, so a decoded-only token could be forged (e.g. admin email).
     let userId: string;
     let userEmail: string;
     try {
-      const payload = JSON.parse(atob(token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')));
-      userId = payload.sub;
-      userEmail = payload.email || '';
-      if (!userId) throw new Error('no sub');
+      const { data: { user: authUser }, error: authErr } = await supabase.auth.getUser(token);
+      if (authErr || !authUser) throw new Error('invalid token');
+      userId = authUser.id;
+      userEmail = authUser.email || '';
     } catch {
-      return new Response(JSON.stringify({ error: 'Invalid token' }), { status: 401, headers: corsHeaders });
-    }
-
-    // Confirm user exists in Supabase auth via admin API
-    const { data: { user: authUser }, error: adminError } = await supabase.auth.admin.getUserById(userId);
-    if (adminError || !authUser) {
-      console.error('[analyze-with-gemini] user not found:', adminError);
       return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: corsHeaders });
     }
 
@@ -409,6 +377,7 @@ Deno.serve(async (req: Request) => {
     let analysesUsed = tokenRow?.analyses_used || 0;
     const analysesLimit = userEmail === 'reyzostyle@gmail.com' ? Infinity : (PLAN_LIMITS[plan] ?? 3);
 
+    // Free video analyses are lifetime (3 total). Monthly reset for paid plans only.
     if (plan !== 'free' && tokenRow?.analyses_reset_at) {
       const resetAt = new Date(tokenRow.analyses_reset_at);
       if (new Date() > resetAt) {
@@ -486,7 +455,8 @@ Deno.serve(async (req: Request) => {
       .insert({
         user_id: userId,
         video_ids: [videoId],
-        hook_analysis: { overall_assessment: analysis.overall_assessment, overall_score: analysis.overall_score },
+        hook_analysis: { overall_assessment: analysis.overall_assessment, overall_score: analysis.overall_score, title: video.title || null, source: 'youtube' },
+        strong_spots: analysis.strong_spots || [],
         weak_spots: analysis.weak_spots,
         new_hook_ideas: analysis.new_hook_ideas,
         analysis_type: 'advanced',

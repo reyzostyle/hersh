@@ -1,9 +1,13 @@
-import { useState, useEffect } from 'react';
-import { Sparkles, Settings, MessageCircle, LogOut, Menu, X, Zap, Users } from 'lucide-react';
+import { useState, useEffect, createContext, useContext, useRef } from 'react';
+import { Sparkles, Settings, MessageCircle, LogOut, Menu, X, Zap, Users, Handshake, BarChart2, Wand2 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
 
-export type NavTab = 'hooks' | 'upgrade' | 'settings' | 'support' | 'partners';
+export const MobileHeaderContext = createContext<{
+  setRightAction: (node: React.ReactNode) => void;
+}>({ setRightAction: () => {} });
+
+export type NavTab = 'hooks' | 'hooklab' | 'upgrade' | 'settings' | 'support' | 'partners' | 'competitors' | 'analytics';
 
 const ADMIN_EMAIL = 'reyzostyle@gmail.com';
 
@@ -21,20 +25,37 @@ interface AppShellProps {
 }
 
 const baseNavItems: NavItem[] = [
-  { id: 'hooks', label: 'Shorts Analysis', icon: <Sparkles className="w-4 h-4" /> },
+  { id: 'hooks', label: 'Analysis', icon: <Sparkles className="w-4 h-4" /> },
+  { id: 'hooklab', label: 'Hook Lab', icon: <Wand2 className="w-4 h-4" /> },
+  { id: 'analytics', label: 'Analytics', icon: <BarChart2 className="w-4 h-4" /> },
+  { id: 'competitors', label: 'Competitors', icon: <Users className="w-4 h-4" /> },
   { id: 'upgrade', label: 'Upgrade', icon: <Zap className="w-4 h-4" />, highlight: true },
   { id: 'settings', label: 'Settings', icon: <Settings className="w-4 h-4" /> },
   { id: 'support', label: 'Support', icon: <MessageCircle className="w-4 h-4" /> },
 ];
 
-const partnersItem: NavItem = { id: 'partners', label: 'Partners', icon: <Users className="w-4 h-4" /> };
+const partnersItem: NavItem = { id: 'partners', label: 'Partners', icon: <Handshake className="w-4 h-4" /> };
 
 export function AppShell({ activeTab, onTabChange, children }: AppShellProps) {
   const { user, signOut } = useAuth();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [isPartner, setIsPartner] = useState(false);
+  const [rightAction, setRightAction] = useState<React.ReactNode>(null);
 
   const isAdmin = user?.email === ADMIN_EMAIL;
+  const mainRef = useRef<HTMLElement>(null);
+
+  useEffect(() => {
+    const el = mainRef.current;
+    if (!el) return;
+    const onTouchMove = (e: TouchEvent) => {
+      if (el.scrollHeight <= el.clientHeight) {
+        e.preventDefault();
+      }
+    };
+    el.addEventListener('touchmove', onTouchMove, { passive: false });
+    return () => el.removeEventListener('touchmove', onTouchMove);
+  }, []);
 
   useEffect(() => {
     if (!user || isAdmin) return;
@@ -46,12 +67,13 @@ export function AppShell({ activeTab, onTabChange, children }: AppShellProps) {
       .then(({ data }) => setIsPartner(!!data));
   }, [user?.id]);
 
+  // Order: Shorts Analysis, Analytics, Competitors, [Partners], Upgrade, Settings, Support
   const navItems = (isAdmin || isPartner)
-    ? [baseNavItems[0], baseNavItems[1], partnersItem, baseNavItems[2], baseNavItems[3]]
+    ? [baseNavItems[0], baseNavItems[1], baseNavItems[2], baseNavItems[3], partnersItem, baseNavItems[4], baseNavItems[5], baseNavItems[6]]
     : baseNavItems;
 
   return (
-    <div className="h-screen flex overflow-hidden relative" style={{ background: 'linear-gradient(160deg, #0A0F1A 0%, #0D1B2A 100%)', maxWidth: '100vw' }}>
+    <div className="flex overflow-hidden relative" style={{ background: 'linear-gradient(160deg, #0A0F1A 0%, #0D1B2A 100%)', maxWidth: '100vw', height: '100dvh' }}>
       <svg
         className="absolute inset-0 w-full h-full pointer-events-none"
         xmlns="http://www.w3.org/2000/svg"
@@ -111,20 +133,23 @@ export function AppShell({ activeTab, onTabChange, children }: AppShellProps) {
       )}
 
       <div className="flex-1 flex flex-col min-w-0 lg:ml-56 relative overflow-x-hidden" style={{ zIndex: 1 }}>
-        <header className="lg:hidden flex items-center gap-3 px-4 py-4 flex-shrink-0" style={{ borderBottom: '1px solid rgba(255,255,255,0.08)', background: 'rgba(10,15,26,0.8)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)' }}>
+        <header className="lg:hidden sticky top-0 z-30 flex items-center gap-3 px-4 py-4 flex-shrink-0" style={{ borderBottom: '1px solid rgba(255,255,255,0.08)', background: 'rgba(10,15,26,0.95)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)' }}>
           <button
             onClick={() => setMobileOpen(!mobileOpen)}
             className="p-2 text-gray-400 hover:text-white transition-colors flex-shrink-0"
           >
             {mobileOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
           </button>
-          <span className="text-white font-semibold text-sm">
-            {navItems.find(i => i.id === activeTab)?.label ?? 'Hersh'}
+          <span className="flex-1 text-white font-semibold text-sm">
+            {navItems.find(i => i.id === activeTab)?.label ?? 'Hershy'}
           </span>
+          {rightAction}
         </header>
 
-        <main key={activeTab} className="flex-1 overflow-auto animate-tab-in">
-          {children}
+        <main ref={mainRef} key={activeTab} className="flex-1 overflow-auto animate-tab-in" style={{ background: 'transparent', overscrollBehavior: 'none' }}>
+          <MobileHeaderContext.Provider value={{ setRightAction }}>
+            {children}
+          </MobileHeaderContext.Provider>
         </main>
       </div>
     </div>

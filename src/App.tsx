@@ -94,7 +94,7 @@ function AuthCallbackHandler() {
 
     if (youtubeUserId) {
       sessionStorage.removeItem('youtube_oauth_user_id');
-      const redirectUri = 'https://hersh.live/auth/callback';
+      const redirectUri = 'https://hershymedia.com/auth/callback';
 
       getSessionToken().then(token => {
         if (!token) {
@@ -172,7 +172,7 @@ function AuthCallbackHandler() {
             className="w-full py-3 text-white rounded-xl font-semibold text-sm"
             style={{ background: '#0EA4E9' }}
           >
-            Open Hersh on this device
+            Open Hershy on this device
           </button>
         </div>
       </div>

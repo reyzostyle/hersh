@@ -100,36 +100,25 @@ async function analyzeWithClaude(
   const systemPrompt = `You analyze YouTube Shorts and tell creators exactly what's killing performance and how to fix it.
 
 CREATOR LEVEL: ${level}
-- beginner: Explain the "why" behind every point. Avoid insider jargon. Focus on the 1-2 fundamentals that matter most. Be encouraging but honest — don't soften real problems.
-- intermediate: Skip fundamentals. Assume they know what a hook, retention, and CTA are. Focus on execution: what separates okay from great. Be specific about what to change.
-- advanced: Reference advanced concepts (pattern interrupts, retention curves, loop mechanics, cold opens, visual hierarchy). Challenge assumptions. Don't explain basics. Be nuanced and opinionated.
+- beginner: explain the "why", avoid jargon, focus on the 1-2 fundamentals that matter most. Encouraging but honest.
+- intermediate: skip fundamentals (they know hook/retention/CTA). Focus on execution and what to change specifically.
+- advanced: reference advanced concepts (pattern interrupts, retention curves, loop mechanics, cold opens). Challenge assumptions, be opinionated.
 
 HARD RULES
-1. Every claim must be grounded in evidence from the transcript, visuals, or stats provided. If you can't cite it, don't say it.
-2. Never invent retention numbers, view counts, or stats. If retention data is N/A, say so and analyze on structure/hook/content only.
-3. If niche or channel profile is N/A, analyze the video on its own merits. Don't guess the niche.
+1. Ground every claim in the transcript, visuals, or stats. If you can't cite it, don't say it.
+2. Never invent retention numbers, views, or stats. If retention is N/A, analyze on structure/hook/content only.
+3. If niche/channel profile is N/A, analyze the video on its own merits. Don't guess the niche.
 4. Banned generic phrases: "engaging content", "great hook", "good pacing", "keep it up", "consider adding", "you could try", "just make sure", "overall this is a solid video".
-5. No flattery. No recap of what the video does. Creators know what they made — tell them what's wrong.
-6. Maximum 3 key points. If you have fewer real issues, say fewer. Don't pad.
+5. No flattery. No recap of what the video does. Tell them what's wrong.
+6. strong_spots and weak_spots: only what's genuinely true, min 1 max 3 each. Don't pad.
 
-OUTPUT FORMAT (for overall_assessment)
-Structure the text as THREE separate blocks, separated by a BLANK LINE (\\n\\n):
+OUTPUT (overall_assessment): 3-4 sentences, senior creator to a peer. No fixed template, vary your opening. Cover the main issue, how the hook performs specifically, one structural/visual observation, and end with the single most important fix. Sound like a real person, not a report.
 
-Block 1 - "Real problem: <one sentence naming the single biggest issue>"
+new_hook_ideas: 3 hooks that are genuinely different angles (different hook types), not rewrites of the same idea. Mix lengths (one punchy 3-5 words, one extended 8-12+ words). Use specificity (numbers, timeframes, concrete outcomes). No generic phrases unless made specific.
 
-Block 2 - The analysis body. Write it as 2-3 short labeled sub-sections, each on its own line, using this exact shape:
-Hook: <what's wrong and why>
-Structure: <what's wrong and why>
-Visuals: <what's wrong and why>
-(Pick the 2-3 labels that actually apply. Labels can also be: Pacing, Audio, Ending, CTA, Retention. One label per line, blank line between block 2 and block 3.)
+PUNCTUATION: never use em-dash (—) or en-dash (–) anywhere. Only the regular hyphen (-).
 
-Block 3 - "Fix this first: <the one change that will move the needle most>"
-
-PUNCTUATION
-Never use em-dash (—) or en-dash (–) anywhere in output. Only use the regular hyphen-minus (-). This applies to every field: overall_assessment, weak_spots, new_hook_ideas.
-
-TONE
-Peer-to-peer senior creator notes. Zero fluff. Direct, specific, opinionated. Talk like you're texting a friend who asked for a real review, not writing a performance report.
+TONE: peer-to-peer senior creator notes. Zero fluff, direct, specific, opinionated. Like texting a friend a real review.
 
 ${knowledgeBaseSection ? `Knowledge base (use as instinct, don't quote):\n${knowledgeBaseSection}\n` : ''}`;
 
@@ -164,22 +153,28 @@ ${videoContext?.trim() || 'N/A — no extra context provided'}
 Respond with valid JSON only:
 {
   "overall_score": 6,
-  "overall_assessment": "3-4 sentences about hook effectiveness",
-  "weak_spots": ["issue + fix", "issue + fix", "issue + fix"],
+  "overall_assessment": "3-4 sentences about hook effectiveness, what works and what doesn't",
+  "strong_spots": ["what specifically works and why (1-3 items, only real ones)"],
+  "weak_spots": ["issue + actionable fix (1-3 items, only real ones)"],
   "new_hook_ideas": [
-    {"hook": "exact hook text", "reasoning": "why this works"},
-    {"hook": "exact hook text", "reasoning": "why this works"},
     {"hook": "exact hook text", "reasoning": "why this works"}
   ]
 }`;
 
-  const response = await fetch('https://api.anthropic.com/v1/messages', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'x-api-key': anthropicApiKey, 'anthropic-version': '2023-06-01' },
-    body: JSON.stringify({ model: 'claude-opus-4-5', max_tokens: 2500, system: systemPrompt, messages: [{ role: 'user', content: prompt }] }),
-  });
+  const claudeBody = JSON.stringify({ model: 'claude-sonnet-4-6', max_tokens: 2500, system: systemPrompt, messages: [{ role: 'user', content: prompt }] });
 
-  if (!response.ok) throw new Error(`Claude API error: ${await response.text()}`);
+  let response: Response | null = null;
+  for (let attempt = 0; attempt < 3; attempt++) {
+    if (attempt > 0) await new Promise(r => setTimeout(r, attempt * 3000));
+    response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-api-key': anthropicApiKey, 'anthropic-version': '2023-06-01' },
+      body: claudeBody,
+    });
+    if (response.ok || response.status !== 529) break;
+  }
+
+  if (!response || !response.ok) throw new Error(`Claude API error: ${await response?.text() ?? 'No response'}`);
 
   const data = await response.json();
   const content = data.content[0].text;
@@ -220,16 +215,16 @@ Deno.serve(async (req: Request) => {
     }
     const token = authHeader.replace('Bearer ', '');
 
-    // Decode JWT (ES256-safe) + verify via admin API
+    // Verify the JWT signature via the auth server, then read id/email from the
+    // VERIFIED user. Never trust raw token claims — the signature isn't checked
+    // by the gateway, so a decoded-only token could be forged (e.g. admin email).
     let userId: string;
     let userEmail: string;
     try {
-      const payload = JSON.parse(atob(token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')));
-      userId = payload.sub;
-      userEmail = payload.email || '';
-      if (!userId) throw new Error('no sub');
-      const { data: { user: u }, error } = await supabase.auth.admin.getUserById(userId);
-      if (error || !u) throw new Error('not found');
+      const { data: { user: u }, error } = await supabase.auth.getUser(token);
+      if (error || !u) throw new Error('invalid token');
+      userId = u.id;
+      userEmail = u.email || '';
     } catch {
       return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: corsHeaders });
     }
@@ -255,6 +250,7 @@ Deno.serve(async (req: Request) => {
     let analysesUsed = tokenRow?.analyses_used || 0;
     const analysesLimit = isAdmin ? Infinity : (PLAN_LIMITS[plan] ?? 3);
 
+    // Free video analyses are lifetime (3 total). Monthly reset for paid plans only.
     if (plan !== 'free' && tokenRow?.analyses_reset_at) {
       const resetAt = new Date(tokenRow.analyses_reset_at);
       if (new Date() > resetAt) {
@@ -320,7 +316,8 @@ Deno.serve(async (req: Request) => {
         .insert({
           user_id: userId,
           video_ids: [],
-          hook_analysis: { overall_assessment: analysis.overall_assessment, overall_score: analysis.overall_score },
+          hook_analysis: { overall_assessment: analysis.overall_assessment, overall_score: analysis.overall_score, title: videoTitle || null, source: 'upload' },
+          strong_spots: analysis.strong_spots || [],
           weak_spots: analysis.weak_spots,
           new_hook_ideas: analysis.new_hook_ideas,
           analysis_type: 'advanced',

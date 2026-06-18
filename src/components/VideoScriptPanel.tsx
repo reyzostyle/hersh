@@ -6,16 +6,18 @@ interface VideoScriptPanelProps {
   video: Video | null;
   open: boolean;
   onClose: () => void;
-  onAnalyze: (videoId: string, videoContext: string) => void;
+  onAnalyze: (videoId: string, videoContext: string, isMyVideo: boolean, videoTitle?: string) => void;
   analyzing: boolean;
 }
 
 export function VideoScriptPanel({ video, open, onClose, onAnalyze, analyzing }: VideoScriptPanelProps) {
   const [videoContext, setVideoContext] = useState('');
+  const [isMyVideo, setIsMyVideo] = useState(false);
 
   useEffect(() => {
     if (video) {
       setVideoContext((video as any).video_context ?? '');
+      setIsMyVideo(!(video as any).is_external);
     }
   }, [video?.video_id]);
 
@@ -33,7 +35,8 @@ export function VideoScriptPanel({ video, open, onClose, onAnalyze, analyzing }:
 
   const handleAnalyze = () => {
     if (!video) return;
-    onAnalyze(video.video_id, videoContext);
+    const title = (video as any).is_external ? undefined : video.title;
+    onAnalyze(video.video_id, videoContext, isMyVideo, title);
   };
 
   if (!open) return null;

@@ -46,11 +46,14 @@ export interface Analysis {
     overall_score?: number;
     patterns: string[];
   };
+  strong_spots: string[];
   weak_spots: string[];
   new_hook_ideas: {
     hook: string;
     reasoning: string;
   }[];
   analysis_type: 'basic' | 'advanced';
+  is_my_video?: boolean;
+  video_title?: string;
   created_at: string;
 }

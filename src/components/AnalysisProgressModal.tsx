@@ -1,0 +1,123 @@
+import { useEffect, useState, useRef } from 'react';
+import { Sparkles } from 'lucide-react';
+
+interface Stage {
+  label: string;
+  duration: number;
+  target: number;
+}
+
+const URL_STAGES: Stage[] = [
+  { label: 'Fetching video info...', duration: 1500, target: 12 },
+  { label: 'Watching your Short...', duration: 5000, target: 42 },
+  { label: 'Analyzing hook strength...', duration: 3500, target: 62 },
+  { label: 'Finding weak spots...', duration: 3000, target: 78 },
+  { label: 'Generating new hook ideas...', duration: 3500, target: 92 },
+  { label: 'Putting it all together...', duration: 2000, target: 98 },
+];
+
+const UPLOAD_STAGES: Stage[] = [
+  { label: 'Uploading video...', duration: 3000, target: 25 },
+  { label: 'Processing video file...', duration: 2000, target: 38 },
+  { label: 'Watching your Short...', duration: 4000, target: 58 },
+  { label: 'Analyzing hook strength...', duration: 3000, target: 74 },
+  { label: 'Finding weak spots...', duration: 2500, target: 86 },
+  { label: 'Generating new hook ideas...', duration: 2500, target: 96 },
+];
+
+interface Props {
+  open: boolean;
+  mode: 'url' | 'upload';
+  done: boolean;
+}
+
+export function AnalysisProgressModal({ open, mode, done }: Props) {
+  const [percent, setPercent] = useState(0);
+  const [label, setLabel] = useState('');
+  const timersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
+
+  useEffect(() => {
+    if (!open) {
+      setPercent(0);
+      setLabel('');
+      timersRef.current.forEach(clearTimeout);
+      timersRef.current = [];
+      return;
+    }
+
+    const stages = mode === 'upload' ? UPLOAD_STAGES : URL_STAGES;
+    let elapsed = 0;
+
+    stages.forEach((stage, i) => {
+      const t1 = setTimeout(() => {
+        setLabel(stage.label);
+      }, elapsed);
+
+      const t2 = setTimeout(() => {
+        setPercent(stage.target);
+      }, elapsed + 200);
+
+      timersRef.current.push(t1, t2);
+      elapsed += stage.duration;
+    });
+
+    return () => {
+      timersRef.current.forEach(clearTimeout);
+      timersRef.current = [];
+    };
+  }, [open, mode]);
+
+  useEffect(() => {
+    if (done && open) {
+      timersRef.current.forEach(clearTimeout);
+      setLabel('Done!');
+      setPercent(100);
+    }
+  }, [done]);
+
+  if (!open) return null;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div
+        className="absolute inset-0 bg-black/70"
+        style={{ backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)' }}
+      />
+      <div
+        className="relative w-full max-w-sm rounded-2xl p-8 flex flex-col items-center gap-6 animate-scale-in"
+        style={{
+          background: 'rgba(10,15,26,0.98)',
+          border: '1px solid rgba(255,255,255,0.1)',
+          backdropFilter: 'blur(24px)',
+          WebkitBackdropFilter: 'blur(24px)',
+        }}
+      >
+        {/* Icon */}
+        <div className="w-12 h-12 rounded-2xl flex items-center justify-center" style={{ background: 'linear-gradient(135deg, rgba(139,92,246,0.2), rgba(14,164,233,0.2))', border: '1px solid rgba(139,92,246,0.3)' }}>
+          <Sparkles className="w-5 h-5 text-[#A78BFA]" style={{ animation: 'spin 3s linear infinite' }} />
+        </div>
+
+        {/* Label */}
+        <div className="text-center">
+          <p className="text-white font-semibold text-sm mb-1">Analyzing your Short</p>
+          <p className="text-gray-500 text-xs h-4 transition-all duration-500">{label}</p>
+        </div>
+
+        {/* Progress bar */}
+        <div className="w-full">
+          <div className="w-full h-1.5 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.08)' }}>
+            <div
+              className="h-full rounded-full"
+              style={{
+                width: `${percent}%`,
+                background: 'linear-gradient(90deg, #8B5CF6, #0EA4E9)',
+                transition: 'width 1.2s cubic-bezier(0.4, 0, 0.2, 1)',
+              }}
+            />
+          </div>
+          <p className="text-right text-[10px] text-gray-600 mt-1.5">{percent}%</p>
+        </div>
+      </div>
+    </div>
+  );
+}

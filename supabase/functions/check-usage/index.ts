@@ -74,6 +74,7 @@ Deno.serve(async (req: Request) => {
     let analysesUsed = tokenRow?.analyses_used || 0;
     const analysesLimit = PLAN_LIMITS[plan] ?? 3;
 
+    // Free video analyses are lifetime (3 total). Monthly reset for paid plans only.
     if (plan !== 'free' && tokenRow?.analyses_reset_at) {
       const resetAt = new Date(tokenRow.analyses_reset_at);
       if (new Date() > resetAt) {

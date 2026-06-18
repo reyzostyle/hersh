@@ -1,3 +1,5 @@
+import { createClient } from 'npm:@supabase/supabase-js@2.57.4';
+
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
@@ -8,6 +10,17 @@ Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') return new Response(null, { status: 200, headers: corsHeaders });
 
   try {
+    // Require a valid signed JWT (previously this function had no auth at all)
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader?.startsWith('Bearer ')) {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: corsHeaders });
+    }
+    const supabase = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
+    const { data: { user }, error: authErr } = await supabase.auth.getUser(authHeader.replace('Bearer ', ''));
+    if (authErr || !user) {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: corsHeaders });
+    }
+
     const uploadUrl = req.headers.get('X-Upload-Url');
     const offset = req.headers.get('X-Upload-Offset') || '0';
     const isLast = req.headers.get('X-Is-Last') === 'true';
@@ -15,6 +28,13 @@ Deno.serve(async (req: Request) => {
 
     if (!uploadUrl) {
       return new Response(JSON.stringify({ error: 'Missing X-Upload-Url header' }), { status: 400, headers: corsHeaders });
+    }
+
+    // SSRF guard: only allow forwarding to Google upload endpoints, never an arbitrary URL.
+    let parsedUrl: URL;
+    try { parsedUrl = new URL(uploadUrl); } catch { parsedUrl = null as any; }
+    if (!parsedUrl || parsedUrl.protocol !== 'https:' || !parsedUrl.hostname.endsWith('.googleapis.com')) {
+      return new Response(JSON.stringify({ error: 'Invalid upload URL' }), { status: 400, headers: corsHeaders });
     }
 
     const command = isLast ? 'upload, finalize' : 'upload';

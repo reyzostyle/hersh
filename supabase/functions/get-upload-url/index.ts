@@ -23,14 +23,12 @@ Deno.serve(async (req: Request) => {
     }
     const token = authHeader.replace('Bearer ', '');
 
-    // Decode JWT (ES256-safe) + verify via admin API
+    // Verify the JWT signature via the auth server — never trust a decoded-only token.
     let userId: string;
     try {
-      const payload = JSON.parse(atob(token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')));
-      userId = payload.sub;
-      if (!userId) throw new Error('no sub');
-      const { data: { user }, error } = await supabase.auth.admin.getUserById(userId);
-      if (error || !user) throw new Error('not found');
+      const { data: { user }, error } = await supabase.auth.getUser(token);
+      if (error || !user) throw new Error('invalid token');
+      userId = user.id;
     } catch {
       return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: corsHeaders });
     }
