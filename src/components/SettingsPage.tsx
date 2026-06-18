@@ -3,9 +3,6 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { Save, Loader2, Check, Lock, Eye, EyeOff, RefreshCw, Link, AlertTriangle, Settings } from 'lucide-react';
 import { getSessionToken } from '../lib/supabase';
-import { showToast } from '../lib/toast';
-
-const NOTION_CONNECT_URL = 'https://ezlousklksipvwuinpzq.supabase.co/functions/v1/notion-connect';
 
 function YouTubeLogo({ className }: { className?: string }) {
   return (
@@ -47,10 +44,6 @@ export function SettingsPage() {
     channelThumbnail?: string;
   } | null>(null);
   const [plan, setPlan] = useState<string | null>(null);
-
-  // Notion connection state
-  const [notion, setNotion] = useState<{ connected: boolean; workspace_name?: string | null } | null>(null);
-  const [notionBusy, setNotionBusy] = useState(false);
 
   // Channel context state
   const [channelNiche, setChannelNiche] = useState('');
@@ -122,58 +115,6 @@ export function SettingsPage() {
     const redirectUri = `https://ezlousklksipvwuinpzq.supabase.co/functions/v1/youtube-oauth-callback`;
     const scope = 'https://www.googleapis.com/auth/youtube.readonly https://www.googleapis.com/auth/yt-analytics.readonly https://www.googleapis.com/auth/youtube.force-ssl';
     window.location.href = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=${encodeURIComponent(scope)}&access_type=offline&prompt=consent&state=${user.id}`;
-  };
-
-  // Load Notion connection status
-  useEffect(() => {
-    if (!user?.id) return;
-    (async () => {
-      const token = await getSessionToken();
-      if (!token) return;
-      try {
-        const res = await fetch(NOTION_CONNECT_URL, {
-          method: 'POST',
-          headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ action: 'status' }),
-        });
-        if (res.ok) setNotion(await res.json());
-        else setNotion({ connected: false });
-      } catch { setNotion({ connected: false }); }
-    })();
-  }, [user?.id]);
-
-  const callNotion = async (action: string) => {
-    const token = await getSessionToken();
-    if (!token) throw new Error('no token');
-    const res = await fetch(NOTION_CONNECT_URL, {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action }),
-    });
-    return { res, data: await res.json().catch(() => ({})) };
-  };
-
-  const connectNotion = async () => {
-    setNotionBusy(true);
-    try {
-      const { res, data } = await callNotion('start');
-      if (!res.ok || !data.url) {
-        showToast(data.error === 'upgrade_required' ? 'Notion is a paid feature' : 'Could not start Notion connect', 'error');
-        return;
-      }
-      window.location.href = data.url;
-    } catch { showToast('Could not connect Notion', 'error'); }
-    finally { setNotionBusy(false); }
-  };
-
-  const disconnectNotion = async () => {
-    setNotionBusy(true);
-    try {
-      await callNotion('disconnect');
-      setNotion({ connected: false });
-      showToast('Notion disconnected');
-    } catch { showToast('Failed to disconnect', 'error'); }
-    finally { setNotionBusy(false); }
   };
 
   const saveContext = async () => {
@@ -308,46 +249,6 @@ export function SettingsPage() {
           )}
         </div>
       </div>
-
-      {/* ── Notion (paid plans) ── */}
-      {plan && plan !== 'free' && (
-        <div>
-          <SectionLabel>Notion</SectionLabel>
-          <div style={divider} className="pt-4">
-            {notion === null ? (
-              <Loader2 className="w-4 h-4 text-gray-500 animate-spin" />
-            ) : notion.connected ? (
-              <div className="flex items-center justify-between gap-3">
-                <div className="flex items-center gap-3 min-w-0">
-                  <div className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }}>
-                    <Link className="w-4 h-4 text-white" />
-                  </div>
-                  <div className="min-w-0">
-                    <p className="text-sm text-white font-medium truncate">{notion.workspace_name || 'Connected'}</p>
-                    <p className="text-xs text-gray-500 mt-0.5">Save hooks, scripts & ideas straight to Notion</p>
-                  </div>
-                </div>
-                <button onClick={disconnectNotion} disabled={notionBusy} className="px-4 py-2 text-xs font-semibold rounded-lg text-gray-400 hover:text-white transition-colors disabled:opacity-50 flex-shrink-0" style={{ border: '1px solid rgba(255,255,255,0.12)' }}>
-                  {notionBusy ? <Loader2 className="w-3 h-3 animate-spin" /> : 'Disconnect'}
-                </button>
-              </div>
-            ) : (
-              <div className="flex items-center justify-between gap-3">
-                <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}>
-                    <Link className="w-4 h-4 text-gray-600" />
-                  </div>
-                  <p className="text-sm text-gray-500">Not connected</p>
-                </div>
-                <button onClick={connectNotion} disabled={notionBusy} className="flex items-center gap-1.5 px-4 py-2 text-xs font-semibold text-white rounded-lg transition-colors disabled:opacity-50 flex-shrink-0" style={{ background: '#0EA4E9' }}>
-                  {notionBusy ? <Loader2 className="w-3 h-3 animate-spin" /> : <Link className="w-3 h-3" />}
-                  Connect
-                </button>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
 
       {/* ── Channel Context ── */}
       <div>
