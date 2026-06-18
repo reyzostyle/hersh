@@ -2,17 +2,8 @@ import { useState, useEffect, useCallback } from 'react';
 import { supabase, getSessionToken } from '../lib/supabase';
 import {
   Plus, Loader2, Sparkles, Eye, ChevronDown, ChevronUp,
-  X, Lightbulb, Users, RefreshCw, Calendar, FileText, Heart, EyeOff, Lock
+  X, Lightbulb, Users, RefreshCw, Calendar, FileText, Heart, EyeOff, Lock, Trash2
 } from 'lucide-react';
-import { SaveToNotionButton } from './SaveToNotionButton';
-
-function outlineToText(o: { hook: string; sections: { title: string; content: string; duration: string }[]; cta: string }): string {
-  const parts = [`Hook: "${o.hook}"`, ''];
-  for (const s of o.sections) parts.push(`${s.title} (${s.duration})`, s.content, '');
-  parts.push(`CTA: "${o.cta}"`);
-  return parts.join('\n');
-}
-
 const SUPABASE_FUNCTIONS_URL = 'https://ezlousklksipvwuinpzq.supabase.co/functions/v1';
 
 interface CompetitorChannel {
@@ -259,13 +250,6 @@ function IdeaCard({ idea, onUpdated, isPro }: { idea: CompetitorIdea; onUpdated:
                 <p className="text-[10px] font-semibold uppercase tracking-widest text-emerald-600 mb-1">CTA</p>
                 <p className="text-emerald-100 text-sm">"{idea.outline.cta}"</p>
               </div>
-              <div className="pt-1">
-                <SaveToNotionButton
-                  type="Outline"
-                  name={(idea.adapted_idea || idea.concept || idea.video_title || 'Competitor idea').slice(0, 100)}
-                  content={outlineToText(idea.outline)}
-                />
-              </div>
             </div>
           )}
         </div>
@@ -288,11 +272,6 @@ function IdeaCard({ idea, onUpdated, isPro }: { idea: CompetitorIdea; onUpdated:
           {scriptOpen && (
             <div className="px-3 pb-3 pt-2 space-y-3" style={{ background: 'rgba(255,255,255,0.02)' }}>
               <pre className="text-white text-sm whitespace-pre-wrap font-sans leading-relaxed">{idea.script}</pre>
-              <SaveToNotionButton
-                type="Script"
-                name={(idea.adapted_idea || idea.concept || idea.video_title || 'Competitor idea').slice(0, 100)}
-                content={idea.script || ''}
-              />
             </div>
           )}
         </div>
@@ -361,6 +340,7 @@ export function CompetitorsPage() {
   const [channelUrl, setChannelUrl] = useState('');
   const [addingChannel, setAddingChannel] = useState(false);
   const [fetchingIdeas, setFetchingIdeas] = useState(false);
+  const [clearingIdeas, setClearingIdeas] = useState(false);
   const [addError, setAddError] = useState('');
   const [fetchError, setFetchError] = useState('');
   const [initialLoading, setInitialLoading] = useState(true);
@@ -461,6 +441,25 @@ export function CompetitorsPage() {
 
   const handleIdeaUpdated = (updated: CompetitorIdea) => {
     setIdeas(prev => prev.map(idea => idea.id === updated.id ? updated : idea));
+  };
+
+  const handleClearIdeas = async () => {
+    if (ideas.length === 0) return;
+    if (!window.confirm('Clear all found ideas? This cannot be undone.')) return;
+    setClearingIdeas(true);
+    try {
+      const token = await getSessionToken();
+      if (!token) throw new Error('Not authenticated');
+      const payload = JSON.parse(atob(token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')));
+      const userId = payload.sub;
+      await supabase.from('competitor_ideas').delete().eq('user_id', userId);
+      setIdeas([]);
+    } catch (e) {
+      console.error('[CompetitorsPage] clear ideas error:', e);
+      setFetchError(e instanceof Error ? e.message : 'Failed to clear ideas');
+    } finally {
+      setClearingIdeas(false);
+    }
   };
 
   if (initialLoading) {
@@ -590,7 +589,18 @@ export function CompetitorsPage() {
             {fetchingIdeas ? 'Finding new ideas...' : 'Find new ideas'}
           </button>
           {ideas.length > 0 && (
-            <span className="text-gray-500 text-xs">{ideas.length} idea{ideas.length !== 1 ? 's' : ''} found</span>
+            <>
+              <span className="text-gray-500 text-xs">{ideas.length} idea{ideas.length !== 1 ? 's' : ''} found</span>
+              <button
+                onClick={handleClearIdeas}
+                disabled={clearingIdeas}
+                className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all disabled:opacity-50 ml-auto"
+                style={{ background: 'rgba(248,113,113,0.12)', border: '1px solid rgba(248,113,113,0.3)', color: '#f87171' }}
+              >
+                {clearingIdeas ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+                {clearingIdeas ? 'Clearing...' : 'Clear'}
+              </button>
+            </>
           )}
         </div>
       )}

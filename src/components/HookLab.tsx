@@ -1,8 +1,6 @@
-import { useState, useEffect } from 'react';
-import { getSessionToken, supabase } from '../lib/supabase';
-import { useAuth } from '../contexts/AuthContext';
+import { useState } from 'react';
+import { getSessionToken } from '../lib/supabase';
 import { Sparkles, Loader2, Copy, Check, AlertTriangle, Wand2 } from 'lucide-react';
-import { SaveToNotionButton } from './SaveToNotionButton';
 
 const glass: React.CSSProperties = {
   background: 'rgba(255,255,255,0.04)',
@@ -40,18 +38,10 @@ function RewriteCard({ r }: { r: Rewrite }) {
 }
 
 export function HookLab() {
-  const { user } = useAuth();
   const [hook, setHook] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [result, setResult] = useState<HookResult | null>(null);
-  const [paid, setPaid] = useState(false);
-
-  useEffect(() => {
-    if (!user?.id) return;
-    supabase.from('user_tokens').select('plan').eq('user_id', user.id).maybeSingle()
-      .then(({ data }) => setPaid((data?.plan || 'free') !== 'free'));
-  }, [user?.id]);
 
   const analyze = async () => {
     if (!hook.trim() || loading) return;
@@ -131,11 +121,6 @@ export function HookLab() {
       {/* Result */}
       {result && (
         <div className="mt-4 space-y-4 animate-fade-in">
-          {paid && (
-            <div className="flex justify-end">
-              <SaveToNotionButton eligible={paid} type="Hook" name={hook.trim().slice(0, 80)} content={hook.trim()} />
-            </div>
-          )}
           <div className="rounded-2xl p-5 flex items-center gap-5" style={glass}>
             <div className="flex flex-col items-center justify-center flex-shrink-0">
               <span className="text-4xl font-bold leading-none" style={{ color: scoreColor(result.score) }}>{result.score}</span>
