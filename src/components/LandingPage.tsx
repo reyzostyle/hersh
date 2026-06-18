@@ -6,10 +6,10 @@ import { supabase } from '../lib/supabase';
 // ─── Shared styles ────────────────────────────────────────────────────────────
 
 const glass: React.CSSProperties = {
-  background: 'rgba(26,31,42,0.85)',
+  background: 'rgba(22,27,38,0.6)',
   border: '1px solid rgba(255,255,255,0.1)',
-  backdropFilter: 'blur(20px) saturate(140%)',
-  WebkitBackdropFilter: 'blur(20px) saturate(140%)',
+  backdropFilter: 'blur(16px) saturate(160%)',
+  WebkitBackdropFilter: 'blur(16px) saturate(160%)',
   boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.06)',
 };
 
@@ -472,10 +472,10 @@ function PricingCard({ plan, onSelect }: { plan: Plan; onSelect: () => void }) {
     <div
       className="relative flex flex-col rounded-xl p-4 sm:p-5 h-full motion-card"
       style={{
-        background: 'rgba(26,31,42,0.85)',
+        background: 'rgba(22,27,38,0.6)',
         border: plan.highlight ? '1px solid rgba(14,164,233,0.4)' : '1px solid rgba(255,255,255,0.1)',
-        backdropFilter: 'blur(20px) saturate(140%)',
-        WebkitBackdropFilter: 'blur(20px) saturate(140%)',
+        backdropFilter: 'blur(16px) saturate(160%)',
+        WebkitBackdropFilter: 'blur(16px) saturate(160%)',
         boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.06)',
       }}
     >
@@ -762,7 +762,7 @@ export function LandingPage() {
         {/* ── CTA ───────────────────────────────────────────────────────────── */}
         <section className="pb-14 sm:pb-24 px-6 text-center">
           <RevealSection>
-            <div className="max-w-md mx-auto rounded-2xl p-7 sm:p-8 motion-card" style={{ background: 'rgba(26,31,42,0.85)', border: '1px solid rgba(14,164,233,0.28)', backdropFilter: 'blur(20px) saturate(140%)', WebkitBackdropFilter: 'blur(20px) saturate(140%)', boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.06)' }}>
+            <div className="max-w-md mx-auto rounded-2xl p-7 sm:p-8 motion-card" style={{ background: 'rgba(22,27,38,0.6)', border: '1px solid rgba(255,255,255,0.1)', backdropFilter: 'blur(16px) saturate(160%)', WebkitBackdropFilter: 'blur(16px) saturate(160%)', boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.06)' }}>
               <h2 className="text-xl sm:text-2xl font-bold text-white mb-6 text-balance">Stop guessing. Start improving.</h2>
               <button
                 onClick={() => setAuthModal('signup')}

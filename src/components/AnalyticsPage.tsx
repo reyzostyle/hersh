@@ -68,7 +68,7 @@ function SkeletonCard() {
   return (
     <div
       className="rounded-2xl p-4 space-y-3 animate-pulse"
-      style={{ background: 'rgba(26,31,42,0.85)', border: '1px solid rgba(255,255,255,0.1)', backdropFilter: 'blur(20px) saturate(140%)', WebkitBackdropFilter: 'blur(20px) saturate(140%)', boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.06)' }}
+      style={{ background: 'rgba(22,27,38,0.6)', border: '1px solid rgba(255,255,255,0.1)', backdropFilter: 'blur(16px) saturate(160%)', WebkitBackdropFilter: 'blur(16px) saturate(160%)', boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.06)' }}
     >
       <div className="h-28 rounded-xl" style={{ background: 'rgba(255,255,255,0.06)' }} />
       <div className="h-3 rounded-full w-4/5" style={{ background: 'rgba(255,255,255,0.06)' }} />
@@ -83,7 +83,7 @@ function VideoCard({ video, rank }: { video: VideoStat; rank: 'top' | 'bottom' |
       ? { background: 'rgba(52,211,153,0.07)', border: '1px solid rgba(52,211,153,0.28)' }
       : rank === 'bottom'
       ? { background: 'rgba(239,68,68,0.04)', border: '1px solid rgba(239,68,68,0.18)', opacity: 0.65 }
-      : { background: 'rgba(26,31,42,0.85)', border: '1px solid rgba(255,255,255,0.1)', backdropFilter: 'blur(20px) saturate(140%)', WebkitBackdropFilter: 'blur(20px) saturate(140%)', boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.06)' };
+      : { background: 'rgba(22,27,38,0.6)', border: '1px solid rgba(255,255,255,0.1)', backdropFilter: 'blur(16px) saturate(160%)', WebkitBackdropFilter: 'blur(16px) saturate(160%)', boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.06)' };
 
   return (
     <div className="rounded-2xl overflow-hidden" style={borderStyle}>
@@ -140,7 +140,7 @@ function NotConnectedPrompt({ onConnect }: { onConnect: () => void }) {
     <div className="max-w-3xl mx-auto px-4 py-16 flex flex-col items-center justify-center text-center space-y-6">
       <div
         className="rounded-2xl p-10 flex flex-col items-center gap-6 w-full max-w-md"
-        style={{ background: 'rgba(26,31,42,0.85)', border: '1px solid rgba(255,255,255,0.1)', backdropFilter: 'blur(20px) saturate(140%)', WebkitBackdropFilter: 'blur(20px) saturate(140%)', boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.06)' }}
+        style={{ background: 'rgba(22,27,38,0.6)', border: '1px solid rgba(255,255,255,0.1)', backdropFilter: 'blur(16px) saturate(160%)', WebkitBackdropFilter: 'blur(16px) saturate(160%)', boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.06)' }}
       >
         <div
           className="w-16 h-16 rounded-2xl flex items-center justify-center"
@@ -295,7 +295,7 @@ export function AnalyticsPage() {
         {/* Summary row skeletons */}
         <div className="grid grid-cols-3 gap-3">
           {[0, 1, 2].map(i => (
-            <div key={i} className="rounded-2xl p-5 animate-pulse space-y-2" style={{ background: 'rgba(26,31,42,0.85)', border: '1px solid rgba(255,255,255,0.1)', backdropFilter: 'blur(20px) saturate(140%)', WebkitBackdropFilter: 'blur(20px) saturate(140%)', boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.06)' }}>
+            <div key={i} className="rounded-2xl p-5 animate-pulse space-y-2" style={{ background: 'rgba(22,27,38,0.6)', border: '1px solid rgba(255,255,255,0.1)', backdropFilter: 'blur(16px) saturate(160%)', WebkitBackdropFilter: 'blur(16px) saturate(160%)', boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.06)' }}>
               <div className="h-3 w-2/3 rounded-full" style={{ background: 'rgba(255,255,255,0.06)' }} />
               <div className="h-6 w-1/2 rounded-full" style={{ background: 'rgba(255,255,255,0.06)' }} />
             </div>
@@ -406,7 +406,7 @@ export function AnalyticsPage() {
       <div className="grid grid-cols-3 gap-3">
         <div
           className="rounded-2xl p-4 flex flex-col gap-1"
-          style={{ background: 'rgba(26,31,42,0.85)', border: '1px solid rgba(255,255,255,0.1)', backdropFilter: 'blur(20px) saturate(140%)', WebkitBackdropFilter: 'blur(20px) saturate(140%)', boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.06)' }}
+          style={{ background: 'rgba(22,27,38,0.6)', border: '1px solid rgba(255,255,255,0.1)', backdropFilter: 'blur(16px) saturate(160%)', WebkitBackdropFilter: 'blur(16px) saturate(160%)', boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.06)' }}
         >
           <span className="flex items-center gap-1.5 text-xs text-gray-500 font-medium">
             <Eye className="w-3.5 h-3.5" />
@@ -417,7 +417,7 @@ export function AnalyticsPage() {
         </div>
         <div
           className="rounded-2xl p-4 flex flex-col gap-1"
-          style={{ background: 'rgba(26,31,42,0.85)', border: '1px solid rgba(255,255,255,0.1)', backdropFilter: 'blur(20px) saturate(140%)', WebkitBackdropFilter: 'blur(20px) saturate(140%)', boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.06)' }}
+          style={{ background: 'rgba(22,27,38,0.6)', border: '1px solid rgba(255,255,255,0.1)', backdropFilter: 'blur(16px) saturate(160%)', WebkitBackdropFilter: 'blur(16px) saturate(160%)', boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.06)' }}
         >
           <span className="flex items-center gap-1.5 text-xs text-gray-500 font-medium">
             <Clock className="w-3.5 h-3.5" />
@@ -428,7 +428,7 @@ export function AnalyticsPage() {
         </div>
         <div
           className="rounded-2xl p-4 flex flex-col gap-1"
-          style={{ background: 'rgba(26,31,42,0.85)', border: '1px solid rgba(255,255,255,0.1)', backdropFilter: 'blur(20px) saturate(140%)', WebkitBackdropFilter: 'blur(20px) saturate(140%)', boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.06)' }}
+          style={{ background: 'rgba(22,27,38,0.6)', border: '1px solid rgba(255,255,255,0.1)', backdropFilter: 'blur(16px) saturate(160%)', WebkitBackdropFilter: 'blur(16px) saturate(160%)', boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.06)' }}
         >
           <span className="flex items-center gap-1.5 text-xs text-gray-500 font-medium">
             <BarChart2 className="w-3.5 h-3.5" />
@@ -456,7 +456,7 @@ export function AnalyticsPage() {
       {insights.length > 0 && (
         <div
           className="rounded-2xl p-5 space-y-3"
-          style={{ background: 'rgba(26,31,42,0.85)', border: '1px solid rgba(255,255,255,0.1)', backdropFilter: 'blur(20px) saturate(140%)', WebkitBackdropFilter: 'blur(20px) saturate(140%)', boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.06)' }}
+          style={{ background: 'rgba(22,27,38,0.6)', border: '1px solid rgba(255,255,255,0.1)', backdropFilter: 'blur(16px) saturate(160%)', WebkitBackdropFilter: 'blur(16px) saturate(160%)', boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.06)' }}
         >
           <p className="text-xs font-semibold uppercase tracking-widest text-gray-500">Insights</p>
           <ul className="space-y-2">
