@@ -261,7 +261,7 @@ export function AnalysisPanel({ analysis, open, onClose }: AnalysisPanelProps) {
                   </h3>
                   <div className="space-y-3">
                     {analysis.new_hook_ideas.map((idea, idx) => (
-                      <div key={idx} className="rounded-lg p-4" style={{ background: 'rgba(22,27,38,0.6)', border: '1px solid rgba(255,255,255,0.1)', backdropFilter: 'blur(16px) saturate(160%)', WebkitBackdropFilter: 'blur(16px) saturate(160%)', boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.06)' }}>
+                      <div key={idx} className="rounded-lg p-4" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}>
                         <div className="flex items-start gap-3">
                           <div className="w-6 h-6 rounded-full bg-[#0EA4E9]/20 flex items-center justify-center flex-shrink-0 mt-0.5">
                             <span className="text-[#0EA4E9] font-bold text-xs">{idx + 1}</span>

@@ -161,7 +161,7 @@ export function UpgradePage() {
         )}
 
         {/* Usage card */}
-        <div className="mb-8 p-5 rounded-xl motion-card animate-fade-in-up delay-100" style={{ background: 'rgba(22,27,38,0.6)', border: '1px solid rgba(255,255,255,0.1)', backdropFilter: 'blur(16px) saturate(160%)', WebkitBackdropFilter: 'blur(16px) saturate(160%)', boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.06)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)' }}>
+        <div className="mb-8 p-5 rounded-xl motion-card animate-fade-in-up delay-100" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)' }}>
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
               <BarChart2 className="w-4 h-4 text-gray-400" />

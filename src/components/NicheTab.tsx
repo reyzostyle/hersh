@@ -249,7 +249,7 @@ function TrendsBlock({ videos, timeFilter, onTimeFilterChange }: {
           <TrendingUp className="w-4 h-4 text-[#0EA4E9]" />
           Trends
         </h2>
-        <div className="flex gap-1 rounded-lg p-1" style={{ background: 'rgba(22,27,38,0.6)', border: '1px solid rgba(255,255,255,0.1)', backdropFilter: 'blur(16px) saturate(160%)', WebkitBackdropFilter: 'blur(16px) saturate(160%)', boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.06)' }}>
+        <div className="flex gap-1 rounded-lg p-1" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}>
           {([7, 14, 30] as TimeFilter[]).map(d => (
             <button
               key={d}
@@ -731,7 +731,7 @@ export function NicheTab() {
               </div>
 
               <div className="flex items-center gap-2 flex-wrap mb-4">
-                <div className="flex gap-1 rounded-lg p-1" style={{ background: 'rgba(22,27,38,0.6)', border: '1px solid rgba(255,255,255,0.1)', backdropFilter: 'blur(16px) saturate(160%)', WebkitBackdropFilter: 'blur(16px) saturate(160%)', boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.06)' }}>
+                <div className="flex gap-1 rounded-lg p-1" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}>
                   {([
                     { id: 'all', label: 'All' },
                     { id: 'shortlist', label: 'Shortlist' },
@@ -747,7 +747,7 @@ export function NicheTab() {
                     </button>
                   ))}
                 </div>
-                <div className="flex gap-1 rounded-lg p-1 ml-auto" style={{ background: 'rgba(22,27,38,0.6)', border: '1px solid rgba(255,255,255,0.1)', backdropFilter: 'blur(16px) saturate(160%)', WebkitBackdropFilter: 'blur(16px) saturate(160%)', boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.06)' }}>
+                <div className="flex gap-1 rounded-lg p-1 ml-auto" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}>
                   {([
                     { id: 'score', label: 'By score' },
                     { id: 'date', label: 'By date' },

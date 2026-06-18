@@ -6,11 +6,10 @@ import { supabase } from '../lib/supabase';
 // ─── Shared styles ────────────────────────────────────────────────────────────
 
 const glass: React.CSSProperties = {
-  background: 'rgba(22,27,38,0.6)',
-  border: '1px solid rgba(255,255,255,0.1)',
-  backdropFilter: 'blur(16px) saturate(160%)',
-  WebkitBackdropFilter: 'blur(16px) saturate(160%)',
-  boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.06)',
+  background: 'rgba(255,255,255,0.04)',
+  border: '1px solid rgba(255,255,255,0.08)',
+  backdropFilter: 'blur(12px)',
+  WebkitBackdropFilter: 'blur(12px)',
 };
 
 const glassInput: React.CSSProperties = {
@@ -472,11 +471,10 @@ function PricingCard({ plan, onSelect }: { plan: Plan; onSelect: () => void }) {
     <div
       className="relative flex flex-col rounded-xl p-4 sm:p-5 h-full motion-card"
       style={{
-        background: 'rgba(22,27,38,0.6)',
-        border: plan.highlight ? '1px solid rgba(14,164,233,0.4)' : '1px solid rgba(255,255,255,0.1)',
-        backdropFilter: 'blur(16px) saturate(160%)',
-        WebkitBackdropFilter: 'blur(16px) saturate(160%)',
-        boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.06)',
+        background: plan.highlight ? 'rgba(14,164,233,0.06)' : 'rgba(255,255,255,0.04)',
+        border: plan.highlight ? '1px solid rgba(14,164,233,0.4)' : '1px solid rgba(255,255,255,0.08)',
+        backdropFilter: 'blur(12px)',
+        WebkitBackdropFilter: 'blur(12px)',
       }}
     >
       {plan.popular && (
@@ -617,7 +615,7 @@ export function LandingPage() {
             <span className="text-xs px-3 py-1.5 rounded-full text-white" style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }}>5 channels tracked</span>
             <span className="text-xs px-3 py-1.5 rounded-full" style={{ background: 'rgba(14,164,233,0.08)', border: '1px solid rgba(14,164,233,0.18)', color: '#38BDF8' }}>3 hook rewrites</span>
             <span className="text-xs px-3 py-1.5 rounded-full text-emerald-400" style={{ background: 'rgba(52,211,153,0.08)', border: '1px solid rgba(52,211,153,0.15)' }}>Script ready to record</span>
-            <span className="text-xs px-3 py-1.5 rounded-full text-gray-500" style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }}>AVG retention: 67%</span>
+            <span className="text-xs px-3 py-1.5 rounded-full text-gray-500" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}>AVG retention: 67%</span>
           </div>
 
           {/* Center content */}
@@ -762,7 +760,7 @@ export function LandingPage() {
         {/* ── CTA ───────────────────────────────────────────────────────────── */}
         <section className="pb-14 sm:pb-24 px-6 text-center">
           <RevealSection>
-            <div className="max-w-md mx-auto rounded-2xl p-7 sm:p-8 motion-card" style={{ background: 'rgba(22,27,38,0.6)', border: '1px solid rgba(255,255,255,0.1)', backdropFilter: 'blur(16px) saturate(160%)', WebkitBackdropFilter: 'blur(16px) saturate(160%)', boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.06)' }}>
+            <div className="max-w-md mx-auto rounded-2xl p-7 sm:p-8 motion-card" style={{ background: 'rgba(14,164,233,0.06)', border: '1px solid rgba(14,164,233,0.2)' }}>
               <h2 className="text-xl sm:text-2xl font-bold text-white mb-6 text-balance">Stop guessing. Start improving.</h2>
               <button
                 onClick={() => setAuthModal('signup')}

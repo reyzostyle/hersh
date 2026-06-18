@@ -512,7 +512,7 @@ export function CompetitorsPage() {
       {/* Add channel */}
       <div
         className="rounded-2xl p-4 sm:p-5 space-y-3 sm:space-y-4"
-        style={{ background: 'rgba(22,27,38,0.6)', border: '1px solid rgba(255,255,255,0.1)', backdropFilter: 'blur(16px) saturate(160%)', WebkitBackdropFilter: 'blur(16px) saturate(160%)', boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.06)' }}
+        style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}
       >
         <div className="space-y-1">
           <p className="text-white text-sm font-semibold">Add competitor channel</p>

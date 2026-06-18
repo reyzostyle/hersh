@@ -7,7 +7,7 @@ export function SupportPage() {
           <h1 className="text-2xl font-bold text-white mb-1">Support</h1>
           <p className="text-sm text-gray-500">Get help, share feedback, or connect with other creators</p>
         </div>
-      <div className="rounded-xl p-6 flex items-start gap-4" style={{ background: 'rgba(22,27,38,0.6)', border: '1px solid rgba(255,255,255,0.1)', backdropFilter: 'blur(16px) saturate(160%)', WebkitBackdropFilter: 'blur(16px) saturate(160%)', boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.06)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)' }}>
+      <div className="rounded-xl p-6 flex items-start gap-4" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)' }}>
         <div className="w-12 h-12 rounded-xl bg-[#5865F2]/15 flex items-center justify-center flex-shrink-0">
           <MessageCircle className="w-6 h-6 text-[#5865F2]" />
         </div>
