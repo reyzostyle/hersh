@@ -3,7 +3,7 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import {
   Loader2, Youtube, Check, ArrowRight, ArrowLeft, Sparkles,
-  TrendingUp, DollarSign, Flame, CalendarCheck, Sprout, Rocket, Trophy,
+  TrendingUp, DollarSign, Flame, ShoppingBag, Sprout, Rocket, Trophy,
 } from 'lucide-react';
 
 const STORAGE_KEY = 'hershy_onboarding';
@@ -28,8 +28,10 @@ const GOALS = [
   { id: 'grow', label: 'Grow my audience', icon: TrendingUp },
   { id: 'monetize', label: 'Monetize my content', icon: DollarSign },
   { id: 'viral', label: 'Go viral', icon: Flame },
-  { id: 'consistency', label: 'Post consistently', icon: CalendarCheck },
+  { id: 'sell', label: 'Sell a product or service', icon: ShoppingBag },
 ];
+
+const GOAL_IDS = GOALS.map(g => g.id);
 
 const NICHE_PRESETS = [
   'Finance', 'Fitness', 'Education', 'Tech', 'Gaming', 'Beauty',
@@ -235,7 +237,7 @@ export function Onboarding({ onDone }: { onDone: () => void }) {
         {/* ── Goal ── */}
         {step === 3 && (
           <StepShell title="What's your main goal?" subtitle="We'll prioritize what gets you there.">
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-2 gap-3 mb-4">
               {GOALS.map(g => {
                 const Icon = g.icon;
                 const active = answers.goal === g.id;
@@ -248,6 +250,15 @@ export function Onboarding({ onDone }: { onDone: () => void }) {
                 );
               })}
             </div>
+            <input
+              value={GOAL_IDS.includes(answers.goal) ? '' : answers.goal}
+              onChange={e => set({ goal: e.target.value })}
+              placeholder="Or write your own goal…"
+              className="w-full px-4 py-3 rounded-xl text-white text-sm focus:outline-none"
+              style={{ ...cardBase }}
+              onFocus={e => { e.currentTarget.style.borderColor = accent; }}
+              onBlur={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)'; }}
+            />
           </StepShell>
         )}
 
