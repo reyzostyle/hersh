@@ -736,8 +736,8 @@ export function LandingPage() {
           <div className="grid md:grid-cols-3 gap-4">
             {[
               { name: 'Free', price: '$0', analyses: '10 hook checks / mo', period: 'free forever', features: ['10 hook checks every month', '3 video analyses to start', 'Hook score & rewrites', 'Weak spot breakdown', 'Video file upload'], cta: 'Start free', popular: false, highlight: false },
-              { name: 'Plus', price: '$29', analyses: '30 analyses / month', period: '/month', features: ['Everything in Free', 'Channel profile context', 'Competitor tracking', 'AI idea extraction & outlines'], cta: 'Get Plus', popular: true, highlight: true },
-              { name: 'Pro', price: '$49', analyses: '100 analyses / month', period: '/month', features: ['Everything in Plus', 'Competitor script writing'], cta: 'Get Pro', popular: false, highlight: false },
+              { name: 'Plus', price: '$19', analyses: '30 analyses / month', period: '/month', features: ['Everything in Free', 'Channel profile context', 'Competitor tracking', 'AI idea extraction & outlines'], cta: 'Get Plus', popular: true, highlight: true },
+              { name: 'Pro', price: '$29', analyses: '100 analyses / month', period: '/month', features: ['Everything in Plus', 'Competitor script writing'], cta: 'Get Pro', popular: false, highlight: false },
             ].map((plan, i) => (
               <RevealSection key={plan.name} delay={i * 80}>
                 <PricingCard plan={plan} onSelect={() => setAuthModal('signup')} />

@@ -44,7 +44,7 @@ const plans = [
   {
     id: 'pro',
     name: 'Plus',
-    price: '$29',
+    price: '$19',
     period: '/month',
     analyses: '30 analyses / month',
     priceId: PLUS_PRICE_ID,
@@ -63,7 +63,7 @@ const plans = [
   {
     id: 'agency',
     name: 'Pro',
-    price: '$49',
+    price: '$29',
     period: '/month',
     analyses: '100 analyses / month',
     priceId: PRO_PRICE_ID,
