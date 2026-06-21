@@ -9,7 +9,7 @@ const corsHeaders = {
 const ADMIN_EMAIL = 'reyzostyle@gmail.com';
 // Hook Lab has its OWN monthly quota (separate from video analyses).
 // Free = 10 hook checks / month (resets monthly).
-const HOOK_LIMITS: Record<string, number> = { free: 10, pro: 100, agency: 1000 };
+const HOOK_LIMITS: Record<string, number> = { free: 10, pro: 50, agency: 200 };
 
 const stripDashes = (s: unknown): unknown => {
   if (typeof s === 'string') return s.replace(/[—–]/g, '-');
