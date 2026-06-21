@@ -1,5 +1,5 @@
 import { useState, useEffect, createContext, useContext, useRef } from 'react';
-import { Sparkles, Settings, MessageCircle, LogOut, Menu, X, Zap, Users, Handshake, BarChart2, Wand2 } from 'lucide-react';
+import { Sparkles, Settings, MessageCircle, LogOut, Menu, X, Zap, Users, Handshake, Wand2 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
 
@@ -27,7 +27,6 @@ interface AppShellProps {
 const baseNavItems: NavItem[] = [
   { id: 'hooks', label: 'Analysis', icon: <Sparkles className="w-4 h-4" /> },
   { id: 'hooklab', label: 'Hook Lab', icon: <Wand2 className="w-4 h-4" /> },
-  { id: 'analytics', label: 'Analytics', icon: <BarChart2 className="w-4 h-4" /> },
   { id: 'competitors', label: 'Competitors', icon: <Users className="w-4 h-4" /> },
   { id: 'upgrade', label: 'Upgrade', icon: <Zap className="w-4 h-4" />, highlight: true },
   { id: 'settings', label: 'Settings', icon: <Settings className="w-4 h-4" /> },
@@ -67,9 +66,9 @@ export function AppShell({ activeTab, onTabChange, children }: AppShellProps) {
       .then(({ data }) => setIsPartner(!!data));
   }, [user?.id]);
 
-  // Order: Shorts Analysis, Analytics, Competitors, [Partners], Upgrade, Settings, Support
+  // Order: Shorts Analysis, Hook Lab, Competitors, [Partners], Upgrade, Settings, Support
   const navItems = (isAdmin || isPartner)
-    ? [baseNavItems[0], baseNavItems[1], baseNavItems[2], baseNavItems[3], partnersItem, baseNavItems[4], baseNavItems[5], baseNavItems[6]]
+    ? [baseNavItems[0], baseNavItems[1], baseNavItems[2], partnersItem, baseNavItems[3], baseNavItems[4], baseNavItems[5]]
     : baseNavItems;
 
   return (

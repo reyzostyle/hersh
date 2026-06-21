@@ -430,8 +430,15 @@ export function CompetitorsPage() {
         window.dispatchEvent(new CustomEvent('hershy:navigate', { detail: 'upgrade' }));
         return;
       }
+      if (data.error === 'rate_limited' || data.error === 'idle_throttled') {
+        setFetchError(data.message || 'You can run competitor analysis once every 12 hours. Try again later.');
+        return;
+      }
       if (!res.ok) throw new Error(data.error || 'Failed to fetch ideas');
       setIdeas(data.ideas || []);
+      if (data.processed === 0 && data.message) {
+        setFetchError(data.message);
+      }
     } catch (e) {
       setFetchError(e instanceof Error ? e.message : 'Something went wrong');
     } finally {

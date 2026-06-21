@@ -135,25 +135,26 @@ Deno.serve(async (req: Request) => {
 
     const { data: tokenRow, error: tokenError } = await supabase
       .from('user_tokens')
-      .select('plan, analyses_used, analyses_reset_at')
+      .select('plan, hook_analyses_used, hook_analyses_reset_at')
       .eq('user_id', userId)
       .maybeSingle();
 
     if (tokenError) throw tokenError;
 
-    const PLAN_LIMITS: Record<string, number> = { free: 3, pro: 30, agency: 200 };
+    // Batch hook analysis has its own counter, independent of video analyses.
+    const PLAN_LIMITS: Record<string, number> = { free: 3, pro: 30, agency: 100 };
     const plan = tokenRow?.plan || 'free';
-    let analysesUsed = tokenRow?.analyses_used || 0;
+    let analysesUsed = tokenRow?.hook_analyses_used || 0;
     const analysesLimit = PLAN_LIMITS[plan] ?? 3;
 
-    if (plan !== 'free' && tokenRow?.analyses_reset_at) {
-      const resetAt = new Date(tokenRow.analyses_reset_at);
+    if (plan !== 'free' && tokenRow?.hook_analyses_reset_at) {
+      const resetAt = new Date(tokenRow.hook_analyses_reset_at);
       if (new Date() > resetAt) {
         const newResetAt = new Date();
         newResetAt.setDate(newResetAt.getDate() + 30);
         await supabase
           .from('user_tokens')
-          .update({ analyses_used: 0, analyses_reset_at: newResetAt.toISOString() })
+          .update({ hook_analyses_used: 0, hook_analyses_reset_at: newResetAt.toISOString() })
           .eq('user_id', userId);
         analysesUsed = 0;
       }
@@ -221,7 +222,7 @@ Deno.serve(async (req: Request) => {
 
     await supabase
       .from('user_tokens')
-      .update({ analyses_used: analysesUsed + 1 })
+      .update({ hook_analyses_used: analysesUsed + 1 })
       .eq('user_id', userId);
 
     return new Response(

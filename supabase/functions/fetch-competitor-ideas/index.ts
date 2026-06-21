@@ -215,11 +215,57 @@ Deno.serve(async (req: Request) => {
 
     // Plan check — Competitors is Plus+
     const { data: planCheck } = await supabase
-      .from('user_tokens').select('plan, channel_niche, channel_description').eq('user_id', userId).maybeSingle();
+      .from('user_tokens')
+      .select('plan, channel_niche, channel_description, competitor_run_at, competitor_idle_count, competitor_idle_at')
+      .eq('user_id', userId).maybeSingle();
     if ((planCheck?.plan || 'free') === 'free') {
       return new Response(JSON.stringify({ error: 'upgrade_required', plan_required: 'plus' }), {
         status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
+    }
+
+    const ADMIN_EMAIL = 'reyzostyle@gmail.com';
+    const isAdmin = authUser.email === ADMIN_EMAIL;
+
+    // Rate limit — one successful run per 12h per user.
+    const SUCCESS_WINDOW_MS = 12 * 60 * 60 * 1000;
+    const lastRun = planCheck?.competitor_run_at ? new Date(planCheck.competitor_run_at) : null;
+    if (!isAdmin && lastRun) {
+      const msSince = Date.now() - lastRun.getTime();
+      if (msSince < SUCCESS_WINDOW_MS) {
+        const retryAfterMs = SUCCESS_WINDOW_MS - msSince;
+        return new Response(
+          JSON.stringify({
+            error: 'rate_limited',
+            message: 'You can run competitor analysis once every 12 hours. Try again later.',
+            retry_after_seconds: Math.ceil(retryAfterMs / 1000),
+            next_run_at: new Date(lastRun.getTime() + SUCCESS_WINDOW_MS).toISOString(),
+          }),
+          { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+    }
+
+    // Idle throttle — empty runs spend no tokens, so the first few are free,
+    // but after IDLE_FREE_ATTEMPTS we throttle retries to once per IDLE_WINDOW.
+    const IDLE_FREE_ATTEMPTS = 3;
+    const IDLE_WINDOW_MS = 10 * 60 * 1000; // 10 minutes
+    const idleCount = planCheck?.competitor_idle_count ?? 0;
+    const lastIdle = planCheck?.competitor_idle_at ? new Date(planCheck.competitor_idle_at) : null;
+    if (!isAdmin && idleCount >= IDLE_FREE_ATTEMPTS && lastIdle) {
+      const msSinceIdle = Date.now() - lastIdle.getTime();
+      if (msSinceIdle < IDLE_WINDOW_MS) {
+        const retryAfterMs = IDLE_WINDOW_MS - msSinceIdle;
+        return new Response(
+          JSON.stringify({
+            error: 'idle_throttled',
+            message: `No new videos last time. You can check again in a few minutes.`,
+            retry_after_seconds: Math.ceil(retryAfterMs / 1000),
+            next_run_at: new Date(lastIdle.getTime() + IDLE_WINDOW_MS).toISOString(),
+          }),
+          { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
     }
 
     // Load user profile for niche/description
@@ -249,6 +295,8 @@ Deno.serve(async (req: Request) => {
       .eq('user_id', userId);
 
     const processedVideoIds = new Set((existingIdeas || []).map((r: any) => r.video_id));
+
+    let newlyProcessed = 0;
 
     // Fetch and process new videos for each channel
     for (const channel of channels) {
@@ -299,8 +347,22 @@ Deno.serve(async (req: Request) => {
           console.error(`[fetch-competitor-ideas] Insert error for ${video.videoId}:`, insertError);
         } else {
           processedVideoIds.add(video.videoId);
+          newlyProcessed++;
         }
       }
+    }
+
+    // A run with new videos resets the idle counter and starts the 12h window.
+    // An empty run spends no tokens, so it doesn't start the 12h window — but it
+    // bumps the idle counter so repeated empty refreshes get throttled.
+    if (newlyProcessed > 0) {
+      await supabase.from('user_tokens')
+        .update({ competitor_run_at: new Date().toISOString(), competitor_idle_count: 0, competitor_idle_at: null })
+        .eq('user_id', userId);
+    } else {
+      await supabase.from('user_tokens')
+        .update({ competitor_idle_count: (planCheck?.competitor_idle_count ?? 0) + 1, competitor_idle_at: new Date().toISOString() })
+        .eq('user_id', userId);
     }
 
     // Return all ideas for this user, newest first
@@ -313,7 +375,12 @@ Deno.serve(async (req: Request) => {
     if (ideasError) throw ideasError;
 
     return new Response(
-      JSON.stringify({ success: true, ideas: ideas || [] }),
+      JSON.stringify({
+        success: true,
+        ideas: ideas || [],
+        processed: newlyProcessed,
+        message: newlyProcessed === 0 ? 'No new videos from your competitors.' : undefined,
+      }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   } catch (error) {

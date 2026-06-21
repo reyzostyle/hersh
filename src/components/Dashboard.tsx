@@ -7,7 +7,6 @@ import { SettingsPage } from './SettingsPage';
 import { SupportPage } from './SupportPage';
 import { PartnersPage } from './PartnersPage';
 import { CompetitorsPage } from './CompetitorsPage';
-import { AnalyticsPage } from './AnalyticsPage';
 
 export function Dashboard() {
   const [activeTab, setActiveTab] = useState<NavTab>('hooks');
@@ -37,7 +36,6 @@ export function Dashboard() {
     <AppShell activeTab={activeTab} onTabChange={setActiveTab}>
       {activeTab === 'hooks' && <HookAnalysis />}
       {activeTab === 'hooklab' && <HookLab />}
-      {activeTab === 'analytics' && <AnalyticsPage />}
       {activeTab === 'competitors' && <CompetitorsPage />}
       {activeTab === 'upgrade' && <UpgradePage />}
       {activeTab === 'partners' && <PartnersPage />}
