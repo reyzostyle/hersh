@@ -111,7 +111,7 @@ export function Onboarding({ onDone }: { onDone: () => void }) {
     localStorage.setItem(STORAGE_KEY, JSON.stringify({ step: TOTAL_STEPS, answers }));
     const clientId = import.meta.env.VITE_YOUTUBE_CLIENT_ID;
     const redirectUri = `https://ezlousklksipvwuinpzq.supabase.co/functions/v1/youtube-oauth-callback`;
-    const scope = 'https://www.googleapis.com/auth/youtube.readonly https://www.googleapis.com/auth/yt-analytics.readonly https://www.googleapis.com/auth/youtube.force-ssl';
+    const scope = 'https://www.googleapis.com/auth/youtube.readonly';
     window.location.href = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=${encodeURIComponent(scope)}&access_type=offline&prompt=consent&state=${user.id}`;
   };
 
