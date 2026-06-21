@@ -1,6 +1,7 @@
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { LandingPage } from './components/LandingPage';
 import { Dashboard } from './components/Dashboard';
+import { Onboarding } from './components/Onboarding';
 import { Loader2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { supabase, getSessionToken } from './lib/supabase';
@@ -206,6 +207,19 @@ function AuthCallbackHandler() {
 
 function AppContent() {
   const { user, loading } = useAuth();
+  // null = unknown/loading, true/false once fetched
+  const [needsOnboarding, setNeedsOnboarding] = useState<boolean | null>(null);
+
+  // Determine whether the logged-in user still needs onboarding.
+  useEffect(() => {
+    if (!user) { setNeedsOnboarding(null); return; }
+    supabase
+      .from('user_tokens')
+      .select('onboarding_completed')
+      .eq('user_id', user.id)
+      .maybeSingle()
+      .then(({ data }) => setNeedsOnboarding(!data?.onboarding_completed));
+  }, [user?.id]);
 
   // Save referral code to referral_signups once after signup.
   // UNIQUE(user_id) in DB ensures this is a no-op for users who already have a row,
@@ -245,7 +259,22 @@ function AppContent() {
     return <AuthCallbackHandler />;
   }
 
-  return user ? <Dashboard /> : <LandingPage />;
+  if (!user) return <LandingPage />;
+
+  // Logged in — wait for onboarding status, then route accordingly.
+  if (needsOnboarding === null) {
+    return (
+      <div className="min-h-screen bg-[#212121] flex items-center justify-center">
+        <Loader2 className="w-8 h-8 text-[#0EA4E9] animate-spin" />
+      </div>
+    );
+  }
+
+  if (needsOnboarding) {
+    return <Onboarding onDone={() => setNeedsOnboarding(false)} />;
+  }
+
+  return <Dashboard />;
 }
 
 // Capture ?ref=code on landing and save to localStorage
