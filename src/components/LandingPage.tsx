@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { X, Check, Loader2, Zap, ArrowRight, ChevronRight, ChevronDown, BarChart2, Users, Sparkles, Mail, MessageCircle, Twitter, ArrowLeft, Building2, Copy, Play, Heart, Eye } from 'lucide-react';
+import { X, Check, Loader2, Zap, ArrowRight, ChevronRight, ChevronDown, Users, Sparkles, Mail, MessageCircle, Twitter, ArrowLeft, Building2, Copy, Play, Heart, Eye } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
 
@@ -673,17 +673,6 @@ export function LandingPage() {
                 tagBg: 'rgba(139,92,246,0.1)',
                 tagBorder: 'rgba(139,92,246,0.2)',
               },
-              {
-                icon: <BarChart2 className="w-5 h-5 text-emerald-400" />,
-                iconBg: 'rgba(52,211,153,0.12)',
-                iconBorder: 'rgba(52,211,153,0.2)',
-                title: 'Channel Analytics',
-                desc: "Views, retention, top performers. Plus a deep AI analysis of your channel's strengths and weak patterns.",
-                tags: ['Retention', 'Top videos', 'Deep AI'],
-                tagColor: '#34D399',
-                tagBg: 'rgba(52,211,153,0.08)',
-                tagBorder: 'rgba(52,211,153,0.2)',
-              },
             ].map((feature, i) => (
               <RevealSection key={i} delay={i * 100}>
                 <div className="rounded-xl p-4 sm:p-6 h-full motion-card flex flex-col gap-3 sm:gap-4" style={glass}>
@@ -748,7 +737,7 @@ export function LandingPage() {
             {[
               { name: 'Free', price: '$0', analyses: '10 hook checks / mo', period: 'free forever', features: ['10 hook checks every month', '3 video analyses to start', 'Hook score & rewrites', 'Weak spot breakdown', 'Video file upload'], cta: 'Start free', popular: false, highlight: false },
               { name: 'Plus', price: '$29', analyses: '30 analyses / month', period: '/month', features: ['Everything in Free', 'Channel profile context', 'Competitor tracking', 'AI idea extraction & outlines'], cta: 'Get Plus', popular: true, highlight: true },
-              { name: 'Pro', price: '$49', analyses: '100 analyses / month', period: '/month', features: ['Everything in Plus', 'Channel analytics dashboard', 'Deep channel analysis (5/mo)', 'Competitor script writing'], cta: 'Get Pro', popular: false, highlight: false },
+              { name: 'Pro', price: '$49', analyses: '100 analyses / month', period: '/month', features: ['Everything in Plus', 'Competitor script writing'], cta: 'Get Pro', popular: false, highlight: false },
             ].map((plan, i) => (
               <RevealSection key={plan.name} delay={i * 80}>
                 <PricingCard plan={plan} onSelect={() => setAuthModal('signup')} />

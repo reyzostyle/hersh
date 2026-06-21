@@ -117,10 +117,41 @@ Deno.serve(async (req: Request) => {
 
     // Plan check — scripts are Pro only
     const { data: planRow } = await supabase
-      .from('user_tokens').select('plan').eq('user_id', userId).maybeSingle();
+      .from('user_tokens').select('plan, script_used, script_reset_at').eq('user_id', userId).maybeSingle();
     const userPlan = planRow?.plan || 'free';
     if (userPlan !== 'pro' && userPlan !== 'agency') {
       return new Response(JSON.stringify({ error: 'upgrade_required', plan_required: 'pro' }), {
+        status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    // Hidden monthly limit — Plus(pro): 30, Pro(agency): 50.
+    const ADMIN_EMAIL = 'reyzostyle@gmail.com';
+    const { data: { user: authUser } } = await supabase.auth.admin.getUserById(userId);
+    const isAdmin = authUser?.email === ADMIN_EMAIL;
+    const SCRIPT_LIMITS: Record<string, number> = { pro: 30, agency: 50 };
+    const scriptLimit = SCRIPT_LIMITS[userPlan] ?? 30;
+    let scriptUsed = planRow?.script_used || 0;
+    // Monthly reset.
+    if (planRow?.script_reset_at) {
+      if (new Date() > new Date(planRow.script_reset_at)) {
+        const newResetAt = new Date();
+        newResetAt.setDate(newResetAt.getDate() + 30);
+        await supabase.from('user_tokens')
+          .update({ script_used: 0, script_reset_at: newResetAt.toISOString() })
+          .eq('user_id', userId);
+        scriptUsed = 0;
+      }
+    } else {
+      // First-ever script: start the monthly window.
+      const newResetAt = new Date();
+      newResetAt.setDate(newResetAt.getDate() + 30);
+      await supabase.from('user_tokens')
+        .update({ script_reset_at: newResetAt.toISOString() })
+        .eq('user_id', userId);
+    }
+    if (!isAdmin && scriptUsed >= scriptLimit) {
+      return new Response(JSON.stringify({ error: 'limit_reached' }), {
         status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
@@ -179,6 +210,10 @@ Deno.serve(async (req: Request) => {
       .single();
 
     if (updateError) throw updateError;
+
+    await supabase.from('user_tokens')
+      .update({ script_used: scriptUsed + 1 })
+      .eq('user_id', userId);
 
     return new Response(
       JSON.stringify({ success: true, idea: updated }),

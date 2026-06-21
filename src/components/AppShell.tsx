@@ -7,7 +7,7 @@ export const MobileHeaderContext = createContext<{
   setRightAction: (node: React.ReactNode) => void;
 }>({ setRightAction: () => {} });
 
-export type NavTab = 'hooks' | 'hooklab' | 'upgrade' | 'settings' | 'support' | 'partners' | 'competitors' | 'analytics';
+export type NavTab = 'hooks' | 'hooklab' | 'upgrade' | 'settings' | 'support' | 'partners' | 'competitors';
 
 const ADMIN_EMAIL = 'reyzostyle@gmail.com';
 

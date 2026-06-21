@@ -70,8 +70,6 @@ const plans = [
     features: [
       '100 hook analyses / month',
       'Everything in Plus',
-      'Channel analytics dashboard',
-      'Deep channel analysis (5/mo)',
       'Competitor script writing',
     ],
     cta: 'Upgrade to Pro',

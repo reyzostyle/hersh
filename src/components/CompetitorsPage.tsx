@@ -116,6 +116,14 @@ function IdeaCard({ idea, onUpdated, isPro }: { idea: CompetitorIdea; onUpdated:
       if (!token) throw new Error('Not authenticated');
       const res = await callFunction('generate-competitor-script', token, { ideaId: idea.id });
       const data = await res.json();
+      if (data.error === 'upgrade_required') {
+        window.dispatchEvent(new CustomEvent('hershy:navigate', { detail: 'upgrade' }));
+        return;
+      }
+      if (data.error === 'limit_reached') {
+        setError('You\'ve reached your script generation limit for this month.');
+        return;
+      }
       if (!res.ok) throw new Error(data.error || 'Failed to generate script');
       onUpdated(data.idea);
       setScriptOpen(true);
