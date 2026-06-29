@@ -63,17 +63,10 @@ export function ScoreCircle({ score, size = 76, stroke = 7 }: { score: number; s
   );
 }
 
-const CRITERIA = [
-  { key: 'hook', label: 'Hook', max: 30 },
-  { key: 'retention', label: 'Retention', max: 25 },
-  { key: 'payoff', label: 'Payoff', max: 25 },
-  { key: 'delivery', label: 'Delivery', max: 20 },
-] as const;
+export interface ScoreCriterion { label: string; value: number; max: number; }
 
-type Breakdown = { hook: number; retention: number; payoff: number; delivery: number };
-
-/** The four scoring components shown as labelled progress bars. */
-export function ScoreBreakdown({ breakdown }: { breakdown: Breakdown }) {
+/** Scoring components shown as labelled progress bars (red->green by fill). */
+export function ScoreBreakdown({ items }: { items: ScoreCriterion[] }) {
   const [mounted, setMounted] = useState(false);
   useEffect(() => {
     const t = setTimeout(() => setMounted(true), 80);
@@ -82,13 +75,12 @@ export function ScoreBreakdown({ breakdown }: { breakdown: Breakdown }) {
 
   return (
     <div className="grid grid-cols-2 gap-x-5 gap-y-3">
-      {CRITERIA.map(c => {
-        const raw = (breakdown as Record<string, number>)[c.key] ?? 0;
-        const val = Math.max(0, Math.min(c.max, Math.round(raw)));
+      {items.map(c => {
+        const val = Math.max(0, Math.min(c.max, Math.round(c.value ?? 0)));
         const pct = (val / c.max) * 100;
         const color = scoreColor(pct);
         return (
-          <div key={c.key}>
+          <div key={c.label}>
             <div className="flex items-baseline justify-between mb-1">
               <span className="text-xs text-gray-400">{c.label}</span>
               <span className="text-xs font-semibold text-white">

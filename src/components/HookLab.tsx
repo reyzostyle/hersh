@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { getSessionToken } from '../lib/supabase';
 import { Sparkles, Loader2, Copy, Check, AlertTriangle, Wand2 } from 'lucide-react';
+import { ScoreCircle, ScoreBreakdown } from './ScoreCircle';
 
 const glass: React.CSSProperties = {
   background: 'rgba(255,255,255,0.04)',
@@ -10,13 +11,8 @@ const glass: React.CSSProperties = {
 };
 
 interface Rewrite { hook: string; why: string; }
-interface HookResult { score: number; verdict: string; issues: string[]; rewrites: Rewrite[]; }
-
-function scoreColor(score: number): string {
-  if (score >= 7.5) return '#34D399';
-  if (score >= 5) return '#FB923C';
-  return '#F87171';
-}
+interface HookBreakdown { scrollstop: number; curiosity: number; clarity: number; specificity: number; }
+interface HookResult { score: number; score_breakdown?: HookBreakdown; verdict: string; issues: string[]; rewrites: Rewrite[]; }
 
 function RewriteCard({ r }: { r: Rewrite }) {
   const [copied, setCopied] = useState(false);
@@ -39,6 +35,7 @@ function RewriteCard({ r }: { r: Rewrite }) {
 
 export function HookLab() {
   const [hook, setHook] = useState('');
+  const [context, setContext] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [result, setResult] = useState<HookResult | null>(null);
@@ -54,7 +51,7 @@ export function HookLab() {
       const res = await fetch('https://ezlousklksipvwuinpzq.supabase.co/functions/v1/analyze-hook-text', {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ hook: hook.trim() }),
+        body: JSON.stringify({ hook: hook.trim(), context: context.trim() || undefined }),
         signal: AbortSignal.timeout(45000),
       });
       const data = await res.json();
@@ -74,7 +71,7 @@ export function HookLab() {
     <div className="max-w-3xl mx-auto px-4 sm:px-6 pt-4 sm:pt-6 pb-12 animate-fade-in-up">
       <div className="hidden sm:block mb-6">
         <h1 className="text-2xl font-bold text-white mb-1">Hook Lab</h1>
-        <p className="text-sm text-gray-500">Paste a hook idea and get a score + 3 stronger rewrites — instantly.</p>
+        <p className="text-sm text-gray-500">Paste a hook idea and get a score + 3 stronger rewrites, instantly.</p>
       </div>
 
       {/* Input */}
@@ -98,6 +95,18 @@ export function HookLab() {
           style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }}
           onKeyDown={(e) => { if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') analyze(); }}
         />
+        <div className="mt-3">
+          <p className="text-xs text-gray-500 mb-1.5">Context for this hook <span className="text-gray-600">(optional — overrides your channel profile)</span></p>
+          <textarea
+            value={context}
+            onChange={(e) => setContext(e.target.value)}
+            maxLength={500}
+            rows={2}
+            placeholder="e.g. Fitness channel for busy dads, blunt no-BS tone. Leave empty to use your channel settings."
+            className="w-full px-4 py-3 rounded-xl text-white text-sm resize-none focus:outline-none"
+            style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }}
+          />
+        </div>
         <div className="flex items-center justify-between mt-3">
           <span className="text-xs text-gray-600">{hook.length}/600</span>
           <button
@@ -121,12 +130,24 @@ export function HookLab() {
       {/* Result */}
       {result && (
         <div className="mt-4 space-y-4 animate-fade-in">
-          <div className="rounded-2xl p-5 flex items-center gap-5" style={glass}>
-            <div className="flex flex-col items-center justify-center flex-shrink-0">
-              <span className="text-4xl font-bold leading-none" style={{ color: scoreColor(result.score) }}>{result.score}</span>
-              <span className="text-[10px] text-gray-500 uppercase tracking-wide mt-1">/ 10</span>
+          <div className="rounded-2xl p-5" style={glass}>
+            <div className="flex items-center gap-5">
+              <div className="flex flex-col items-center flex-shrink-0">
+                <ScoreCircle score={result.score} />
+                <span className="text-[10px] text-gray-500 uppercase tracking-wide mt-1">Score</span>
+              </div>
+              <p className="text-sm text-gray-200 leading-relaxed">{result.verdict}</p>
             </div>
-            <p className="text-sm text-gray-200 leading-relaxed">{result.verdict}</p>
+            {result.score_breakdown && (
+              <div className="mt-4 pt-4" style={{ borderTop: '1px solid rgba(255,255,255,0.07)' }}>
+                <ScoreBreakdown items={[
+                  { label: 'Scroll-stop', value: result.score_breakdown.scrollstop, max: 30 },
+                  { label: 'Curiosity', value: result.score_breakdown.curiosity, max: 30 },
+                  { label: 'Clarity', value: result.score_breakdown.clarity, max: 20 },
+                  { label: 'Specificity', value: result.score_breakdown.specificity, max: 20 },
+                ]} />
+              </div>
+            )}
           </div>
 
           {result.issues?.length > 0 && (

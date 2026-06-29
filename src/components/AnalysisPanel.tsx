@@ -208,7 +208,12 @@ export function AnalysisPanel({ analysis, open, onClose }: AnalysisPanelProps) {
                 </p>
                 {analysis.hook_analysis?.score_breakdown && (
                   <div className="mt-4 rounded-xl p-4" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }}>
-                    <ScoreBreakdown breakdown={analysis.hook_analysis.score_breakdown} />
+                    <ScoreBreakdown items={[
+                      { label: 'Hook', value: analysis.hook_analysis.score_breakdown.hook, max: 30 },
+                      { label: 'Retention', value: analysis.hook_analysis.score_breakdown.retention, max: 25 },
+                      { label: 'Payoff', value: analysis.hook_analysis.score_breakdown.payoff, max: 25 },
+                      { label: 'Delivery', value: analysis.hook_analysis.score_breakdown.delivery, max: 20 },
+                    ]} />
                   </div>
                 )}
               </div>

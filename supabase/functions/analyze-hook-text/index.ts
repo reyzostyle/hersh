@@ -80,32 +80,42 @@ Deno.serve(async (req: Request) => {
     const anthropicApiKey = Deno.env.get('ANTHROPIC_API_KEY');
     if (!anthropicApiKey) throw new Error('Anthropic API key not configured');
 
-    const profile = [
-      tokenRow?.channel_niche && `Channel niche: ${tokenRow.channel_niche}`,
-      tokenRow?.channel_description && `Channel description: ${tokenRow.channel_description}`,
-      tokenRow?.creator_level && `Creator level: ${tokenRow.creator_level}`,
-      context && `Extra context: ${context}`,
-    ].filter(Boolean).join('\n');
+    // Per-hook context, when provided, OVERRIDES the channel profile from settings.
+    const hasContext = context && typeof context === 'string' && context.trim();
+    const profile = (hasContext
+      ? [
+          `Creator context: ${context.trim()}`,
+          tokenRow?.creator_level && `Creator level: ${tokenRow.creator_level}`,
+        ]
+      : [
+          tokenRow?.channel_niche && `Channel niche: ${tokenRow.channel_niche}`,
+          tokenRow?.channel_description && `Channel description: ${tokenRow.channel_description}`,
+          tokenRow?.creator_level && `Creator level: ${tokenRow.creator_level}`,
+        ]
+    ).filter(Boolean).join('\n');
 
-    const prompt = `You are a ruthless short-form hook critic. Score the HOOK below — the opening line(s) of a YouTube Short / TikTok / Reel — on how well it stops the scroll in the first 2 seconds.
+    const prompt = `You are a ruthless short-form hook critic. Score the HOOK below - the opening line(s) of a YouTube Short / TikTok / Reel - on how well it stops the scroll in the first 2 seconds.
 
 ${profile ? `CREATOR CONTEXT:\n${profile}\n\n` : ''}HOOK TO ANALYZE:
 """${hook.trim()}"""
 
-SCORING (1.0-10.0, 0.5 steps) — use the FULL range in BOTH directions and reward genuinely strong hooks. Do NOT cap at 7. Anchors:
-- 9.0-10.0: exceptional. Instantly stops the scroll — strong curiosity gap, bold stakes, or specificity that forces the watch. Rare, but give it when earned.
-- 8.0-8.5: strong. Would perform well; clear tension/specificity, little to fix. Most hooks that genuinely nail it land here.
-- 6.5-7.5: solid. Works, but has one fixable weakness.
-- 4.5-6.0: mediocre/middle — generic, slow, or scrollable.
-- 1.0-4.0: weak — tells instead of hooks, no tension, no reason to stay.
-Calibrate fairly: a really good hook deserves an 8 or 9 — say so. But never inflate a weak or generic hook just to be nice.
+SCORING (score: integer 1-100). Build it from FOUR components, then SUM - do NOT pick a round number or default to the 70s:
+- Scroll-stop (0-30): does it grab attention in the first 2 seconds?
+- Curiosity (0-30): open loop, tension or intrigue that forces the watch?
+- Clarity (0-20): instantly understandable, zero confusion?
+- Specificity (0-20): concrete and specific, relevant to this creator's audience?
+score = scrollstop + curiosity + clarity + specificity. Output the EXACT sum, avoid magnet numbers (50, 70, 75, 80).
+Bands (sanity-check only): 85-100 exceptional (rare), 70-84 strong, 55-69 decent, 40-54 mediocre, 25-39 weak, 1-24 broken.
+A genuinely strong hook earns 80+; a generic or scrollable one MUST land below 60. Never inflate to be nice.
 - Be specific and concrete. No generic praise. Banned phrases: "engaging", "great hook", "good", "consider", "you could try", "make sure".
 - issues: 1-3 concrete reasons it loses the viewer (or why it works). Be blunt.
-- rewrites: EXACTLY 3 stronger versions, ready to paste, in the creator's likely voice. Each must use a different angle (e.g. curiosity gap, bold claim, pattern interrupt, specific number, stakes).
+- rewrites: EXACTLY 3 stronger versions, ready to paste, in the creator's likely voice. Each must use a different angle (curiosity gap, bold claim, pattern interrupt, specific number, stakes).
+- PUNCTUATION: never use em-dash (—) or en-dash (–) anywhere, only the regular hyphen (-).
 
 Return ONLY valid JSON, no markdown:
 {
-  "score": 6.5,
+  "score": <integer 1-100, the EXACT sum of the four components>,
+  "score_breakdown": { "scrollstop": <0-30>, "curiosity": <0-30>, "clarity": <0-20>, "specificity": <0-20> },
   "verdict": "one punchy sentence on the hook overall",
   "issues": ["...", "..."],
   "rewrites": [
@@ -124,7 +134,7 @@ Return ONLY valid JSON, no markdown:
       },
       body: JSON.stringify({
         model: 'claude-sonnet-4-6',
-        max_tokens: 1024,
+        max_tokens: 1200,
         messages: [{ role: 'user', content: prompt }],
       }),
     });
