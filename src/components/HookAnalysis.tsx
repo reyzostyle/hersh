@@ -323,15 +323,11 @@ export function HookAnalysis() {
         <div className="max-w-2xl mx-auto space-y-4">
 
           {/* URL Card */}
-          <div className="rounded-2xl p-6" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}>
-            <div className="flex items-center gap-2 mb-4">
-              <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: 'rgba(139,92,246,0.15)' }}>
-                <Link className="w-4 h-4 text-purple-400" />
-              </div>
-              <div>
-                <h2 className="text-white font-semibold text-sm">Analyze by URL</h2>
-                <p className="text-gray-500 text-xs">Paste any YouTube Shorts link</p>
-              </div>
+          <div className="rounded-2xl p-5" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }}>
+            <div className="flex items-center gap-2.5 mb-3.5">
+              <Link className="w-4 h-4 text-[#0EA4E9]" />
+              <h2 className="text-white font-medium text-sm">Analyze by URL</h2>
+              <span className="text-gray-600 text-xs">Paste any YouTube Shorts link</span>
             </div>
             <div className="flex flex-col sm:flex-row gap-2">
               <input
@@ -339,23 +335,23 @@ export function HookAnalysis() {
                 value={urlInput}
                 onChange={e => { setUrlInput(e.target.value); setUrlError(''); }}
                 onKeyDown={e => e.key === 'Enter' && urlInput.trim() && handleUrlSubmit()}
-                placeholder="youtube.com/shorts/... or paste a video ID"
+                placeholder="youtube.com/shorts/… or paste a video ID"
                 className="flex-1 text-sm px-4 py-3 rounded-xl text-white placeholder-gray-600 focus:outline-none transition-all"
                 style={{
-                  background: 'rgba(255,255,255,0.06)',
-                  border: `1px solid ${urlError ? 'rgba(248,113,113,0.5)' : 'rgba(255,255,255,0.1)'}`,
+                  background: 'rgba(255,255,255,0.04)',
+                  border: `1px solid ${urlError ? 'rgba(248,113,113,0.5)' : 'rgba(255,255,255,0.08)'}`,
                 }}
-                onFocus={e => { e.currentTarget.style.borderColor = '#8B5CF6'; }}
-                onBlur={e => { e.currentTarget.style.borderColor = urlError ? 'rgba(248,113,113,0.5)' : 'rgba(255,255,255,0.1)'; }}
+                onFocus={e => { e.currentTarget.style.borderColor = '#0EA4E9'; }}
+                onBlur={e => { e.currentTarget.style.borderColor = urlError ? 'rgba(248,113,113,0.5)' : 'rgba(255,255,255,0.08)'; }}
               />
               <button
                 onClick={handleUrlSubmit}
                 disabled={!urlInput.trim() || analyzing}
-                className="flex items-center justify-center gap-2 px-5 py-3 text-white rounded-xl text-sm font-semibold transition-opacity hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed sm:flex-shrink-0"
-                style={{ background: 'linear-gradient(135deg, #8B5CF6, #6D28D9)' }}
+                className="flex items-center justify-center gap-2 px-5 py-3 text-white rounded-xl text-sm font-medium transition-all active:scale-[0.98] hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed sm:flex-shrink-0"
+                style={{ background: '#0EA4E9' }}
               >
                 {geminiAnalyzing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
-                {geminiAnalyzing ? 'Analyzing...' : 'Analyze'}
+                {geminiAnalyzing ? 'Analyzing' : 'Analyze'}
               </button>
             </div>
             {urlError && <p className="mt-2 text-xs text-red-400">{urlError}</p>}
@@ -368,52 +364,38 @@ export function HookAnalysis() {
             onDragOver={e => { e.preventDefault(); setFileDragOver(true); }}
             onDragLeave={() => setFileDragOver(false)}
             onDrop={handleFileDrop}
-            className="rounded-2xl p-6 cursor-pointer transition-all"
+            className="rounded-2xl p-5 cursor-pointer transition-all"
             style={{
-              background: fileDragOver && isPro
-                ? 'rgba(52,211,153,0.08)'
-                : isPro
-                  ? 'rgba(52,211,153,0.04)'
-                  : 'rgba(255,255,255,0.03)',
-              border: `1px solid ${fileDragOver && isPro ? 'rgba(52,211,153,0.4)' : isPro ? 'rgba(52,211,153,0.2)' : 'rgba(255,255,255,0.07)'}`,
+              background: fileDragOver && isPro ? 'rgba(14,164,233,0.06)' : 'rgba(255,255,255,0.03)',
+              border: `1px solid ${fileDragOver && isPro ? 'rgba(14,164,233,0.4)' : 'rgba(255,255,255,0.07)'}`,
             }}
           >
-            <div className="flex items-center gap-2 mb-4">
-              <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: isPro ? 'rgba(52,211,153,0.15)' : 'rgba(255,255,255,0.06)' }}>
-                <Film className={`w-4 h-4 ${isPro ? 'text-emerald-400' : 'text-gray-500'}`} />
-              </div>
-              <div className="flex-1">
-                <div className="flex items-center gap-2">
-                  <h2 className={`font-semibold text-sm ${isPro ? 'text-white' : 'text-gray-400'}`}>
-                    Analyze by File
-                  </h2>
-                </div>
-                <p className={`text-xs ${isPro ? 'text-gray-500' : 'text-gray-600'}`}>
-                  Upload before publishing to get feedback first
-                </p>
-              </div>
-              {!isPro && <Lock className="w-4 h-4 text-gray-600 flex-shrink-0" />}
+            <div className="flex items-center gap-2.5 mb-3.5">
+              <Film className={`w-4 h-4 ${isPro ? 'text-[#0EA4E9]' : 'text-gray-500'}`} />
+              <h2 className={`font-medium text-sm ${isPro ? 'text-white' : 'text-gray-400'}`}>Analyze by File</h2>
+              <span className="text-gray-600 text-xs flex-1">Upload before publishing to get feedback first</span>
+              {!isPro && <Lock className="w-3.5 h-3.5 text-gray-600 flex-shrink-0" />}
             </div>
 
             <div
-              className="rounded-xl flex flex-col items-center justify-center gap-2 py-7 transition-all"
+              className="rounded-xl flex flex-col items-center justify-center gap-2 py-8 transition-all"
               style={{
-                border: `2px dashed ${fileDragOver && isPro ? 'rgba(52,211,153,0.5)' : isPro ? 'rgba(52,211,153,0.2)' : 'rgba(255,255,255,0.07)'}`,
-                background: isPro ? 'rgba(52,211,153,0.03)' : 'rgba(255,255,255,0.02)',
+                border: `1.5px dashed ${fileDragOver && isPro ? 'rgba(14,164,233,0.5)' : 'rgba(255,255,255,0.1)'}`,
+                background: fileDragOver && isPro ? 'rgba(14,164,233,0.04)' : 'rgba(255,255,255,0.02)',
               }}
             >
               {isPro ? (
                 <>
-                  <Film className={`w-8 h-8 ${fileDragOver ? 'text-emerald-400' : 'text-gray-600'}`} />
-                  <p className="text-gray-400 text-sm font-medium">
+                  <Film className={`w-7 h-7 ${fileDragOver ? 'text-[#0EA4E9]' : 'text-gray-600'}`} />
+                  <p className="text-gray-300 text-sm font-medium">
                     {fileDragOver ? 'Drop to analyze' : 'Click or drag & drop your video'}
                   </p>
-                  <p className="text-gray-600 text-xs">MP4, MOV, WebM, AVI - up to 300MB</p>
+                  <p className="text-gray-600 text-xs">MP4, MOV, WebM, AVI · up to 300MB</p>
                 </>
               ) : (
                 <>
-                  <Lock className="w-7 h-7 text-gray-700" />
-                  <p className="text-gray-500 text-sm font-medium">Upload a video file</p>
+                  <Lock className="w-6 h-6 text-gray-700" />
+                  <p className="text-gray-400 text-sm font-medium">Upload a video file</p>
                   <p className="text-gray-600 text-xs">Upgrade to analyze unpublished videos</p>
                 </>
               )}

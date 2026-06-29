@@ -10,6 +10,18 @@ const card: React.CSSProperties = {
   border: '1px solid rgba(255,255,255,0.07)',
 };
 
+// Break a long assessment into readable paragraphs: honor blank lines if the
+// model added them, otherwise group sentences ~2 per paragraph.
+function toParagraphs(text?: string): string[] {
+  if (!text) return [];
+  const byBreaks = text.split(/\n\s*\n/).map(s => s.trim()).filter(Boolean);
+  if (byBreaks.length > 1) return byBreaks;
+  const sentences = text.match(/[^.!?]+[.!?]+(?:\s|$)/g)?.map(s => s.trim()).filter(Boolean) || [text.trim()];
+  const paras: string[] = [];
+  for (let i = 0; i < sentences.length; i += 2) paras.push(sentences.slice(i, i + 2).join(' '));
+  return paras;
+}
+
 interface AnalysisPanelProps {
   analysis: Analysis | null;
   open: boolean;
@@ -183,13 +195,14 @@ export function AnalysisPanel({ analysis, open, onClose }: AnalysisPanelProps) {
             <>
               {/* Score + assessment */}
               <div className="rounded-2xl p-6" style={card}>
-                <div className="flex items-center gap-6">
+                <div className="flex items-center gap-4 mb-5">
                   {analysis.hook_analysis?.overall_score != null && (
-                    <ScoreCircle score={Number(analysis.hook_analysis.overall_score)} size={84} />
+                    <ScoreCircle score={Number(analysis.hook_analysis.overall_score)} size={76} />
                   )}
                   <div className="min-w-0">
+                    <p className="text-[11px] uppercase tracking-widest text-gray-500 mb-1.5">Overall score</p>
                     {(analysis.hook_analysis?.hook_type || analysis.hook_analysis?.video_format) && (
-                      <div className="flex flex-wrap gap-1.5 mb-2">
+                      <div className="flex flex-wrap gap-1.5">
                         {analysis.hook_analysis?.hook_type && (
                           <span className="text-[11px] px-2 py-0.5 rounded-full font-medium" style={{ background: 'rgba(139,92,246,0.12)', color: '#A78BFA', border: '1px solid rgba(139,92,246,0.25)' }}>
                             {analysis.hook_analysis.hook_type}
@@ -202,10 +215,12 @@ export function AnalysisPanel({ analysis, open, onClose }: AnalysisPanelProps) {
                         )}
                       </div>
                     )}
-                    <p className="text-[15px] text-gray-200 leading-relaxed whitespace-pre-line">
-                      {analysis.hook_analysis?.overall_assessment}
-                    </p>
                   </div>
+                </div>
+                <div className="space-y-3">
+                  {toParagraphs(analysis.hook_analysis?.overall_assessment).map((p, i) => (
+                    <p key={i} className="text-[15px] text-gray-300 leading-relaxed">{p}</p>
+                  ))}
                 </div>
                 {analysis.hook_analysis?.score_breakdown && (
                   <div className="mt-5 pt-5" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>

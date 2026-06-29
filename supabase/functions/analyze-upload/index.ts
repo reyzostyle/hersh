@@ -122,7 +122,7 @@ overall_score = hook + retention + payoff + delivery. Output the EXACT sum, avoi
 Bands (sanity-check only): 85-100 exceptional (rare), 70-84 strong, 55-69 decent with clear fixes, 40-54 below average, 25-39 weak, 1-24 broken.
 A strong Short earns 80+; a weak or average one MUST land below 60. Never inflate to be nice.
 
-OUTPUT (overall_assessment): 3-4 sentences, senior creator to a peer. No fixed template, vary your opening. Cover the main issue, how the hook performs specifically, one structural/visual observation, and end with the single most important fix. Sound like a real person, not a report.
+OUTPUT (overall_assessment): 3-4 sentences, senior creator to a peer. No fixed template, vary your opening. Cover the main issue, how the hook performs specifically, one structural/visual observation, and end with the single most important fix. Sound like a real person, not a report. Break it into 2-3 short paragraphs separated by a blank line (\\n\\n) so it's easy to read - never one dense block.
 
 PUNCTUATION: never use em-dash (—) or en-dash (–) anywhere. Only the regular hyphen (-).
 
