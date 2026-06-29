@@ -44,6 +44,7 @@ export interface Analysis {
   hook_analysis: {
     overall_assessment: string;
     overall_score?: number;
+    score_breakdown?: { hook: number; retention: number; payoff: number; delivery: number } | null;
     patterns: string[];
   };
   strong_spots: string[];

@@ -124,8 +124,6 @@ A strong Short earns 80+; a weak or average one MUST land below 60. Never inflat
 
 OUTPUT (overall_assessment): 3-4 sentences, senior creator to a peer. No fixed template, vary your opening. Cover the main issue, how the hook performs specifically, one structural/visual observation, and end with the single most important fix. Sound like a real person, not a report.
 
-new_hook_ideas: 3 hooks that are genuinely different angles (different hook types), not rewrites of the same idea. Mix lengths (one punchy 3-5 words, one extended 8-12+ words). Use specificity (numbers, timeframes, concrete outcomes). No generic phrases unless made specific.
-
 PUNCTUATION: never use em-dash (—) or en-dash (–) anywhere. Only the regular hyphen (-).
 
 TONE: peer-to-peer senior creator notes. Zero fluff, direct, specific, opinionated. Like texting a friend a real review.
@@ -166,10 +164,7 @@ Respond with valid JSON only:
   "score_breakdown": { "hook": <0-30>, "retention": <0-25>, "payoff": <0-25>, "delivery": <0-20> },
   "overall_assessment": "3-4 sentences about hook effectiveness, what works and what doesn't",
   "strong_spots": ["what specifically works and why (1-3 items, only real ones)"],
-  "weak_spots": ["issue + actionable fix (1-3 items, only real ones)"],
-  "new_hook_ideas": [
-    {"hook": "exact hook text", "reasoning": "why this works"}
-  ]
+  "weak_spots": ["issue + actionable fix (1-3 items, only real ones)"]
 }`;
 
   const claudeBody = JSON.stringify({ model: 'claude-sonnet-4-6', max_tokens: 2500, system: systemPrompt, messages: [{ role: 'user', content: prompt }] });
@@ -327,10 +322,10 @@ Deno.serve(async (req: Request) => {
         .insert({
           user_id: userId,
           video_ids: [],
-          hook_analysis: { overall_assessment: analysis.overall_assessment, overall_score: analysis.overall_score, title: videoTitle || null, source: 'upload' },
+          hook_analysis: { overall_assessment: analysis.overall_assessment, overall_score: analysis.overall_score, score_breakdown: analysis.score_breakdown || null, title: videoTitle || null, source: 'upload' },
           strong_spots: analysis.strong_spots || [],
           weak_spots: analysis.weak_spots,
-          new_hook_ideas: analysis.new_hook_ideas,
+          new_hook_ideas: [],
           analysis_type: 'advanced',
         })
         .select()

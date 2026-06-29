@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react';
 import { Analysis } from '../lib/supabase';
-import { Sparkles, AlertCircle, Lightbulb, X, TrendingUp, ThumbsUp, ThumbsDown, Send } from 'lucide-react';
+import { Sparkles, AlertCircle, X, TrendingUp, ThumbsUp, ThumbsDown, Send } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
-import { ScoreCircle } from './ScoreCircle';
+import { ScoreCircle, ScoreBreakdown } from './ScoreCircle';
 
 interface AnalysisPanelProps {
   analysis: Analysis | null;
@@ -206,6 +206,11 @@ export function AnalysisPanel({ analysis, open, onClose }: AnalysisPanelProps) {
                 <p className="text-gray-300 text-sm leading-relaxed whitespace-pre-line">
                   {analysis.hook_analysis?.overall_assessment}
                 </p>
+                {analysis.hook_analysis?.score_breakdown && (
+                  <div className="mt-4 rounded-xl p-4" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }}>
+                    <ScoreBreakdown breakdown={analysis.hook_analysis.score_breakdown} />
+                  </div>
+                )}
               </div>
 
               {(analysis as any).strong_spots && (analysis as any).strong_spots.length > 0 && (
@@ -239,30 +244,6 @@ export function AnalysisPanel({ analysis, open, onClose }: AnalysisPanelProps) {
                         <div className="flex gap-2">
                           <span className="text-orange-400 font-bold text-xs mt-0.5 flex-shrink-0">{idx + 1}</span>
                           <p className="text-gray-300 text-sm leading-snug">{spot}</p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {analysis.new_hook_ideas && analysis.new_hook_ideas.length > 0 && (
-                <div>
-                  <h3 className="text-white font-semibold mb-3 flex items-center gap-2 text-sm uppercase tracking-wide">
-                    <Lightbulb className="w-4 h-4 text-yellow-400" />
-                    New Hook Ideas
-                  </h3>
-                  <div className="space-y-3">
-                    {analysis.new_hook_ideas.map((idea, idx) => (
-                      <div key={idx} className="rounded-lg p-4" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}>
-                        <div className="flex items-start gap-3">
-                          <div className="w-6 h-6 rounded-full bg-[#0EA4E9]/20 flex items-center justify-center flex-shrink-0 mt-0.5">
-                            <span className="text-[#0EA4E9] font-bold text-xs">{idx + 1}</span>
-                          </div>
-                          <div>
-                            <p className="text-white font-medium text-sm mb-1">"{idea.hook}"</p>
-                            <p className="text-gray-500 text-xs leading-relaxed">{idea.reasoning}</p>
-                          </div>
                         </div>
                       </div>
                     ))}
