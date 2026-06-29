@@ -37,7 +37,7 @@ Respond ONLY with valid JSON:
   "overall_energy": "low|medium|high"
 }`;
 
-  const models = ['gemini-2.5-flash', 'gemini-2.5-flash-lite', 'gemini-2.0-flash-001'];
+  const models = ['gemini-2.5-flash', 'gemini-2.5-flash-lite', 'gemini-2.0-flash'];
   const body = JSON.stringify({
     contents: [{ parts: [
       { file_data: { mime_type: mimeType, file_uri: fileUri } },
