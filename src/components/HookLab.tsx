@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { getSessionToken } from '../lib/supabase';
-import { Sparkles, Loader2, Copy, Check, AlertTriangle, Wand2 } from 'lucide-react';
+import { Sparkles, Loader2, Copy, Check, AlertTriangle, Wand2, X } from 'lucide-react';
 import { ScoreCircle, ScoreBreakdown } from './ScoreCircle';
 
 const glass: React.CSSProperties = {
@@ -85,20 +85,26 @@ export function HookLab() {
           onChange={(e) => setHook(e.target.value)}
           maxLength={600}
           rows={3}
-          placeholder="Paste your hook — the first line(s) of your Short…"
+          placeholder="Paste your hook"
           className="w-full px-4 py-3.5 bg-transparent text-white text-[15px] leading-relaxed resize-none focus:outline-none placeholder:text-gray-600"
           onKeyDown={(e) => { if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') analyze(); }}
         />
 
         {showContext ? (
           <div className="px-1.5 pb-1.5">
+            <div className="flex items-center justify-between px-1 mb-1.5">
+              <span className="text-xs text-gray-500">Context <span className="text-gray-600">overrides your channel profile</span></span>
+              <button onClick={() => setShowContext(false)} className="text-gray-600 hover:text-gray-300 transition-colors p-0.5" title="Hide context">
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </div>
             <textarea
               value={context}
               onChange={(e) => setContext(e.target.value)}
               maxLength={500}
               rows={2}
               autoFocus
-              placeholder="Context for this hook, e.g. fitness channel for busy dads, blunt tone. Overrides your channel profile."
+              placeholder="e.g. fitness channel for busy dads, blunt tone"
               className="w-full px-4 py-3 rounded-xl text-white text-sm resize-none focus:outline-none placeholder:text-gray-600"
               style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)' }}
             />
