@@ -38,7 +38,7 @@ Respond ONLY with valid JSON, no markdown:
   "overall_energy": "low|medium|high"
 }`;
 
-  const models = ['gemini-2.5-flash', 'gemini-2.5-flash-lite', 'gemini-2.0-flash'];
+  const models = ['gemini-2.5-flash', 'gemini-2.5-flash-lite'];
   const geminiBody = JSON.stringify({
     contents: [{
       parts: [
