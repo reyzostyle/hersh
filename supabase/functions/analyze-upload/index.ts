@@ -16,6 +16,30 @@ function deleteGeminiFile(geminiFileName: string) {
   }
 }
 
+const GEMINI_MODELS = ['gemini-2.5-flash', 'gemini-2.5-flash-lite', 'gemini-2.5-pro'];
+const sleep = (ms: number) => new Promise(r => setTimeout(r, ms));
+
+// Resilient Gemini call: rotates models and retries transient errors
+// (503/429/5xx) with exponential backoff across multiple rounds.
+async function callGeminiWithRetry(body: string, apiKey: string): Promise<Response> {
+  let last: Response | null = null;
+  const ROUNDS = 3;
+  for (let round = 0; round < ROUNDS; round++) {
+    for (const model of GEMINI_MODELS) {
+      const res = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
+        { method: 'POST', headers: { 'Content-Type': 'application/json' }, body }
+      );
+      if (res.ok) return res;
+      last = res;
+      const transient = res.status === 503 || res.status === 429 || res.status >= 500;
+      if (!transient) return res;
+      await sleep(Math.min(1000 * Math.pow(2, round), 8000));
+    }
+  }
+  return last as Response;
+}
+
 async function analyzeVideoWithGeminiFile(fileUri: string, mimeType: string): Promise<{
   transcript: string; hook_visual: string; visual_observations: string; overall_energy: string;
 }> {
@@ -37,7 +61,6 @@ Respond ONLY with valid JSON:
   "overall_energy": "low|medium|high"
 }`;
 
-  const models = ['gemini-2.5-flash', 'gemini-2.5-flash-lite'];
   const body = JSON.stringify({
     contents: [{ parts: [
       { file_data: { mime_type: mimeType, file_uri: fileUri } },
@@ -46,23 +69,8 @@ Respond ONLY with valid JSON:
     generationConfig: { temperature: 0.2, maxOutputTokens: 2048 },
   });
 
-  let response: Response | null = null;
-  let lastError = '';
-  for (const model of models) {
-    for (let attempt = 1; attempt <= 2; attempt++) {
-      response = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${geminiApiKey}`,
-        { method: 'POST', headers: { 'Content-Type': 'application/json' }, body }
-      );
-      if (response.ok) break;
-      lastError = await response.text();
-      if ((response.status === 503 || response.status === 429) && attempt < 2) await new Promise(r => setTimeout(r, 4000));
-      else break;
-    }
-    if (response?.ok) break;
-  }
-
-  if (!response?.ok) throw new Error(`Gemini API error: ${lastError}`);
+  const response = await callGeminiWithRetry(body, geminiApiKey);
+  if (!response.ok) throw new Error(`Gemini API error: ${await response.text()}`);
 
   const data = await response.json();
   const content = data.candidates?.[0]?.content?.parts?.[0]?.text;

@@ -11,6 +11,32 @@ interface RequestBody {
   videoContext?: string;
 }
 
+const GEMINI_MODELS = ['gemini-2.5-flash', 'gemini-2.5-flash-lite', 'gemini-2.5-pro'];
+const sleep = (ms: number) => new Promise(r => setTimeout(r, ms));
+
+// Resilient Gemini call: rotates through models and retries transient errors
+// (503 high-demand, 429 rate limit, 5xx) with exponential backoff across
+// multiple rounds, so a temporary spike on one model doesn't fail the request.
+async function callGeminiWithRetry(body: string, apiKey: string): Promise<Response> {
+  let last: Response | null = null;
+  const ROUNDS = 3;
+  for (let round = 0; round < ROUNDS; round++) {
+    for (const model of GEMINI_MODELS) {
+      const res = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
+        { method: 'POST', headers: { 'Content-Type': 'application/json' }, body }
+      );
+      if (res.ok) { console.log(`[gemini] Success with ${model} (round ${round + 1})`); return res; }
+      last = res;
+      const transient = res.status === 503 || res.status === 429 || res.status >= 500;
+      console.log(`[gemini] ${model} failed (${res.status}), transient=${transient}, round ${round + 1}`);
+      if (!transient) return res; // 400/404 etc. won't be fixed by retrying
+      await sleep(Math.min(1000 * Math.pow(2, round), 8000)); // 1s, 2s, 4s backoff between rounds
+    }
+  }
+  return last as Response;
+}
+
 async function analyzeVideoWithGemini(videoId: string): Promise<{
   transcript: string;
   hook_visual: string;
@@ -38,7 +64,6 @@ Respond ONLY with valid JSON, no markdown:
   "overall_energy": "low|medium|high"
 }`;
 
-  const models = ['gemini-2.5-flash', 'gemini-2.5-flash-lite'];
   const geminiBody = JSON.stringify({
     contents: [{
       parts: [
@@ -49,30 +74,9 @@ Respond ONLY with valid JSON, no markdown:
     generationConfig: { temperature: 0.2, maxOutputTokens: 2048 },
   });
 
-  let response: Response | null = null;
-  let lastError = '';
-
-  for (const model of models) {
-    console.log(`[gemini] Trying model: ${model}`);
-    for (let attempt = 1; attempt <= 2; attempt++) {
-      response = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${geminiApiKey}`,
-        { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: geminiBody }
-      );
-      if (response.ok) { console.log(`[gemini] Success with ${model}`); break; }
-      const status = response.status;
-      lastError = await response.text();
-      if ((status === 503 || status === 429) && attempt < 2) {
-        console.log(`[gemini] ${model} attempt ${attempt} failed (${status}), retrying in 4s...`);
-        await new Promise(r => setTimeout(r, 4000));
-      } else break;
-    }
-    if (response?.ok) break;
-    console.log(`[gemini] ${model} unavailable, trying next...`);
-  }
-
-  if (!response?.ok) {
-    throw new Error(`Gemini API error: ${lastError}`);
+  const response = await callGeminiWithRetry(geminiBody, geminiApiKey);
+  if (!response.ok) {
+    throw new Error(`Gemini API error: ${await response.text()}`);
   }
 
   const data = await response.json();
