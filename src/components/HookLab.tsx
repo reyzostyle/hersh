@@ -14,21 +14,24 @@ interface Rewrite { hook: string; why: string; }
 interface HookBreakdown { scrollstop: number; curiosity: number; clarity: number; specificity: number; }
 interface HookResult { score: number; score_breakdown?: HookBreakdown; verdict: string; issues: string[]; rewrites: Rewrite[]; }
 
-function RewriteCard({ r }: { r: Rewrite }) {
+function RewriteCard({ r, index }: { r: Rewrite; index: number }) {
   const [copied, setCopied] = useState(false);
   return (
-    <div className="rounded-xl p-4" style={{ background: 'rgba(14,164,233,0.06)', border: '1px solid rgba(14,164,233,0.18)' }}>
-      <div className="flex items-start justify-between gap-3">
-        <p className="text-sm font-medium leading-relaxed" style={{ color: '#38BDF8' }}>"{r.hook}"</p>
+    <div className="group rounded-xl p-4 transition-colors" style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.07)' }}>
+      <div className="flex items-start gap-3">
+        <span className="flex-shrink-0 text-xs font-semibold text-gray-600 mt-0.5 w-4">{index + 1}</span>
+        <div className="min-w-0 flex-1">
+          <p className="text-sm font-medium leading-relaxed text-gray-100">{r.hook}</p>
+          <p className="text-xs text-gray-500 leading-relaxed mt-1.5">{r.why}</p>
+        </div>
         <button
           onClick={() => { navigator.clipboard.writeText(r.hook); setCopied(true); setTimeout(() => setCopied(false), 1500); }}
-          className="flex-shrink-0 p-1.5 text-gray-400 hover:text-white rounded-md"
+          className="flex-shrink-0 p-1.5 text-gray-500 hover:text-white rounded-md transition-colors"
           title="Copy"
         >
-          {copied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+          {copied ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
         </button>
       </div>
-      <p className="text-xs text-gray-500 leading-relaxed mt-1.5">{r.why}</p>
     </div>
   );
 }
@@ -36,6 +39,7 @@ function RewriteCard({ r }: { r: Rewrite }) {
 export function HookLab() {
   const [hook, setHook] = useState('');
   const [context, setContext] = useState('');
+  const [showContext, setShowContext] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [result, setResult] = useState<HookResult | null>(null);
@@ -69,54 +73,55 @@ export function HookLab() {
 
   return (
     <div className="max-w-3xl mx-auto px-4 sm:px-6 pt-4 sm:pt-6 pb-12 animate-fade-in-up">
-      <div className="hidden sm:block mb-6">
-        <h1 className="text-2xl font-bold text-white mb-1">Hook Lab</h1>
-        <p className="text-sm text-gray-500">Paste a hook idea and get a score + 3 stronger rewrites, instantly.</p>
+      <div className="mb-7">
+        <h1 className="text-2xl font-bold text-white mb-1 tracking-tight">Hook Lab</h1>
+        <p className="text-sm text-gray-500">Paste a hook, get a score and fresh angles to make it land.</p>
       </div>
 
       {/* Input */}
-      <div className="rounded-2xl p-5" style={glass}>
-        <div className="flex items-center gap-2 mb-3">
-          <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(14,164,233,0.12)', border: '1px solid rgba(14,164,233,0.2)' }}>
-            <Sparkles className="w-4 h-4 text-[#0EA4E9]" />
-          </div>
-          <div>
-            <p className="text-white font-semibold text-sm">Your hook</p>
-            <p className="text-xs text-gray-500">The first line(s) of your Short</p>
-          </div>
-        </div>
+      <div className="rounded-2xl p-1.5" style={glass}>
         <textarea
           value={hook}
           onChange={(e) => setHook(e.target.value)}
           maxLength={600}
           rows={3}
-          placeholder="e.g. I tried the viral $5 morning routine for 30 days…"
-          className="w-full px-4 py-3 rounded-xl text-white text-sm resize-none focus:outline-none"
-          style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }}
+          placeholder="Paste your hook — the first line(s) of your Short…"
+          className="w-full px-4 py-3.5 bg-transparent text-white text-[15px] leading-relaxed resize-none focus:outline-none placeholder:text-gray-600"
           onKeyDown={(e) => { if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') analyze(); }}
         />
-        <div className="mt-3">
-          <p className="text-xs text-gray-500 mb-1.5">Context for this hook <span className="text-gray-600">(optional — overrides your channel profile)</span></p>
-          <textarea
-            value={context}
-            onChange={(e) => setContext(e.target.value)}
-            maxLength={500}
-            rows={2}
-            placeholder="e.g. Fitness channel for busy dads, blunt no-BS tone. Leave empty to use your channel settings."
-            className="w-full px-4 py-3 rounded-xl text-white text-sm resize-none focus:outline-none"
-            style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }}
-          />
-        </div>
-        <div className="flex items-center justify-between mt-3">
-          <span className="text-xs text-gray-600">{hook.length}/600</span>
+
+        {showContext ? (
+          <div className="px-1.5 pb-1.5">
+            <textarea
+              value={context}
+              onChange={(e) => setContext(e.target.value)}
+              maxLength={500}
+              rows={2}
+              autoFocus
+              placeholder="Context for this hook, e.g. fitness channel for busy dads, blunt tone. Overrides your channel profile."
+              className="w-full px-4 py-3 rounded-xl text-white text-sm resize-none focus:outline-none placeholder:text-gray-600"
+              style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)' }}
+            />
+          </div>
+        ) : null}
+
+        <div className="flex items-center justify-between gap-3 px-3 pb-2 pt-1">
+          <div className="flex items-center gap-3 min-w-0">
+            {!showContext && (
+              <button onClick={() => setShowContext(true)} className="flex items-center gap-1 text-xs text-gray-500 hover:text-gray-300 transition-colors">
+                <Sparkles className="w-3.5 h-3.5" /> Add context
+              </button>
+            )}
+            <span className="text-xs text-gray-600">{hook.length}/600</span>
+          </div>
           <button
             onClick={analyze}
             disabled={loading || !hook.trim()}
-            className="flex items-center gap-2 px-5 py-2.5 text-white text-sm font-semibold rounded-xl hover:opacity-90 disabled:opacity-50 transition-opacity"
+            className="flex items-center gap-2 px-4 py-2 text-white text-sm font-medium rounded-lg disabled:opacity-40 transition-all active:scale-[0.98]"
             style={{ background: '#0EA4E9' }}
           >
             {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Wand2 className="w-4 h-4" />}
-            {loading ? 'Analyzing…' : 'Analyze hook'}
+            {loading ? 'Analyzing' : 'Analyze'}
           </button>
         </div>
       </div>
@@ -129,17 +134,14 @@ export function HookLab() {
 
       {/* Result */}
       {result && (
-        <div className="mt-4 space-y-4 animate-fade-in">
-          <div className="rounded-2xl p-5" style={glass}>
-            <div className="flex items-center gap-5">
-              <div className="flex flex-col items-center flex-shrink-0">
-                <ScoreCircle score={result.score} />
-                <span className="text-[10px] text-gray-500 uppercase tracking-wide mt-1">Score</span>
-              </div>
-              <p className="text-sm text-gray-200 leading-relaxed">{result.verdict}</p>
+        <div className="mt-4 space-y-3 animate-fade-in">
+          <div className="rounded-2xl p-6" style={glass}>
+            <div className="flex items-center gap-6">
+              <ScoreCircle score={result.score} size={84} />
+              <p className="text-[15px] text-gray-200 leading-relaxed">{result.verdict}</p>
             </div>
             {result.score_breakdown && (
-              <div className="mt-4 pt-4" style={{ borderTop: '1px solid rgba(255,255,255,0.07)' }}>
+              <div className="mt-5 pt-5" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
                 <ScoreBreakdown items={[
                   { label: 'Scroll-stop', value: result.score_breakdown.scrollstop, max: 30 },
                   { label: 'Curiosity', value: result.score_breakdown.curiosity, max: 30 },
@@ -151,9 +153,9 @@ export function HookLab() {
           </div>
 
           {result.issues?.length > 0 && (
-            <div className="rounded-2xl p-5" style={glass}>
-              <p className="text-xs font-semibold uppercase tracking-widest text-gray-500 mb-3">What's holding it back</p>
-              <ul className="space-y-2.5">
+            <div className="rounded-2xl p-6" style={glass}>
+              <p className="text-xs font-semibold uppercase tracking-widest text-gray-500 mb-4">What's holding it back</p>
+              <ul className="space-y-3">
                 {result.issues.map((it, i) => (
                   <li key={i} className="flex items-start gap-2.5 text-sm text-gray-300 leading-relaxed">
                     <AlertTriangle className="w-3.5 h-3.5 text-orange-400 flex-shrink-0 mt-0.5" />
@@ -165,10 +167,13 @@ export function HookLab() {
           )}
 
           {result.rewrites?.length > 0 && (
-            <div className="rounded-2xl p-5" style={glass}>
-              <p className="text-xs font-semibold uppercase tracking-widest text-gray-500 mb-3">Stronger rewrites</p>
+            <div className="rounded-2xl p-6" style={glass}>
+              <div className="mb-4">
+                <p className="text-xs font-semibold uppercase tracking-widest text-gray-500">Directions to explore</p>
+                <p className="text-xs text-gray-600 mt-1">Angles to adapt in your own voice, not final copy.</p>
+              </div>
               <div className="space-y-2.5">
-                {result.rewrites.map((r, i) => <RewriteCard key={i} r={r} />)}
+                {result.rewrites.map((r, i) => <RewriteCard key={i} r={r} index={i} />)}
               </div>
             </div>
           )}

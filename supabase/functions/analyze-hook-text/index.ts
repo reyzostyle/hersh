@@ -109,7 +109,7 @@ Bands (sanity-check only): 85-100 exceptional (rare), 70-84 strong, 55-69 decent
 A genuinely strong hook earns 80+; a generic or scrollable one MUST land below 60. Never inflate to be nice.
 - Be specific and concrete. No generic praise. Banned phrases: "engaging", "great hook", "good", "consider", "you could try", "make sure".
 - issues: 1-3 concrete reasons it loses the viewer (or why it works). Be blunt.
-- rewrites: EXACTLY 3 stronger versions, ready to paste, in the creator's likely voice. Each must use a different angle (curiosity gap, bold claim, pattern interrupt, specific number, stakes).
+- rewrites: EXACTLY 3 different DIRECTIONS to inspire the creator, not final copy. Each is a distinct angle they can adapt in their own voice (curiosity gap, bold claim, pattern interrupt, specific number, stakes). In "why", name the angle and what makes it pull. Variety matters more than polish - give 3 genuinely different starting points.
 - PUNCTUATION: never use em-dash (—) or en-dash (–) anywhere, only the regular hyphen (-).
 
 Return ONLY valid JSON, no markdown:
