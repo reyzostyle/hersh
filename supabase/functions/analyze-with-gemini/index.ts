@@ -176,17 +176,15 @@ CREATOR LEVEL: ${level}
 - intermediate: skip fundamentals (they know hook/retention/CTA). Focus on execution and what to change specifically.
 - advanced: reference advanced concepts (pattern interrupts, retention curves, loop mechanics, cold opens). Challenge assumptions, be opinionated.
 
-SCORING (overall_score 1.0-10.0, .5 steps). Use the FULL range in BOTH directions. Do NOT cap at 7 or magnetize to 6-7. Viral views ≠ good hook.
-1-2: broken, no hook, viewer leaves in 2s
-2.5-3.5: very weak, generic, clear retention killers
-4-4.5: below avg, poor execution, needs rework
-5-5.5: average, soft hook / dragging pace / weak ending
-6-6.5: decent, fixable issues holding it back
-7-7.5: solid, hook lands, 1-2 specific issues
-8-8.5: strong, near-clean, minor improvements only
-9-9.5: exceptional, rare
-10: perfect, almost never
-Calibrate fairly: a genuinely strong Short DESERVES an 8 or 9 — give it when earned, don't hedge down to 7. But never inflate a weak or average video just to be nice. Reserve 9+ for the truly exceptional.
+SCORING (overall_score: integer 1-100). Build the score from components so it actually spreads — do NOT pick a round number and do NOT default to the 70s.
+First score FOUR components honestly, then SUM them into overall_score:
+- Hook strength (0-30): does the first 0-3s stop the scroll for THIS format's hook?
+- Retention & pacing (0-25): does it hold attention — no dead air, no drag, no filler?
+- Payoff & ending (0-25): does it deliver on the hook's promise and end with a reason to stay/act?
+- Clarity & delivery (0-20): audio, visuals, energy, comprehension.
+overall_score = hook + retention + payoff + delivery. Output the EXACT sum. Avoid magnet numbers (50, 70, 75, 80, 85) — if the math lands on 73 or 61, say 73 or 61.
+Bands for sanity-check only: 85-100 exceptional (rare), 70-84 strong, 55-69 decent with clear fixes, 40-54 below average, 25-39 weak, 1-24 broken.
+A genuinely strong Short earns 80+ when each component is high. A weak or average video MUST land below 60. Viral views ≠ good hook. Never inflate to be nice, never hedge a strong one down.
 
 HOOK TYPES (id the type, judge execution for THAT type): curiosity gap, pattern interrupt, contrarian, story cold open, transformation/result-first, direct question, shock/surprise, list/number.
 
@@ -262,7 +260,8 @@ Analyze the hook and overall video performance. Use both the transcript AND visu
 
 Respond with valid JSON only:
 {
-  "overall_score": <number 1.0-10.0, use .5 increments per rubric above>,
+  "overall_score": <integer 1-100, the EXACT sum of the four components per the scoring rubric above>,
+  "score_breakdown": { "hook": <0-30>, "retention": <0-25>, "payoff": <0-25>, "delivery": <0-20> },
   "hook_type": "<identified hook type from the list above>",
   "video_format": "<identified video format from the list above>",
   "overall_assessment": "3-4 sentences about hook effectiveness, what works and what doesn't, referencing both audio/transcript and visuals",

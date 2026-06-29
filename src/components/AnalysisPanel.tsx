@@ -3,6 +3,7 @@ import { Analysis } from '../lib/supabase';
 import { Sparkles, AlertCircle, Lightbulb, X, TrendingUp, ThumbsUp, ThumbsDown, Send } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
+import { ScoreCircle } from './ScoreCircle';
 
 interface AnalysisPanelProps {
   analysis: Analysis | null;
@@ -182,17 +183,9 @@ export function AnalysisPanel({ analysis, open, onClose }: AnalysisPanelProps) {
                     Overall Assessment
                   </h3>
                   {analysis.hook_analysis?.overall_score != null && (
-                    <div className="flex items-center gap-1.5">
-                      <span className="text-xs text-gray-500 uppercase tracking-wide">Score</span>
-                      <span className={`text-lg font-bold ${
-                        analysis.hook_analysis.overall_score >= 7 ? 'text-emerald-400' :
-                        analysis.hook_analysis.overall_score >= 4 ? 'text-yellow-400' : 'text-red-400'
-                      }`}>
-                        {Number(analysis.hook_analysis.overall_score) % 1 === 0
-                          ? analysis.hook_analysis.overall_score
-                          : Number(analysis.hook_analysis.overall_score).toFixed(1)
-                        }<span className="text-xs text-gray-600 font-normal">/10</span>
-                      </span>
+                    <div className="flex flex-col items-center gap-1">
+                      <ScoreCircle score={Number(analysis.hook_analysis.overall_score)} />
+                      <span className="text-[10px] text-gray-500 uppercase tracking-wide">Score</span>
                     </div>
                   )}
                 </div>

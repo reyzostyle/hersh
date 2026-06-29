@@ -112,6 +112,16 @@ HARD RULES
 5. No flattery. No recap of what the video does. Tell them what's wrong.
 6. strong_spots and weak_spots: only what's genuinely true, min 1 max 3 each. Don't pad.
 
+SCORING (overall_score: integer 1-100). Build it from components so it spreads — do NOT pick a round number or default to the 70s.
+Score FOUR components, then SUM into overall_score:
+- Hook strength (0-30): does the first 0-3s stop the scroll for THIS format's hook?
+- Retention & pacing (0-25): does it hold attention — no dead air, no drag, no filler?
+- Payoff & ending (0-25): does it deliver on the hook's promise and end with a reason to stay/act?
+- Clarity & delivery (0-20): audio, visuals, energy, comprehension.
+overall_score = hook + retention + payoff + delivery. Output the EXACT sum, avoid magnet numbers (50, 70, 75, 80).
+Bands (sanity-check only): 85-100 exceptional (rare), 70-84 strong, 55-69 decent with clear fixes, 40-54 below average, 25-39 weak, 1-24 broken.
+A strong Short earns 80+; a weak or average one MUST land below 60. Never inflate to be nice.
+
 OUTPUT (overall_assessment): 3-4 sentences, senior creator to a peer. No fixed template, vary your opening. Cover the main issue, how the hook performs specifically, one structural/visual observation, and end with the single most important fix. Sound like a real person, not a report.
 
 new_hook_ideas: 3 hooks that are genuinely different angles (different hook types), not rewrites of the same idea. Mix lengths (one punchy 3-5 words, one extended 8-12+ words). Use specificity (numbers, timeframes, concrete outcomes). No generic phrases unless made specific.
@@ -152,7 +162,8 @@ ${videoContext?.trim() || 'N/A — no extra context provided'}
 
 Respond with valid JSON only:
 {
-  "overall_score": 6,
+  "overall_score": <integer 1-100, the EXACT sum of the four scoring components above>,
+  "score_breakdown": { "hook": <0-30>, "retention": <0-25>, "payoff": <0-25>, "delivery": <0-20> },
   "overall_assessment": "3-4 sentences about hook effectiveness, what works and what doesn't",
   "strong_spots": ["what specifically works and why (1-3 items, only real ones)"],
   "weak_spots": ["issue + actionable fix (1-3 items, only real ones)"],

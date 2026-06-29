@@ -267,7 +267,7 @@ function DemoSection() {
         <div className="rounded-xl p-4 sm:p-5 md:col-span-2 motion-card" style={glass}>
           <div className="flex items-center justify-between mb-3">
             <p className="text-xs text-gray-500 uppercase tracking-wide">Overall Assessment</p>
-            <div className="px-2.5 py-1 rounded-full text-xs font-bold" style={{ background: 'rgba(251,146,60,0.15)', color: '#FB923C', border: '1px solid rgba(251,146,60,0.25)' }}>Score: 4/10</div>
+            <div className="px-2.5 py-1 rounded-full text-xs font-bold" style={{ background: 'rgba(251,146,60,0.15)', color: '#FB923C', border: '1px solid rgba(251,146,60,0.25)' }}>Score: 42</div>
           </div>
           <div className="space-y-2.5 text-sm text-gray-300 leading-relaxed">
             <p className="text-white font-medium">The hook tells instead of hooks — it describes the topic instead of creating tension.</p>
@@ -604,7 +604,7 @@ export function LandingPage() {
 
           {/* Left pills */}
           <div className="hidden lg:flex flex-col gap-3 absolute left-8 top-1/2 -translate-y-1/2 items-start" style={{ opacity: 0.35 }}>
-            <span className="text-xs px-3 py-1.5 rounded-full text-white" style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }}>Hook score: 8.5/10</span>
+            <span className="text-xs px-3 py-1.5 rounded-full text-white" style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }}>Hook score: 88</span>
             <span className="text-xs px-3 py-1.5 rounded-full" style={{ background: 'rgba(139,92,246,0.1)', border: '1px solid rgba(139,92,246,0.2)', color: '#A78BFA' }}>Curiosity gap</span>
             <span className="text-xs px-3 py-1.5 rounded-full" style={{ background: 'rgba(251,146,60,0.08)', border: '1px solid rgba(251,146,60,0.15)', color: '#FB923C' }}>2 weak spots found</span>
             <span className="text-xs px-3 py-1.5 rounded-full text-emerald-400" style={{ background: 'rgba(52,211,153,0.08)', border: '1px solid rgba(52,211,153,0.15)' }}>Competitor idea adapted</span>
