@@ -1,9 +1,14 @@
 import { useEffect, useState } from 'react';
 import { Analysis } from '../lib/supabase';
-import { Sparkles, AlertCircle, X, TrendingUp, ThumbsUp, ThumbsDown, Send } from 'lucide-react';
+import { Sparkles, AlertCircle, X, ThumbsUp, ThumbsDown, Send } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { ScoreCircle, ScoreBreakdown } from './ScoreCircle';
+
+const card: React.CSSProperties = {
+  background: 'rgba(255,255,255,0.03)',
+  border: '1px solid rgba(255,255,255,0.07)',
+};
 
 interface AnalysisPanelProps {
   analysis: Analysis | null;
@@ -171,43 +176,39 @@ export function AnalysisPanel({ analysis, open, onClose }: AnalysisPanelProps) {
           </button>
         </div>
 
-        <div className="flex-1 overflow-y-auto px-6 py-5 space-y-6">
+        <div className="flex-1 overflow-y-auto px-5 py-5 space-y-3">
           {!analysis ? (
             <p className="text-gray-500 text-sm">No analysis yet. Select videos and click Analyze.</p>
           ) : (
             <>
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <h3 className="text-white font-semibold flex items-center gap-2 text-sm uppercase tracking-wide">
-                    <TrendingUp className="w-4 h-4 text-[#0EA4E9]" />
-                    Overall Assessment
-                  </h3>
+              {/* Score + assessment */}
+              <div className="rounded-2xl p-6" style={card}>
+                <div className="flex items-center gap-6">
                   {analysis.hook_analysis?.overall_score != null && (
-                    <div className="flex flex-col items-center gap-1">
-                      <ScoreCircle score={Number(analysis.hook_analysis.overall_score)} />
-                      <span className="text-[10px] text-gray-500 uppercase tracking-wide">Score</span>
-                    </div>
+                    <ScoreCircle score={Number(analysis.hook_analysis.overall_score)} size={84} />
                   )}
-                </div>
-                {(analysis.hook_analysis?.hook_type || analysis.hook_analysis?.video_format) && (
-                  <div className="flex flex-wrap gap-1.5 mb-3">
-                    {analysis.hook_analysis?.hook_type && (
-                      <span className="text-[11px] px-2 py-0.5 rounded-full font-medium" style={{ background: 'rgba(139,92,246,0.12)', color: '#A78BFA', border: '1px solid rgba(139,92,246,0.25)' }}>
-                        {analysis.hook_analysis.hook_type}
-                      </span>
+                  <div className="min-w-0">
+                    {(analysis.hook_analysis?.hook_type || analysis.hook_analysis?.video_format) && (
+                      <div className="flex flex-wrap gap-1.5 mb-2">
+                        {analysis.hook_analysis?.hook_type && (
+                          <span className="text-[11px] px-2 py-0.5 rounded-full font-medium" style={{ background: 'rgba(139,92,246,0.12)', color: '#A78BFA', border: '1px solid rgba(139,92,246,0.25)' }}>
+                            {analysis.hook_analysis.hook_type}
+                          </span>
+                        )}
+                        {analysis.hook_analysis?.video_format && (
+                          <span className="text-[11px] px-2 py-0.5 rounded-full font-medium" style={{ background: 'rgba(14,164,233,0.1)', color: '#38BDF8', border: '1px solid rgba(14,164,233,0.2)' }}>
+                            {analysis.hook_analysis.video_format}
+                          </span>
+                        )}
+                      </div>
                     )}
-                    {analysis.hook_analysis?.video_format && (
-                      <span className="text-[11px] px-2 py-0.5 rounded-full font-medium" style={{ background: 'rgba(14,164,233,0.1)', color: '#38BDF8', border: '1px solid rgba(14,164,233,0.2)' }}>
-                        {analysis.hook_analysis.video_format}
-                      </span>
-                    )}
+                    <p className="text-[15px] text-gray-200 leading-relaxed whitespace-pre-line">
+                      {analysis.hook_analysis?.overall_assessment}
+                    </p>
                   </div>
-                )}
-                <p className="text-gray-300 text-sm leading-relaxed whitespace-pre-line">
-                  {analysis.hook_analysis?.overall_assessment}
-                </p>
+                </div>
                 {analysis.hook_analysis?.score_breakdown && (
-                  <div className="mt-4 rounded-xl p-4" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }}>
+                  <div className="mt-5 pt-5" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
                     <ScoreBreakdown items={[
                       { label: 'Hook', value: analysis.hook_analysis.score_breakdown.hook, max: 30 },
                       { label: 'Retention', value: analysis.hook_analysis.score_breakdown.retention, max: 25 },
@@ -219,40 +220,30 @@ export function AnalysisPanel({ analysis, open, onClose }: AnalysisPanelProps) {
               </div>
 
               {(analysis as any).strong_spots && (analysis as any).strong_spots.length > 0 && (
-                <div>
-                  <h3 className="text-white font-semibold mb-3 flex items-center gap-2 text-sm uppercase tracking-wide">
-                    <ThumbsUp className="w-4 h-4 text-emerald-400" />
-                    What Works
-                  </h3>
-                  <div className="space-y-2">
+                <div className="rounded-2xl p-6" style={card}>
+                  <p className="text-xs font-semibold uppercase tracking-widest text-gray-500 mb-4">What works</p>
+                  <ul className="space-y-3">
                     {(analysis as any).strong_spots.map((spot: string, idx: number) => (
-                      <div key={idx} className="rounded-lg p-3" style={{ background: 'rgba(52,211,153,0.06)', border: '1px solid rgba(52,211,153,0.15)' }}>
-                        <div className="flex gap-2">
-                          <span className="text-emerald-400 font-bold text-xs mt-0.5 flex-shrink-0">{idx + 1}</span>
-                          <p className="text-gray-300 text-sm leading-snug">{spot}</p>
-                        </div>
-                      </div>
+                      <li key={idx} className="flex items-start gap-2.5 text-sm text-gray-300 leading-relaxed">
+                        <ThumbsUp className="w-3.5 h-3.5 text-emerald-400 flex-shrink-0 mt-0.5" />
+                        {spot}
+                      </li>
                     ))}
-                  </div>
+                  </ul>
                 </div>
               )}
 
               {analysis.weak_spots && analysis.weak_spots.length > 0 && (
-                <div>
-                  <h3 className="text-white font-semibold mb-3 flex items-center gap-2 text-sm uppercase tracking-wide">
-                    <AlertCircle className="w-4 h-4 text-orange-400" />
-                    Weak Spots
-                  </h3>
-                  <div className="space-y-2">
+                <div className="rounded-2xl p-6" style={card}>
+                  <p className="text-xs font-semibold uppercase tracking-widest text-gray-500 mb-4">What's holding it back</p>
+                  <ul className="space-y-3">
                     {analysis.weak_spots.map((spot, idx) => (
-                      <div key={idx} className="bg-orange-950/20 border border-orange-900/30 rounded-lg p-3">
-                        <div className="flex gap-2">
-                          <span className="text-orange-400 font-bold text-xs mt-0.5 flex-shrink-0">{idx + 1}</span>
-                          <p className="text-gray-300 text-sm leading-snug">{spot}</p>
-                        </div>
-                      </div>
+                      <li key={idx} className="flex items-start gap-2.5 text-sm text-gray-300 leading-relaxed">
+                        <AlertCircle className="w-3.5 h-3.5 text-orange-400 flex-shrink-0 mt-0.5" />
+                        {spot}
+                      </li>
                     ))}
-                  </div>
+                  </ul>
                 </div>
               )}
 
