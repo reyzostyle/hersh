@@ -195,43 +195,45 @@ export function AnalysisPanel({ analysis, open, onClose }: AnalysisPanelProps) {
             <>
               {/* Score + assessment */}
               <div className="rounded-2xl p-6" style={card}>
-                <div className="flex items-center gap-4 mb-5">
+                {/* Score summary — circle + criteria always visible at the top */}
+                <div className="flex items-center gap-6">
                   {analysis.hook_analysis?.overall_score != null && (
-                    <ScoreCircle score={Number(analysis.hook_analysis.overall_score)} size={76} />
+                    <ScoreCircle score={Number(analysis.hook_analysis.overall_score)} size={84} />
                   )}
-                  <div className="min-w-0">
-                    <p className="text-[11px] uppercase tracking-widest text-gray-500 mb-1.5">Overall score</p>
-                    {(analysis.hook_analysis?.hook_type || analysis.hook_analysis?.video_format) && (
-                      <div className="flex flex-wrap gap-1.5">
-                        {analysis.hook_analysis?.hook_type && (
-                          <span className="text-[11px] px-2 py-0.5 rounded-full font-medium" style={{ background: 'rgba(139,92,246,0.12)', color: '#A78BFA', border: '1px solid rgba(139,92,246,0.25)' }}>
-                            {analysis.hook_analysis.hook_type}
-                          </span>
-                        )}
-                        {analysis.hook_analysis?.video_format && (
-                          <span className="text-[11px] px-2 py-0.5 rounded-full font-medium" style={{ background: 'rgba(14,164,233,0.1)', color: '#38BDF8', border: '1px solid rgba(14,164,233,0.2)' }}>
-                            {analysis.hook_analysis.video_format}
-                          </span>
-                        )}
-                      </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between gap-2 mb-3">
+                      <span className="text-[11px] uppercase tracking-widest text-gray-500">Overall score</span>
+                      {(analysis.hook_analysis?.hook_type || analysis.hook_analysis?.video_format) && (
+                        <div className="flex flex-wrap gap-1.5 justify-end">
+                          {analysis.hook_analysis?.hook_type && (
+                            <span className="text-[11px] px-2 py-0.5 rounded-full font-medium" style={{ background: 'rgba(139,92,246,0.12)', color: '#A78BFA', border: '1px solid rgba(139,92,246,0.25)' }}>
+                              {analysis.hook_analysis.hook_type}
+                            </span>
+                          )}
+                          {analysis.hook_analysis?.video_format && (
+                            <span className="text-[11px] px-2 py-0.5 rounded-full font-medium" style={{ background: 'rgba(14,164,233,0.1)', color: '#38BDF8', border: '1px solid rgba(14,164,233,0.2)' }}>
+                              {analysis.hook_analysis.video_format}
+                            </span>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                    {analysis.hook_analysis?.score_breakdown && (
+                      <ScoreBreakdown items={[
+                        { label: 'Hook', value: analysis.hook_analysis.score_breakdown.hook, max: 30 },
+                        { label: 'Retention', value: analysis.hook_analysis.score_breakdown.retention, max: 25 },
+                        { label: 'Payoff', value: analysis.hook_analysis.score_breakdown.payoff, max: 25 },
+                        { label: 'Delivery', value: analysis.hook_analysis.score_breakdown.delivery, max: 20 },
+                      ]} />
                     )}
                   </div>
                 </div>
-                <div className="space-y-3">
+                {/* Assessment text below */}
+                <div className="mt-5 pt-5 space-y-3" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
                   {toParagraphs(analysis.hook_analysis?.overall_assessment).map((p, i) => (
                     <p key={i} className="text-[15px] text-gray-300 leading-relaxed">{p}</p>
                   ))}
                 </div>
-                {analysis.hook_analysis?.score_breakdown && (
-                  <div className="mt-5 pt-5" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
-                    <ScoreBreakdown items={[
-                      { label: 'Hook', value: analysis.hook_analysis.score_breakdown.hook, max: 30 },
-                      { label: 'Retention', value: analysis.hook_analysis.score_breakdown.retention, max: 25 },
-                      { label: 'Payoff', value: analysis.hook_analysis.score_breakdown.payoff, max: 25 },
-                      { label: 'Delivery', value: analysis.hook_analysis.score_breakdown.delivery, max: 20 },
-                    ]} />
-                  </div>
-                )}
               </div>
 
               {(analysis as any).strong_spots && (analysis as any).strong_spots.length > 0 && (
