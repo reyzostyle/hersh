@@ -1,8 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
-import { X, Check, Loader2, Zap, ArrowRight, ChevronRight, ChevronDown, Activity, Sparkles, Mail, MessageCircle, Twitter, ArrowLeft, Copy, Play, Heart, Eye, Scissors, FolderOpen, Radio } from 'lucide-react';
+import { X, Check, Loader2, Zap, ArrowRight, ChevronRight, ChevronDown, Activity, Sparkles, Play, Heart, Eye, MessageCircle, Twitter, Mail } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
-import { isClipOfferActive, CLIP_FULL_PRICE, CLIP_OFFER_PRICE } from '../lib/launchOffer';
 
 // ─── Shared styles ────────────────────────────────────────────────────────────
 
@@ -123,7 +122,7 @@ function AuthModal({ initialMode, onClose }: { initialMode: 'login' | 'signup'; 
             <p className="text-white font-medium text-sm mb-4">{email}</p>
             <div className="rounded-xl p-3 mb-5 text-left" style={{ background: 'rgba(14,164,233,0.08)', border: '1px solid rgba(14,164,233,0.2)' }}>
               <p className="text-[#0EA4E9] text-xs leading-relaxed">
-                ⚠️ Open the link on <strong>this device</strong> — clicking it on your phone while Hershy is open on PC won't log you in here automatically.
+                ⚠️ Open the link on <strong>this device</strong>. Clicking it on your phone while Hershy is open on PC won't log you in here automatically.
               </p>
             </div>
             <button
@@ -237,9 +236,9 @@ function AuthModal({ initialMode, onClose }: { initialMode: 'login' | 'signup'; 
 // ─── Demo section ─────────────────────────────────────────────────────────────
 
 const DEMO_WEAK_SPOTS = [
-  "Hook opens with context, not tension. \"In today's video I'm going to show you...\" kills retention before the first second. Lead with the outcome or the problem.",
-  'No visual pattern interrupt in the first 3 seconds. Static talking-head gives the viewer zero reason to stop scrolling.',
-  'Ending closes cleanly instead of creating unresolved tension that pulls viewers back to the top. No loop mechanic.',
+  "Opens with context, not tension. \"In today's video...\" loses people before the first second.",
+  'No pattern interrupt in the first 3 seconds. A static talking head gives no reason to stop.',
+  'Ends cleanly instead of leaving tension that loops viewers back to the top.',
 ];
 
 const DEMO_HOOKS = [
@@ -273,7 +272,7 @@ function DemoSection() {
             <div className="px-2.5 py-1 rounded-full text-xs font-bold" style={{ background: 'rgba(251,146,60,0.15)', color: '#FB923C', border: '1px solid rgba(251,146,60,0.25)' }}>Score: 42</div>
           </div>
           <div className="space-y-2.5 text-sm text-gray-300 leading-relaxed">
-            <p className="text-white font-medium">The hook tells instead of hooks — it describes the topic instead of creating tension.</p>
+            <p className="text-white font-medium">The hook tells instead of hooks. It describes the topic instead of creating tension.</p>
             <div className="hidden sm:grid grid-cols-1 sm:grid-cols-3 gap-2 mt-1">
               {[
                 { label: 'Hook', text: 'Opens with a category statement. No unresolved tension to pull the viewer forward.' },
@@ -397,147 +396,6 @@ function ShortsWall() {
   );
 }
 
-// ─── Custom solutions page ────────────────────────────────────────────────────
-
-function ContactRow({ icon, label, value, href }: { icon: React.ReactNode; label: string; value: string; href: string }) {
-  const [copied, setCopied] = useState(false);
-  const isLink = href.startsWith('http');
-  return (
-    <div className="flex items-center gap-3 rounded-xl p-4 motion-card" style={glass}>
-      <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(14,164,233,0.12)', border: '1px solid rgba(14,164,233,0.2)' }}>
-        {icon}
-      </div>
-      <div className="min-w-0 flex-1">
-        <p className="text-xs text-gray-500 mb-0.5">{label}</p>
-        <p className="text-white text-sm font-medium truncate">{value}</p>
-      </div>
-      {isLink ? (
-        <a href={href} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 px-3 py-2 text-xs font-semibold text-white rounded-lg flex-shrink-0 hover:opacity-90" style={{ background: '#0EA4E9' }}>
-          Open <ArrowRight className="w-3.5 h-3.5" />
-        </a>
-      ) : (
-        <button
-          onClick={() => { navigator.clipboard.writeText(value); setCopied(true); setTimeout(() => setCopied(false), 1500); }}
-          className="flex items-center gap-1.5 px-3 py-2 text-xs font-semibold text-white rounded-lg flex-shrink-0 hover:opacity-90"
-          style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.12)' }}
-        >
-          {copied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
-          {copied ? 'Copied' : 'Copy'}
-        </button>
-      )}
-    </div>
-  );
-}
-
-// Streamers we've actually worked with. Names/avatars go here only with their
-// sign-off — real names, real handles, no invented quotes.
-const CLIP_ENGINE_PARTNERS: { name: string; handle: string; avatar?: string }[] = [];
-
-const CLIP_STEPS = [
-  {
-    icon: <Radio className="w-5 h-5 text-[#0EA4E9]" />,
-    title: 'You go live',
-    body: 'Set up once and forget it. Every stream you run gets picked up automatically.',
-  },
-  {
-    icon: <Scissors className="w-5 h-5 text-[#0EA4E9]" />,
-    title: 'We cut the clips',
-    body: 'AI finds the moments worth posting and cuts them vertical, ready for Shorts, TikTok and Reels.',
-  },
-  {
-    icon: <FolderOpen className="w-5 h-5 text-[#0EA4E9]" />,
-    title: 'Clips land in your Drive',
-    body: 'Your own Google Drive folder, one numbered subfolder per stream. Nothing to download, nothing to chase.',
-  },
-];
-
-function CustomSolutionsPage({ onBack }: { onBack: () => void }) {
-  const offerActive = isClipOfferActive();
-  return (
-    <section className="relative w-full px-6 pt-6 sm:pt-10 pb-10 sm:pb-24 max-w-2xl mx-auto">
-      <button onClick={onBack} className="inline-flex items-center gap-1.5 text-sm text-gray-400 hover:text-white mb-8">
-        <ArrowLeft className="w-4 h-4" /> Back to home
-      </button>
-
-      <div className="text-center mb-10">
-        <div className="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-5" style={{ background: 'rgba(14,164,233,0.12)', border: '1px solid rgba(14,164,233,0.2)' }}>
-          <Scissors className="w-7 h-7 text-[#0EA4E9]" />
-        </div>
-        <p className="text-xs uppercase tracking-[0.2em] text-[#0EA4E9] mb-3">Clip Engine</p>
-        <h1 className="font-black text-white leading-tight mb-4 text-balance" style={{ fontSize: 'clamp(2rem, 5vw, 3rem)', letterSpacing: '-0.02em' }}>
-          You stream. We clip. You post.
-        </h1>
-        <p className="text-gray-400 text-base leading-relaxed max-w-lg mx-auto text-balance">
-          Every stream you go live, we pull the best moments, cut them vertical, and drop
-          them into your Google Drive. No editor to hire, no VOD to scrub, nothing to
-          remember.
-        </p>
-        <div className="inline-flex flex-col items-center gap-2 mt-6 px-6 py-4 rounded-xl" style={glass}>
-          {offerActive && (
-            <span className="text-[11px] font-semibold px-2.5 py-1 rounded-full bg-amber-400/15 text-amber-400">
-              Launch week
-            </span>
-          )}
-          <span className="flex items-baseline gap-2.5">
-            <span className="text-3xl font-bold text-white">
-              {offerActive ? CLIP_OFFER_PRICE : CLIP_FULL_PRICE}
-            </span>
-            {offerActive && (
-              <span className="text-lg text-gray-600 line-through">{CLIP_FULL_PRICE}</span>
-            )}
-          </span>
-          <span className="text-sm text-gray-400">10 hours of stream, setup included</span>
-        </div>
-        <p className="text-xs text-gray-600 mt-2">After that it stays $2 per hour streamed.</p>
-      </div>
-
-      {/* How it works */}
-      <div className="space-y-3 mb-10">
-        {CLIP_STEPS.map((s, i) => (
-          <div key={s.title} className="flex items-start gap-4 rounded-xl p-4 sm:p-5" style={glass}>
-            <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(14,164,233,0.12)', border: '1px solid rgba(14,164,233,0.2)' }}>
-              {s.icon}
-            </div>
-            <div className="min-w-0">
-              <p className="text-white font-semibold text-[15px] mb-1">
-                <span className="text-gray-600 mr-2">0{i + 1}</span>{s.title}
-              </p>
-              <p className="text-gray-500 text-sm leading-relaxed text-pretty">{s.body}</p>
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {/* Worked with — renders only once real, approved names are added */}
-      {CLIP_ENGINE_PARTNERS.length > 0 && (
-        <div className="mb-10">
-          <p className="text-xs text-gray-600 uppercase tracking-widest mb-4 text-center">Streamers we've worked with</p>
-          <div className="flex flex-wrap justify-center gap-2.5">
-            {CLIP_ENGINE_PARTNERS.map(p => (
-              <div key={p.handle} className="flex items-center gap-2.5 rounded-full pl-1.5 pr-4 py-1.5" style={glass}>
-                {p.avatar
-                  ? <img src={p.avatar} alt="" className="w-8 h-8 rounded-full object-cover flex-shrink-0" />
-                  : <div className="w-8 h-8 rounded-full flex-shrink-0" style={{ background: 'rgba(255,255,255,0.08)' }} />}
-                <div className="min-w-0">
-                  <p className="text-white text-sm font-medium leading-tight truncate">{p.name}</p>
-                  <p className="text-gray-600 text-xs leading-tight truncate">{p.handle}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      <div className="space-y-3">
-        <p className="text-xs text-gray-600 uppercase tracking-widest mb-2 text-center">Start your first stream</p>
-        <ContactRow icon={<MessageCircle className="w-5 h-5 text-[#0EA4E9]" />} label="Discord (fastest)" value="discord.gg/N8S6C95Ry2" href="https://discord.com/invite/N8S6C95Ry2" />
-        <ContactRow icon={<Twitter className="w-5 h-5 text-[#0EA4E9]" />} label="X / Twitter" value="@reyzostyle" href="https://x.com/reyzostyle" />
-        <ContactRow icon={<Mail className="w-5 h-5 text-[#0EA4E9]" />} label="Email" value="hershymedia@gmail.com" href="mailto:hershymedia@gmail.com" />
-      </div>
-    </section>
-  );
-}
-
 // ─── Pricing card (collapsible features) ──────────────────────────────────────
 
 interface Plan {
@@ -618,8 +476,8 @@ function PricingCard({ plan, onSelect }: { plan: Plan; onSelect: () => void }) {
 
 export function LandingPage() {
   const [authModal, setAuthModal] = useState<null | 'login' | 'signup'>(null);
-  const [view, setView] = useState<'main' | 'custom'>('main');
   const [scrollTop, setScrollTop] = useState(0);
+  const scrollRef = useRef<HTMLDivElement>(null);
 
   // Bottom glow fades out as you scroll down the first screen
   const glowOpacity = Math.max(0, 1 - scrollTop / 160);
@@ -637,51 +495,40 @@ export function LandingPage() {
       </svg>
 
       {/* Bottom glow — entices scrolling, fades out as you scroll */}
-      {view === 'main' && (
-        <div
-          aria-hidden="true"
-          className="pointer-events-none absolute inset-x-0 bottom-0 h-44"
-          style={{
-            zIndex: 1,
-            opacity: glowOpacity,
-            transition: 'opacity 0.2s ease-out',
-            background: 'radial-gradient(90% 130% at 50% 100%, rgba(255,255,255,0.10), rgba(255,255,255,0) 62%)',
-          }}
-        />
-      )}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-x-0 bottom-0 h-44"
+        style={{
+          zIndex: 1,
+          opacity: glowOpacity,
+          transition: 'opacity 0.2s ease-out',
+          background: 'radial-gradient(90% 130% at 50% 100%, rgba(255,255,255,0.10), rgba(255,255,255,0) 62%)',
+        }}
+      />
 
       <div
+        ref={scrollRef}
         className="relative z-10 h-full overflow-y-auto overflow-x-hidden"
         onScroll={(e) => setScrollTop(e.currentTarget.scrollTop)}
       >
 
         {/* ── Navbar ─────────────────────────────────────────────────────────── */}
         <nav className="flex items-center justify-between px-6 py-4 max-w-6xl mx-auto animate-fade-in">
-          <button onClick={() => setView('main')} className="font-black text-white uppercase tracking-[0.15em] sm:tracking-[0.2em] text-base sm:text-lg whitespace-nowrap">
+          <button onClick={() => scrollRef.current?.scrollTo({ top: 0, behavior: 'smooth' })} className="font-black text-white uppercase tracking-[0.15em] sm:tracking-[0.2em] text-base sm:text-lg whitespace-nowrap">
             <span className="sm:hidden">HERSHY</span>
             <span className="hidden sm:inline">HERSHY MEDIA</span>
           </button>
           <div className="flex items-center gap-1 sm:gap-2">
             <button
-              onClick={() => setView('custom')}
-              className={`px-3 sm:px-4 py-2 text-sm font-medium rounded-lg transition-colors whitespace-nowrap ${view === 'custom' ? 'text-white' : 'text-gray-400 hover:text-white'}`}
-            >
-              Clip Engine
-            </button>
-            <button
               onClick={() => setAuthModal('login')}
               className="px-3 sm:px-4 py-2 text-sm font-medium text-gray-400 hover:text-white rounded-lg whitespace-nowrap"
               style={{ border: '1px solid rgba(255,255,255,0.1)' }}
             >
-              Log in
+              Log in / Sign up
             </button>
           </div>
         </nav>
 
-        {view === 'custom' ? (
-          <CustomSolutionsPage onBack={() => setView('main')} />
-        ) : (
-        <>
         {/* ── Hero ──────────────────────────────────────────────────────────── */}
         <section className="relative w-full flex flex-col items-center justify-center text-center px-6 pb-12 min-h-[calc(100dvh-136px)] md:min-h-[calc(100vh_-_150px)]">
 
@@ -704,11 +551,11 @@ export function LandingPage() {
           {/* Center content */}
           <div className="relative z-10 max-w-3xl w-full">
             <h1 className="animate-fade-in-up font-black text-white leading-[1.05] mb-5 text-balance" style={{ fontSize: 'clamp(2.3rem, 7vw, 5rem)', letterSpacing: '-0.02em' }}>
-              Stop posting blind.
+              Every flop has a reason.
             </h1>
 
             <p className="animate-fade-in-up delay-100 text-base sm:text-lg text-gray-500 leading-relaxed mb-10 max-w-md sm:max-w-lg mx-auto text-balance">
-              Analyze hooks. Fix weak spots. Grow faster.
+              Find out what cost you the views, and fix it before the next upload.
             </p>
 
             <div className="animate-fade-in-up delay-200 flex flex-col items-center">
@@ -726,53 +573,52 @@ export function LandingPage() {
           <ShortsWall />
         </section>
 
-        {/* ── Features (See what you've been missing) ───────────────────────── */}
+        {/* ── Proof: a real analysis, not a description of one ──────────────── */}
         <section className="pt-5 sm:pt-6 pb-10 sm:pb-24 px-6 max-w-4xl mx-auto">
           <RevealSection className="text-center mb-8 sm:mb-12">
-            <h2 className="text-xl sm:text-2xl font-bold text-white whitespace-nowrap">See what you've been missing</h2>
+            <h2 className="text-xl sm:text-2xl font-bold text-white mb-2 text-balance">This one scored 42</h2>
+            <p className="text-gray-500 text-sm">Here is exactly what came back.</p>
+          </RevealSection>
+          <DemoSection />
+        </section>
+
+        {/* ── What changes for you ──────────────────────────────────────────── */}
+        <section className="pb-10 sm:pb-24 px-6 max-w-4xl mx-auto">
+          <RevealSection className="text-center mb-8 sm:mb-12">
+            <h2 className="text-xl sm:text-2xl font-bold text-white text-balance">What changes for you</h2>
           </RevealSection>
 
-          <div className="grid md:grid-cols-2 gap-4 max-w-3xl mx-auto">
+          <div className="grid md:grid-cols-3 gap-3 sm:gap-4">
             {[
               {
                 icon: <Sparkles className="w-5 h-5 text-[#0EA4E9]" />,
                 iconBg: 'rgba(14,164,233,0.12)',
                 iconBorder: 'rgba(14,164,233,0.2)',
-                title: 'Hook Analysis',
-                desc: 'Paste a Shorts URL or upload a file. Get a score, weak spots, and 3 rewrite ideas in seconds.',
-                tags: ['Hook score', 'Weak spots', 'Rewrites'],
-                tagColor: '#0EA4E9',
-                tagBg: 'rgba(14,164,233,0.1)',
-                tagBorder: 'rgba(14,164,233,0.2)',
+                title: 'You find out before you post',
+                desc: 'Upload the draft and get the notes while you can still re-record.',
               },
               {
                 icon: <Activity className="w-5 h-5 text-emerald-400" />,
                 iconBg: 'rgba(52,211,153,0.12)',
                 iconBorder: 'rgba(52,211,153,0.2)',
-                title: 'Retention Insights',
-                desc: 'Connect your channel and Hershy reads your real audience-retention curve, pinpoints where viewers drop off, and tells you how to fix it.',
-                tags: ['Drop-off points', 'Real data', 'Fixes'],
-                tagColor: '#34D399',
-                tagBg: 'rgba(52,211,153,0.1)',
-                tagBorder: 'rgba(52,211,153,0.2)',
+                title: 'You see where they left',
+                desc: 'Connect your channel and read the real retention curve, not a guess.',
               },
-            ].map((feature, i) => (
-              <RevealSection key={i} delay={i * 100}>
-                <div className="rounded-2xl p-5 sm:p-6 h-full motion-card flex flex-col gap-3.5" style={glass}>
-                  <div className="flex items-center gap-3">
-                    <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: feature.iconBg, border: `1px solid ${feature.iconBorder}` }}>
-                      {feature.icon}
-                    </div>
-                    <h3 className="text-white font-semibold text-base sm:text-lg">{feature.title}</h3>
+              {
+                icon: <Zap className="w-5 h-5 text-amber-400" />,
+                iconBg: 'rgba(251,191,36,0.12)',
+                iconBorder: 'rgba(251,191,36,0.2)',
+                title: 'You stop repeating it',
+                desc: 'The same weak pattern across your videos gets named, so you can drop it.',
+              },
+            ].map((item, i) => (
+              <RevealSection key={item.title} delay={i * 100}>
+                <div className="rounded-2xl p-5 sm:p-6 h-full motion-card flex flex-col gap-3" style={glass}>
+                  <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: item.iconBg, border: `1px solid ${item.iconBorder}` }}>
+                    {item.icon}
                   </div>
-                  <p className="text-gray-400 text-sm leading-relaxed">{feature.desc}</p>
-                  <div className="flex flex-wrap gap-1.5 mt-auto pt-1">
-                    {feature.tags.map(tag => (
-                      <span key={tag} className="text-[11px] sm:text-xs px-2 py-0.5 rounded-full whitespace-nowrap" style={{ color: feature.tagColor, background: feature.tagBg, border: `1px solid ${feature.tagBorder}` }}>
-                        {tag}
-                      </span>
-                    ))}
-                  </div>
+                  <h3 className="text-white font-semibold text-base">{item.title}</h3>
+                  <p className="text-gray-400 text-sm leading-relaxed">{item.desc}</p>
                 </div>
               </RevealSection>
             ))}
@@ -848,6 +694,17 @@ export function LandingPage() {
 
         {/* ── Footer ────────────────────────────────────────────────────────── */}
         <footer className="px-6 py-8 text-center" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+          <div className="flex flex-wrap items-center justify-center gap-x-5 gap-y-2 mb-4 text-xs">
+            <a href="https://discord.com/invite/N8S6C95Ry2" target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 text-gray-500 hover:text-white transition-colors">
+              <MessageCircle className="w-3.5 h-3.5" />Discord
+            </a>
+            <a href="https://x.com/reyzostyle" target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 text-gray-500 hover:text-white transition-colors">
+              <Twitter className="w-3.5 h-3.5" />@reyzostyle
+            </a>
+            <a href="mailto:hershymedia@gmail.com" className="flex items-center gap-1.5 text-gray-500 hover:text-white transition-colors">
+              <Mail className="w-3.5 h-3.5" />hershymedia@gmail.com
+            </a>
+          </div>
           <div className="flex items-center justify-center gap-4 mb-3 text-xs">
             <a href="/privacy" className="text-gray-500 hover:text-white transition-colors">Privacy Policy</a>
             <span className="text-gray-700">·</span>
@@ -855,8 +712,6 @@ export function LandingPage() {
           </div>
           <p className="text-xs text-gray-700">© {new Date().getFullYear()} Hershy Media. All rights reserved.</p>
         </footer>
-        </>
-        )}
       </div>
 
       {authModal && <AuthModal initialMode={authModal} onClose={() => setAuthModal(null)} />}
