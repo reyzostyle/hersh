@@ -516,12 +516,14 @@ export function LandingPage() {
         onScroll={(e) => setScrollTop(e.currentTarget.scrollTop)}
       >
 
-        {/* Nav + hero share one 100dvh box, hero as flex-1, so the hero fills
-            exactly what's left after the nav's real height — no guessed
-            pixel offset, and nothing below ever peeks in before a scroll.
-            Only forced to 100dvh on the main view: the clips detail view is
-            a normal scrolling page and shouldn't reserve a full screen. */}
-        <div className={`flex flex-col ${view === 'main' ? 'h-[100dvh]' : ''}`}>
+        {/* Nav + hero share one box sized off the real viewport, hero as
+            flex-1, so the hero fills exactly what's left after the nav's real
+            height instead of a guessed pixel offset. Deliberately 100px short
+            of the viewport so the next section's heading peeks in and invites
+            a scroll, while its cards stay below the fold.
+            Only sized on the main view: the clips detail view is a normal
+            scrolling page and shouldn't reserve a full screen. */}
+        <div className={`flex flex-col ${view === 'main' ? 'h-[calc(100dvh-100px)]' : ''}`}>
           {/* ── Navbar ───────────────────────────────────────────────────── */}
           <nav className="flex items-center justify-between px-6 py-4 max-w-6xl mx-auto w-full flex-shrink-0 animate-fade-in">
             <button onClick={() => { setView('main'); scrollRef.current?.scrollTo({ top: 0, behavior: 'smooth' }); }} className="font-black text-white uppercase tracking-[0.15em] sm:tracking-[0.2em] text-base sm:text-lg whitespace-nowrap">

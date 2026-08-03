@@ -37,11 +37,12 @@ export function HookAnalysis() {
   const [geminiAnalyzing, setGeminiAnalyzing] = useState(false);
   const [urlInput, setUrlInput] = useState('');
   const [urlError, setUrlError] = useState('');
-  const [urlContext, setUrlContext] = useState('');
-  const [showUrlContext, setShowUrlContext] = useState(false);
+  // One context field shared by both modes: the panel only ever shows one of
+  // them at a time, so separate state just meant the note silently vanished
+  // when you flipped the toggle.
+  const [context, setContext] = useState('');
+  const [showContext, setShowContext] = useState(false);
   const [uploadFile, setUploadFile] = useState<File | null>(null);
-  const [fileContext, setFileContext] = useState('');
-  const [showFileContext, setShowFileContext] = useState(false);
   const [fileError, setFileError] = useState('');
   const [uploadAnalyzing, setUploadAnalyzing] = useState(false);
   const [uploadStep, setUploadStep] = useState<'uploading' | 'analyzing' | null>(null);
@@ -133,10 +134,10 @@ export function HookAnalysis() {
     // Ownership + retention are resolved server-side in analyze-with-gemini.
     // For synced videos we can pass the known title to skip the oembed lookup.
     const ownVideo = videos.find(v => v.video_id === videoId);
-    runGeminiAnalysis(videoId, urlContext.trim(), false, ownVideo?.title);
+    runGeminiAnalysis(videoId, context.trim(), false, ownVideo?.title);
     setUrlInput('');
-    setUrlContext('');
-    setShowUrlContext(false);
+    setContext('');
+    setShowContext(false);
   };
 
   const runGeminiAnalysis = async (videoId: string, videoContext: string = '', isMyVideo: boolean = false, videoTitle?: string) => {
@@ -275,8 +276,8 @@ export function HookAnalysis() {
         setProgressOpen(false);
         setProgressDone(false);
         setUploadFile(null);
-        setFileContext('');
-        setShowFileContext(false);
+        setContext('');
+        setShowContext(false);
         setOpenedFromHistory(false);
         setAnalysisPanelOpen(true);
       }, 600);
@@ -336,67 +337,114 @@ export function HookAnalysis() {
       <div className="flex-1 overflow-auto px-4 sm:px-6 pt-4 sm:pt-3 pb-8" style={{ overscrollBehavior: 'none', WebkitOverflowScrolling: 'auto' }}>
         <div className="max-w-2xl mx-auto space-y-3">
 
-          {/* Mode switch */}
-          <div className="inline-flex p-1 gap-1 rounded-xl" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}>
-            <button
-              onClick={() => setMode('url')}
-              className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-sm font-medium transition-all ${
-                mode === 'url' ? 'bg-[#0EA4E9]/15 text-[#0EA4E9]' : 'text-gray-500 hover:text-gray-300'
-              }`}
-            >
-              <Link className="w-3.5 h-3.5" /> URL
-            </button>
-            <button
-              onClick={() => setMode('file')}
-              className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-sm font-medium transition-all ${
-                mode === 'file' ? 'bg-[#0EA4E9]/15 text-[#0EA4E9]' : 'text-gray-500 hover:text-gray-300'
-              }`}
-            >
-              <Film className="w-3.5 h-3.5" /> File
-            </button>
-          </div>
+          {/* One panel for both modes, shaped like Hook Lab's: the input owns
+              the card and the controls sit in a footer bar, with the URL/File
+              toggle living in that bar instead of floating above the card. */}
+          <div
+            ref={fileDropRef}
+            onDragOver={e => { if (mode === 'file') { e.preventDefault(); setFileDragOver(true); } }}
+            onDragLeave={() => setFileDragOver(false)}
+            onDrop={e => { if (mode === 'file') handleFileDrop(e); }}
+            className={`rounded-2xl p-1.5 transition-all ${mode === 'file' && fileDragOver ? 'glass-panel-accent' : 'glass-panel'}`}
+          >
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="video/mp4,video/quicktime,video/webm,video/x-msvideo,.mp4,.mov,.webm,.avi"
+              className="hidden"
+              onChange={e => { const f = e.target.files?.[0]; if (f) handleFileSelect(f); e.currentTarget.value = ''; }}
+            />
 
-          {mode === 'url' ? (
-            /* URL card */
-            <div className="rounded-2xl p-1.5 glass-panel">
+            {mode === 'url' ? (
               <input
                 type="text"
                 value={urlInput}
                 onChange={e => { setUrlInput(e.target.value); setUrlError(''); }}
                 onKeyDown={e => e.key === 'Enter' && urlInput.trim() && !geminiAnalyzing && handleUrlSubmit()}
                 placeholder="youtube.com/shorts/… or paste a video ID"
-                className="w-full px-4 py-3.5 bg-transparent text-white text-[15px] focus:outline-none placeholder:text-gray-600"
+                className="w-full px-4 py-7 sm:py-8 bg-transparent text-white text-[15px] focus:outline-none placeholder:text-gray-600"
               />
-
-              {showUrlContext && (
-                <div className="px-1.5 pb-1.5">
-                  <div className="flex items-center justify-between px-1 mb-1.5">
-                    <span className="text-xs text-gray-500">Context <span className="text-gray-600">helps tailor the analysis</span></span>
-                    <button onClick={() => { setShowUrlContext(false); setUrlContext(''); }} className="text-gray-600 hover:text-gray-300 transition-colors p-0.5" title="Hide context">
-                      <X className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-                  <textarea
-                    value={urlContext}
-                    onChange={e => setUrlContext(e.target.value)}
-                    maxLength={600}
-                    rows={2}
-                    autoFocus
-                    placeholder="e.g. storytime about my worst client, targeting freelancers, wanted a punchy cold open"
-                    className="glass-field w-full px-4 py-3 rounded-xl text-white text-sm resize-none focus:outline-none placeholder:text-gray-600"
-                    style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)' }}
-                  />
+            ) : !uploadFile ? (
+              <div
+                onClick={() => fileInputRef.current?.click()}
+                className="rounded-xl flex flex-col items-center justify-center gap-2 py-8 sm:py-10 cursor-pointer transition-all"
+                style={{
+                  border: `1.5px dashed ${fileDragOver ? 'rgba(14,164,233,0.5)' : 'rgba(255,255,255,0.1)'}`,
+                  background: fileDragOver ? 'rgba(14,164,233,0.04)' : 'rgba(255,255,255,0.02)',
+                }}
+              >
+                <Film className={`w-7 h-7 ${fileDragOver ? 'text-[#0EA4E9]' : 'text-gray-600'}`} />
+                <p className="text-gray-300 text-sm font-medium">
+                  {fileDragOver ? 'Drop to analyze' : 'Click or drag & drop your video'}
+                </p>
+                <p className="text-gray-600 text-xs">MP4, MOV, WebM, AVI · up to {MAX_SIZE_MB}MB</p>
+              </div>
+            ) : (
+              <div className="m-1.5 rounded-xl px-4 py-3 flex items-center gap-3" style={{ background: 'rgba(14,164,233,0.08)', border: '1px solid rgba(14,164,233,0.2)' }}>
+                <div className="w-10 h-10 rounded-lg bg-[#0EA4E9]/15 flex items-center justify-center flex-shrink-0">
+                  <Film className="w-5 h-5 text-[#0EA4E9]" />
                 </div>
-              )}
-
-              <div className="flex flex-wrap items-center justify-between gap-3 px-3 pb-2 pt-1">
-                <div className="flex items-center gap-3 min-w-0">
-                  {!showUrlContext && (
-                    <button onClick={() => setShowUrlContext(true)} className="flex items-center gap-1 text-xs text-gray-500 hover:text-gray-300 transition-colors">
-                      <Sparkles className="w-3.5 h-3.5" /> Add context
-                    </button>
-                  )}
+                <div className="flex-1 min-w-0">
+                  <p className="text-white text-sm font-medium truncate">{uploadFile.name}</p>
+                  <p className="text-gray-500 text-xs">{formatSize(uploadFile.size)}</p>
                 </div>
+                <button onClick={() => { setUploadFile(null); setFileError(''); }} disabled={uploadAnalyzing} className="p-1 text-gray-500 hover:text-white rounded transition-colors disabled:opacity-40">
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            )}
+
+            {showContext && (
+              <div className="px-1.5 pt-1.5">
+                <div className="flex items-center justify-between px-1 mb-1.5">
+                  <span className="text-xs text-gray-500">Context <span className="text-gray-600">helps tailor the analysis</span></span>
+                  <button onClick={() => { setShowContext(false); setContext(''); }} className="text-gray-600 hover:text-gray-300 transition-colors p-0.5" title="Hide context">
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+                <textarea
+                  value={context}
+                  onChange={e => setContext(e.target.value)}
+                  maxLength={600}
+                  rows={2}
+                  autoFocus
+                  placeholder={mode === 'url'
+                    ? 'e.g. storytime about my worst client, targeting freelancers, wanted a punchy cold open'
+                    : 'e.g. gym transformation, targeting busy dads, wanted a strong first-line hook'}
+                  className="glass-field w-full px-4 py-3 rounded-xl text-white text-sm resize-none focus:outline-none placeholder:text-gray-600"
+                  style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)' }}
+                />
+              </div>
+            )}
+
+            <div className="flex flex-wrap items-center justify-between gap-3 px-3 pb-2 pt-2">
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="inline-flex p-0.5 gap-0.5 rounded-lg flex-shrink-0" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)' }}>
+                  <button
+                    onClick={() => setMode('url')}
+                    className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium transition-all ${
+                      mode === 'url' ? 'bg-[#0EA4E9]/15 text-[#0EA4E9]' : 'text-gray-500 hover:text-gray-300'
+                    }`}
+                  >
+                    <Link className="w-3 h-3" /> URL
+                  </button>
+                  <button
+                    onClick={() => setMode('file')}
+                    className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium transition-all ${
+                      mode === 'file' ? 'bg-[#0EA4E9]/15 text-[#0EA4E9]' : 'text-gray-500 hover:text-gray-300'
+                    }`}
+                  >
+                    <Film className="w-3 h-3" /> File
+                  </button>
+                </div>
+                {!showContext && (
+                  <button onClick={() => setShowContext(true)} className="flex items-center gap-1 text-xs text-gray-500 hover:text-gray-300 transition-colors">
+                    <Sparkles className="w-3.5 h-3.5" /> Add context
+                  </button>
+                )}
+              </div>
+
+              {mode === 'url' ? (
                 <button
                   onClick={handleUrlSubmit}
                   disabled={!urlInput.trim() || analyzing}
@@ -405,101 +453,22 @@ export function HookAnalysis() {
                   {geminiAnalyzing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
                   {geminiAnalyzing ? 'Analyzing' : 'Analyze'}
                 </button>
-              </div>
-
-              {urlError && <p className="px-3 pb-2 -mt-1 text-xs text-red-400">{urlError}</p>}
-            </div>
-          ) : (
-            /* File card */
-            <div
-              ref={fileDropRef}
-              onDragOver={e => { e.preventDefault(); setFileDragOver(true); }}
-              onDragLeave={() => setFileDragOver(false)}
-              onDrop={handleFileDrop}
-              className={`rounded-2xl p-1.5 transition-all ${fileDragOver ? 'glass-panel-accent' : 'glass-panel'}`}
-            >
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="video/mp4,video/quicktime,video/webm,video/x-msvideo,.mp4,.mov,.webm,.avi"
-                className="hidden"
-                onChange={e => { const f = e.target.files?.[0]; if (f) handleFileSelect(f); e.currentTarget.value = ''; }}
-              />
-
-              {!uploadFile ? (
-                <div
-                  onClick={() => fileInputRef.current?.click()}
-                  className="rounded-xl flex flex-col items-center justify-center gap-2 py-8 sm:py-10 cursor-pointer transition-all"
-                  style={{
-                    border: `1.5px dashed ${fileDragOver ? 'rgba(14,164,233,0.5)' : 'rgba(255,255,255,0.1)'}`,
-                    background: fileDragOver ? 'rgba(14,164,233,0.04)' : 'rgba(255,255,255,0.02)',
-                  }}
+              ) : uploadFile ? (
+                <button
+                  onClick={() => runUploadAnalysis(uploadFile, context.trim(), true)}
+                  disabled={uploadAnalyzing}
+                  className="btn-primary flex items-center gap-2 px-4 py-2 text-white text-sm font-medium rounded-lg disabled:opacity-40 active:scale-[0.98]"
                 >
-                  <Film className={`w-7 h-7 ${fileDragOver ? 'text-[#0EA4E9]' : 'text-gray-600'}`} />
-                  <p className="text-gray-300 text-sm font-medium">
-                    {fileDragOver ? 'Drop to analyze' : 'Click or drag & drop your video'}
-                  </p>
-                  <p className="text-gray-600 text-xs">MP4, MOV, WebM, AVI · up to 300MB</p>
-                </div>
-              ) : (
-                <div className="m-1.5 rounded-xl px-4 py-3 flex items-center gap-3" style={{ background: 'rgba(14,164,233,0.08)', border: '1px solid rgba(14,164,233,0.2)' }}>
-                  <div className="w-10 h-10 rounded-lg bg-[#0EA4E9]/15 flex items-center justify-center flex-shrink-0">
-                    <Film className="w-5 h-5 text-[#0EA4E9]" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-white text-sm font-medium truncate">{uploadFile.name}</p>
-                    <p className="text-gray-500 text-xs">{formatSize(uploadFile.size)}</p>
-                  </div>
-                  <button onClick={() => { setUploadFile(null); setFileError(''); }} disabled={uploadAnalyzing} className="p-1 text-gray-500 hover:text-white rounded transition-colors disabled:opacity-40">
-                    <X className="w-4 h-4" />
-                  </button>
-                </div>
-              )}
-
-              {fileError && <p className="px-3 pt-2 text-xs text-red-400">{fileError}</p>}
-
-              {showFileContext && (
-                <div className="px-1.5 pt-1.5">
-                  <div className="flex items-center justify-between px-1 mb-1.5">
-                    <span className="text-xs text-gray-500">Context <span className="text-gray-600">helps tailor the analysis</span></span>
-                    <button onClick={() => { setShowFileContext(false); setFileContext(''); }} className="text-gray-600 hover:text-gray-300 transition-colors p-0.5" title="Hide context">
-                      <X className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-                  <textarea
-                    value={fileContext}
-                    onChange={e => setFileContext(e.target.value)}
-                    maxLength={600}
-                    rows={2}
-                    autoFocus
-                    placeholder="e.g. gym transformation, targeting busy dads, wanted a strong first-line hook"
-                    className="glass-field w-full px-4 py-3 rounded-xl text-white text-sm resize-none focus:outline-none placeholder:text-gray-600"
-                    style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)' }}
-                  />
-                </div>
-              )}
-
-              <div className="flex flex-wrap items-center justify-between gap-3 px-3 pb-2 pt-2">
-                <div className="flex items-center gap-3 min-w-0">
-                  {!showFileContext && (
-                    <button onClick={() => setShowFileContext(true)} className="flex items-center gap-1 text-xs text-gray-500 hover:text-gray-300 transition-colors">
-                      <Sparkles className="w-3.5 h-3.5" /> Add context
-                    </button>
-                  )}
-                </div>
-                {uploadFile && (
-                  <button
-                    onClick={() => runUploadAnalysis(uploadFile, fileContext.trim(), true)}
-                    disabled={uploadAnalyzing}
-                    className="btn-primary flex items-center gap-2 px-4 py-2 text-white text-sm font-medium rounded-lg disabled:opacity-40 active:scale-[0.98]"
-                  >
-                    {uploadAnalyzing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
-                    {uploadStep === 'uploading' ? 'Uploading' : uploadStep === 'analyzing' ? 'Analyzing' : uploadAnalyzing ? 'Processing' : 'Analyze'}
-                  </button>
-                )}
-              </div>
+                  {uploadAnalyzing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
+                  {uploadStep === 'uploading' ? 'Uploading' : uploadStep === 'analyzing' ? 'Analyzing' : uploadAnalyzing ? 'Processing' : 'Analyze'}
+                </button>
+              ) : null}
             </div>
-          )}
+
+            {(mode === 'url' ? urlError : fileError) && (
+              <p className="px-3 pb-2 text-xs text-red-400">{mode === 'url' ? urlError : fileError}</p>
+            )}
+          </div>
 
         </div>
       </div>

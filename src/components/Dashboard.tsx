@@ -11,7 +11,6 @@ import { CompetitorsPage } from './CompetitorsPage';
 import { RankPage } from './RankPage';
 import { AdminPage } from './AdminPage';
 
-const TAB_STORAGE_KEY = 'hershy_active_tab';
 // 'admin' is intentionally reachable but has no sidebar entry (see AppShell) —
 // only reached by entering the admin code in Settings. AdminPage itself
 // re-checks the caller's email before rendering anything or fetching data.
@@ -23,15 +22,10 @@ const isTabReachable = (t: string): t is NavTab =>
   (VALID_TABS as string[]).includes(t) && !HIDDEN_TABS.includes(t as NavTab);
 
 export function Dashboard() {
-  const [activeTab, setActiveTab] = useState<NavTab>(() => {
-    const saved = localStorage.getItem(TAB_STORAGE_KEY);
-    return saved && isTabReachable(saved) ? (saved as NavTab) : 'home';
-  });
-
-  // Remember the current tab across reloads.
-  useEffect(() => {
-    localStorage.setItem(TAB_STORAGE_KEY, activeTab);
-  }, [activeTab]);
+  // Always opens on the hub rather than restoring the last tab: it's where
+  // new tools and announcements surface, so it's what should greet you on
+  // every entry. (Deliberately not persisted — a reload lands here too.)
+  const [activeTab, setActiveTab] = useState<NavTab>('home');
 
   useEffect(() => {
     const handler = (e: Event) => {
