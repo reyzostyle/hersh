@@ -7,32 +7,32 @@ const reasons = [
   {
     icon: <Eye className="w-5 h-5" />,
     title: 'Never misses a moment',
-    body: 'It watches every hour you stream, including the ones a tired human would skip at 4am.',
+    body: 'Even the 4am streams get caught.',
   },
   {
     icon: <Clock className="w-5 h-5" />,
     title: 'Always on time',
-    body: 'Clips are ready right after your stream, not whenever someone finally gets around to it.',
+    body: 'Clips are ready right after you go live.',
   },
   {
     icon: <ShieldCheck className="w-5 h-5" />,
     title: 'Nothing to manage',
-    body: 'No hiring, no chasing, no starting over when your clipper loses interest and disappears.',
+    body: 'No hiring, no chasing, no disappearing clippers.',
   },
 ];
 
 const steps = [
   {
     title: 'Claim your pack',
-    body: 'Grab your first pack of hours and message us on Discord.',
+    body: 'Grab hours, message us on Discord.',
   },
   {
     title: 'We set it up with you',
-    body: 'We build a config around your stream: your game, your language, the kind of moments you want caught. This part we do by hand, once.',
+    body: 'We configure it around your stream, once.',
   },
   {
     title: 'Clips land in your Drive',
-    body: 'After every stream, new clips show up in your own Google Drive folder, ready for you to pick, title, and post.',
+    body: 'Pick your favorites, write a title, post.',
   },
 ];
 
@@ -55,9 +55,7 @@ export function ClipEnginePage() {
           Your streams, clipped and ready to post.
         </h1>
         <p className="text-sm sm:text-base text-gray-400 leading-relaxed max-w-2xl text-pretty">
-          Streaming for eight hours and posting none of it is wasted work. Clip Engine watches every
-          hour you stream and cuts the good moments into short clips, so the only thing left on your
-          plate is picking the ones you like.
+          Every stream gets watched, cut into clips, and dropped in your Drive — you just pick your favorites and post.
         </p>
       </div>
 
@@ -145,14 +143,11 @@ export function ClipEnginePage() {
       </div>
 
       <p className="mt-5 text-sm text-gray-500 leading-relaxed text-pretty">
-        A human clipper watching a 50 hour month costs around $100. Clip Engine covers the same month
-        for the same money, and it never oversleeps, never goes quiet for a week, and never leaves
-        your best moment on the timeline.
+        A human clipper costs about $100 for a 50 hour month. Clip Engine covers the same for the same price, and never misses a stream.
       </p>
 
       <p className="mt-4 text-xs text-gray-600 leading-relaxed text-pretty">
-        Clip Engine is billed separately and is not part of your Hershy subscription. Setup happens
-        with us on Discord, so nothing is charged before we agree on the config for your stream.
+        Billed separately from your Hershy plan. Nothing is charged until we agree on setup in Discord.
       </p>
     </div>
   );

@@ -108,27 +108,18 @@ export function AppShell({ activeTab, onTabChange, children }: AppShellProps) {
         ${mobileOpen ? 'translate-x-0' : '-translate-x-full'}
         ${collapsed ? 'lg:-translate-x-full' : 'lg:translate-x-0'}
       `} style={{ background: 'rgba(10,15,26,0.8)', borderColor: 'rgba(255,255,255,0.08)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)' }}>
-        {/* Brand row: one button to Home (never signs the user out), plus a
-            desktop-only toggle to collapse the sidebar. */}
-        <div className="flex items-center gap-1 px-2 py-3.5 flex-shrink-0" style={{ borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+        {/* Brand row: single full-width button to Home, never signs the user out.
+            The collapse toggle lives outside the sidebar (see below), Higgsfield-style. */}
+        <div className="px-2 py-3.5 flex-shrink-0" style={{ borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
           <button
             onClick={() => { onTabChange('home'); setMobileOpen(false); }}
-            className={`flex-1 min-w-0 flex items-center gap-2 text-left px-2 py-1.5 rounded-lg font-bold tracking-tight transition-all ${
-              activeTab === 'home'
-                ? 'bg-[#0EA4E9]/15 text-[#0EA4E9] ring-1 ring-inset ring-[#0EA4E9]/20'
-                : 'text-white hover:bg-white/5'
-            }`}
+            className="w-full flex items-center gap-2 px-2 py-1.5 rounded-lg font-black uppercase tracking-[0.1em] text-white transition-colors group"
           >
-            <Home className="w-4 h-4 flex-shrink-0" />
+            <Home
+              className={`w-4 h-4 flex-shrink-0 transition-colors ${activeTab === 'home' ? 'text-[#0EA4E9]' : 'text-gray-500 group-hover:text-[#0EA4E9]'}`}
+              strokeWidth={2.5}
+            />
             Hershy
-          </button>
-          <button
-            onClick={() => setCollapsed(true)}
-            title="Collapse sidebar"
-            aria-label="Collapse sidebar"
-            className="hidden lg:flex p-2 rounded-lg text-gray-500 hover:text-white hover:bg-white/5 transition-all flex-shrink-0"
-          >
-            <PanelLeftClose className="w-4 h-4" />
           </button>
         </div>
 
@@ -177,17 +168,17 @@ export function AppShell({ activeTab, onTabChange, children }: AppShellProps) {
         />
       )}
 
-      {collapsed && (
-        <button
-          onClick={() => setCollapsed(false)}
-          title="Show sidebar"
-          aria-label="Show sidebar"
-          className="hidden lg:flex fixed top-4 left-4 z-40 p-2 rounded-lg text-gray-400 hover:text-white transition-all"
-          style={{ background: 'rgba(10,15,26,0.8)', border: '1px solid rgba(255,255,255,0.08)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)' }}
-        >
-          <PanelLeftOpen className="w-4 h-4" />
-        </button>
-      )}
+      {/* Collapse toggle: lives outside the sidebar, like Higgsfield's — hangs
+          just past the sidebar's edge when open, and at the far left when closed. */}
+      <button
+        onClick={() => setCollapsed(c => !c)}
+        title={collapsed ? 'Show sidebar' : 'Collapse sidebar'}
+        aria-label={collapsed ? 'Show sidebar' : 'Collapse sidebar'}
+        className={`hidden lg:flex fixed top-4 z-40 p-2 rounded-lg text-gray-500 hover:text-white transition-all duration-200 ${collapsed ? 'left-4' : 'left-[15rem]'}`}
+        style={{ background: 'rgba(10,15,26,0.8)', border: '1px solid rgba(255,255,255,0.08)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)' }}
+      >
+        {collapsed ? <PanelLeftOpen className="w-4 h-4" /> : <PanelLeftClose className="w-4 h-4" />}
+      </button>
 
       <div className={`flex-1 flex flex-col min-w-0 relative overflow-x-hidden transition-[margin] duration-200 ease-in-out ${collapsed ? 'lg:ml-0' : 'lg:ml-56'}`} style={{ zIndex: 1 }}>
         <header className="lg:hidden sticky top-0 z-30 flex items-center gap-3 px-4 py-3 flex-shrink-0" style={{ borderBottom: '1px solid rgba(255,255,255,0.08)', background: 'rgba(10,15,26,0.95)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)' }}>
