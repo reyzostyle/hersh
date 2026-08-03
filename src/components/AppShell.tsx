@@ -120,14 +120,13 @@ export function AppShell({ activeTab, onTabChange, children }: AppShellProps) {
       `} style={{ background: 'rgba(10,15,26,0.8)', borderColor: 'rgba(255,255,255,0.08)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)' }}>
         {/* Brand row: single full-width button to Home, never signs the user out.
             The collapse toggle lives outside the sidebar (see below), Higgsfield-style. */}
-        <div className="px-3 py-3 flex-shrink-0" style={{ borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+        <div className="px-3 py-3.5 flex-shrink-0" style={{ borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
           <button
             onClick={() => { onTabChange('home'); setMobileOpen(false); }}
-            className="w-full flex items-center justify-center gap-3 px-3 py-2.5 rounded-xl font-black uppercase tracking-[0.1em] text-white transition-all group"
-            style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}
+            className="w-full flex items-center gap-3 px-3 py-1 rounded-lg font-black uppercase tracking-[0.16em] text-[15px] text-white transition-colors group"
           >
             <HubIcon
-              className={`w-4 h-4 flex-shrink-0 transition-colors ${activeTab === 'home' ? 'text-[#0EA4E9]' : 'text-gray-500 group-hover:text-[#0EA4E9]'}`}
+              className={`w-4 h-4 flex-shrink-0 transition-colors ${activeTab === 'home' ? 'text-[#0EA4E9]' : 'text-gray-600 group-hover:text-[#0EA4E9]'}`}
             />
             Hershy
           </button>
