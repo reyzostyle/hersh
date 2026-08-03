@@ -1,7 +1,17 @@
 import { useState, useEffect, createContext, useContext, useRef } from 'react';
-import { Sparkles, Settings, LogOut, Menu, X, Zap, Users, Handshake, Wand2, Trophy, Home, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
+import { Sparkles, Settings, LogOut, Menu, X, Zap, Users, Handshake, Wand2, Trophy, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
+
+// Bold, filled house glyph — lucide's Home is a thin outline and reads too
+// light next to the font-black wordmark next to it.
+function HubIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="currentColor" className={className}>
+      <path d="M12 2.7 2.5 10.8v10.5h6.2v-6.8h6.6v6.8h6.2V10.8L12 2.7Z" />
+    </svg>
+  );
+}
 
 export const MobileHeaderContext = createContext<{
   setRightAction: (node: React.ReactNode) => void;
@@ -110,14 +120,14 @@ export function AppShell({ activeTab, onTabChange, children }: AppShellProps) {
       `} style={{ background: 'rgba(10,15,26,0.8)', borderColor: 'rgba(255,255,255,0.08)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)' }}>
         {/* Brand row: single full-width button to Home, never signs the user out.
             The collapse toggle lives outside the sidebar (see below), Higgsfield-style. */}
-        <div className="px-2 py-3.5 flex-shrink-0" style={{ borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+        <div className="px-3 py-3 flex-shrink-0" style={{ borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
           <button
             onClick={() => { onTabChange('home'); setMobileOpen(false); }}
-            className="w-full flex items-center gap-2 px-2 py-1.5 rounded-lg font-black uppercase tracking-[0.1em] text-white transition-colors group"
+            className="w-full flex items-center justify-center gap-3 px-3 py-2.5 rounded-xl font-black uppercase tracking-[0.1em] text-white transition-all group"
+            style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}
           >
-            <Home
+            <HubIcon
               className={`w-4 h-4 flex-shrink-0 transition-colors ${activeTab === 'home' ? 'text-[#0EA4E9]' : 'text-gray-500 group-hover:text-[#0EA4E9]'}`}
-              strokeWidth={2.5}
             />
             Hershy
           </button>

@@ -308,7 +308,7 @@ export function HookAnalysis() {
   return (
     <div className="h-full flex flex-col">
       {/* Header — desktop only */}
-      <div className="hidden sm:block px-6 pt-6 pb-4 flex-shrink-0">
+      <div className="hidden sm:block px-6 pt-6 pb-2 flex-shrink-0">
         <div className="max-w-2xl mx-auto flex items-center justify-between gap-4">
           <div>
             <h1 className="text-2xl font-bold text-white mb-1">Analysis</h1>
@@ -333,7 +333,7 @@ export function HookAnalysis() {
       )}
 
       {/* Main content */}
-      <div className="flex-1 overflow-auto px-4 sm:px-6 pt-4 sm:pt-8 pb-8" style={{ overscrollBehavior: 'none', WebkitOverflowScrolling: 'auto' }}>
+      <div className="flex-1 overflow-auto px-4 sm:px-6 pt-4 sm:pt-3 pb-8" style={{ overscrollBehavior: 'none', WebkitOverflowScrolling: 'auto' }}>
         <div className="max-w-2xl mx-auto space-y-3">
 
           {/* Mode switch */}

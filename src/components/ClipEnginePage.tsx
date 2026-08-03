@@ -54,8 +54,10 @@ export function ClipEnginePage() {
         <h1 className="text-2xl sm:text-4xl font-bold text-white mb-3 tracking-tight leading-tight text-pretty">
           Your streams, clipped and ready to post.
         </h1>
-        <p className="text-sm sm:text-base text-gray-400 leading-relaxed max-w-2xl text-pretty">
-          Every stream gets watched, cut into clips, and dropped in your Drive — you just pick your favorites and post.
+        <p className="text-sm sm:text-base text-gray-400 leading-relaxed max-w-2xl">
+          Every stream gets watched, cut into clips, and dropped in your Drive.
+          <br />
+          You just pick your favorites and post.
         </p>
       </div>
 
@@ -142,12 +144,16 @@ export function ClipEnginePage() {
         </p>
       </div>
 
-      <p className="mt-5 text-sm text-gray-500 leading-relaxed text-pretty">
-        A human clipper costs about $100 for a 50 hour month. Clip Engine covers the same for the same price, and never misses a stream.
+      <p className="mt-5 text-sm text-gray-500 leading-relaxed">
+        A human clipper costs about $100 for a 50 hour month.
+        <br />
+        Clip Engine covers the same for the same price, and never misses a stream.
       </p>
 
-      <p className="mt-4 text-xs text-gray-600 leading-relaxed text-pretty">
-        Billed separately from your Hershy plan. Nothing is charged until we agree on setup in Discord.
+      <p className="mt-4 text-xs text-gray-600 leading-relaxed">
+        Billed separately from your Hershy plan.
+        <br />
+        Nothing is charged until we agree on setup in Discord.
       </p>
     </div>
   );
