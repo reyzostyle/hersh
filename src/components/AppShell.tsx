@@ -1,5 +1,5 @@
 import { useState, useEffect, createContext, useContext, useRef } from 'react';
-import { Sparkles, Settings, LogOut, Menu, X, Zap, Users, Handshake, Wand2, Trophy, Home, Scissors } from 'lucide-react';
+import { Sparkles, Settings, LogOut, Menu, X, Zap, Users, Handshake, Wand2, Trophy, Home, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
 
@@ -29,11 +29,12 @@ interface AppShellProps {
   children: React.ReactNode;
 }
 
+// Clip Engine intentionally has no sidebar entry — it's reached from the Home
+// hub card instead, so the sidebar stays short.
 const baseNavItems: NavItem[] = [
   { id: 'hooks', label: 'Analysis', icon: <Sparkles className="w-4 h-4" /> },
   { id: 'hooklab', label: 'Hook Lab', icon: <Wand2 className="w-4 h-4" /> },
   { id: 'rank', label: 'Rank', icon: <Trophy className="w-4 h-4" /> },
-  { id: 'clips', label: 'Clip Engine', icon: <Scissors className="w-4 h-4" />, badge: 'New' },
   { id: 'competitors', label: 'Competitors', icon: <Users className="w-4 h-4" /> },
   { id: 'upgrade', label: 'Upgrade', icon: <Zap className="w-4 h-4" />, highlight: true },
   { id: 'settings', label: 'Settings', icon: <Settings className="w-4 h-4" /> },
@@ -41,11 +42,21 @@ const baseNavItems: NavItem[] = [
 
 const partnersItem: NavItem = { id: 'partners', label: 'Partners', icon: <Handshake className="w-4 h-4" /> };
 
+// Labels for tabs with no sidebar entry, used only for the mobile header title.
+const TAB_LABELS: Partial<Record<NavTab, string>> = { home: 'Hershy', clips: 'Clip Engine' };
+
+const SIDEBAR_COLLAPSED_KEY = 'hershy_sidebar_collapsed';
+
 export function AppShell({ activeTab, onTabChange, children }: AppShellProps) {
   const { user, signOut } = useAuth();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [collapsed, setCollapsed] = useState(() => localStorage.getItem(SIDEBAR_COLLAPSED_KEY) === '1');
   const [isPartner, setIsPartner] = useState(false);
   const [rightAction, setRightAction] = useState<React.ReactNode>(null);
+
+  useEffect(() => {
+    localStorage.setItem(SIDEBAR_COLLAPSED_KEY, collapsed ? '1' : '0');
+  }, [collapsed]);
 
   const isAdmin = user?.email === ADMIN_EMAIL;
   const mainRef = useRef<HTMLElement>(null);
@@ -95,28 +106,29 @@ export function AppShell({ activeTab, onTabChange, children }: AppShellProps) {
       <aside className={`
         fixed inset-y-0 left-0 z-50 flex flex-col w-56 border-r transition-transform duration-200 ease-in-out
         ${mobileOpen ? 'translate-x-0' : '-translate-x-full'}
-        lg:translate-x-0
+        ${collapsed ? 'lg:-translate-x-full' : 'lg:translate-x-0'}
       `} style={{ background: 'rgba(10,15,26,0.8)', borderColor: 'rgba(255,255,255,0.08)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)' }}>
-        {/* Brand row: both the wordmark and the house icon go Home, which is a
-            normal tab switch and never signs the user out. */}
-        <div className="flex items-center gap-2 px-3 py-3.5 flex-shrink-0" style={{ borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+        {/* Brand row: one button to Home (never signs the user out), plus a
+            desktop-only toggle to collapse the sidebar. */}
+        <div className="flex items-center gap-1 px-2 py-3.5 flex-shrink-0" style={{ borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
           <button
             onClick={() => { onTabChange('home'); setMobileOpen(false); }}
-            className="flex-1 min-w-0 text-left px-1 py-1 rounded-lg text-white font-bold tracking-tight hover:text-[#0EA4E9] transition-colors"
+            className={`flex-1 min-w-0 flex items-center gap-2 text-left px-2 py-1.5 rounded-lg font-bold tracking-tight transition-all ${
+              activeTab === 'home'
+                ? 'bg-[#0EA4E9]/15 text-[#0EA4E9] ring-1 ring-inset ring-[#0EA4E9]/20'
+                : 'text-white hover:bg-white/5'
+            }`}
           >
+            <Home className="w-4 h-4 flex-shrink-0" />
             Hershy
           </button>
           <button
-            onClick={() => { onTabChange('home'); setMobileOpen(false); }}
-            title="Home"
-            aria-label="Home"
-            className={`p-2 rounded-lg transition-all flex-shrink-0 ${
-              activeTab === 'home'
-                ? 'bg-[#0EA4E9]/15 text-[#0EA4E9] ring-1 ring-inset ring-[#0EA4E9]/20'
-                : 'text-gray-400 hover:text-white hover:bg-white/5'
-            }`}
+            onClick={() => setCollapsed(true)}
+            title="Collapse sidebar"
+            aria-label="Collapse sidebar"
+            className="hidden lg:flex p-2 rounded-lg text-gray-500 hover:text-white hover:bg-white/5 transition-all flex-shrink-0"
           >
-            <Home className="w-4 h-4" />
+            <PanelLeftClose className="w-4 h-4" />
           </button>
         </div>
 
@@ -165,7 +177,19 @@ export function AppShell({ activeTab, onTabChange, children }: AppShellProps) {
         />
       )}
 
-      <div className="flex-1 flex flex-col min-w-0 lg:ml-56 relative overflow-x-hidden" style={{ zIndex: 1 }}>
+      {collapsed && (
+        <button
+          onClick={() => setCollapsed(false)}
+          title="Show sidebar"
+          aria-label="Show sidebar"
+          className="hidden lg:flex fixed top-4 left-4 z-40 p-2 rounded-lg text-gray-400 hover:text-white transition-all"
+          style={{ background: 'rgba(10,15,26,0.8)', border: '1px solid rgba(255,255,255,0.08)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)' }}
+        >
+          <PanelLeftOpen className="w-4 h-4" />
+        </button>
+      )}
+
+      <div className={`flex-1 flex flex-col min-w-0 relative overflow-x-hidden transition-[margin] duration-200 ease-in-out ${collapsed ? 'lg:ml-0' : 'lg:ml-56'}`} style={{ zIndex: 1 }}>
         <header className="lg:hidden sticky top-0 z-30 flex items-center gap-3 px-4 py-3 flex-shrink-0" style={{ borderBottom: '1px solid rgba(255,255,255,0.08)', background: 'rgba(10,15,26,0.95)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)' }}>
           <button
             onClick={() => setMobileOpen(!mobileOpen)}
@@ -174,7 +198,7 @@ export function AppShell({ activeTab, onTabChange, children }: AppShellProps) {
             {mobileOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
           </button>
           <span className="flex-1 text-white font-semibold text-sm">
-            {navItems.find(i => i.id === activeTab)?.label ?? 'Hershy'}
+            {navItems.find(i => i.id === activeTab)?.label ?? TAB_LABELS[activeTab] ?? 'Hershy'}
           </span>
           {rightAction}
         </header>

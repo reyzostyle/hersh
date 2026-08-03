@@ -502,7 +502,7 @@ function CustomSolutionsPage({ onBack }: { onBack: () => void }) {
               <p className="text-white font-semibold text-[15px] mb-1">
                 <span className="text-gray-600 mr-2">0{i + 1}</span>{s.title}
               </p>
-              <p className="text-gray-500 text-sm leading-relaxed">{s.body}</p>
+              <p className="text-gray-500 text-sm leading-relaxed text-pretty">{s.body}</p>
             </div>
           </div>
         ))}

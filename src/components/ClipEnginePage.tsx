@@ -1,4 +1,4 @@
-import { Scissors, Eye, Clock, ShieldCheck, Check, MessageCircle } from 'lucide-react';
+import { Eye, Clock, ShieldCheck, Check, MessageCircle } from 'lucide-react';
 import { isClipOfferActive, CLIP_FULL_PRICE, CLIP_OFFER_PRICE } from '../lib/launchOffer';
 
 const DISCORD_URL = 'https://discord.com/invite/N8S6C95Ry2';
@@ -32,7 +32,7 @@ const steps = [
   },
   {
     title: 'Clips land in your Drive',
-    body: 'After every stream, new clips show up in your own Google Drive folder. You pick the ones you like, write the title, and post.',
+    body: 'After every stream, new clips show up in your own Google Drive folder, ready for you to pick, title, and post.',
   },
 ];
 
@@ -51,17 +51,10 @@ export function ClipEnginePage() {
     <div className="max-w-4xl mx-auto px-4 sm:px-6 pt-6 sm:pt-10 pb-12 animate-fade-in-up">
       {/* Hero */}
       <div className="mb-9 sm:mb-12">
-        <span
-          className="inline-flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1 rounded-full mb-4"
-          style={{ background: 'rgba(14,164,233,0.12)', color: '#0EA4E9' }}
-        >
-          <Scissors className="w-3 h-3" />
-          Clip Engine
-        </span>
-        <h1 className="text-2xl sm:text-4xl font-bold text-white mb-3 tracking-tight leading-tight">
+        <h1 className="text-2xl sm:text-4xl font-bold text-white mb-3 tracking-tight leading-tight text-pretty">
           Your streams, clipped and ready to post.
         </h1>
-        <p className="text-sm sm:text-base text-gray-400 leading-relaxed max-w-2xl">
+        <p className="text-sm sm:text-base text-gray-400 leading-relaxed max-w-2xl text-pretty">
           Streaming for eight hours and posting none of it is wasted work. Clip Engine watches every
           hour you stream and cuts the good moments into short clips, so the only thing left on your
           plate is picking the ones you like.
@@ -78,7 +71,7 @@ export function ClipEnginePage() {
           >
             <span className="text-[#0EA4E9] inline-block mb-3">{r.icon}</span>
             <p className="text-white font-semibold mb-1.5">{r.title}</p>
-            <p className="text-sm text-gray-400 leading-relaxed">{r.body}</p>
+            <p className="text-sm text-gray-400 leading-relaxed text-pretty">{r.body}</p>
           </div>
         ))}
       </div>
@@ -97,7 +90,7 @@ export function ClipEnginePage() {
               </span>
               <div className="min-w-0">
                 <p className="text-white font-semibold mb-1">{s.title}</p>
-                <p className="text-sm text-gray-400 leading-relaxed">{s.body}</p>
+                <p className="text-sm text-gray-400 leading-relaxed text-pretty">{s.body}</p>
               </div>
             </div>
           ))}
@@ -151,13 +144,13 @@ export function ClipEnginePage() {
         </p>
       </div>
 
-      <p className="mt-5 text-sm text-gray-500 leading-relaxed">
+      <p className="mt-5 text-sm text-gray-500 leading-relaxed text-pretty">
         A human clipper watching a 50 hour month costs around $100. Clip Engine covers the same month
         for the same money, and it never oversleeps, never goes quiet for a week, and never leaves
         your best moment on the timeline.
       </p>
 
-      <p className="mt-4 text-xs text-gray-600 leading-relaxed">
+      <p className="mt-4 text-xs text-gray-600 leading-relaxed text-pretty">
         Clip Engine is billed separately and is not part of your Hershy subscription. Setup happens
         with us on Discord, so nothing is charged before we agree on the config for your stream.
       </p>
