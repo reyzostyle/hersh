@@ -64,7 +64,7 @@ Deno.serve(async (req: Request) => {
 
     const { data: tokenRow, error } = await supabaseAdmin
       .from('user_tokens')
-      .select('plan, analyses_used, analyses_reset_at')
+      .select('plan, analyses_used, analyses_reset_at, bonus_analyses')
       .eq('user_id', userId)
       .maybeSingle();
 
@@ -72,7 +72,7 @@ Deno.serve(async (req: Request) => {
 
     const plan = tokenRow?.plan || 'free';
     let analysesUsed = tokenRow?.analyses_used || 0;
-    const analysesLimit = PLAN_LIMITS[plan] ?? 3;
+    let bonusAnalyses = tokenRow?.bonus_analyses || 0;
 
     // Free video analyses are lifetime (3 total). Monthly reset for paid plans only.
     if (plan !== 'free' && tokenRow?.analyses_reset_at) {
@@ -82,12 +82,14 @@ Deno.serve(async (req: Request) => {
         newResetAt.setDate(newResetAt.getDate() + 30);
         await supabaseAdmin
           .from('user_tokens')
-          .update({ analyses_used: 0, analyses_reset_at: newResetAt.toISOString() })
+          .update({ analyses_used: 0, analyses_reset_at: newResetAt.toISOString(), bonus_analyses: 0 })
           .eq('user_id', userId);
         analysesUsed = 0;
+        bonusAnalyses = 0;
       }
     }
 
+    const analysesLimit = (PLAN_LIMITS[plan] ?? 3) + bonusAnalyses;
     const canAnalyze = analysesUsed < analysesLimit;
 
     return new Response(

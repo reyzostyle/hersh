@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Analysis } from '../lib/supabase';
-import { Sparkles, AlertCircle, X, ThumbsUp, ThumbsDown, Send } from 'lucide-react';
+import { SheetGrip, useSheetDismiss } from './SheetGrip';
+import { AlertCircle, X, ArrowLeft, ThumbsUp, ThumbsDown, Send } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { ScoreCircle, ScoreBreakdown } from './ScoreCircle';
@@ -26,6 +28,8 @@ interface AnalysisPanelProps {
   analysis: Analysis | null;
   open: boolean;
   onClose: () => void;
+  /** When set, shows a back arrow that returns to wherever the analysis was opened from (e.g. History). */
+  onBack?: () => void;
 }
 
 function FeedbackSection({ analysisId }: { analysisId: string }) {
@@ -133,68 +137,69 @@ function FeedbackSection({ analysisId }: { analysisId: string }) {
   );
 }
 
-export function AnalysisPanel({ analysis, open, onClose }: AnalysisPanelProps) {
+export function AnalysisPanel({ analysis, open, onClose, onBack }: AnalysisPanelProps) {
+  const { panelRef, dismiss } = useSheetDismiss(onClose);
+
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
+      if (e.key === 'Escape') dismiss();
     };
     if (open) document.addEventListener('keydown', handleKey);
     return () => document.removeEventListener('keydown', handleKey);
-  }, [open, onClose]);
+  }, [open, dismiss]);
 
   if (!open) return null;
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+  // Portaled to <body>: keeps the sheet outside the app's scroll container,
+  // whose touchmove guard would otherwise block scrolling inside the modal.
+  return createPortal(
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center sm:p-4">
       <div
         className="absolute inset-0 bg-black/60"
-        style={{ backdropFilter: 'blur(4px)', WebkitBackdropFilter: 'blur(4px)' }}
-        onClick={onClose}
+        style={{ backdropFilter: 'blur(4px)', WebkitBackdropFilter: 'blur(4px)', touchAction: 'none' }}
+        onClick={dismiss}
       />
       <div
-        className="relative w-full max-w-2xl flex flex-col rounded-2xl animate-scale-in"
+        ref={panelRef}
+        className="relative w-full max-w-2xl flex flex-col rounded-t-2xl sm:rounded-2xl animate-scale-in max-h-[88dvh] sm:max-h-[90vh]"
         style={{
+          // No backdrop blur: at 0.98 bg opacity it's invisible, but it forces
+          // per-frame backdrop resampling that tanks the slide animation FPS.
           background: 'rgba(10,15,26,0.98)',
           border: '1px solid rgba(255,255,255,0.1)',
-          backdropFilter: 'blur(24px)',
-          WebkitBackdropFilter: 'blur(24px)',
-          maxHeight: '90vh',
+          willChange: 'transform',
         }}
       >
-        <div className="flex items-center justify-between px-6 py-4 flex-shrink-0" style={{ borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
-          <div className="flex items-center gap-2.5">
-            <Sparkles className="w-5 h-5 text-[#0EA4E9]" />
-            <h2 className="text-lg font-bold text-white">AI Analysis</h2>
-            {analysis && (
-              <span className={`text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full ${
-                analysis.analysis_type === 'advanced'
-                  ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30'
-                  : 'bg-gray-700/60 text-gray-400 border border-gray-600/40'
-              }`}>
-                {analysis.analysis_type === 'advanced' ? 'Advanced' : 'Basic'}
-              </span>
-            )}
-            {analysis?.is_my_video && (
-              <span className="text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full" style={{ background: 'rgba(14,164,233,0.1)', color: '#38BDF8', border: '1px solid rgba(14,164,233,0.2)' }}>
-                My video
-              </span>
+        <SheetGrip onClose={onClose} panelRef={panelRef} />
+        {/* Compact icon-only header (title/badges removed); on mobile the
+            grip pill overlays this row, centered between the buttons */}
+        <div className="flex items-center justify-between px-3 sm:px-4 py-1 sm:py-2 flex-shrink-0">
+          <div className="flex items-center min-w-0">
+            {onBack && (
+              <button
+                onClick={onBack}
+                className="p-2 text-gray-400 hover:text-white hover:bg-gray-800 rounded-lg transition-colors flex-shrink-0"
+                title="Back to history"
+              >
+                <ArrowLeft className="w-5 h-5" />
+              </button>
             )}
           </div>
           <button
-            onClick={onClose}
+            onClick={dismiss}
             className="p-2 text-gray-400 hover:text-white hover:bg-gray-800 rounded-lg transition-colors"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        <div className="flex-1 overflow-y-auto px-5 py-5 space-y-3">
+        <div className="flex-1 overflow-y-auto px-4 pb-4 pt-1 sm:px-5 sm:pb-5 space-y-3" style={{ overscrollBehavior: 'contain' }}>
           {!analysis ? (
             <p className="text-gray-500 text-sm">No analysis yet. Select videos and click Analyze.</p>
           ) : (
             <>
               {/* Score + assessment */}
-              <div className="rounded-2xl p-6" style={card}>
+              <div className="rounded-2xl p-5 sm:p-6" style={card}>
                 {/* Score summary — circle + criteria always visible at the top */}
                 <div className="flex items-center gap-6">
                   {analysis.hook_analysis?.overall_score != null && (
@@ -237,7 +242,7 @@ export function AnalysisPanel({ analysis, open, onClose }: AnalysisPanelProps) {
               </div>
 
               {(analysis as any).strong_spots && (analysis as any).strong_spots.length > 0 && (
-                <div className="rounded-2xl p-6" style={card}>
+                <div className="rounded-2xl p-5 sm:p-6" style={card}>
                   <p className="text-xs font-semibold uppercase tracking-widest text-gray-500 mb-4">What works</p>
                   <ul className="space-y-3">
                     {(analysis as any).strong_spots.map((spot: string, idx: number) => (
@@ -251,7 +256,7 @@ export function AnalysisPanel({ analysis, open, onClose }: AnalysisPanelProps) {
               )}
 
               {analysis.weak_spots && analysis.weak_spots.length > 0 && (
-                <div className="rounded-2xl p-6" style={card}>
+                <div className="rounded-2xl p-5 sm:p-6" style={card}>
                   <p className="text-xs font-semibold uppercase tracking-widest text-gray-500 mb-4">What's holding it back</p>
                   <ul className="space-y-3">
                     {analysis.weak_spots.map((spot, idx) => (
@@ -274,6 +279,7 @@ export function AnalysisPanel({ analysis, open, onClose }: AnalysisPanelProps) {
           )}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

@@ -126,3 +126,52 @@ input, textarea, select {
   background-size: 200% 100%;
   animation: shimmer 1.5s infinite;
 }
+
+/* ─── iOS: prevent focus zoom ─────────────────────────────────────────────────
+   Safari zooms the page when a focused input's font-size is under 16px.
+   Force 16px on mobile so tapping a field never zooms the layout. */
+@media (max-width: 640px) {
+  input,
+  textarea,
+  select {
+    font-size: 16px !important;
+  }
+}
+
+/* ─── Liquid-glass panels (Apple-style, matte frosted) ────────────────────────
+   Strong blur + light saturate for vibrancy, a subtle top inner highlight for
+   the glass edge, and a soft depth shadow. Kept low-gloss so it reads matte. */
+/* No backdrop-filter on in-flow panels: the background behind them is static,
+   so blur added nothing visually but caused persistent stale-raster "ghost"
+   bands in Chromium when a sibling repainted (accordion toggle, hover). The
+   second gradient layer stands in for the old blur(22px) saturate(150%). */
+.glass-panel {
+  /* Vertical sheen so the glass reads even over a flat dark background */
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0.025) 45%, rgba(255, 255, 255, 0.035)),
+    linear-gradient(180deg, rgba(14, 80, 133, 0.05), rgba(14, 80, 133, 0.03));
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.11), 0 10px 34px -14px rgba(0, 0, 0, 0.6);
+}
+.glass-panel-accent {
+  background:
+    linear-gradient(180deg, rgba(14, 164, 233, 0.13), rgba(14, 164, 233, 0.05)),
+    linear-gradient(180deg, rgba(14, 80, 133, 0.05), rgba(14, 80, 133, 0.03));
+  border: 1px solid rgba(14, 164, 233, 0.4);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12), 0 10px 34px -14px rgba(14, 164, 233, 0.22);
+}
+
+/* ─── Glass system: fields + primary buttons (cohesive with .glass-panel) ───── */
+/* Recessed field, additive (box-shadow only — keeps inline bg/border/focus JS) */
+.glass-field {
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.22);
+}
+/* Primary CTA: subtle top highlight + soft glow so buttons share the glass look */
+.btn-primary {
+  background: linear-gradient(180deg, #22b0ec, #0e9fe4);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.25), 0 6px 18px -8px rgba(14, 164, 233, 0.55);
+  transition: filter 0.15s ease, box-shadow 0.15s ease;
+}
+.btn-primary:hover { filter: brightness(1.06); }
+.btn-primary:active { filter: brightness(0.97); }
+.btn-primary:disabled { filter: none; box-shadow: none; }

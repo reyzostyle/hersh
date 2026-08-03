@@ -89,10 +89,11 @@ export function AuthPage() {
         <div
           className="rounded-2xl p-8"
           style={{
-            background: 'rgba(255,255,255,0.05)',
+            // No backdrop-filter: blur over the static app background caused
+            // Chromium ghost bands on sibling repaints
+            background:
+              'linear-gradient(rgba(255,255,255,0.05), rgba(255,255,255,0.05)), linear-gradient(180deg, rgba(14,80,133,0.05), rgba(14,80,133,0.03))',
             border: '1px solid rgba(255,255,255,0.1)',
-            backdropFilter: 'blur(16px)',
-            WebkitBackdropFilter: 'blur(16px)',
           }}
         >
           {/* Forgot password screen */}

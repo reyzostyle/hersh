@@ -2,6 +2,8 @@ import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { LandingPage } from './components/LandingPage';
 import { Dashboard } from './components/Dashboard';
 import { Onboarding } from './components/Onboarding';
+import { PrivacyPolicy } from './components/PrivacyPolicy';
+import { TermsOfService } from './components/TermsOfService';
 import { Loader2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { supabase, getSessionToken } from './lib/supabase';
@@ -218,7 +220,12 @@ function AppContent() {
       .select('onboarding_completed')
       .eq('user_id', user.id)
       .maybeSingle()
-      .then(({ data }) => setNeedsOnboarding(!data?.onboarding_completed));
+      .then(({ data, error }) => {
+        // A failed query (expired session, network) must not trap an existing
+        // user in onboarding — only a real "no row / not completed" does.
+        if (error) { setNeedsOnboarding(false); return; }
+        setNeedsOnboarding(!data?.onboarding_completed);
+      });
   }, [user?.id]);
 
   // Save referral code to referral_signups once after signup.
@@ -246,6 +253,11 @@ function AppContent() {
         localStorage.removeItem('hersh_ref');
       });
   }, [user?.id]);
+
+  // Public legal pages — must be reachable without auth (Google verification reviewers
+  // open these while logged out).
+  if (window.location.pathname === '/privacy') return <PrivacyPolicy />;
+  if (window.location.pathname === '/terms') return <TermsOfService />;
 
   if (loading) {
     return (

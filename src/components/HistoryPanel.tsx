@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Analysis, Video } from '../lib/supabase';
 import { History, Sparkles, X, ChevronRight, Link, Film } from 'lucide-react';
+import { SheetGrip, useSheetDismiss } from './SheetGrip';
 
 interface HistoryPanelProps {
   analyses: Analysis[];
@@ -11,6 +13,8 @@ interface HistoryPanelProps {
 }
 
 export function HistoryPanel({ analyses, videos, open, onClose, onSelect }: HistoryPanelProps) {
+  const { panelRef, dismiss } = useSheetDismiss(onClose);
+
   const getTitle = (a: Analysis) => {
     const hookTitle = (a.hook_analysis as any)?.title;
     if (hookTitle) return hookTitle;
@@ -37,11 +41,11 @@ export function HistoryPanel({ analyses, videos, open, onClose, onSelect }: Hist
 
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
+      if (e.key === 'Escape') dismiss();
     };
     if (open) document.addEventListener('keydown', handleKey);
     return () => document.removeEventListener('keydown', handleKey);
-  }, [open, onClose]);
+  }, [open, dismiss]);
 
   const formatDate = (dateStr: string) => {
     const d = new Date(dateStr);
@@ -63,24 +67,26 @@ export function HistoryPanel({ analyses, videos, open, onClose, onSelect }: Hist
 
   if (!open) return null;
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+  // Portaled to <body>: keeps the sheet outside the app's scroll container,
+  // whose touchmove guard would otherwise block scrolling inside the modal.
+  return createPortal(
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center sm:p-4">
       <div
         className="absolute inset-0 bg-black/60"
-        style={{ backdropFilter: 'blur(4px)', WebkitBackdropFilter: 'blur(4px)' }}
-        onClick={onClose}
+        style={{ backdropFilter: 'blur(4px)', WebkitBackdropFilter: 'blur(4px)', touchAction: 'none' }}
+        onClick={dismiss}
       />
       <div
-        className="relative w-full max-w-2xl flex flex-col rounded-2xl animate-scale-in"
+        ref={panelRef}
+        className="relative w-full max-w-2xl flex flex-col rounded-t-2xl sm:rounded-2xl animate-scale-in h-[85dvh] sm:h-[85vh]"
         style={{
           background: 'rgba(10,15,26,0.98)',
           border: '1px solid rgba(255,255,255,0.1)',
-          backdropFilter: 'blur(24px)',
-          WebkitBackdropFilter: 'blur(24px)',
-          height: '85vh',
+          willChange: 'transform',
         }}
       >
-        <div className="flex items-center justify-between px-6 py-4 flex-shrink-0" style={{ borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+        <SheetGrip onClose={onClose} panelRef={panelRef} />
+        <div className="flex items-center justify-between px-5 sm:px-6 py-1 sm:py-4 flex-shrink-0" style={{ borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
           <div className="flex items-center gap-2.5">
             <History className="w-5 h-5 text-[#0EA4E9]" />
             <h2 className="text-lg font-bold text-white">History</h2>
@@ -91,7 +97,7 @@ export function HistoryPanel({ analyses, videos, open, onClose, onSelect }: Hist
             )}
           </div>
           <button
-            onClick={onClose}
+            onClick={dismiss}
             className="p-2 text-gray-400 hover:text-white hover:bg-gray-800 rounded-lg transition-colors"
           >
             <X className="w-5 h-5" />
@@ -99,11 +105,11 @@ export function HistoryPanel({ analyses, videos, open, onClose, onSelect }: Hist
         </div>
 
 
-        <div className="flex-1 overflow-y-auto py-2 mt-2">
+        <div className="flex-1 overflow-y-auto py-2 mt-2" style={{ overscrollBehavior: 'contain' }}>
           {filtered.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-48 text-center px-6">
               <Sparkles className="w-8 h-8 text-gray-700 mb-3" />
-              <p className="text-gray-500 text-sm">{tab === 'mine' ? 'No analyses of your videos yet.' : 'No analyses yet.'}</p>
+              <p className="text-gray-500 text-sm">No analyses yet.</p>
               <p className="text-gray-600 text-xs mt-1">Select a video and click Analyze.</p>
             </div>
           ) : (
@@ -112,13 +118,18 @@ export function HistoryPanel({ analyses, videos, open, onClose, onSelect }: Hist
                 <button
                   key={a.id}
                   onClick={() => { onSelect(a); onClose(); }}
-                  className="w-full text-left px-6 py-4 hover:bg-white/5 transition-colors group flex items-start gap-3"
+                  className="w-full text-left px-4 py-3.5 sm:px-6 sm:py-4 hover:bg-white/5 transition-colors group flex items-start gap-3"
                 >
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1 flex-wrap">
                       {getSource(a) === 'youtube' && (
                         <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded-full flex-shrink-0" style={{ background: 'rgba(255,0,0,0.1)', color: '#f87171', border: '1px solid rgba(255,0,0,0.2)' }}>
                           <Link className="w-2.5 h-2.5" />URL
+                        </span>
+                      )}
+                      {a.is_my_video && (
+                        <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded-full flex-shrink-0" style={{ background: 'rgba(16,185,129,0.12)', color: '#34D399', border: '1px solid rgba(16,185,129,0.25)' }}>
+                          Your video
                         </span>
                       )}
                       {getSource(a) === 'upload' && (
@@ -145,6 +156,7 @@ export function HistoryPanel({ analyses, videos, open, onClose, onSelect }: Hist
           )}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

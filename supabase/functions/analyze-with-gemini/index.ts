@@ -118,6 +118,7 @@ async function fetchPublicVideoData(videoId: string, accessTokenOrApiKey: string
 
   return {
     video_id: videoId,
+    channel_id: item.snippet.channelId,
     title: item.snippet.title,
     thumbnail_url: item.snippet.thumbnails?.medium?.url || item.snippet.thumbnails?.default?.url,
     views: parseInt(item.statistics.viewCount || '0'),
@@ -144,6 +145,80 @@ async function refreshAccessToken(refreshToken: string): Promise<string> {
   if (!res.ok) throw new Error(`Token refresh failed: ${await res.text()}`);
   const tokens = await res.json();
   return tokens.access_token;
+}
+
+// The connected account's own channel id (authoritative for ownership).
+async function getOwnChannelId(accessToken: string): Promise<string | null> {
+  try {
+    const res = await fetch(
+      'https://www.googleapis.com/youtube/v3/channels?part=id&mine=true',
+      { headers: { Authorization: `Bearer ${accessToken}` } }
+    );
+    if (!res.ok) return null;
+    const data = await res.json();
+    return data.items?.[0]?.id ?? null;
+  } catch {
+    return null;
+  }
+}
+
+// Pull the audience-retention curve + summary for one of the user's OWN videos
+// via the YouTube Analytics API (requires the yt-analytics.readonly scope).
+// Returns null if the scope is missing (403), the video isn't owned, or there's
+// no data yet (too new / too few views).
+async function fetchOwnRetention(accessToken: string, videoId: string): Promise<{
+  averageViewPercentage: number | null;
+  averageViewDuration: number | null;
+  curve: { t: number; watch: number }[];
+} | null> {
+  const endDate = new Date().toISOString().split('T')[0];
+  const startDate = new Date(Date.now() - 730 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+  const auth = { headers: { Authorization: `Bearer ${accessToken}` } };
+  const base = `https://youtubeanalytics.googleapis.com/v2/reports?ids=channel==MINE&startDate=${startDate}&endDate=${endDate}&filters=video==${videoId}`;
+
+  let averageViewPercentage: number | null = null;
+  let averageViewDuration: number | null = null;
+  try {
+    const res = await fetch(`${base}&metrics=averageViewDuration,averageViewPercentage&dimensions=video`, auth);
+    if (res.ok) {
+      const d = await res.json();
+      if (d.rows?.length) {
+        averageViewDuration = Math.round(d.rows[0][1]) || null;
+        averageViewPercentage = Math.round(d.rows[0][2]) || null;
+      }
+    }
+  } catch { /* ignore */ }
+
+  let curve: { t: number; watch: number }[] = [];
+  try {
+    const res = await fetch(`${base}&metrics=audienceWatchRatio&dimensions=elapsedVideoTimeRatio`, auth);
+    if (res.ok) {
+      const d = await res.json();
+      curve = (d.rows || [])
+        .map((r: number[]) => ({ t: r[0], watch: r[1] }))
+        .sort((a: { t: number }, b: { t: number }) => a.t - b.t);
+    }
+  } catch { /* ignore */ }
+
+  if (averageViewPercentage == null && curve.length === 0) return null;
+  return { averageViewPercentage, averageViewDuration, curve };
+}
+
+// Turn the retention curve into a short, human-readable list of the biggest
+// viewer drop-offs for the analysis prompt.
+function summarizeRetentionDrops(curve: { t: number; watch: number }[]): string {
+  if (!curve || curve.length < 2) return '';
+  const segs: { at: number; drop: number }[] = [];
+  for (let i = 1; i < curve.length; i++) {
+    const drop = curve[i - 1].watch - curve[i].watch; // positive = viewers left
+    if (drop > 0) segs.push({ at: curve[i].t, drop });
+  }
+  segs.sort((a, b) => b.drop - a.drop);
+  const top = segs.slice(0, 3).filter(s => s.drop >= 0.03); // ignore <3% noise
+  if (top.length === 0) return '';
+  return top
+    .map(s => `at ~${Math.round(s.at * 100)}% of the video: -${Math.round(s.drop * 100)}% viewers`)
+    .join('; ');
 }
 
 async function analyzeWithClaude(
@@ -226,14 +301,20 @@ ${knowledgeBaseSection ? `KNOWLEDGE BASE (learned patterns - use as instinct, do
   const source = 'YouTube URL';
 
   const hasRetention = video.retention_percentage != null && video.average_view_duration != null;
+  const hasDrops = !!video.retention_drops;
+  const dropLine = hasDrops
+    ? `Biggest viewer drop-offs (from this channel's REAL audience-retention curve): ${video.retention_drops}. Reference these exact timestamps: say what happens on screen there and how to fix the drop.`
+    : `Biggest drops: N/A — drop-off curve not available`;
   const retentionSection = hasRetention
-    ? `Avg view duration: ${video.average_view_duration}s (${video.retention_percentage}%)\nBiggest drops: N/A — drop data not available`
-    : `N/A — retention data not available for this video.\nAnalyze based on structure, hook, and content only.`;
+    ? `Avg view duration: ${video.average_view_duration}s (${video.retention_percentage}% average view)\n${dropLine}`
+    : hasDrops
+      ? dropLine
+      : `N/A — retention data not available for this video.\nAnalyze based on structure, hook, and content only.`;
 
   // Don't use channel profile for external videos — they're someone else's content
   const hasProfile = !video.is_external && (profile.channel_niche || profile.channel_description);
   const profileSection = hasProfile
-    ? `Niche: ${profile.channel_niche || 'N/A'}\nDescription: ${profile.channel_description || 'N/A'}${profile.channel_context ? `\nAdditional Context: ${profile.channel_context}` : ''}`
+    ? `Niche: ${profile.channel_niche || 'N/A'}\nDescription: ${profile.channel_description || 'N/A'}${profile.channel_context ? `\nAdditional Context: ${profile.channel_context}` : ''}\n\nRELEVANCE RULE: Only tailor the analysis to this niche if THIS video's actual content clearly fits it. If the video is obviously a different topic/niche than described above, IGNORE this profile completely and analyze the video on its own merits - do not force the creator's niche onto unrelated content.`
     : `N/A — channel profile not provided`;
 
   const prompt = `## Video Stats
@@ -366,14 +447,14 @@ Deno.serve(async (req: Request) => {
     // Check plan limits
     const { data: tokenRow } = await supabase
       .from('user_tokens')
-      .select('plan, analyses_used, analyses_reset_at, channel_niche, channel_description, channel_context, creator_level')
+      .select('plan, analyses_used, analyses_reset_at, bonus_analyses, channel_niche, channel_description, channel_context, creator_level, access_token, refresh_token, token_expiry')
       .eq('user_id', userId)
       .maybeSingle();
 
     const PLAN_LIMITS: Record<string, number> = { free: 3, pro: 30, agency: 100 };
     const plan = tokenRow?.plan || 'free';
     let analysesUsed = tokenRow?.analyses_used || 0;
-    const analysesLimit = userEmail === 'reyzostyle@gmail.com' ? Infinity : (PLAN_LIMITS[plan] ?? 3);
+    let bonusAnalyses = tokenRow?.bonus_analyses || 0;
 
     // Free video analyses are lifetime (3 total). Monthly reset for paid plans only.
     if (plan !== 'free' && tokenRow?.analyses_reset_at) {
@@ -383,11 +464,14 @@ Deno.serve(async (req: Request) => {
         newResetAt.setDate(newResetAt.getDate() + 30);
         await supabase
           .from('user_tokens')
-          .update({ analyses_used: 0, analyses_reset_at: newResetAt.toISOString() })
+          .update({ analyses_used: 0, analyses_reset_at: newResetAt.toISOString(), bonus_analyses: 0 })
           .eq('user_id', userId);
         analysesUsed = 0;
+        bonusAnalyses = 0;
       }
     }
+
+    const analysesLimit = userEmail === 'reyzostyle@gmail.com' ? Infinity : (PLAN_LIMITS[plan] ?? 3) + bonusAnalyses;
 
     if (analysesUsed >= analysesLimit) {
       return new Response(
@@ -419,6 +503,47 @@ Deno.serve(async (req: Request) => {
         }
       } else {
         video = { video_id: videoId, title: `youtube.com/watch?v=${videoId}`, views: null, likes_count: null, comment_count: null, duration: null, retention_percentage: null, average_view_duration: null, is_external: true };
+      }
+    }
+
+    // ── Own-video deep stats ────────────────────────────────────────────────
+    // If this video belongs to the connected YouTube account, pull its private
+    // retention curve (Analytics API) and treat it as the user's own content.
+    // Requires the yt-analytics.readonly scope; degrades silently without it.
+    if (tokenRow?.access_token) {
+      try {
+        let accessToken = tokenRow.access_token as string;
+        const expiry = tokenRow.token_expiry ? new Date(tokenRow.token_expiry) : new Date(0);
+        if (expiry < new Date() && tokenRow.refresh_token) {
+          accessToken = await refreshAccessToken(tokenRow.refresh_token);
+          const newExpiry = new Date();
+          newExpiry.setSeconds(newExpiry.getSeconds() + 3600);
+          await supabase
+            .from('user_tokens')
+            .update({ access_token: accessToken, token_expiry: newExpiry.toISOString(), updated_at: new Date().toISOString() })
+            .eq('user_id', userId);
+        }
+
+        // Synced videos are already known-own. For pasted/unsynced videos, match
+        // the video's channel against the connected account's channel.
+        let isOwn = !!ownVideo;
+        if (!isOwn && video.channel_id) {
+          const ownChannelId = await getOwnChannelId(accessToken);
+          isOwn = !!ownChannelId && ownChannelId === video.channel_id;
+        }
+
+        if (isOwn) {
+          video.is_external = false;
+          const rt = await fetchOwnRetention(accessToken, videoId);
+          if (rt) {
+            if (rt.averageViewPercentage != null) video.retention_percentage = rt.averageViewPercentage;
+            if (rt.averageViewDuration != null) video.average_view_duration = rt.averageViewDuration;
+            video.retention_drops = summarizeRetentionDrops(rt.curve);
+            console.log(`[analyze-with-gemini] Own video: avg%=${rt.averageViewPercentage}, drops="${video.retention_drops}"`);
+          }
+        }
+      } catch (e) {
+        console.log('[analyze-with-gemini] Retention fetch skipped:', e);
       }
     }
 
@@ -458,6 +583,7 @@ Deno.serve(async (req: Request) => {
         weak_spots: analysis.weak_spots,
         new_hook_ideas: [],
         analysis_type: 'advanced',
+        is_my_video: video.is_external === false,
       })
       .select()
       .single();

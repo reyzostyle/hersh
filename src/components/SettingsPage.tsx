@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
-import { Save, Loader2, Check, Lock, Eye, EyeOff, RefreshCw, Link, AlertTriangle, Settings } from 'lucide-react';
+import { Loader2, Eye, EyeOff, RefreshCw, Link, ChevronDown, Sparkles, User, Zap, MessageCircle, ExternalLink, Ticket } from 'lucide-react';
 import { getSessionToken } from '../lib/supabase';
 
 function YouTubeLogo({ className }: { className?: string }) {
@@ -17,14 +17,38 @@ const glassInput: React.CSSProperties = {
   border: '1px solid rgba(255,255,255,0.1)',
 };
 
-const divider = { borderTop: '1px solid rgba(255,255,255,0.06)' };
-
-function SectionLabel({ children }: { children: React.ReactNode }) {
+// Grouped settings section: a collapsible glass card (collapsed by default).
+// Open state lives in SettingsPage so only one card is expanded at a time.
+function SettingsCard({ icon, iconBg, title, open, onToggle, children }: {
+  icon: React.ReactNode; iconBg: string; title: string;
+  open: boolean; onToggle: () => void; children: React.ReactNode;
+}) {
   return (
-    <p className="text-[11px] font-semibold uppercase tracking-widest text-gray-600 mb-3">
-      {children}
-    </p>
+    <div className="glass-panel rounded-2xl overflow-hidden">
+      <button
+        onClick={onToggle}
+        className="w-full flex items-center gap-3 px-4 sm:px-5 py-4 text-left"
+      >
+        <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: iconBg }}>
+          {icon}
+        </div>
+        <div className="min-w-0 flex-1">
+          <h2 className="text-white font-semibold text-sm sm:text-[15px] leading-tight">{title}</h2>
+        </div>
+        <ChevronDown className={`w-4 h-4 text-gray-500 flex-shrink-0 transition-transform duration-200 ${open ? 'rotate-180' : ''}`} />
+      </button>
+      {open && (
+        <div className="px-4 sm:px-5 pb-5 pt-1">
+          {children}
+        </div>
+      )}
+    </div>
   );
+}
+
+// Small uppercase label for fields inside a card.
+function FieldLabel({ children }: { children: React.ReactNode }) {
+  return <label className="block text-xs font-medium text-gray-500 mb-2 uppercase tracking-wide">{children}</label>;
 }
 
 const CREATOR_LEVELS = [
@@ -33,8 +57,21 @@ const CREATOR_LEVELS = [
   { value: 'advanced', label: 'Advanced', hint: 'Experienced creator, want nuance' },
 ];
 
+// This field doubles as the future home for Discord voucher/perk codes.
+// The one special case today is the hidden admin dashboard — gated on the
+// account's own email, not on knowing this string (see admin-stats function).
+const ADMIN_EMAIL = 'reyzostyle@gmail.com';
+const ADMIN_CODE = 'ADMIN';
+
 export function SettingsPage() {
   const { user } = useAuth();
+
+  // Accordion: name of the single expanded card, or null when all collapsed
+  const [openCard, setOpenCard] = useState<string | null>(null);
+  const cardProps = (name: string) => ({
+    open: openCard === name,
+    onToggle: () => setOpenCard(c => (c === name ? null : name)),
+  });
 
   // YouTube + plan state
   const [youtubeStatus, setYoutubeStatus] = useState<{
@@ -44,6 +81,8 @@ export function SettingsPage() {
     channelThumbnail?: string;
   } | null>(null);
   const [plan, setPlan] = useState<string | null>(null);
+  const [disconnecting, setDisconnecting] = useState(false);
+  const [confirmDisconnect, setConfirmDisconnect] = useState(false);
 
   // Channel context state
   const [channelNiche, setChannelNiche] = useState('');
@@ -68,6 +107,40 @@ export function SettingsPage() {
   const [cancelDone, setCancelDone] = useState(false);
   const [cancelError, setCancelError] = useState('');
   const [confirmCancel, setConfirmCancel] = useState(false);
+
+  // Redeem code state
+  const [redeemCode, setRedeemCode] = useState('');
+  const [redeemMsg, setRedeemMsg] = useState<{ type: 'error' | 'success'; text: string } | null>(null);
+  const [redeeming, setRedeeming] = useState(false);
+
+  const redeem = async () => {
+    const code = redeemCode.trim();
+    if (!code) return;
+    if (user?.email === ADMIN_EMAIL && code.toUpperCase() === ADMIN_CODE) {
+      setRedeemMsg(null);
+      setRedeemCode('');
+      window.dispatchEvent(new CustomEvent('hershy:navigate', { detail: 'admin' }));
+      return;
+    }
+    setRedeeming(true);
+    setRedeemMsg(null);
+    try {
+      const token = await getSessionToken();
+      const res = await fetch('https://ezlousklksipvwuinpzq.supabase.co/functions/v1/redeem-code', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Invalid or expired code.');
+      setRedeemMsg({ type: 'success', text: data.message || 'Code redeemed!' });
+      setRedeemCode('');
+    } catch (e) {
+      setRedeemMsg({ type: 'error', text: e instanceof Error ? e.message : 'Invalid or expired code.' });
+    } finally {
+      setRedeeming(false);
+    }
+  };
 
   useEffect(() => {
     if (!user?.id) return;
@@ -113,8 +186,30 @@ export function SettingsPage() {
     if (!user?.id) return;
     const clientId = import.meta.env.VITE_YOUTUBE_CLIENT_ID;
     const redirectUri = `https://ezlousklksipvwuinpzq.supabase.co/functions/v1/youtube-oauth-callback`;
-    const scope = 'https://www.googleapis.com/auth/youtube.readonly';
+    const scope = 'https://www.googleapis.com/auth/youtube.readonly https://www.googleapis.com/auth/yt-analytics.readonly';
     window.location.href = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=${encodeURIComponent(scope)}&access_type=offline&prompt=consent&state=${user.id}`;
+  };
+
+  // Fully disconnect: clear the stored tokens + channel so the app forgets the
+  // connection. (Users can also revoke at myaccount.google.com/permissions.)
+  const disconnectYouTube = async () => {
+    if (!user?.id) return;
+    setDisconnecting(true);
+    const { error } = await supabase
+      .from('user_tokens')
+      .update({
+        access_token: '',
+        refresh_token: '',
+        youtube_channel_name: null,
+        youtube_channel_thumbnail: null,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('user_id', user.id);
+    setDisconnecting(false);
+    if (!error) {
+      setYoutubeStatus({ connected: false });
+      setConfirmDisconnect(false);
+    }
   };
 
   const saveContext = async () => {
@@ -185,155 +280,190 @@ export function SettingsPage() {
   };
 
   return (
-    <div className="max-w-2xl mx-auto px-6 pt-6 pb-12 space-y-8 animate-fade-in-up">
+    <div className="max-w-2xl mx-auto px-4 sm:px-6 pt-4 sm:pt-6 pb-12 space-y-4 animate-fade-in-up">
 
-      <div className="hidden sm:block">
+      <div className="hidden sm:block mb-6">
         <h1 className="text-2xl font-bold text-white mb-1">Settings</h1>
-        <p className="text-sm text-gray-500">Manage your account, channel context, and subscription</p>
+        <p className="text-sm text-gray-500 text-balance">Manage your channel profile, account, and subscription</p>
       </div>
 
-      {/* ── YouTube ── */}
-      <div>
-        <SectionLabel>YouTube</SectionLabel>
-        <div style={divider} className="pt-4">
-          {youtubeStatus === null ? (
-            <Loader2 className="w-4 h-4 text-gray-500 animate-spin" />
-          ) : youtubeStatus.connected ? (
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                {youtubeStatus.channelThumbnail ? (
-                  <img src={youtubeStatus.channelThumbnail} alt="" className="w-9 h-9 rounded-full object-cover" />
-                ) : (
-                  <div className="w-9 h-9 rounded-full flex items-center justify-center" style={{ background: 'rgba(255,0,0,0.1)' }}>
-                    <YouTubeLogo className="w-4 h-4 text-red-500" />
-                  </div>
+      {/* ── Channel profile ── */}
+      <SettingsCard
+        {...cardProps('profile')}
+        icon={<Sparkles className="w-4 h-4 text-[#0EA4E9]" />}
+        iconBg="rgba(14,164,233,0.12)"
+        title="Channel profile"
+      >
+        {contextLoading ? (
+          <Loader2 className="w-4 h-4 text-gray-500 animate-spin" />
+        ) : (
+          <div className="space-y-4">
+            <div>
+              <FieldLabel>Creator level</FieldLabel>
+              <select
+                value={creatorLevel}
+                onChange={e => setCreatorLevel(e.target.value)}
+                className="glass-field w-full px-4 py-2.5 rounded-lg text-white text-sm focus:outline-none transition-colors appearance-none cursor-pointer"
+                style={{ ...glassInput, backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 14px center' }}
+                onFocus={e => { e.currentTarget.style.borderColor = '#0EA4E9'; }}
+                onBlur={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)'; }}
+              >
+                {CREATOR_LEVELS.map(l => (
+                  <option key={l.value} value={l.value} style={{ background: '#0D1B2A' }}>{l.label}</option>
+                ))}
+              </select>
+              <p className="mt-1.5 text-xs text-gray-600">{CREATOR_LEVELS.find(l => l.value === creatorLevel)?.hint}</p>
+            </div>
+
+            <div>
+              <FieldLabel>Channel niche</FieldLabel>
+              <input
+                type="text"
+                value={channelNiche}
+                onChange={e => setChannelNiche(e.target.value)}
+                placeholder="e.g. Personal finance for millennials, fitness, tech reviews..."
+                className="glass-field w-full px-4 py-2.5 rounded-lg text-white placeholder-gray-600 text-sm focus:outline-none transition-colors"
+                style={glassInput}
+                onFocus={e => { e.currentTarget.style.borderColor = '#0EA4E9'; }}
+                onBlur={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)'; }}
+              />
+            </div>
+
+            <div>
+              <FieldLabel>About the channel</FieldLabel>
+              <textarea
+                value={channelDescription}
+                onChange={e => setChannelDescription(e.target.value)}
+                placeholder="Describe your content style, tone, and target audience."
+                rows={3}
+                className="glass-field w-full px-4 py-3 rounded-lg text-white placeholder-gray-600 text-sm focus:outline-none resize-none leading-relaxed transition-colors"
+                style={glassInput}
+                onFocus={e => { e.currentTarget.style.borderColor = '#0EA4E9'; }}
+                onBlur={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)'; }}
+              />
+            </div>
+
+            {contextError && <p className="text-red-400 text-sm">{contextError}</p>}
+
+            <button
+              onClick={saveContext}
+              disabled={contextSaving}
+              className="w-full py-2.5 text-white rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
+              style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.12)' }}
+            >
+              {contextSaving ? 'Saving...' : contextSaved ? 'Saved!' : 'Save'}
+            </button>
+          </div>
+        )}
+      </SettingsCard>
+
+      {/* ── YouTube account ── */}
+      <SettingsCard
+        {...cardProps('youtube')}
+        icon={<YouTubeLogo className="w-4 h-4 text-red-500" />}
+        iconBg="rgba(255,0,0,0.1)"
+        title="YouTube account"
+      >
+        {youtubeStatus === null ? (
+          <Loader2 className="w-4 h-4 text-gray-500 animate-spin" />
+        ) : youtubeStatus.connected ? (
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-3 min-w-0">
+              {youtubeStatus.channelThumbnail ? (
+                <img src={youtubeStatus.channelThumbnail} alt="" className="w-9 h-9 rounded-full object-cover flex-shrink-0" />
+              ) : (
+                <div className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(255,0,0,0.1)' }}>
+                  <YouTubeLogo className="w-4 h-4 text-red-500" />
+                </div>
+              )}
+              <div className="min-w-0">
+                <div className="flex items-center gap-2">
+                  <p className="text-sm text-white font-medium truncate">{youtubeStatus.channelName || 'Connected'}</p>
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block flex-shrink-0" />
+                </div>
+                {youtubeStatus.updatedAt && (
+                  <p className="text-xs text-gray-500 mt-0.5">
+                    Last synced {new Date(youtubeStatus.updatedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                  </p>
                 )}
-                <div>
-                  <div className="flex items-center gap-2">
-                    <p className="text-sm text-white font-medium">{youtubeStatus.channelName || 'Connected'}</p>
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block" />
-                  </div>
-                  {youtubeStatus.updatedAt && (
-                    <p className="text-xs text-gray-500 mt-0.5">
-                      Last synced {new Date(youtubeStatus.updatedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-                    </p>
-                  )}
-                </div>
               </div>
-              <button
-                onClick={connectYouTube}
-                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-400 rounded-lg hover:text-gray-200 transition-colors"
-                style={{ border: '1px solid rgba(255,255,255,0.12)' }}
-              >
-                <RefreshCw className="w-3 h-3" />
-                Reconnect
-              </button>
             </div>
-          ) : (
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-full flex items-center justify-center" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}>
-                  <YouTubeLogo className="w-4 h-4 text-gray-600" />
-                </div>
-                <p className="text-sm text-gray-500">No account connected</p>
-              </div>
-              <button
-                onClick={connectYouTube}
-                className="flex items-center gap-1.5 px-4 py-2 text-xs font-semibold text-white rounded-lg transition-colors"
-                style={{ background: '#FF0000' }}
-              >
-                <Link className="w-3 h-3" />
-                Connect
-              </button>
-            </div>
-          )}
-        </div>
-      </div>
+            <button
+              onClick={connectYouTube}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-400 rounded-lg hover:text-gray-200 transition-colors flex-shrink-0"
+              style={{ border: '1px solid rgba(255,255,255,0.12)' }}
+            >
+              <RefreshCw className="w-3 h-3" />
+              Reconnect
+            </button>
+          </div>
+        ) : null}
 
-      {/* ── Channel Context ── */}
-      <div>
-        <SectionLabel>Channel Context</SectionLabel>
-        <div style={divider} className="pt-4">
-          <p className="text-sm text-gray-500 mb-4 leading-relaxed">
-            Included in every AI analysis to make recommendations relevant to your channel.
-          </p>
-          {contextLoading ? (
-            <Loader2 className="w-4 h-4 text-gray-500 animate-spin" />
-          ) : (
-            <div className="space-y-4">
-              <div>
-                <label className="block text-xs font-medium text-gray-500 mb-2 uppercase tracking-wide">Creator Level</label>
-                <select
-                  value={creatorLevel}
-                  onChange={e => setCreatorLevel(e.target.value)}
-                  className="w-full px-4 py-2.5 rounded-lg text-white text-sm focus:outline-none transition-colors appearance-none cursor-pointer"
-                  style={{ ...glassInput, backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 14px center' }}
-                  onFocus={e => { e.currentTarget.style.borderColor = '#0EA4E9'; }}
-                  onBlur={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)'; }}
+        {/* Disconnect (subtle) — only when connected */}
+        {youtubeStatus?.connected && (
+          <div className="mt-4 pt-4" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+            {confirmDisconnect ? (
+              <div className="flex items-center gap-4">
+                <span className="text-xs text-gray-400">Disconnect this YouTube account?</span>
+                <button
+                  onClick={disconnectYouTube}
+                  disabled={disconnecting}
+                  className="text-xs text-gray-500 hover:text-red-400 transition-colors disabled:opacity-50"
                 >
-                  {CREATOR_LEVELS.map(l => (
-                    <option key={l.value} value={l.value} style={{ background: '#0D1B2A' }}>{l.label}</option>
-                  ))}
-                </select>
-                <p className="mt-1.5 text-xs text-gray-600">{CREATOR_LEVELS.find(l => l.value === creatorLevel)?.hint}</p>
+                  {disconnecting ? 'Disconnecting…' : 'Yes, disconnect'}
+                </button>
+                <button onClick={() => setConfirmDisconnect(false)} className="text-xs text-gray-500 hover:text-gray-300 transition-colors">
+                  Keep
+                </button>
               </div>
-
-              <div>
-                <label className="block text-xs font-medium text-gray-500 mb-2 uppercase tracking-wide">Channel Niche</label>
-                <input
-                  type="text"
-                  value={channelNiche}
-                  onChange={e => setChannelNiche(e.target.value)}
-                  placeholder="e.g. Personal finance for millennials, fitness, tech reviews..."
-                  className="w-full px-4 py-2.5 rounded-lg text-white placeholder-gray-600 text-sm focus:outline-none transition-colors"
-                  style={glassInput}
-                  onFocus={e => { e.currentTarget.style.borderColor = '#0EA4E9'; }}
-                  onBlur={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)'; }}
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-medium text-gray-500 mb-2 uppercase tracking-wide">Channel Description</label>
-                <textarea
-                  value={channelDescription}
-                  onChange={e => setChannelDescription(e.target.value)}
-                  placeholder="Describe your content style, tone, and target audience."
-                  rows={3}
-                  className="w-full px-4 py-3 rounded-lg text-white placeholder-gray-600 text-sm focus:outline-none resize-none leading-relaxed transition-colors"
-                  style={glassInput}
-                  onFocus={e => { e.currentTarget.style.borderColor = '#0EA4E9'; }}
-                  onBlur={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)'; }}
-                />
-              </div>
-
-              {contextError && <p className="text-red-400 text-sm">{contextError}</p>}
-
+            ) : (
               <button
-                onClick={saveContext}
-                disabled={contextSaving}
-                className="w-full py-2 text-white rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
-                style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.12)' }}
+                onClick={() => setConfirmDisconnect(true)}
+                className="text-xs text-gray-500 hover:text-gray-300 transition-colors underline decoration-gray-700 underline-offset-2"
               >
-                {contextSaving ? 'Saving...' : contextSaved ? 'Saved!' : 'Save'}
+                Disconnect account
               </button>
+            )}
+          </div>
+        )}
+
+        {youtubeStatus !== null && !youtubeStatus.connected && (
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}>
+                <YouTubeLogo className="w-4 h-4 text-gray-600" />
+              </div>
+              <p className="text-sm text-gray-500">No account connected</p>
             </div>
-          )}
-        </div>
-      </div>
+            <button
+              onClick={connectYouTube}
+              className="flex items-center gap-1.5 px-4 py-2 text-xs font-semibold text-white rounded-lg transition-colors flex-shrink-0"
+              style={{ background: '#FF0000' }}
+            >
+              <Link className="w-3 h-3" />
+              Connect
+            </button>
+          </div>
+        )}
+      </SettingsCard>
 
       {/* ── Account ── */}
-      <div>
-        <SectionLabel>Account</SectionLabel>
-        <div style={divider} className="pt-5 space-y-5">
+      <SettingsCard
+        {...cardProps('account')}
+        icon={<User className="w-4 h-4 text-gray-300" />}
+        iconBg="rgba(255,255,255,0.07)"
+        title="Account"
+      >
+        <div className="space-y-5">
           <div>
-            <label className="block text-xs font-medium text-gray-500 mb-2 uppercase tracking-wide">Email</label>
-            <div className="px-4 py-2.5 rounded-lg text-gray-400 text-sm" style={glassInput}>
+            <FieldLabel>Email</FieldLabel>
+            <div className="px-4 py-2.5 rounded-lg text-gray-400 text-sm truncate" style={glassInput}>
               {user?.email}
             </div>
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-gray-500 mb-3 uppercase tracking-wide">Change Password</label>
+            <FieldLabel>Change password</FieldLabel>
             <div className="space-y-3">
               <div className="relative">
                 <input
@@ -341,7 +471,7 @@ export function SettingsPage() {
                   value={currentPassword}
                   onChange={e => setCurrentPassword(e.target.value)}
                   placeholder="Current password"
-                  className="w-full px-4 py-2.5 pr-10 rounded-lg text-white placeholder-gray-600 text-sm focus:outline-none transition-colors"
+                  className="glass-field w-full px-4 py-2.5 pr-10 rounded-lg text-white placeholder-gray-600 text-sm focus:outline-none transition-colors"
                   style={glassInput}
                   onFocus={e => { e.currentTarget.style.borderColor = '#0EA4E9'; }}
                   onBlur={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)'; }}
@@ -356,7 +486,7 @@ export function SettingsPage() {
                   value={newPassword}
                   onChange={e => setNewPassword(e.target.value)}
                   placeholder="New password"
-                  className="w-full px-4 py-2.5 pr-10 rounded-lg text-white placeholder-gray-600 text-sm focus:outline-none transition-colors"
+                  className="glass-field w-full px-4 py-2.5 pr-10 rounded-lg text-white placeholder-gray-600 text-sm focus:outline-none transition-colors"
                   style={glassInput}
                   onFocus={e => { e.currentTarget.style.borderColor = '#0EA4E9'; }}
                   onBlur={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)'; }}
@@ -369,64 +499,134 @@ export function SettingsPage() {
               <button
                 onClick={changePassword}
                 disabled={pwSaving || !currentPassword || !newPassword}
-                className="px-4 py-1.5 text-white rounded-lg text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-4 py-2 text-white rounded-lg text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.12)' }}
               >
-                {pwSaving ? 'Updating...' : pwSaved ? 'Updated!' : 'Update Password'}
+                {pwSaving ? 'Updating...' : pwSaved ? 'Updated!' : 'Update password'}
               </button>
             </div>
           </div>
         </div>
-      </div>
+      </SettingsCard>
 
       {/* ── Subscription ── (paid only) */}
       {plan && plan !== 'free' && (
-        <div>
-          <SectionLabel>Subscription</SectionLabel>
-          <div style={divider} className="pt-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-white font-medium capitalize">
-                  {plan === 'pro' ? 'Plus' : plan === 'agency' ? 'Pro' : plan} Plan
-                </p>
-                {cancelDone
-                  ? <p className="text-xs text-emerald-400 mt-0.5">Cancelled — access continues until end of billing period</p>
-                  : <p className="text-xs text-gray-500 mt-0.5">Active subscription</p>
-                }
-              </div>
-              {!cancelDone && (
-                confirmCancel ? (
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs text-gray-400">Sure?</span>
+        <SettingsCard
+          {...cardProps('subscription')}
+          icon={<Zap className="w-4 h-4 text-[#0EA4E9]" />}
+          iconBg="rgba(14,164,233,0.12)"
+          title="Subscription"
+        >
+          {/* Plan summary with an accent badge — distinct from the other cards */}
+          <div className="rounded-xl px-4 py-3.5 flex items-center justify-between gap-3" style={{ background: 'rgba(14,164,233,0.06)', border: '1px solid rgba(14,164,233,0.18)' }}>
+            <div className="min-w-0">
+              <p className="text-sm text-white font-semibold">
+                {plan === 'pro' ? 'Plus' : plan === 'agency' ? 'Pro' : plan} Plan
+              </p>
+              <p className="text-xs text-gray-400 mt-0.5">
+                {cancelDone ? 'Access until end of billing period' : 'Renews monthly'}
+              </p>
+            </div>
+            <span
+              className="text-[11px] font-medium px-2.5 py-1 rounded-full flex-shrink-0"
+              style={cancelDone
+                ? { background: 'rgba(148,163,184,0.15)', color: '#94A3B8' }
+                : { background: 'rgba(52,211,153,0.15)', color: '#34D399' }}
+            >
+              {cancelDone ? 'Cancelled' : 'Active'}
+            </span>
+          </div>
+
+          {!cancelDone && (
+            <div className="mt-4">
+              {confirmCancel ? (
+                <div>
+                  <p className="text-xs text-gray-400 leading-relaxed">
+                    Cancel your subscription? You'll keep full access until the end of the current billing period.
+                  </p>
+                  <div className="flex items-center gap-4 mt-3">
+                    <button
+                      onClick={() => setConfirmCancel(false)}
+                      className="px-4 py-2 text-sm font-medium text-white rounded-lg transition-colors"
+                      style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.12)' }}
+                    >
+                      Keep plan
+                    </button>
                     <button
                       onClick={cancelSubscription}
                       disabled={cancelLoading}
-                      className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-white rounded-lg transition-colors"
-                      style={{ background: 'rgba(239,68,68,0.8)' }}
+                      className="text-xs text-gray-500 hover:text-red-400 transition-colors disabled:opacity-50"
                     >
-                      {cancelLoading ? <Loader2 className="w-3 h-3 animate-spin" /> : null}
-                      {cancelLoading ? 'Cancelling...' : 'Yes, cancel'}
-                    </button>
-                    <button onClick={() => setConfirmCancel(false)} className="text-xs text-gray-500 hover:text-gray-300 px-2 py-1.5">
-                      Keep
+                      {cancelLoading ? 'Cancelling…' : 'Yes, cancel'}
                     </button>
                   </div>
-                ) : (
-                  <button
-                    onClick={() => setConfirmCancel(true)}
-                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-400 rounded-lg hover:text-red-400 transition-colors"
-                    style={{ border: '1px solid rgba(255,255,255,0.12)' }}
-                  >
-                    <AlertTriangle className="w-3 h-3" />
-                    Cancel subscription
-                  </button>
-                )
+                </div>
+              ) : (
+                <button
+                  onClick={() => setConfirmCancel(true)}
+                  className="text-xs text-gray-500 hover:text-gray-300 transition-colors underline decoration-gray-700 underline-offset-2"
+                >
+                  Cancel subscription
+                </button>
               )}
             </div>
-            {cancelError && <p className="mt-2 text-red-400 text-xs">{cancelError}</p>}
-          </div>
-        </div>
+          )}
+          {cancelError && <p className="mt-2 text-red-400 text-xs">{cancelError}</p>}
+        </SettingsCard>
       )}
+
+      {/* ── Support ── */}
+      <SettingsCard
+        {...cardProps('support')}
+        icon={<MessageCircle className="w-4 h-4 text-[#5865F2]" />}
+        iconBg="rgba(88,101,242,0.12)"
+        title="Support"
+      >
+        <a
+          href="https://discord.gg/N8S6C95Ry2"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#5865F2] text-white rounded-lg text-sm font-semibold hover:bg-[#5865F2]/90 transition-colors"
+        >
+          <MessageCircle className="w-4 h-4" />
+          Join Discord
+          <ExternalLink className="w-3.5 h-3.5 opacity-70" />
+        </a>
+      </SettingsCard>
+
+      {/* ── Redeem code ── */}
+      <SettingsCard
+        {...cardProps('redeem')}
+        icon={<Ticket className="w-4 h-4 text-amber-400" />}
+        iconBg="rgba(251,191,36,0.12)"
+        title="Redeem code"
+      >
+        <div className="flex items-center gap-2">
+          <input
+            value={redeemCode}
+            onChange={e => { setRedeemCode(e.target.value); setRedeemMsg(null); }}
+            onKeyDown={e => { if (e.key === 'Enter') redeem(); }}
+            placeholder="Enter a code"
+            className="glass-field flex-1 px-4 py-2.5 rounded-lg text-white placeholder-gray-600 text-sm focus:outline-none transition-colors"
+            style={glassInput}
+            onFocus={e => { e.currentTarget.style.borderColor = '#0EA4E9'; }}
+            onBlur={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)'; }}
+          />
+          <button
+            onClick={redeem}
+            disabled={!redeemCode.trim() || redeeming}
+            className="px-4 py-2.5 text-white rounded-lg text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0"
+            style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.12)' }}
+          >
+            {redeeming ? 'Redeeming...' : 'Redeem'}
+          </button>
+        </div>
+        {redeemMsg && (
+          <p className={`mt-2 text-xs ${redeemMsg.type === 'success' ? 'text-emerald-400' : 'text-red-400'}`}>
+            {redeemMsg.text}
+          </p>
+        )}
+      </SettingsCard>
 
     </div>
   );

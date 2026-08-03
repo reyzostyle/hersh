@@ -30,10 +30,11 @@ export function VideoCard({ video, isSelected = false, onSelect }: VideoCardProp
           : ''
       }`}
       style={{
-        background: 'rgba(255,255,255,0.04)',
+        // No backdrop-filter: blur over the static app background caused
+        // Chromium ghost bands on sibling repaints
+        background:
+          'linear-gradient(rgba(255,255,255,0.04), rgba(255,255,255,0.04)), linear-gradient(180deg, rgba(14,80,133,0.05), rgba(14,80,133,0.03))',
         border: isSelected ? '1px solid #0EA4E9' : '1px solid rgba(255,255,255,0.08)',
-        backdropFilter: 'blur(8px)',
-        WebkitBackdropFilter: 'blur(8px)',
       }}
       onClick={() => onSelect?.(video.video_id)}
     >

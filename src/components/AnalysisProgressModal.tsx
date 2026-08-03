@@ -1,4 +1,5 @@
 import { useEffect, useState, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { Sparkles } from 'lucide-react';
 
 interface Stage {
@@ -25,9 +26,17 @@ const UPLOAD_STAGES: Stage[] = [
   { label: 'Generating new hook ideas...', duration: 2500, target: 96 },
 ];
 
+const HOOK_STAGES: Stage[] = [
+  { label: 'Reading your hook...', duration: 1200, target: 20 },
+  { label: 'Scoring scroll-stop power...', duration: 2000, target: 45 },
+  { label: 'Checking the curiosity gap...', duration: 2000, target: 65 },
+  { label: 'Finding what holds it back...', duration: 2000, target: 82 },
+  { label: 'Drafting fresh angles...', duration: 2500, target: 96 },
+];
+
 interface Props {
   open: boolean;
-  mode: 'url' | 'upload';
+  mode: 'url' | 'upload' | 'hook';
   done: boolean;
 }
 
@@ -45,7 +54,7 @@ export function AnalysisProgressModal({ open, mode, done }: Props) {
       return;
     }
 
-    const stages = mode === 'upload' ? UPLOAD_STAGES : URL_STAGES;
+    const stages = mode === 'upload' ? UPLOAD_STAGES : mode === 'hook' ? HOOK_STAGES : URL_STAGES;
     let elapsed = 0;
 
     stages.forEach((stage, i) => {
@@ -77,7 +86,9 @@ export function AnalysisProgressModal({ open, mode, done }: Props) {
 
   if (!open) return null;
 
-  return (
+  const title = mode === 'hook' ? 'Analyzing your hook' : 'Analyzing your Short';
+
+  return createPortal(
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div
         className="absolute inset-0 bg-black/70"
@@ -88,8 +99,7 @@ export function AnalysisProgressModal({ open, mode, done }: Props) {
         style={{
           background: 'rgba(10,15,26,0.98)',
           border: '1px solid rgba(255,255,255,0.1)',
-          backdropFilter: 'blur(24px)',
-          WebkitBackdropFilter: 'blur(24px)',
+          willChange: 'transform',
         }}
       >
         {/* Icon */}
@@ -99,7 +109,7 @@ export function AnalysisProgressModal({ open, mode, done }: Props) {
 
         {/* Label */}
         <div className="text-center">
-          <p className="text-white font-semibold text-sm mb-1">Analyzing your Short</p>
+          <p className="text-white font-semibold text-sm mb-1">{title}</p>
           <p className="text-gray-500 text-xs h-4 transition-all duration-500">{label}</p>
         </div>
 
@@ -118,6 +128,7 @@ export function AnalysisProgressModal({ open, mode, done }: Props) {
           <p className="text-right text-[10px] text-gray-600 mt-1.5">{percent}%</p>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

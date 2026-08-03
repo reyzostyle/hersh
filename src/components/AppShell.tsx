@@ -1,5 +1,5 @@
 import { useState, useEffect, createContext, useContext, useRef } from 'react';
-import { Sparkles, Settings, MessageCircle, LogOut, Menu, X, Zap, Users, Handshake, Wand2 } from 'lucide-react';
+import { Sparkles, Settings, LogOut, Menu, X, Zap, Users, Handshake, Wand2, Trophy, Home, Scissors } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
 
@@ -7,7 +7,11 @@ export const MobileHeaderContext = createContext<{
   setRightAction: (node: React.ReactNode) => void;
 }>({ setRightAction: () => {} });
 
-export type NavTab = 'hooks' | 'hooklab' | 'upgrade' | 'settings' | 'support' | 'partners' | 'competitors';
+export type NavTab = 'home' | 'hooks' | 'hooklab' | 'rank' | 'clips' | 'upgrade' | 'settings' | 'partners' | 'competitors' | 'admin';
+
+// Feature flags: tabs hidden from ALL users (incl. admin). Kept in code so they
+// can be re-enabled instantly by removing them from this list.
+export const HIDDEN_TABS: NavTab[] = ['competitors', 'partners'];
 
 const ADMIN_EMAIL = 'reyzostyle@gmail.com';
 
@@ -16,6 +20,7 @@ interface NavItem {
   label: string;
   icon: React.ReactNode;
   highlight?: boolean;
+  badge?: string;
 }
 
 interface AppShellProps {
@@ -27,10 +32,11 @@ interface AppShellProps {
 const baseNavItems: NavItem[] = [
   { id: 'hooks', label: 'Analysis', icon: <Sparkles className="w-4 h-4" /> },
   { id: 'hooklab', label: 'Hook Lab', icon: <Wand2 className="w-4 h-4" /> },
+  { id: 'rank', label: 'Rank', icon: <Trophy className="w-4 h-4" /> },
+  { id: 'clips', label: 'Clip Engine', icon: <Scissors className="w-4 h-4" />, badge: 'New' },
   { id: 'competitors', label: 'Competitors', icon: <Users className="w-4 h-4" /> },
   { id: 'upgrade', label: 'Upgrade', icon: <Zap className="w-4 h-4" />, highlight: true },
   { id: 'settings', label: 'Settings', icon: <Settings className="w-4 h-4" /> },
-  { id: 'support', label: 'Support', icon: <MessageCircle className="w-4 h-4" /> },
 ];
 
 const partnersItem: NavItem = { id: 'partners', label: 'Partners', icon: <Handshake className="w-4 h-4" /> };
@@ -66,10 +72,10 @@ export function AppShell({ activeTab, onTabChange, children }: AppShellProps) {
       .then(({ data }) => setIsPartner(!!data));
   }, [user?.id]);
 
-  // Order: Shorts Analysis, Hook Lab, Competitors, [Partners], Upgrade, Settings, Support
-  const navItems = (isAdmin || isPartner)
-    ? [baseNavItems[0], baseNavItems[1], baseNavItems[2], partnersItem, baseNavItems[3], baseNavItems[4], baseNavItems[5]]
-    : baseNavItems;
+  // Partners sits directly above Upgrade, and only for admins/partners.
+  const navItems = baseNavItems
+    .flatMap(item => (item.id === 'upgrade' && (isAdmin || isPartner) ? [partnersItem, item] : [item]))
+    .filter(item => !HIDDEN_TABS.includes(item.id));
 
   return (
     <div className="flex overflow-hidden relative" style={{ background: 'linear-gradient(160deg, #0A0F1A 0%, #0D1B2A 100%)', maxWidth: '100vw', height: '100dvh' }}>
@@ -91,6 +97,29 @@ export function AppShell({ activeTab, onTabChange, children }: AppShellProps) {
         ${mobileOpen ? 'translate-x-0' : '-translate-x-full'}
         lg:translate-x-0
       `} style={{ background: 'rgba(10,15,26,0.8)', borderColor: 'rgba(255,255,255,0.08)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)' }}>
+        {/* Brand row: both the wordmark and the house icon go Home, which is a
+            normal tab switch and never signs the user out. */}
+        <div className="flex items-center gap-2 px-3 py-3.5 flex-shrink-0" style={{ borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+          <button
+            onClick={() => { onTabChange('home'); setMobileOpen(false); }}
+            className="flex-1 min-w-0 text-left px-1 py-1 rounded-lg text-white font-bold tracking-tight hover:text-[#0EA4E9] transition-colors"
+          >
+            Hershy
+          </button>
+          <button
+            onClick={() => { onTabChange('home'); setMobileOpen(false); }}
+            title="Home"
+            aria-label="Home"
+            className={`p-2 rounded-lg transition-all flex-shrink-0 ${
+              activeTab === 'home'
+                ? 'bg-[#0EA4E9]/15 text-[#0EA4E9] ring-1 ring-inset ring-[#0EA4E9]/20'
+                : 'text-gray-400 hover:text-white hover:bg-white/5'
+            }`}
+          >
+            <Home className="w-4 h-4" />
+          </button>
+        </div>
+
         <nav className="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto">
           {navItems.map(item => (
             <button
@@ -98,14 +127,19 @@ export function AppShell({ activeTab, onTabChange, children }: AppShellProps) {
               onClick={() => { onTabChange(item.id); setMobileOpen(false); }}
               className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all ${
                 activeTab === item.id
-                  ? 'bg-[#0EA4E9]/15 text-[#0EA4E9]'
+                  ? 'bg-[#0EA4E9]/15 text-[#0EA4E9] ring-1 ring-inset ring-[#0EA4E9]/20'
                   : item.highlight
                   ? 'text-amber-400 hover:text-amber-300 hover:bg-amber-400/10'
                   : 'text-gray-400 hover:text-white hover:bg-white/5'
               }`}
             >
               {item.icon}
-              {item.label}
+              <span className="flex-1 text-left">{item.label}</span>
+              {item.badge && (
+                <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full flex-shrink-0" style={{ background: 'rgba(14,164,233,0.12)', color: '#0EA4E9' }}>
+                  {item.badge}
+                </span>
+              )}
             </button>
           ))}
         </nav>
@@ -132,7 +166,7 @@ export function AppShell({ activeTab, onTabChange, children }: AppShellProps) {
       )}
 
       <div className="flex-1 flex flex-col min-w-0 lg:ml-56 relative overflow-x-hidden" style={{ zIndex: 1 }}>
-        <header className="lg:hidden sticky top-0 z-30 flex items-center gap-3 px-4 py-4 flex-shrink-0" style={{ borderBottom: '1px solid rgba(255,255,255,0.08)', background: 'rgba(10,15,26,0.95)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)' }}>
+        <header className="lg:hidden sticky top-0 z-30 flex items-center gap-3 px-4 py-3 flex-shrink-0" style={{ borderBottom: '1px solid rgba(255,255,255,0.08)', background: 'rgba(10,15,26,0.95)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)' }}>
           <button
             onClick={() => setMobileOpen(!mobileOpen)}
             className="p-2 text-gray-400 hover:text-white transition-colors flex-shrink-0"

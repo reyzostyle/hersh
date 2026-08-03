@@ -85,8 +85,15 @@ Deno.serve(async (req: Request) => {
 
       console.log(`[stripe-webhook] Updated user ${userId} to plan=${plan}, customer=${customerId}`);
 
-      // Record referral conversion if user came via a ref link
       const amountCents = session.amount_total ?? 0;
+      await supabase.from('plan_events').insert({
+        user_id: userId,
+        plan,
+        event_type: 'subscribed',
+        amount_cents: amountCents,
+      });
+
+      // Record referral conversion if user came via a ref link
       if (amountCents > 0) {
         const { data: refSignup } = await supabase
           .from('referral_signups')
@@ -123,7 +130,7 @@ Deno.serve(async (req: Request) => {
 
       const { data: tokenRow } = await supabase
         .from('user_tokens')
-        .select('user_id')
+        .select('user_id, plan')
         .eq('stripe_customer_id', customerId)
         .maybeSingle();
 
@@ -136,6 +143,12 @@ Deno.serve(async (req: Request) => {
             analyses_reset_at: null,
           })
           .eq('user_id', tokenRow.user_id);
+
+        await supabase.from('plan_events').insert({
+          user_id: tokenRow.user_id,
+          plan: tokenRow.plan,
+          event_type: 'cancelled',
+        });
 
         console.log(`[stripe-webhook] Downgraded user ${tokenRow.user_id} to free`);
       }

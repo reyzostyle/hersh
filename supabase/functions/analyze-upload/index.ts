@@ -140,7 +140,7 @@ ${knowledgeBaseSection ? `Knowledge base (use as instinct, don't quote):\n${know
 
   const hasProfile = profile.channel_niche || profile.channel_description;
   const profileSection = hasProfile
-    ? `Niche: ${profile.channel_niche || 'N/A'}\nDescription: ${profile.channel_description || 'N/A'}${profile.channel_context ? `\nAdditional Context: ${profile.channel_context}` : ''}`
+    ? `Niche: ${profile.channel_niche || 'N/A'}\nDescription: ${profile.channel_description || 'N/A'}${profile.channel_context ? `\nAdditional Context: ${profile.channel_context}` : ''}\n\nRELEVANCE RULE: Only tailor the analysis to this niche if THIS uploaded video's actual content clearly fits it. If the video is obviously a different topic/niche than described above, IGNORE this profile completely and analyze the video on its own merits - do not force the creator's niche onto unrelated content.`
     : `N/A — channel profile not provided`;
 
   const prompt = `## Video Stats
@@ -252,7 +252,7 @@ Deno.serve(async (req: Request) => {
 
     const { data: tokenRow } = await supabase
       .from('user_tokens')
-      .select('plan, analyses_used, analyses_reset_at, channel_niche, channel_description, channel_context, creator_level')
+      .select('plan, analyses_used, analyses_reset_at, bonus_analyses, channel_niche, channel_description, channel_context, creator_level')
       .eq('user_id', userId)
       .maybeSingle();
 
@@ -262,7 +262,7 @@ Deno.serve(async (req: Request) => {
     // Video upload available on all plans
     const PLAN_LIMITS: Record<string, number> = { free: 3, pro: 30, agency: 100 };
     let analysesUsed = tokenRow?.analyses_used || 0;
-    const analysesLimit = isAdmin ? Infinity : (PLAN_LIMITS[plan] ?? 3);
+    let bonusAnalyses = tokenRow?.bonus_analyses || 0;
 
     // Free video analyses are lifetime (3 total). Monthly reset for paid plans only.
     if (plan !== 'free' && tokenRow?.analyses_reset_at) {
@@ -270,10 +270,13 @@ Deno.serve(async (req: Request) => {
       if (new Date() > resetAt) {
         const newResetAt = new Date();
         newResetAt.setDate(newResetAt.getDate() + 30);
-        await supabase.from('user_tokens').update({ analyses_used: 0, analyses_reset_at: newResetAt.toISOString() }).eq('user_id', userId);
+        await supabase.from('user_tokens').update({ analyses_used: 0, analyses_reset_at: newResetAt.toISOString(), bonus_analyses: 0 }).eq('user_id', userId);
         analysesUsed = 0;
+        bonusAnalyses = 0;
       }
     }
+
+    const analysesLimit = isAdmin ? Infinity : (PLAN_LIMITS[plan] ?? 3) + bonusAnalyses;
 
     if (analysesUsed >= analysesLimit) {
       deleteGeminiFile(geminiFileName);

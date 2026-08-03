@@ -46,7 +46,7 @@ export function VideoScriptPanel({ video, open, onClose, onAnalyze, analyzing }:
       {/* Backdrop */}
       <div
         className="absolute inset-0 bg-black/60"
-        style={{ backdropFilter: 'blur(4px)', WebkitBackdropFilter: 'blur(4px)' }}
+        style={{ backdropFilter: 'blur(4px)', WebkitBackdropFilter: 'blur(4px)', touchAction: 'none' }}
         onClick={onClose}
       />
       {/* Modal */}
@@ -55,8 +55,7 @@ export function VideoScriptPanel({ video, open, onClose, onAnalyze, analyzing }:
         style={{
           background: 'rgba(10,15,26,0.98)',
           border: '1px solid rgba(255,255,255,0.1)',
-          backdropFilter: 'blur(24px)',
-          WebkitBackdropFilter: 'blur(24px)',
+          willChange: 'transform',
           maxHeight: '90vh',
         }}
       >
@@ -71,7 +70,7 @@ export function VideoScriptPanel({ video, open, onClose, onAnalyze, analyzing }:
         </div>
 
         {video && (
-          <div className="flex-1 overflow-y-auto flex flex-col">
+          <div className="flex-1 overflow-y-auto flex flex-col" style={{ overscrollBehavior: 'contain' }}>
             <div className="p-6" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
               <div className="flex gap-3">
                 {video.thumbnail_url && (
@@ -82,7 +81,17 @@ export function VideoScriptPanel({ video, open, onClose, onAnalyze, analyzing }:
                   />
                 )}
                 <div className="min-w-0">
-                  {(video as any).is_external ? (
+                  {(video as any).detected_own ? (
+                    <>
+                      <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium mb-2" style={{ background: 'rgba(16,185,129,0.15)', color: '#34D399' }}>
+                        Your video
+                      </div>
+                      <p className="text-gray-400 text-xs font-mono truncate">
+                        youtube.com/watch?v={video.video_id}
+                      </p>
+                      <p className="text-gray-600 text-xs mt-1">From your connected channel — your stats will be used in the analysis</p>
+                    </>
+                  ) : (video as any).is_external ? (
                     <>
                       <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium mb-2" style={{ background: 'rgba(139,92,246,0.15)', color: '#A78BFA' }}>
                         External video

@@ -1,13 +1,27 @@
 import { useState, useEffect, useRef, useContext } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase, getSessionToken, Video, Analysis } from '../lib/supabase';
-import { Sparkles, Loader2, History, Film, Link, Lock } from 'lucide-react';
+import { Sparkles, Loader2, History, Film, Link, Lock, X } from 'lucide-react';
 import { AnalysisPanel } from './AnalysisPanel';
 import { HistoryPanel } from './HistoryPanel';
-import { VideoScriptPanel } from './VideoScriptPanel';
-import { VideoUploadPanel } from './VideoUploadPanel';
 import { AnalysisProgressModal } from './AnalysisProgressModal';
 import { MobileHeaderContext } from './AppShell';
+
+const ACCEPTED_TYPES = ['video/mp4', 'video/quicktime', 'video/webm', 'video/x-msvideo'];
+const MAX_SIZE_MB = 300;
+
+const validateVideoFile = (f: File): string => {
+  if (!ACCEPTED_TYPES.includes(f.type) && !f.name.match(/\.(mp4|mov|webm|avi)$/i))
+    return 'Unsupported format. Use MP4, MOV, WebM, or AVI.';
+  if (f.size > MAX_SIZE_MB * 1024 * 1024)
+    return `File too large. Maximum size is ${MAX_SIZE_MB}MB.`;
+  return '';
+};
+
+const formatSize = (bytes: number) => {
+  if (bytes >= 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  return `${(bytes / 1024).toFixed(0)} KB`;
+};
 
 export function HookAnalysis() {
   const { user } = useAuth();
@@ -17,12 +31,18 @@ export function HookAnalysis() {
   const [historyPanelOpen, setHistoryPanelOpen] = useState(false);
   const [error, setError] = useState('');
   const [analysisPanelOpen, setAnalysisPanelOpen] = useState(false);
-  const [scriptPanelVideo, setScriptPanelVideo] = useState<Video | null>(null);
-  const [scriptPanelOpen, setScriptPanelOpen] = useState(false);
+  // True when the open analysis was picked from History — shows a back arrow
+  // in the analysis window that returns to the list instead of closing fully.
+  const [openedFromHistory, setOpenedFromHistory] = useState(false);
   const [geminiAnalyzing, setGeminiAnalyzing] = useState(false);
   const [urlInput, setUrlInput] = useState('');
   const [urlError, setUrlError] = useState('');
-  const [uploadPanelOpen, setUploadPanelOpen] = useState(false);
+  const [urlContext, setUrlContext] = useState('');
+  const [showUrlContext, setShowUrlContext] = useState(false);
+  const [uploadFile, setUploadFile] = useState<File | null>(null);
+  const [fileContext, setFileContext] = useState('');
+  const [showFileContext, setShowFileContext] = useState(false);
+  const [fileError, setFileError] = useState('');
   const [uploadAnalyzing, setUploadAnalyzing] = useState(false);
   const [uploadStep, setUploadStep] = useState<'uploading' | 'analyzing' | null>(null);
   const [progressOpen, setProgressOpen] = useState(false);
@@ -31,28 +51,27 @@ export function HookAnalysis() {
   const [userPlan, setUserPlan] = useState<string>('free');
   const [fileDragOver, setFileDragOver] = useState(false);
   const fileDropRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const isPro = true; // file upload available on all plans
 
   const { setRightAction } = useContext(MobileHeaderContext);
 
+  // Always shown (HistoryPanel has its own empty state) so the button doesn't
+  // pop in later than the rest of the page once analyses finish loading.
   useEffect(() => {
-    if (analyses.length > 0) {
-      setRightAction(
-        <button
-          onClick={() => setHistoryPanelOpen(true)}
-          className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-opacity"
-          style={{ background: 'rgba(14,164,233,0.2)', border: '1px solid rgba(14,164,233,0.3)' }}
-        >
-          <History className="w-3.5 h-3.5 text-[#0EA4E9]" />
-          <span className="text-[#0EA4E9]">History</span>
-        </button>
-      );
-    } else {
-      setRightAction(null);
-    }
+    setRightAction(
+      <button
+        onClick={() => setHistoryPanelOpen(true)}
+        className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-opacity"
+        style={{ background: 'rgba(14,164,233,0.2)', border: '1px solid rgba(14,164,233,0.3)' }}
+      >
+        <History className="w-3.5 h-3.5 text-[#0EA4E9]" />
+        <span className="text-[#0EA4E9]">History</span>
+      </button>
+    );
     return () => setRightAction(null);
-  }, [analyses.length]);
+  }, []);
 
   useEffect(() => {
     loadVideos();
@@ -112,19 +131,13 @@ export function HookAnalysis() {
     setUrlError('');
     const videoId = extractVideoId(urlInput);
     if (!videoId) { setUrlError('Invalid YouTube URL or video ID'); return; }
+    // Ownership + retention are resolved server-side in analyze-with-gemini.
+    // For synced videos we can pass the known title to skip the oembed lookup.
     const ownVideo = videos.find(v => v.video_id === videoId);
-    if (ownVideo) {
-      setScriptPanelVideo(ownVideo);
-    } else {
-      setScriptPanelVideo({
-        video_id: videoId,
-        title: urlInput.trim(),
-        thumbnail_url: `https://i.ytimg.com/vi/${videoId}/mqdefault.jpg`,
-        views: 0, likes_count: 0, comment_count: 0, duration: 0, is_external: true,
-      } as any);
-    }
-    setScriptPanelOpen(true);
+    runGeminiAnalysis(videoId, urlContext.trim(), false, ownVideo?.title);
     setUrlInput('');
+    setUrlContext('');
+    setShowUrlContext(false);
   };
 
   const runGeminiAnalysis = async (videoId: string, videoContext: string = '', isMyVideo: boolean = false, videoTitle?: string) => {
@@ -171,8 +184,8 @@ export function HookAnalysis() {
       setTimeout(() => {
         setProgressOpen(false);
         setProgressDone(false);
+        setOpenedFromHistory(false);
         setAnalysisPanelOpen(true);
-        setScriptPanelOpen(false);
       }, 600);
     } catch (err) {
       setProgressOpen(false);
@@ -180,11 +193,6 @@ export function HookAnalysis() {
     } finally {
       setGeminiAnalyzing(false);
     }
-  };
-
-  const handleGeminiFromPanel = (videoId: string, videoContext: string, isMyVideo: boolean, videoTitle?: string) => {
-    setScriptPanelOpen(false);
-    runGeminiAnalysis(videoId, videoContext, isMyVideo, videoTitle);
   };
 
   const runUploadAnalysis = async (file: File, videoContext: string, isMyVideo: boolean = false) => {
@@ -267,7 +275,10 @@ export function HookAnalysis() {
       setTimeout(() => {
         setProgressOpen(false);
         setProgressDone(false);
-        setUploadPanelOpen(false);
+        setUploadFile(null);
+        setFileContext('');
+        setShowFileContext(false);
+        setOpenedFromHistory(false);
         setAnalysisPanelOpen(true);
       }, 600);
     } catch (err) {
@@ -279,12 +290,19 @@ export function HookAnalysis() {
     }
   };
 
+  const handleFileSelect = (f: File) => {
+    const err = validateVideoFile(f);
+    if (err) { setFileError(err); setUploadFile(null); return; }
+    setFileError('');
+    setUploadFile(f);
+  };
+
   const handleFileDrop = (e: React.DragEvent) => {
     e.preventDefault();
     setFileDragOver(false);
-    if (!isPro) { setUploadPanelOpen(true); return; }
+    if (!isPro) return;
     const f = e.dataTransfer.files[0];
-    if (f) setUploadPanelOpen(true);
+    if (f) handleFileSelect(f);
   };
 
   const analyzing = geminiAnalyzing || uploadAnalyzing;
@@ -298,16 +316,14 @@ export function HookAnalysis() {
             <h1 className="text-2xl font-bold text-white mb-1">Analysis</h1>
             <p className="text-sm text-gray-500">Paste a YouTube URL or upload your video file</p>
           </div>
-          {analyses.length > 0 && (
-            <button
-              onClick={() => setHistoryPanelOpen(true)}
-              className="flex items-center gap-2 px-3 py-2 hover:opacity-90 rounded-lg text-sm font-medium transition-opacity flex-shrink-0"
-              style={{ background: 'rgba(14,164,233,0.2)', border: '1px solid rgba(14,164,233,0.3)' }}
-            >
-              <History className="w-4 h-4 text-[#0EA4E9]" />
-              <span className="text-[#0EA4E9]">History</span>
-            </button>
-          )}
+          <button
+            onClick={() => setHistoryPanelOpen(true)}
+            className="flex items-center gap-2 px-3 py-2 hover:opacity-90 rounded-lg text-sm font-medium transition-opacity flex-shrink-0"
+            style={{ background: 'rgba(14,164,233,0.2)', border: '1px solid rgba(14,164,233,0.3)' }}
+          >
+            <History className="w-4 h-4 text-[#0EA4E9]" />
+            <span className="text-[#0EA4E9]">History</span>
+          </button>
         </div>
       </div>
       {error && (
@@ -319,24 +335,26 @@ export function HookAnalysis() {
       )}
 
       {/* Main content */}
-      <div className="flex-1 overflow-auto px-4 sm:px-6 pt-6 sm:pt-8 pb-8" style={{ overscrollBehavior: 'none', WebkitOverflowScrolling: 'auto' }}>
-        <div className="max-w-2xl mx-auto space-y-4">
+      <div className="flex-1 overflow-auto px-4 sm:px-6 pt-4 sm:pt-8 pb-8" style={{ overscrollBehavior: 'none', WebkitOverflowScrolling: 'auto' }}>
+        <div className="max-w-2xl mx-auto space-y-3 sm:space-y-4">
 
           {/* URL Card */}
-          <div className="rounded-2xl p-5" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }}>
-            <div className="flex items-center gap-2.5 mb-3.5">
-              <Link className="w-4 h-4 text-[#0EA4E9]" />
-              <h2 className="text-white font-medium text-sm">Analyze by URL</h2>
-              <span className="text-gray-600 text-xs">Paste any YouTube Shorts link</span>
+          <div className="rounded-2xl p-4 sm:p-5 glass-panel">
+            <div className="flex items-start sm:items-center gap-2.5 mb-3.5">
+              <Link className="w-4 h-4 text-[#0EA4E9] flex-shrink-0 mt-0.5 sm:mt-0" />
+              <div className="flex flex-col sm:flex-row sm:items-center sm:gap-2 min-w-0">
+                <h2 className="text-white font-medium text-sm whitespace-nowrap">Analyze by URL</h2>
+                <span className="text-gray-500 text-xs">Paste any YouTube Shorts link</span>
+              </div>
             </div>
             <div className="flex flex-col sm:flex-row gap-2">
               <input
                 type="text"
                 value={urlInput}
                 onChange={e => { setUrlInput(e.target.value); setUrlError(''); }}
-                onKeyDown={e => e.key === 'Enter' && urlInput.trim() && handleUrlSubmit()}
+                onKeyDown={e => e.key === 'Enter' && urlInput.trim() && !geminiAnalyzing && handleUrlSubmit()}
                 placeholder="youtube.com/shorts/… or paste a video ID"
-                className="flex-1 text-sm px-4 py-3 rounded-xl text-white placeholder-gray-600 focus:outline-none transition-all"
+                className="glass-field flex-1 text-sm px-4 py-3 rounded-xl text-white placeholder-gray-600 focus:outline-none transition-all"
                 style={{
                   background: 'rgba(255,255,255,0.04)',
                   border: `1px solid ${urlError ? 'rgba(248,113,113,0.5)' : 'rgba(255,255,255,0.08)'}`,
@@ -347,59 +365,147 @@ export function HookAnalysis() {
               <button
                 onClick={handleUrlSubmit}
                 disabled={!urlInput.trim() || analyzing}
-                className="flex items-center justify-center gap-2 px-5 py-3 text-white rounded-xl text-sm font-medium transition-all active:scale-[0.98] hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed sm:flex-shrink-0"
-                style={{ background: '#0EA4E9' }}
+                className="btn-primary flex items-center justify-center gap-2 px-5 py-3 text-white rounded-xl text-sm font-medium active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed sm:flex-shrink-0"
               >
                 {geminiAnalyzing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
                 {geminiAnalyzing ? 'Analyzing' : 'Analyze'}
               </button>
             </div>
+
+            {/* Inline context (like Hook Lab) */}
+            {showUrlContext ? (
+              <div className="mt-2.5">
+                <div className="flex items-center justify-between px-1 mb-1.5">
+                  <span className="text-xs text-gray-500">Context <span className="text-gray-600">helps tailor the analysis</span></span>
+                  <button onClick={() => { setShowUrlContext(false); setUrlContext(''); }} className="text-gray-600 hover:text-gray-300 transition-colors p-0.5" title="Hide context">
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+                <textarea
+                  value={urlContext}
+                  onChange={e => setUrlContext(e.target.value)}
+                  maxLength={600}
+                  rows={2}
+                  autoFocus
+                  placeholder="e.g. storytime about my worst client, targeting freelancers, wanted a punchy cold open"
+                  className="glass-field w-full px-4 py-3 rounded-xl text-white text-sm resize-none focus:outline-none placeholder:text-gray-600"
+                  style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)' }}
+                />
+                <div className="text-right px-1 mt-1"><span className="text-xs text-gray-600">{urlContext.length}/600</span></div>
+              </div>
+            ) : (
+              <button onClick={() => setShowUrlContext(true)} className="mt-2.5 flex items-center gap-1 text-xs text-gray-500 hover:text-gray-300 transition-colors">
+                <Sparkles className="w-3.5 h-3.5" /> Add context
+              </button>
+            )}
+
             {urlError && <p className="mt-2 text-xs text-red-400">{urlError}</p>}
           </div>
 
           {/* File Upload Card */}
           <div
             ref={fileDropRef}
-            onClick={() => setUploadPanelOpen(true)}
-            onDragOver={e => { e.preventDefault(); setFileDragOver(true); }}
+            onDragOver={e => { e.preventDefault(); if (isPro) setFileDragOver(true); }}
             onDragLeave={() => setFileDragOver(false)}
             onDrop={handleFileDrop}
-            className="rounded-2xl p-5 cursor-pointer transition-all"
-            style={{
-              background: fileDragOver && isPro ? 'rgba(14,164,233,0.06)' : 'rgba(255,255,255,0.03)',
-              border: `1px solid ${fileDragOver && isPro ? 'rgba(14,164,233,0.4)' : 'rgba(255,255,255,0.07)'}`,
-            }}
+            className={`rounded-2xl p-4 sm:p-5 transition-all ${fileDragOver && isPro ? 'glass-panel-accent' : 'glass-panel'}`}
           >
-            <div className="flex items-center gap-2.5 mb-3.5">
-              <Film className={`w-4 h-4 ${isPro ? 'text-[#0EA4E9]' : 'text-gray-500'}`} />
-              <h2 className={`font-medium text-sm ${isPro ? 'text-white' : 'text-gray-400'}`}>Analyze by File</h2>
-              <span className="text-gray-600 text-xs flex-1">Upload before publishing to get feedback first</span>
-              {!isPro && <Lock className="w-3.5 h-3.5 text-gray-600 flex-shrink-0" />}
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="video/mp4,video/quicktime,video/webm,video/x-msvideo,.mp4,.mov,.webm,.avi"
+              className="hidden"
+              onChange={e => { const f = e.target.files?.[0]; if (f) handleFileSelect(f); e.currentTarget.value = ''; }}
+            />
+
+            <div className="flex items-start sm:items-center gap-2.5 mb-3.5">
+              <Film className={`w-4 h-4 flex-shrink-0 mt-0.5 sm:mt-0 ${isPro ? 'text-[#0EA4E9]' : 'text-gray-500'}`} />
+              <div className="flex flex-col sm:flex-row sm:items-center sm:gap-2 min-w-0 flex-1">
+                <h2 className={`font-medium text-sm whitespace-nowrap ${isPro ? 'text-white' : 'text-gray-400'}`}>Analyze by File</h2>
+                <span className="text-gray-500 text-xs">Upload before publishing to get feedback first</span>
+              </div>
+              {!isPro && <Lock className="w-3.5 h-3.5 text-gray-600 flex-shrink-0 mt-0.5 sm:mt-0" />}
             </div>
 
-            <div
-              className="rounded-xl flex flex-col items-center justify-center gap-2 py-8 transition-all"
-              style={{
-                border: `1.5px dashed ${fileDragOver && isPro ? 'rgba(14,164,233,0.5)' : 'rgba(255,255,255,0.1)'}`,
-                background: fileDragOver && isPro ? 'rgba(14,164,233,0.04)' : 'rgba(255,255,255,0.02)',
-              }}
-            >
-              {isPro ? (
-                <>
-                  <Film className={`w-7 h-7 ${fileDragOver ? 'text-[#0EA4E9]' : 'text-gray-600'}`} />
-                  <p className="text-gray-300 text-sm font-medium">
-                    {fileDragOver ? 'Drop to analyze' : 'Click or drag & drop your video'}
-                  </p>
-                  <p className="text-gray-600 text-xs">MP4, MOV, WebM, AVI · up to 300MB</p>
-                </>
-              ) : (
-                <>
-                  <Lock className="w-6 h-6 text-gray-700" />
-                  <p className="text-gray-400 text-sm font-medium">Upload a video file</p>
-                  <p className="text-gray-600 text-xs">Upgrade to analyze unpublished videos</p>
-                </>
-              )}
-            </div>
+            {!uploadFile ? (
+              <div
+                onClick={() => isPro && fileInputRef.current?.click()}
+                className={`rounded-xl flex flex-col items-center justify-center gap-2 py-6 sm:py-8 transition-all ${isPro ? 'cursor-pointer' : ''}`}
+                style={{
+                  border: `1.5px dashed ${fileDragOver && isPro ? 'rgba(14,164,233,0.5)' : 'rgba(255,255,255,0.1)'}`,
+                  background: fileDragOver && isPro ? 'rgba(14,164,233,0.04)' : 'rgba(255,255,255,0.02)',
+                }}
+              >
+                {isPro ? (
+                  <>
+                    <Film className={`w-7 h-7 ${fileDragOver ? 'text-[#0EA4E9]' : 'text-gray-600'}`} />
+                    <p className="text-gray-300 text-sm font-medium">
+                      {fileDragOver ? 'Drop to analyze' : 'Click or drag & drop your video'}
+                    </p>
+                    <p className="text-gray-600 text-xs">MP4, MOV, WebM, AVI · up to 300MB</p>
+                  </>
+                ) : (
+                  <>
+                    <Lock className="w-6 h-6 text-gray-700" />
+                    <p className="text-gray-400 text-sm font-medium">Upload a video file</p>
+                    <p className="text-gray-600 text-xs">Upgrade to analyze unpublished videos</p>
+                  </>
+                )}
+              </div>
+            ) : (
+              <div className="rounded-xl px-4 py-3 flex items-center gap-3" style={{ background: 'rgba(14,164,233,0.08)', border: '1px solid rgba(14,164,233,0.2)' }}>
+                <div className="w-10 h-10 rounded-lg bg-[#0EA4E9]/15 flex items-center justify-center flex-shrink-0">
+                  <Film className="w-5 h-5 text-[#0EA4E9]" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-white text-sm font-medium truncate">{uploadFile.name}</p>
+                  <p className="text-gray-500 text-xs">{formatSize(uploadFile.size)}</p>
+                </div>
+                <button onClick={() => { setUploadFile(null); setFileError(''); }} disabled={uploadAnalyzing} className="p-1 text-gray-500 hover:text-white rounded transition-colors disabled:opacity-40">
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            )}
+
+            {fileError && <p className="mt-2 text-xs text-red-400">{fileError}</p>}
+
+            {/* Inline context (same as URL card) */}
+            {showFileContext ? (
+              <div className="mt-2.5">
+                <div className="flex items-center justify-between px-1 mb-1.5">
+                  <span className="text-xs text-gray-500">Context <span className="text-gray-600">helps tailor the analysis</span></span>
+                  <button onClick={() => { setShowFileContext(false); setFileContext(''); }} className="text-gray-600 hover:text-gray-300 transition-colors p-0.5" title="Hide context">
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+                <textarea
+                  value={fileContext}
+                  onChange={e => setFileContext(e.target.value)}
+                  maxLength={600}
+                  rows={2}
+                  autoFocus
+                  placeholder="e.g. gym transformation, targeting busy dads, wanted a strong first-line hook"
+                  className="glass-field w-full px-4 py-3 rounded-xl text-white text-sm resize-none focus:outline-none placeholder:text-gray-600"
+                  style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)' }}
+                />
+                <div className="text-right px-1 mt-1"><span className="text-xs text-gray-600">{fileContext.length}/600</span></div>
+              </div>
+            ) : (
+              <button onClick={() => setShowFileContext(true)} className="mt-2.5 flex items-center gap-1 text-xs text-gray-500 hover:text-gray-300 transition-colors">
+                <Sparkles className="w-3.5 h-3.5" /> Add context
+              </button>
+            )}
+
+            {uploadFile && isPro && (
+              <button
+                onClick={() => runUploadAnalysis(uploadFile, fileContext.trim(), true)}
+                disabled={uploadAnalyzing}
+                className="btn-primary mt-3 w-full flex items-center justify-center gap-2 px-5 py-3 text-white rounded-xl text-sm font-medium active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                {uploadAnalyzing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
+                {uploadStep === 'uploading' ? 'Uploading' : uploadStep === 'analyzing' ? 'Analyzing' : uploadAnalyzing ? 'Processing' : 'Analyze'}
+              </button>
+            )}
           </div>
 
         </div>
@@ -410,31 +516,16 @@ export function HookAnalysis() {
         videos={videos}
         open={historyPanelOpen}
         onClose={() => setHistoryPanelOpen(false)}
-        onSelect={(a) => { setAnalysis(a); setAnalysisPanelOpen(true); }}
+        onSelect={(a) => { setAnalysis(a); setOpenedFromHistory(true); setAnalysisPanelOpen(true); }}
       />
 
       <AnalysisPanel
         analysis={analysis}
         open={analysisPanelOpen}
         onClose={() => setAnalysisPanelOpen(false)}
+        onBack={openedFromHistory ? () => { setAnalysisPanelOpen(false); setHistoryPanelOpen(true); } : undefined}
       />
 
-      <VideoScriptPanel
-        video={scriptPanelVideo}
-        open={scriptPanelOpen}
-        onClose={() => setScriptPanelOpen(false)}
-        onAnalyze={handleGeminiFromPanel}
-        analyzing={geminiAnalyzing}
-      />
-
-      <VideoUploadPanel
-        open={uploadPanelOpen}
-        onClose={() => setUploadPanelOpen(false)}
-        onAnalyze={runUploadAnalysis}
-        analyzing={uploadAnalyzing}
-        isPro={isPro}
-        uploadStep={uploadStep}
-      />
       <AnalysisProgressModal
         open={progressOpen}
         mode={progressMode}

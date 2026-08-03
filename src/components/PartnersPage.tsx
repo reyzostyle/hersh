@@ -5,11 +5,12 @@ import { Copy, Check, Users, TrendingUp, DollarSign, Loader2, Plus, RefreshCw, T
 
 const ADMIN_EMAIL = 'reyzostyle@gmail.com';
 
+// No backdrop-filter: blur over the static app background caused Chromium
+// ghost bands on sibling repaints; the blue underlay replaces its tint.
 const glassCard: React.CSSProperties = {
-  background: 'rgba(255,255,255,0.04)',
+  background:
+    'linear-gradient(rgba(255,255,255,0.04), rgba(255,255,255,0.04)), linear-gradient(180deg, rgba(14,80,133,0.05), rgba(14,80,133,0.03))',
   border: '1px solid rgba(255,255,255,0.08)',
-  backdropFilter: 'blur(12px)',
-  WebkitBackdropFilter: 'blur(12px)',
 };
 
 interface PartnerStats {
@@ -33,7 +34,7 @@ export function PartnersPage() {
     <div className="max-w-4xl mx-auto px-4 sm:px-6 pt-4 sm:pt-6 pb-12 animate-fade-in-up">
         <div className="hidden sm:block mb-6">
           <h1 className="text-2xl font-bold text-white mb-1">Partners</h1>
-          <p className="text-sm text-gray-500">{isAdmin ? 'Manage referral partners and track conversions' : 'Your referral stats and link'}</p>
+          <p className="text-sm text-gray-500 text-balance">{isAdmin ? 'Manage referral partners and track conversions' : 'Your referral stats and link'}</p>
         </div>
         {isAdmin ? <AdminView /> : <PartnerView userId={user?.id} />}
     </div>

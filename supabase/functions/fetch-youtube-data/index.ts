@@ -178,6 +178,7 @@ Deno.serve(async (req: Request) => {
     console.log(`[main] Found ${shorts.length} shorts`);
 
     if (shorts.length === 0) {
+      await supabase.from('user_tokens').update({ youtube_synced_at: new Date().toISOString() }).eq('user_id', userId);
       return new Response(
         JSON.stringify({ success: true, message: 'No shorts found', count: 0 }),
         { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -217,6 +218,8 @@ Deno.serve(async (req: Request) => {
         .from('videos')
         .upsert(videoData, { onConflict: 'user_id,video_id' });
     }
+
+    await supabase.from('user_tokens').update({ youtube_synced_at: new Date().toISOString() }).eq('user_id', userId);
 
     console.log(`[main] Done. Saved ${shorts.length} videos (no transcripts — fetched on demand during analysis)`);
 

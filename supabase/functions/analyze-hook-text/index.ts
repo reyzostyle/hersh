@@ -53,13 +53,13 @@ Deno.serve(async (req: Request) => {
     // ── Usage / plan (Hook Lab has its own monthly quota: hooks_used) ─────────
     const { data: tokenRow } = await supabase
       .from('user_tokens')
-      .select('plan, hooks_used, hooks_reset_at, channel_niche, channel_description, creator_level')
+      .select('plan, hooks_used, hooks_reset_at, bonus_hooks, channel_niche, channel_description, creator_level')
       .eq('user_id', userId)
       .maybeSingle();
 
     const plan = tokenRow?.plan || 'free';
     let hooksUsed = tokenRow?.hooks_used || 0;
-    const hooksLimit = isAdmin ? Infinity : (HOOK_LIMITS[plan] ?? 10);
+    let bonusHooks = tokenRow?.bonus_hooks || 0;
 
     // Hook quota resets monthly for EVERY plan (incl. free).
     if (tokenRow?.hooks_reset_at) {
@@ -67,10 +67,13 @@ Deno.serve(async (req: Request) => {
       if (new Date() > resetAt) {
         const newResetAt = new Date();
         newResetAt.setDate(newResetAt.getDate() + 30);
-        await supabase.from('user_tokens').update({ hooks_used: 0, hooks_reset_at: newResetAt.toISOString() }).eq('user_id', userId);
+        await supabase.from('user_tokens').update({ hooks_used: 0, hooks_reset_at: newResetAt.toISOString(), bonus_hooks: 0 }).eq('user_id', userId);
         hooksUsed = 0;
+        bonusHooks = 0;
       }
     }
+
+    const hooksLimit = isAdmin ? Infinity : (HOOK_LIMITS[plan] ?? 10) + bonusHooks;
 
     if (hooksUsed >= hooksLimit) {
       return new Response(JSON.stringify({ error: "You've used all your hook checks this month. Upgrade for more." }), { status: 403, headers: corsHeaders });

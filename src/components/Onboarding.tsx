@@ -42,15 +42,16 @@ const NICHE_PRESETS = [
 const TOTAL_STEPS = 5;
 
 const accent = '#0EA4E9';
+// No backdrop-filter: blur over the static app background caused Chromium
+// ghost bands on sibling repaints; the blue underlay replaces its tint.
 const cardBase: React.CSSProperties = {
-  background: 'rgba(255,255,255,0.04)',
+  background:
+    'linear-gradient(rgba(255,255,255,0.04), rgba(255,255,255,0.04)), linear-gradient(180deg, rgba(14,80,133,0.05), rgba(14,80,133,0.03))',
   border: '1px solid rgba(255,255,255,0.08)',
-  backdropFilter: 'blur(12px)',
-  WebkitBackdropFilter: 'blur(12px)',
 };
 
 export function Onboarding({ onDone }: { onDone: () => void }) {
-  const { user } = useAuth();
+  const { user, signOut } = useAuth();
   const [step, setStep] = useState(0);
   const [answers, setAnswers] = useState<Answers>(EMPTY);
   const [ytConnected, setYtConnected] = useState(false);
@@ -111,7 +112,7 @@ export function Onboarding({ onDone }: { onDone: () => void }) {
     localStorage.setItem(STORAGE_KEY, JSON.stringify({ step: TOTAL_STEPS, answers }));
     const clientId = import.meta.env.VITE_YOUTUBE_CLIENT_ID;
     const redirectUri = `https://ezlousklksipvwuinpzq.supabase.co/functions/v1/youtube-oauth-callback`;
-    const scope = 'https://www.googleapis.com/auth/youtube.readonly';
+    const scope = 'https://www.googleapis.com/auth/youtube.readonly https://www.googleapis.com/auth/yt-analytics.readonly';
     window.location.href = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=${encodeURIComponent(scope)}&access_type=offline&prompt=consent&state=${user.id}`;
   };
 
@@ -127,15 +128,24 @@ export function Onboarding({ onDone }: { onDone: () => void }) {
     if (answers.description.trim()) profile.channel_description = answers.description.trim();
     if (answers.audience.trim()) profile.target_audience = answers.audience.trim();
 
-    const { data: existing } = await supabase
+    // A stale session makes every write fail with an opaque error; refresh
+    // first so a long-idle tab can still finish onboarding.
+    const { data: sessionData } = await supabase.auth.getSession();
+    if (!sessionData.session) {
+      await supabase.auth.refreshSession();
+    }
+
+    const { data: existing, error: selErr } = await supabase
       .from('user_tokens').select('user_id').eq('user_id', user.id).maybeSingle();
 
-    const { error: err } = existing
+    const { error: err } = selErr
+      ? { error: selErr }
+      : existing
       ? await supabase.from('user_tokens').update(profile).eq('user_id', user.id)
       : await supabase.from('user_tokens').insert({ user_id: user.id, access_token: '', refresh_token: '', ...profile });
 
     setSaving(false);
-    if (err) { setError('Could not save. Please try again.'); return; }
+    if (err) { setError(`Could not save (${err.message}). Try again, or sign out below and log back in.`); return; }
     localStorage.removeItem(STORAGE_KEY);
     onDone();
   };
@@ -209,30 +219,45 @@ export function Onboarding({ onDone }: { onDone: () => void }) {
         )}
 
         {/* ── Niche ── */}
-        {step === 2 && (
-          <StepShell title="What's your niche?" subtitle="Pick one or type your own.">
-            <div className="flex flex-wrap gap-2 mb-4">
-              {NICHE_PRESETS.map(n => {
-                const active = answers.niche === n;
-                return (
-                  <button key={n} onClick={() => set({ niche: n })} className="px-3.5 py-1.5 rounded-full text-sm transition-all"
-                    style={{ ...cardBase, borderColor: active ? accent : 'rgba(255,255,255,0.08)', background: active ? 'rgba(14,164,233,0.12)' : cardBase.background, color: active ? '#fff' : '#cbd5e1' }}>
-                    {n}
-                  </button>
-                );
-              })}
-            </div>
-            <input
-              value={answers.niche}
-              onChange={e => set({ niche: e.target.value })}
-              placeholder="Or describe your niche…"
-              className="w-full px-4 py-3 rounded-xl text-white text-sm focus:outline-none"
-              style={{ ...cardBase }}
-              onFocus={e => { e.currentTarget.style.borderColor = accent; }}
-              onBlur={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)'; }}
-            />
-          </StepShell>
-        )}
+        {step === 2 && (() => {
+          // Multi-select up to 3: the niche string is the comma-joined list, so
+          // chips and free typing stay in sync (typed text counts as a part too).
+          const parts = answers.niche.split(',').map(p => p.trim()).filter(Boolean);
+          const atCap = parts.length >= 3;
+          const toggle = (n: string) => {
+            const has = parts.includes(n);
+            if (!has && atCap) return;
+            const nextParts = has ? parts.filter(p => p !== n) : [...parts, n];
+            set({ niche: nextParts.join(', ') });
+          };
+          return (
+            <StepShell title="What's your niche?" subtitle="Pick up to 3 or type your own.">
+              {/* Fixed grid (12 presets = 3×4 mobile, 4×3 desktop) so a wrap
+                  never strands a single chip on its own row */}
+              <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 mb-4">
+                {NICHE_PRESETS.map(n => {
+                  const active = parts.includes(n);
+                  const dimmed = !active && atCap;
+                  return (
+                    <button key={n} onClick={() => toggle(n)} className="w-full px-2 py-1.5 rounded-full text-sm text-center whitespace-nowrap transition-all"
+                      style={{ ...cardBase, borderColor: active ? accent : 'rgba(255,255,255,0.08)', background: active ? 'rgba(14,164,233,0.12)' : cardBase.background, color: active ? '#fff' : '#cbd5e1', opacity: dimmed ? 0.4 : 1, cursor: dimmed ? 'default' : 'pointer' }}>
+                      {n}
+                    </button>
+                  );
+                })}
+              </div>
+              <input
+                value={answers.niche}
+                onChange={e => set({ niche: e.target.value })}
+                placeholder="Or describe your niche…"
+                className="w-full px-4 py-3 rounded-xl text-white text-sm focus:outline-none"
+                style={{ ...cardBase }}
+                onFocus={e => { e.currentTarget.style.borderColor = accent; }}
+                onBlur={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)'; }}
+              />
+            </StepShell>
+          );
+        })()}
 
         {/* ── Goal ── */}
         {step === 3 && (
@@ -309,7 +334,17 @@ export function Onboarding({ onDone }: { onDone: () => void }) {
           </StepShell>
         )}
 
-        {error && <p className="text-red-400 text-sm mt-4 text-center">{error}</p>}
+        {error && (
+          <div className="mt-4 text-center">
+            <p className="text-red-400 text-sm">{error}</p>
+            <button
+              onClick={() => { localStorage.removeItem(STORAGE_KEY); signOut(); }}
+              className="mt-2 text-xs text-gray-500 hover:text-gray-300 underline decoration-gray-700 underline-offset-2 transition-colors"
+            >
+              Sign out
+            </button>
+          </div>
+        )}
 
         {/* nav */}
         {step > 0 && (

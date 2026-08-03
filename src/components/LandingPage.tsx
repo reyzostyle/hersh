@@ -1,15 +1,18 @@
 import { useState, useEffect, useRef } from 'react';
-import { X, Check, Loader2, Zap, ArrowRight, ChevronRight, ChevronDown, Users, Sparkles, Mail, MessageCircle, Twitter, ArrowLeft, Building2, Copy, Play, Heart, Eye } from 'lucide-react';
+import { X, Check, Loader2, Zap, ArrowRight, ChevronRight, ChevronDown, Activity, Sparkles, Mail, MessageCircle, Twitter, ArrowLeft, Copy, Play, Heart, Eye, Scissors, FolderOpen, Radio } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
+import { isClipOfferActive, CLIP_FULL_PRICE, CLIP_OFFER_PRICE } from '../lib/launchOffer';
 
 // ─── Shared styles ────────────────────────────────────────────────────────────
 
+// No backdrop-filter: blur over the static app background caused Chromium
+// ghost bands on sibling repaints; the blue underlay replaces its tint.
 const glass: React.CSSProperties = {
-  background: 'rgba(255,255,255,0.04)',
-  border: '1px solid rgba(255,255,255,0.08)',
-  backdropFilter: 'blur(12px)',
-  WebkitBackdropFilter: 'blur(12px)',
+  background:
+    'linear-gradient(180deg, rgba(255,255,255,0.07), rgba(255,255,255,0.025) 45%, rgba(255,255,255,0.035)), linear-gradient(180deg, rgba(14,80,133,0.05), rgba(14,80,133,0.03))',
+  border: '1px solid rgba(255,255,255,0.1)',
+  boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.11), 0 10px 34px -14px rgba(0,0,0,0.6)',
 };
 
 const glassInput: React.CSSProperties = {
@@ -345,11 +348,11 @@ function RevealSection({ children, className = '', delay = 0 }: { children: Reac
 
 function ShortsWall() {
   const cards = [
-    { src: '/shorts/s1.jpg', views: '2.4M', likes: '180K', rotate: -7, z: 1, mobile: false },
-    { src: '/shorts/s2.jpg', views: '890K', likes: '62K', rotate: -3.5, z: 2, mobile: true },
-    { src: '/shorts/s3.jpg', views: '3.1M', likes: '254K', rotate: 0, z: 3, mobile: true },
-    { src: '/shorts/s4.jpg', views: '1.2M', likes: '97K', rotate: 3.5, z: 2, mobile: true },
-    { src: '/shorts/s5.jpg', views: '560K', likes: '41K', rotate: 7, z: 1, mobile: false },
+    { src: '/shorts/lake.jpg', views: '2.4M', likes: '180K', rotate: -7, z: 1, mobile: false },
+    { src: '/shorts/car.jpg', views: '890K', likes: '62K', rotate: -3.5, z: 2, mobile: true },
+    { src: '/shorts/setup.jpg', views: '3.1M', likes: '254K', rotate: 0, z: 3, mobile: true },
+    { src: '/shorts/football.jpg', views: '1.2M', likes: '97K', rotate: 3.5, z: 2, mobile: false },
+    { src: '/shorts/fortnite.jpg', views: '560K', likes: '41K', rotate: 7, z: 1, mobile: true },
   ];
   return (
     <div
@@ -426,33 +429,110 @@ function ContactRow({ icon, label, value, href }: { icon: React.ReactNode; label
   );
 }
 
+// Streamers we've actually worked with. Names/avatars go here only with their
+// sign-off — real names, real handles, no invented quotes.
+const CLIP_ENGINE_PARTNERS: { name: string; handle: string; avatar?: string }[] = [];
+
+const CLIP_STEPS = [
+  {
+    icon: <Radio className="w-5 h-5 text-[#0EA4E9]" />,
+    title: 'You go live',
+    body: 'Set up once and forget it. Every stream you run gets picked up automatically.',
+  },
+  {
+    icon: <Scissors className="w-5 h-5 text-[#0EA4E9]" />,
+    title: 'We cut the clips',
+    body: 'AI finds the moments worth posting and cuts them vertical, ready for Shorts, TikTok and Reels.',
+  },
+  {
+    icon: <FolderOpen className="w-5 h-5 text-[#0EA4E9]" />,
+    title: 'Clips land in your Drive',
+    body: 'Your own Google Drive folder, one numbered subfolder per stream. Nothing to download, nothing to chase.',
+  },
+];
+
 function CustomSolutionsPage({ onBack }: { onBack: () => void }) {
+  const offerActive = isClipOfferActive();
   return (
-    <section className="relative w-full px-6 pt-10 pb-14 sm:pb-24 max-w-2xl mx-auto">
-      <button onClick={onBack} className="inline-flex items-center gap-1.5 text-sm text-gray-400 hover:text-white mb-10">
+    <section className="relative w-full px-6 pt-6 sm:pt-10 pb-10 sm:pb-24 max-w-2xl mx-auto">
+      <button onClick={onBack} className="inline-flex items-center gap-1.5 text-sm text-gray-400 hover:text-white mb-8">
         <ArrowLeft className="w-4 h-4" /> Back to home
       </button>
 
       <div className="text-center mb-10">
         <div className="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-5" style={{ background: 'rgba(14,164,233,0.12)', border: '1px solid rgba(14,164,233,0.2)' }}>
-          <Building2 className="w-7 h-7 text-[#0EA4E9]" />
+          <Scissors className="w-7 h-7 text-[#0EA4E9]" />
         </div>
-        <h1 className="font-black text-white leading-tight mb-4" style={{ fontSize: 'clamp(2rem, 5vw, 3rem)', letterSpacing: '-0.02em' }}>
-          Custom builds for businesses
+        <p className="text-xs uppercase tracking-[0.2em] text-[#0EA4E9] mb-3">Clip Engine</p>
+        <h1 className="font-black text-white leading-tight mb-4 text-balance" style={{ fontSize: 'clamp(2rem, 5vw, 3rem)', letterSpacing: '-0.02em' }}>
+          You stream. We clip. You post.
         </h1>
-        <p className="text-gray-400 text-base leading-relaxed max-w-lg mx-auto">
-          Hershy Media doesn't just build software for ourselves — we design and build
-          custom systems, tools, and automations for companies and creators. Have an
-          idea or a problem worth solving? Let's talk.
+        <p className="text-gray-400 text-base leading-relaxed max-w-lg mx-auto text-balance">
+          Every stream you go live, we pull the best moments, cut them vertical, and drop
+          them into your Google Drive. No editor to hire, no VOD to scrub, nothing to
+          remember.
         </p>
+        <div className="inline-flex flex-col items-center gap-2 mt-6 px-6 py-4 rounded-xl" style={glass}>
+          {offerActive && (
+            <span className="text-[11px] font-semibold px-2.5 py-1 rounded-full bg-amber-400/15 text-amber-400">
+              Launch week
+            </span>
+          )}
+          <span className="flex items-baseline gap-2.5">
+            <span className="text-3xl font-bold text-white">
+              {offerActive ? CLIP_OFFER_PRICE : CLIP_FULL_PRICE}
+            </span>
+            {offerActive && (
+              <span className="text-lg text-gray-600 line-through">{CLIP_FULL_PRICE}</span>
+            )}
+          </span>
+          <span className="text-sm text-gray-400">10 hours of stream, setup included</span>
+        </div>
+        <p className="text-xs text-gray-600 mt-2">After that it stays $2 per hour streamed.</p>
       </div>
 
+      {/* How it works */}
+      <div className="space-y-3 mb-10">
+        {CLIP_STEPS.map((s, i) => (
+          <div key={s.title} className="flex items-start gap-4 rounded-xl p-4 sm:p-5" style={glass}>
+            <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(14,164,233,0.12)', border: '1px solid rgba(14,164,233,0.2)' }}>
+              {s.icon}
+            </div>
+            <div className="min-w-0">
+              <p className="text-white font-semibold text-[15px] mb-1">
+                <span className="text-gray-600 mr-2">0{i + 1}</span>{s.title}
+              </p>
+              <p className="text-gray-500 text-sm leading-relaxed">{s.body}</p>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Worked with — renders only once real, approved names are added */}
+      {CLIP_ENGINE_PARTNERS.length > 0 && (
+        <div className="mb-10">
+          <p className="text-xs text-gray-600 uppercase tracking-widest mb-4 text-center">Streamers we've worked with</p>
+          <div className="flex flex-wrap justify-center gap-2.5">
+            {CLIP_ENGINE_PARTNERS.map(p => (
+              <div key={p.handle} className="flex items-center gap-2.5 rounded-full pl-1.5 pr-4 py-1.5" style={glass}>
+                {p.avatar
+                  ? <img src={p.avatar} alt="" className="w-8 h-8 rounded-full object-cover flex-shrink-0" />
+                  : <div className="w-8 h-8 rounded-full flex-shrink-0" style={{ background: 'rgba(255,255,255,0.08)' }} />}
+                <div className="min-w-0">
+                  <p className="text-white text-sm font-medium leading-tight truncate">{p.name}</p>
+                  <p className="text-gray-600 text-xs leading-tight truncate">{p.handle}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       <div className="space-y-3">
-        <p className="text-xs text-gray-600 uppercase tracking-widest mb-2 text-center">Get in touch</p>
+        <p className="text-xs text-gray-600 uppercase tracking-widest mb-2 text-center">Start your first stream</p>
         <ContactRow icon={<MessageCircle className="w-5 h-5 text-[#0EA4E9]" />} label="Discord (fastest)" value="discord.gg/N8S6C95Ry2" href="https://discord.com/invite/N8S6C95Ry2" />
         <ContactRow icon={<Twitter className="w-5 h-5 text-[#0EA4E9]" />} label="X / Twitter" value="@reyzostyle" href="https://x.com/reyzostyle" />
         <ContactRow icon={<Mail className="w-5 h-5 text-[#0EA4E9]" />} label="Email" value="hershymedia@gmail.com" href="mailto:hershymedia@gmail.com" />
-        <ContactRow icon={<Mail className="w-5 h-5 text-[#0EA4E9]" />} label="Email (alt)" value="reyzostyle@gmail.com" href="mailto:reyzostyle@gmail.com" />
       </div>
     </section>
   );
@@ -461,7 +541,7 @@ function CustomSolutionsPage({ onBack }: { onBack: () => void }) {
 // ─── Pricing card (collapsible features) ──────────────────────────────────────
 
 interface Plan {
-  name: string; price: string; analyses: string; period: string;
+  name: string; price: string; quotas: string[]; period: string;
   features: string[]; cta: string; popular: boolean; highlight: boolean;
 }
 
@@ -471,10 +551,12 @@ function PricingCard({ plan, onSelect }: { plan: Plan; onSelect: () => void }) {
     <div
       className="relative flex flex-col rounded-xl p-4 sm:p-5 h-full motion-card"
       style={{
-        background: plan.highlight ? 'rgba(14,164,233,0.06)' : 'rgba(255,255,255,0.04)',
+        // No backdrop-filter: blur over the static app background caused
+        // Chromium ghost bands on sibling repaints
+        background: plan.highlight
+          ? 'linear-gradient(rgba(14,164,233,0.06), rgba(14,164,233,0.06)), linear-gradient(180deg, rgba(14,80,133,0.05), rgba(14,80,133,0.03))'
+          : 'linear-gradient(rgba(255,255,255,0.04), rgba(255,255,255,0.04)), linear-gradient(180deg, rgba(14,80,133,0.05), rgba(14,80,133,0.03))',
         border: plan.highlight ? '1px solid rgba(14,164,233,0.4)' : '1px solid rgba(255,255,255,0.08)',
-        backdropFilter: 'blur(12px)',
-        WebkitBackdropFilter: 'blur(12px)',
       }}
     >
       {plan.popular && (
@@ -491,7 +573,15 @@ function PricingCard({ plan, onSelect }: { plan: Plan; onSelect: () => void }) {
           <span className="text-3xl font-bold text-white">{plan.price}</span>
           <span className="text-sm text-gray-500">{plan.period}</span>
         </div>
-        <p className="mt-1 text-xs" style={{ color: plan.highlight ? '#38BDF8' : '#6B7280' }}>{plan.analyses}</p>
+        {/* Monthly quotas — the numbers people actually compare */}
+        <div className="mt-2.5 space-y-1.5">
+          {plan.quotas.map(q => (
+            <p key={q} className="flex items-center gap-2 text-[13px] font-semibold text-white">
+              <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: plan.highlight ? '#0EA4E9' : 'rgba(255,255,255,0.35)' }} />
+              {q}
+            </p>
+          ))}
+        </div>
       </div>
 
       {/* Toggle — mobile only; on desktop features are always shown */}
@@ -574,9 +664,9 @@ export function LandingPage() {
           <div className="flex items-center gap-1 sm:gap-2">
             <button
               onClick={() => setView('custom')}
-              className={`hidden sm:block px-4 py-2 text-sm font-medium rounded-lg transition-colors ${view === 'custom' ? 'text-white' : 'text-gray-400 hover:text-white'}`}
+              className={`px-3 sm:px-4 py-2 text-sm font-medium rounded-lg transition-colors whitespace-nowrap ${view === 'custom' ? 'text-white' : 'text-gray-400 hover:text-white'}`}
             >
-              Custom builds
+              Clip Engine
             </button>
             <button
               onClick={() => setAuthModal('login')}
@@ -584,13 +674,6 @@ export function LandingPage() {
               style={{ border: '1px solid rgba(255,255,255,0.1)' }}
             >
               Log in
-            </button>
-            <button
-              onClick={() => setAuthModal('signup')}
-              className="px-3 sm:px-4 py-2 text-sm font-semibold text-white rounded-lg whitespace-nowrap"
-              style={{ background: '#0EA4E9' }}
-            >
-              Start free
             </button>
           </div>
         </nav>
@@ -607,14 +690,14 @@ export function LandingPage() {
             <span className="text-xs px-3 py-1.5 rounded-full text-white" style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }}>Hook score: 88</span>
             <span className="text-xs px-3 py-1.5 rounded-full" style={{ background: 'rgba(139,92,246,0.1)', border: '1px solid rgba(139,92,246,0.2)', color: '#A78BFA' }}>Curiosity gap</span>
             <span className="text-xs px-3 py-1.5 rounded-full" style={{ background: 'rgba(251,146,60,0.08)', border: '1px solid rgba(251,146,60,0.15)', color: '#FB923C' }}>2 weak spots found</span>
-            <span className="text-xs px-3 py-1.5 rounded-full text-emerald-400" style={{ background: 'rgba(52,211,153,0.08)', border: '1px solid rgba(52,211,153,0.15)' }}>Competitor idea adapted</span>
+            <span className="text-xs px-3 py-1.5 rounded-full text-emerald-400" style={{ background: 'rgba(52,211,153,0.08)', border: '1px solid rgba(52,211,153,0.15)' }}>Retention drop at 0:04</span>
           </div>
 
           {/* Right pills */}
           <div className="hidden lg:flex flex-col gap-3 absolute right-8 top-1/2 -translate-y-1/2 items-end" style={{ opacity: 0.35 }}>
-            <span className="text-xs px-3 py-1.5 rounded-full text-white" style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }}>5 channels tracked</span>
+            <span className="text-xs px-3 py-1.5 rounded-full text-white" style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }}>Scroll-stop: 9/10</span>
             <span className="text-xs px-3 py-1.5 rounded-full" style={{ background: 'rgba(14,164,233,0.08)', border: '1px solid rgba(14,164,233,0.18)', color: '#38BDF8' }}>3 hook rewrites</span>
-            <span className="text-xs px-3 py-1.5 rounded-full text-emerald-400" style={{ background: 'rgba(52,211,153,0.08)', border: '1px solid rgba(52,211,153,0.15)' }}>Script ready to record</span>
+            <span className="text-xs px-3 py-1.5 rounded-full text-emerald-400" style={{ background: 'rgba(52,211,153,0.08)', border: '1px solid rgba(52,211,153,0.15)' }}>New hook angle ready</span>
             <span className="text-xs px-3 py-1.5 rounded-full text-gray-500" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}>AVG retention: 67%</span>
           </div>
 
@@ -625,7 +708,7 @@ export function LandingPage() {
             </h1>
 
             <p className="animate-fade-in-up delay-100 text-base sm:text-lg text-gray-500 leading-relaxed mb-10 max-w-md sm:max-w-lg mx-auto text-balance">
-              Analyze hooks. Track competitors. Grow faster.
+              Analyze hooks. Fix weak spots. Grow faster.
             </p>
 
             <div className="animate-fade-in-up delay-200 flex flex-col items-center">
@@ -644,12 +727,12 @@ export function LandingPage() {
         </section>
 
         {/* ── Features (See what you've been missing) ───────────────────────── */}
-        <section className="pt-5 sm:pt-6 pb-14 sm:pb-24 px-6 max-w-4xl mx-auto">
+        <section className="pt-5 sm:pt-6 pb-10 sm:pb-24 px-6 max-w-4xl mx-auto">
           <RevealSection className="text-center mb-8 sm:mb-12">
             <h2 className="text-xl sm:text-2xl font-bold text-white whitespace-nowrap">See what you've been missing</h2>
           </RevealSection>
 
-          <div className="grid md:grid-cols-3 gap-4">
+          <div className="grid md:grid-cols-2 gap-4 max-w-3xl mx-auto">
             {[
               {
                 icon: <Sparkles className="w-5 h-5 text-[#0EA4E9]" />,
@@ -663,29 +746,29 @@ export function LandingPage() {
                 tagBorder: 'rgba(14,164,233,0.2)',
               },
               {
-                icon: <Users className="w-5 h-5 text-violet-400" />,
-                iconBg: 'rgba(139,92,246,0.12)',
-                iconBorder: 'rgba(139,92,246,0.2)',
-                title: 'Competitor Intel',
-                desc: 'Track competitor channels. Hershy finds their recent videos, extracts the concept, and adapts it for your niche.',
-                tags: ['Auto-track', 'AI ideas', 'Scripts'],
-                tagColor: '#A78BFA',
-                tagBg: 'rgba(139,92,246,0.1)',
-                tagBorder: 'rgba(139,92,246,0.2)',
+                icon: <Activity className="w-5 h-5 text-emerald-400" />,
+                iconBg: 'rgba(52,211,153,0.12)',
+                iconBorder: 'rgba(52,211,153,0.2)',
+                title: 'Retention Insights',
+                desc: 'Connect your channel and Hershy reads your real audience-retention curve, pinpoints where viewers drop off, and tells you how to fix it.',
+                tags: ['Drop-off points', 'Real data', 'Fixes'],
+                tagColor: '#34D399',
+                tagBg: 'rgba(52,211,153,0.1)',
+                tagBorder: 'rgba(52,211,153,0.2)',
               },
             ].map((feature, i) => (
               <RevealSection key={i} delay={i * 100}>
-                <div className="rounded-xl p-4 sm:p-6 h-full motion-card flex flex-col gap-3 sm:gap-4" style={glass}>
-                  <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: feature.iconBg, border: `1px solid ${feature.iconBorder}` }}>
-                    {feature.icon}
+                <div className="rounded-2xl p-5 sm:p-6 h-full motion-card flex flex-col gap-3.5" style={glass}>
+                  <div className="flex items-center gap-3">
+                    <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: feature.iconBg, border: `1px solid ${feature.iconBorder}` }}>
+                      {feature.icon}
+                    </div>
+                    <h3 className="text-white font-semibold text-base sm:text-lg">{feature.title}</h3>
                   </div>
-                  <div>
-                    <h3 className="text-white font-semibold mb-1.5 sm:mb-2">{feature.title}</h3>
-                    <p className="text-gray-500 text-sm leading-relaxed">{feature.desc}</p>
-                  </div>
-                  <div className="flex flex-wrap gap-1 mt-auto">
+                  <p className="text-gray-400 text-sm leading-relaxed">{feature.desc}</p>
+                  <div className="flex flex-wrap gap-1.5 mt-auto pt-1">
                     {feature.tags.map(tag => (
-                      <span key={tag} className="text-[10px] sm:text-xs px-1.5 py-0.5 rounded-full whitespace-nowrap" style={{ color: feature.tagColor, background: feature.tagBg, border: `1px solid ${feature.tagBorder}` }}>
+                      <span key={tag} className="text-[11px] sm:text-xs px-2 py-0.5 rounded-full whitespace-nowrap" style={{ color: feature.tagColor, background: feature.tagBg, border: `1px solid ${feature.tagBorder}` }}>
                         {tag}
                       </span>
                     ))}
@@ -697,7 +780,7 @@ export function LandingPage() {
         </section>
 
         {/* ── How it works ──────────────────────────────────────────────────── */}
-        <section className="pb-14 sm:pb-24 px-6 max-w-4xl mx-auto">
+        <section className="pb-10 sm:pb-24 px-6 max-w-4xl mx-auto">
           <RevealSection className="text-center mb-8 sm:mb-12">
             <h2 className="text-xl sm:text-2xl font-bold text-white mb-2 text-balance">How it works</h2>
             <p className="text-gray-500 text-sm">Three steps. Under 2 minutes.</p>
@@ -728,16 +811,16 @@ export function LandingPage() {
         </section>
 
         {/* ── Pricing ───────────────────────────────────────────────────────── */}
-        <section className="pb-14 sm:pb-24 px-6 max-w-4xl mx-auto">
+        <section className="pb-10 sm:pb-24 px-6 max-w-4xl mx-auto">
           <RevealSection className="text-center mb-8 sm:mb-12">
             <h2 className="text-xl sm:text-2xl font-bold text-white mb-2 text-balance">Simple pricing</h2>
             <p className="text-gray-500 text-sm">Start free. Upgrade when you need more.</p>
           </RevealSection>
           <div className="grid md:grid-cols-3 gap-4">
             {[
-              { name: 'Free', price: '$0', analyses: '10 hook checks / mo', period: 'free forever', features: ['10 hook checks every month', '3 video analyses to start', 'Hook score & rewrites', 'Weak spot breakdown', 'Video file upload'], cta: 'Start free', popular: false, highlight: false },
-              { name: 'Plus', price: '$19', analyses: '30 analyses / month', period: '/month', features: ['Everything in Free', 'Channel profile context', 'Competitor tracking', 'AI idea extraction & outlines'], cta: 'Get Plus', popular: true, highlight: true },
-              { name: 'Pro', price: '$29', analyses: '100 analyses / month', period: '/month', features: ['Everything in Plus', 'Competitor script writing'], cta: 'Get Pro', popular: false, highlight: false },
+              { name: 'Free', price: '$0', quotas: ['3 video analyses to start', '10 hook checks / month'], period: 'free forever', features: ['Hook score & rewrites', 'Weak spot breakdown', 'Video file upload'], cta: 'Start free', popular: false, highlight: false },
+              { name: 'Plus', price: '$19', quotas: ['30 video analyses / month', '50 hook checks / month'], period: '/month', features: ['Everything in Free', 'Channel profile context', 'Retention insights on your videos'], cta: 'Get Plus', popular: true, highlight: true },
+              { name: 'Pro', price: '$29', quotas: ['100 video analyses / month', '200 hook checks / month'], period: '/month', features: ['Everything in Plus', 'Highest monthly limits'], cta: 'Get Pro', popular: false, highlight: false },
             ].map((plan, i) => (
               <RevealSection key={plan.name} delay={i * 80}>
                 <PricingCard plan={plan} onSelect={() => setAuthModal('signup')} />
@@ -747,7 +830,7 @@ export function LandingPage() {
         </section>
 
         {/* ── CTA ───────────────────────────────────────────────────────────── */}
-        <section className="pb-14 sm:pb-24 px-6 text-center">
+        <section className="pb-10 sm:pb-24 px-6 text-center">
           <RevealSection>
             <div className="max-w-md mx-auto rounded-2xl p-7 sm:p-8 motion-card" style={{ background: 'rgba(14,164,233,0.06)', border: '1px solid rgba(14,164,233,0.2)' }}>
               <h2 className="text-xl sm:text-2xl font-bold text-white mb-6 text-balance">Stop guessing. Start improving.</h2>
@@ -765,6 +848,11 @@ export function LandingPage() {
 
         {/* ── Footer ────────────────────────────────────────────────────────── */}
         <footer className="px-6 py-8 text-center" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+          <div className="flex items-center justify-center gap-4 mb-3 text-xs">
+            <a href="/privacy" className="text-gray-500 hover:text-white transition-colors">Privacy Policy</a>
+            <span className="text-gray-700">·</span>
+            <a href="/terms" className="text-gray-500 hover:text-white transition-colors">Terms of Service</a>
+          </div>
           <p className="text-xs text-gray-700">© {new Date().getFullYear()} Hershy Media. All rights reserved.</p>
         </footer>
         </>
