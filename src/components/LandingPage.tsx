@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { X, Check, Loader2, Zap, ArrowRight, ChevronRight, ChevronDown, Activity, Sparkles, Play, Heart, Eye, MessageCircle, Twitter, Mail, Scissors } from 'lucide-react';
+import { X, Check, Loader2, Zap, ChevronRight, ChevronDown, Activity, Sparkles, Play, Heart, Eye, MessageCircle, Twitter, Mail, Scissors } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
 import { isClipOfferActive, CLIP_FULL_PRICE, CLIP_OFFER_PRICE } from '../lib/launchOffer';
@@ -532,7 +532,7 @@ export function LandingPage() {
         </nav>
 
         {/* ── Hero ──────────────────────────────────────────────────────────── */}
-        <section className="relative w-full flex flex-col items-center justify-center text-center px-6 pb-12 min-h-[calc(100dvh-136px)] md:min-h-[calc(100vh_-_150px)]">
+        <section className="relative w-full flex flex-col items-center justify-center text-center px-6 pb-12 min-h-[100dvh] md:min-h-screen">
 
           {/* Left pills */}
           <div className="hidden lg:flex flex-col gap-3 absolute left-8 top-1/2 -translate-y-1/2 items-start" style={{ opacity: 0.35 }}>
@@ -556,7 +556,7 @@ export function LandingPage() {
               Stop posting blind.
             </h1>
 
-            <p className="animate-fade-in-up delay-100 text-base sm:text-lg text-gray-500 leading-relaxed mb-10 max-w-md sm:max-w-lg mx-auto text-balance">
+            <p className="animate-fade-in-up delay-100 text-base sm:text-lg text-gray-500 leading-relaxed mb-10 max-w-md sm:max-w-lg lg:max-w-none lg:whitespace-nowrap mx-auto text-balance">
               Find out what cost you the views, and fix it before the next upload.
             </p>
 
@@ -567,7 +567,6 @@ export function LandingPage() {
                 style={{ background: '#0EA4E9' }}
               >
                 Get started free
-                <ArrowRight className="w-4 h-4" />
               </button>
             </div>
           </div>
@@ -703,7 +702,7 @@ export function LandingPage() {
                   </ul>
                 </div>
 
-                <div className="md:w-56 flex-shrink-0 rounded-xl p-5 text-center" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }}>
+                <div className="md:w-72 flex-shrink-0 rounded-xl p-5 text-center" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }}>
                   {offerActive && (
                     <span className="inline-block text-[11px] font-semibold px-2.5 py-1 rounded-full mb-2.5 bg-amber-400/15 text-amber-400">
                       Launch week
@@ -734,22 +733,6 @@ export function LandingPage() {
           </RevealSection>
         </section>
 
-        {/* ── CTA ───────────────────────────────────────────────────────────── */}
-        <section className="pb-10 sm:pb-24 px-6 text-center">
-          <RevealSection>
-            <div className="max-w-md mx-auto rounded-2xl p-7 sm:p-8 motion-card" style={{ background: 'rgba(14,164,233,0.06)', border: '1px solid rgba(14,164,233,0.2)' }}>
-              <h2 className="text-xl sm:text-2xl font-bold text-white mb-6 text-balance">Stop guessing. Start improving.</h2>
-              <button
-                onClick={() => setAuthModal('signup')}
-                className="flex w-full items-center justify-center gap-2 px-7 py-3.5 text-white font-semibold rounded-xl text-sm hover:opacity-90"
-                style={{ background: '#0EA4E9' }}
-              >
-                Start free
-                <ArrowRight className="w-4 h-4" />
-              </button>
-            </div>
-          </RevealSection>
-        </section>
 
         {/* ── Footer ────────────────────────────────────────────────────────── */}
         <footer className="px-6 py-8 text-center" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
