@@ -36,7 +36,13 @@ const steps = [
   },
 ];
 
-export function ClipEnginePage() {
+interface ClipEnginePageProps {
+  // When set, the CTA signs the visitor up instead of linking to Discord —
+  // used on the public landing page, where setup happens after signup.
+  onGetStarted?: () => void;
+}
+
+export function ClipEnginePage({ onGetStarted }: ClipEnginePageProps = {}) {
   const offerActive = isClipOfferActive();
   const included = [
     '10 hours of stream coverage',
@@ -129,15 +135,24 @@ export function ClipEnginePage() {
           ))}
         </ul>
 
-        <a
-          href={DISCORD_URL}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="w-full flex items-center justify-center gap-2 py-3 rounded-lg text-sm font-semibold bg-[#0EA4E9] text-white hover:bg-[#0EA4E9]/90 transition-colors"
-        >
-          <MessageCircle className="w-4 h-4" />
-          {offerActive ? 'Claim launch price on Discord' : 'Get started on Discord'}
-        </a>
+        {onGetStarted ? (
+          <button
+            onClick={onGetStarted}
+            className="w-full flex items-center justify-center gap-2 py-3 rounded-lg text-sm font-semibold bg-[#0EA4E9] text-white hover:bg-[#0EA4E9]/90 transition-colors"
+          >
+            {offerActive ? 'Claim launch price' : 'Get started'}
+          </button>
+        ) : (
+          <a
+            href={DISCORD_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="w-full flex items-center justify-center gap-2 py-3 rounded-lg text-sm font-semibold bg-[#0EA4E9] text-white hover:bg-[#0EA4E9]/90 transition-colors"
+          >
+            <MessageCircle className="w-4 h-4" />
+            {offerActive ? 'Claim launch price on Discord' : 'Get started on Discord'}
+          </a>
+        )}
 
         <p className="mt-4 text-xs text-gray-500 text-center leading-relaxed">
           Once your pack runs out, extra hours are $2 each.

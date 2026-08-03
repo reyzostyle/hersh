@@ -1,8 +1,9 @@
 import { useState, useEffect, useRef } from 'react';
-import { X, Check, Loader2, Zap, ChevronRight, ChevronDown, Activity, Sparkles, Play, Heart, Eye, MessageCircle, Twitter, Mail, Scissors } from 'lucide-react';
+import { X, Check, Loader2, Zap, ChevronRight, ChevronDown, Activity, Sparkles, Play, Heart, Eye, MessageCircle, Twitter, Mail, Scissors, ArrowLeft } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
 import { isClipOfferActive, CLIP_FULL_PRICE, CLIP_OFFER_PRICE } from '../lib/launchOffer';
+import { ClipEnginePage } from './ClipEnginePage';
 
 // ─── Shared styles ────────────────────────────────────────────────────────────
 
@@ -477,6 +478,7 @@ function PricingCard({ plan, onSelect }: { plan: Plan; onSelect: () => void }) {
 
 export function LandingPage() {
   const [authModal, setAuthModal] = useState<null | 'login' | 'signup'>(null);
+  const [view, setView] = useState<'main' | 'clips'>('main');
   const [scrollTop, setScrollTop] = useState(0);
   const scrollRef = useRef<HTMLDivElement>(null);
   const offerActive = isClipOfferActive();
@@ -514,25 +516,32 @@ export function LandingPage() {
         onScroll={(e) => setScrollTop(e.currentTarget.scrollTop)}
       >
 
-        {/* ── Navbar ─────────────────────────────────────────────────────────── */}
-        <nav className="flex items-center justify-between px-6 py-4 max-w-6xl mx-auto animate-fade-in">
-          <button onClick={() => scrollRef.current?.scrollTo({ top: 0, behavior: 'smooth' })} className="font-black text-white uppercase tracking-[0.15em] sm:tracking-[0.2em] text-base sm:text-lg whitespace-nowrap">
-            <span className="sm:hidden">HERSHY</span>
-            <span className="hidden sm:inline">HERSHY MEDIA</span>
-          </button>
-          <div className="flex items-center gap-1 sm:gap-2">
-            <button
-              onClick={() => setAuthModal('login')}
-              className="px-3 sm:px-4 py-2 text-sm font-medium text-gray-400 hover:text-white rounded-lg whitespace-nowrap"
-              style={{ border: '1px solid rgba(255,255,255,0.1)' }}
-            >
-              Log in / Sign up
+        {/* Nav + hero share one 100dvh box, hero as flex-1, so the hero fills
+            exactly what's left after the nav's real height — no guessed
+            pixel offset, and nothing below ever peeks in before a scroll.
+            Only forced to 100dvh on the main view: the clips detail view is
+            a normal scrolling page and shouldn't reserve a full screen. */}
+        <div className={`flex flex-col ${view === 'main' ? 'h-[100dvh]' : ''}`}>
+          {/* ── Navbar ───────────────────────────────────────────────────── */}
+          <nav className="flex items-center justify-between px-6 py-4 max-w-6xl mx-auto w-full flex-shrink-0 animate-fade-in">
+            <button onClick={() => { setView('main'); scrollRef.current?.scrollTo({ top: 0, behavior: 'smooth' }); }} className="font-black text-white uppercase tracking-[0.15em] sm:tracking-[0.2em] text-base sm:text-lg whitespace-nowrap">
+              <span className="sm:hidden">HERSHY</span>
+              <span className="hidden sm:inline">HERSHY MEDIA</span>
             </button>
-          </div>
-        </nav>
+            <div className="flex items-center gap-1 sm:gap-2">
+              <button
+                onClick={() => setAuthModal('login')}
+                className="px-3 sm:px-4 py-2 text-sm font-medium text-gray-400 hover:text-white rounded-lg whitespace-nowrap"
+                style={{ border: '1px solid rgba(255,255,255,0.1)' }}
+              >
+                Log in / Sign up
+              </button>
+            </div>
+          </nav>
 
-        {/* ── Hero ──────────────────────────────────────────────────────────── */}
-        <section className="relative w-full flex flex-col items-center justify-center text-center px-6 pb-12 min-h-[100dvh] md:min-h-screen">
+          {/* ── Hero ─────────────────────────────────────────────────────── */}
+          {view === 'main' && (
+          <section className="relative w-full flex-1 min-h-0 flex flex-col items-center justify-center text-center px-6 pb-12">
 
           {/* Left pills */}
           <div className="hidden lg:flex flex-col gap-3 absolute left-8 top-1/2 -translate-y-1/2 items-start" style={{ opacity: 0.35 }}>
@@ -572,8 +581,22 @@ export function LandingPage() {
           </div>
 
           <ShortsWall />
-        </section>
+          </section>
+          )}
+        </div>
 
+        {view === 'clips' ? (
+          <div className="px-4 sm:px-6 pt-4">
+            <button
+              onClick={() => { setView('main'); scrollRef.current?.scrollTo({ top: 0 }); }}
+              className="inline-flex items-center gap-1.5 text-sm text-gray-400 hover:text-white mb-2 transition-colors"
+            >
+              <ArrowLeft className="w-4 h-4" /> Back
+            </button>
+            <ClipEnginePage onGetStarted={() => setAuthModal('signup')} />
+          </div>
+        ) : (
+        <>
         {/* ── See how it works: the three steps, then the report they produce ── */}
         <section className="pt-5 sm:pt-6 pb-10 sm:pb-24 px-6 max-w-4xl mx-auto">
           <RevealSection className="text-center mb-8 sm:mb-12">
@@ -715,7 +738,9 @@ export function LandingPage() {
                     {offerActive && <span className="text-base text-gray-600 line-through">{CLIP_FULL_PRICE}</span>}
                   </div>
                   <p className="text-xs text-gray-500 mb-4 leading-relaxed">
-                    10 hours of stream, setup included. After that $2 per hour.
+                    10 hours of stream, setup included.
+                    <br />
+                    After that $2 per hour.
                   </p>
                   <button
                     onClick={() => setAuthModal('signup')}
@@ -725,8 +750,16 @@ export function LandingPage() {
                     Get started
                   </button>
                   <p className="mt-3 text-[11px] text-gray-600 leading-relaxed">
-                    Set up with us after you sign up. Billed separately from the plans above.
+                    Set up with us after you sign up.
+                    <br />
+                    Billed separately from the plans above.
                   </p>
+                  <button
+                    onClick={() => { setView('clips'); scrollRef.current?.scrollTo({ top: 0 }); }}
+                    className="mt-3 text-[11px] text-gray-500 hover:text-gray-300 underline underline-offset-2 transition-colors"
+                  >
+                    Learn more
+                  </button>
                 </div>
               </div>
             </div>
@@ -754,6 +787,8 @@ export function LandingPage() {
           </div>
           <p className="text-xs text-gray-700">© {new Date().getFullYear()} Hershy Media. All rights reserved.</p>
         </footer>
+        </>
+        )}
       </div>
 
       {authModal && <AuthModal initialMode={authModal} onClose={() => setAuthModal(null)} />}
