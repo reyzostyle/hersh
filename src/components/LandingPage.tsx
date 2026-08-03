@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
-import { X, Check, Loader2, Zap, ArrowRight, ChevronRight, ChevronDown, Activity, Sparkles, Play, Heart, Eye, MessageCircle, Twitter, Mail } from 'lucide-react';
+import { X, Check, Loader2, Zap, ArrowRight, ChevronRight, ChevronDown, Activity, Sparkles, Play, Heart, Eye, MessageCircle, Twitter, Mail, Scissors } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
+import { isClipOfferActive, CLIP_FULL_PRICE, CLIP_OFFER_PRICE } from '../lib/launchOffer';
 
 // ─── Shared styles ────────────────────────────────────────────────────────────
 
@@ -478,6 +479,7 @@ export function LandingPage() {
   const [authModal, setAuthModal] = useState<null | 'login' | 'signup'>(null);
   const [scrollTop, setScrollTop] = useState(0);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const offerActive = isClipOfferActive();
 
   // Bottom glow fades out as you scroll down the first screen
   const glowOpacity = Math.max(0, 1 - scrollTop / 160);
@@ -551,7 +553,7 @@ export function LandingPage() {
           {/* Center content */}
           <div className="relative z-10 max-w-3xl w-full">
             <h1 className="animate-fade-in-up font-black text-white leading-[1.05] mb-5 text-balance" style={{ fontSize: 'clamp(2.3rem, 7vw, 5rem)', letterSpacing: '-0.02em' }}>
-              Every flop has a reason.
+              Stop posting blind.
             </h1>
 
             <p className="animate-fade-in-up delay-100 text-base sm:text-lg text-gray-500 leading-relaxed mb-10 max-w-md sm:max-w-lg mx-auto text-balance">
@@ -573,12 +575,36 @@ export function LandingPage() {
           <ShortsWall />
         </section>
 
-        {/* ── Proof: a real analysis, not a description of one ──────────────── */}
+        {/* ── See how it works: the three steps, then the report they produce ── */}
         <section className="pt-5 sm:pt-6 pb-10 sm:pb-24 px-6 max-w-4xl mx-auto">
           <RevealSection className="text-center mb-8 sm:mb-12">
-            <h2 className="text-xl sm:text-2xl font-bold text-white mb-2 text-balance">This one scored 42</h2>
-            <p className="text-gray-500 text-sm">Here is exactly what came back.</p>
+            <h2 className="text-xl sm:text-2xl font-bold text-white mb-2 text-balance">See how it works</h2>
+            <p className="text-gray-500 text-sm">Three steps. Under 2 minutes.</p>
           </RevealSection>
+
+          <div className="grid md:grid-cols-3 gap-3 sm:gap-4 mb-10 sm:mb-14">
+            {[
+              { step: '01', title: 'Paste your Short URL', desc: 'Any Shorts link, or upload a file before it goes live.' },
+              { step: '02', title: 'AI analyzes the video', desc: 'The most powerful AI models watch every second. No manual work.' },
+              { step: '03', title: 'Get your fix list', desc: 'Hook score, weak spots, and 3 ready-to-record rewrites.' },
+            ].map((item, i) => (
+              <RevealSection key={item.step} delay={i * 100}>
+                <div className="relative rounded-xl p-4 sm:p-5 h-full motion-card" style={glass}>
+                  <h3 className="text-white font-semibold mb-1.5 flex items-baseline gap-2">
+                    <span className="text-xs font-mono font-bold flex-shrink-0" style={{ color: '#0EA4E9' }}>{item.step}</span>
+                    {item.title}
+                  </h3>
+                  <p className="text-gray-500 text-sm leading-relaxed text-balance">{item.desc}</p>
+                  {i < 2 && (
+                    <div className="hidden md:flex absolute -right-2 top-1/2 -translate-y-1/2 z-10">
+                      <ChevronRight className="w-4 h-4 text-gray-700" />
+                    </div>
+                  )}
+                </div>
+              </RevealSection>
+            ))}
+          </div>
+
           <DemoSection />
         </section>
 
@@ -625,37 +651,6 @@ export function LandingPage() {
           </div>
         </section>
 
-        {/* ── How it works ──────────────────────────────────────────────────── */}
-        <section className="pb-10 sm:pb-24 px-6 max-w-4xl mx-auto">
-          <RevealSection className="text-center mb-8 sm:mb-12">
-            <h2 className="text-xl sm:text-2xl font-bold text-white mb-2 text-balance">How it works</h2>
-            <p className="text-gray-500 text-sm">Three steps. Under 2 minutes.</p>
-          </RevealSection>
-
-          <div className="grid md:grid-cols-3 gap-3 sm:gap-4">
-            {[
-              { step: '01', title: 'Paste your Short URL', desc: 'Any Shorts link, or upload a file before it goes live.' },
-              { step: '02', title: 'AI analyzes the video', desc: 'Gemini analyzes every second. No manual work.' },
-              { step: '03', title: 'Get your fix list', desc: 'Hook score, weak spots, and 3 ready-to-record rewrites.' },
-            ].map((item, i) => (
-              <RevealSection key={i} delay={i * 100}>
-                <div className="relative rounded-xl p-4 sm:p-5 h-full motion-card" style={glass}>
-                  <h3 className="text-white font-semibold mb-1.5 flex items-baseline gap-2">
-                    <span className="text-xs font-mono font-bold flex-shrink-0" style={{ color: '#0EA4E9' }}>{item.step}</span>
-                    {item.title}
-                  </h3>
-                  <p className="text-gray-500 text-sm leading-relaxed text-balance">{item.desc}</p>
-                  {i < 2 && (
-                    <div className="hidden md:flex absolute -right-2 top-1/2 -translate-y-1/2 z-10">
-                      <ChevronRight className="w-4 h-4 text-gray-700" />
-                    </div>
-                  )}
-                </div>
-              </RevealSection>
-            ))}
-          </div>
-        </section>
-
         {/* ── Pricing ───────────────────────────────────────────────────────── */}
         <section className="pb-10 sm:pb-24 px-6 max-w-4xl mx-auto">
           <RevealSection className="text-center mb-8 sm:mb-12">
@@ -673,6 +668,70 @@ export function LandingPage() {
               </RevealSection>
             ))}
           </div>
+        </section>
+
+        {/* ── Clip Engine ───────────────────────────────────────────────────
+            Sits after the plans on purpose: it's a separate product for a
+            different audience, and it's set up inside the app after signup. */}
+        <section className="pb-10 sm:pb-24 px-6 max-w-4xl mx-auto">
+          <RevealSection>
+            <div className="rounded-2xl p-6 sm:p-8 motion-card" style={glass}>
+              <div className="flex flex-col md:flex-row md:items-start gap-6 md:gap-10">
+                <div className="flex-1 min-w-0">
+                  <span
+                    className="inline-flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1 rounded-full mb-4"
+                    style={{ background: 'rgba(14,164,233,0.12)', color: '#0EA4E9' }}
+                  >
+                    <Scissors className="w-3 h-3" />
+                    For streamers
+                  </span>
+                  <h2 className="text-xl sm:text-2xl font-bold text-white mb-2.5 text-balance">
+                    You stream. We clip. You post.
+                  </h2>
+                  <p className="text-gray-400 text-sm leading-relaxed mb-5">
+                    Every stream gets cut into clips, straight to your Drive.
+                    <br />
+                    No editor to hire, no VOD to scrub.
+                  </p>
+                  <ul className="space-y-2">
+                    {['Never misses a moment, even at 4am', 'Clips ready right after you go live', 'No hiring, no chasing, no disappearing clippers'].map(item => (
+                      <li key={item} className="flex items-start gap-2.5 text-sm text-gray-300">
+                        <Check className="w-4 h-4 text-[#0EA4E9] flex-shrink-0 mt-0.5" />
+                        {item}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+
+                <div className="md:w-56 flex-shrink-0 rounded-xl p-5 text-center" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }}>
+                  {offerActive && (
+                    <span className="inline-block text-[11px] font-semibold px-2.5 py-1 rounded-full mb-2.5 bg-amber-400/15 text-amber-400">
+                      Launch week
+                    </span>
+                  )}
+                  <div className="flex items-baseline justify-center gap-2 mb-1">
+                    <span className="text-3xl font-bold text-white">
+                      {offerActive ? CLIP_OFFER_PRICE : CLIP_FULL_PRICE}
+                    </span>
+                    {offerActive && <span className="text-base text-gray-600 line-through">{CLIP_FULL_PRICE}</span>}
+                  </div>
+                  <p className="text-xs text-gray-500 mb-4 leading-relaxed">
+                    10 hours of stream, setup included. After that $2 per hour.
+                  </p>
+                  <button
+                    onClick={() => setAuthModal('signup')}
+                    className="w-full py-2.5 rounded-lg text-sm font-semibold text-white hover:opacity-90"
+                    style={{ background: '#0EA4E9' }}
+                  >
+                    Get started
+                  </button>
+                  <p className="mt-3 text-[11px] text-gray-600 leading-relaxed">
+                    Set up with us after you sign up. Billed separately from the plans above.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </RevealSection>
         </section>
 
         {/* ── CTA ───────────────────────────────────────────────────────────── */}
