@@ -136,11 +136,10 @@ function IdeaCard({ idea, onUpdated, isPro }: { idea: CompetitorIdea; onUpdated:
 
   return (
     <div
-      className="rounded-2xl p-5 space-y-4 transition-opacity"
+      className="rounded-2xl p-5 space-y-4 transition-opacity glass-panel"
       style={{
-        background: 'rgba(255,255,255,0.04)',
-        border: idea.liked === false ? '1px solid rgba(255,255,255,0.04)' : '1px solid rgba(255,255,255,0.08)',
         opacity: idea.liked === false ? 0.4 : 1,
+        ...(idea.liked === false ? { border: '1px solid rgba(255,255,255,0.04)' } : {}),
       }}
     >
       {/* Video info row */}
@@ -492,10 +491,7 @@ export function CompetitorsPage() {
           <h1 className="text-2xl font-bold text-white mb-1">Competitors</h1>
           <p className="text-sm text-gray-500 text-balance">Track competitor channels and generate content ideas</p>
         </div>
-        <div
-          className="rounded-2xl p-8 flex flex-col items-center text-center space-y-4"
-          style={{ background: 'rgba(14,164,233,0.06)', border: '1px solid rgba(14,164,233,0.2)' }}
-        >
+        <div className="rounded-2xl p-8 flex flex-col items-center text-center space-y-4 glass-panel-accent">
           <div className="w-12 h-12 rounded-2xl flex items-center justify-center" style={{ background: 'rgba(14,164,233,0.12)' }}>
             <Users className="w-6 h-6 text-[#0EA4E9]" />
           </div>
@@ -524,10 +520,7 @@ export function CompetitorsPage() {
       </div>
 
       {/* Add channel */}
-      <div
-        className="rounded-2xl p-4 sm:p-5 space-y-3 sm:space-y-4"
-        style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}
-      >
+      <div className="rounded-2xl p-4 sm:p-5 space-y-3 sm:space-y-4 glass-panel">
         <div className="space-y-1">
           <p className="text-white text-sm font-semibold">Add competitor channel</p>
           <p className="text-gray-500 text-xs">Paste a YouTube channel URL. Up to 5 channels.</p>

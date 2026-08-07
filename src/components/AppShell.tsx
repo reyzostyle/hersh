@@ -21,7 +21,7 @@ export type NavTab = 'home' | 'hooks' | 'hooklab' | 'rank' | 'clips' | 'upgrade'
 
 // Feature flags: tabs hidden from ALL users (incl. admin). Kept in code so they
 // can be re-enabled instantly by removing them from this list.
-export const HIDDEN_TABS: NavTab[] = ['competitors', 'partners'];
+export const HIDDEN_TABS: NavTab[] = ['partners'];
 
 const ADMIN_EMAIL = 'reyzostyle@gmail.com';
 
