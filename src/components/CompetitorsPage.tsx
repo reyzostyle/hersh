@@ -585,7 +585,13 @@ export function CompetitorsPage() {
       <div className="rounded-2xl p-4 sm:p-5 space-y-3 sm:space-y-4 glass-panel">
         <div className="space-y-1">
           <p className="text-white text-sm font-semibold">Add competitor channel</p>
-          <p className="text-gray-500 text-xs">Paste a YouTube channel URL. Up to 5 channels. Only their shorts get analyzed.</p>
+          {/* Phones get the one line that carries a real constraint. The rest is
+              inferable from the input's placeholder and the results themselves. */}
+          <p className="text-gray-500 text-xs">
+            <span className="hidden sm:inline">Paste a YouTube channel URL. </span>
+            Up to 5 channels.
+            <span className="hidden sm:inline"> Only their shorts get analyzed.</span>
+          </p>
         </div>
 
         <form onSubmit={handleAddChannel} className="flex gap-2">
