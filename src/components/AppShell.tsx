@@ -116,8 +116,10 @@ export function AppShell({ activeTab, onTabChange, children }: AppShellProps) {
       {/* Collapsing narrows the sidebar to an icon rail rather than hiding it, so
           every tab stays one click away. On phones this is always the full-width
           drawer — `collapsed` is a desktop-only idea. */}
+      {/* overflow-hidden matters for the collapse animation: labels are clipped
+          by the narrowing panel instead of re-wrapping inside it. */}
       <aside className={`
-        fixed inset-y-0 left-0 z-50 flex flex-col w-56 border-r transition-all duration-200 ease-in-out
+        fixed inset-y-0 left-0 z-50 flex flex-col w-56 border-r overflow-hidden transition-all duration-200 ease-in-out
         ${mobileOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0
         ${collapsed ? 'lg:w-16' : 'lg:w-56'}
       `} style={{ background: 'rgba(10,15,26,0.8)', borderColor: 'rgba(255,255,255,0.08)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)' }}>
@@ -127,16 +129,16 @@ export function AppShell({ activeTab, onTabChange, children }: AppShellProps) {
           <button
             onClick={() => { onTabChange('home'); setMobileOpen(false); }}
             title="Hershy"
-            className={`w-full flex items-center gap-3 py-1 rounded-lg font-black uppercase tracking-[0.16em] text-[15px] transition-colors group ${collapsed ? 'lg:justify-center lg:px-0' : ''} px-3`}
+            className="w-full flex items-center gap-3 px-3 py-1 rounded-lg font-black uppercase tracking-[0.16em] text-[15px] transition-colors group"
           >
             <HubIcon
-              className={`w-4 h-4 flex-shrink-0 transition-colors ${activeTab === 'home' ? 'text-[#0EA4E9]' : 'text-gray-600 group-hover:text-[#0EA4E9]'}`}
+              className={`w-4 h-4 flex-shrink-0 transition-colors ${activeTab === 'home' ? 'text-[#0EA4E9]' : 'text-white group-hover:text-[#0EA4E9]'}`}
             />
             {/* Icon and wordmark are one button, so hovering either turns both
                 the same blue. The uppercase wordmark sits on a taller line box
                 than the icon, which is what made the two look a pixel out of
                 line; leading-none drops that extra space. */}
-            <span className={`text-white leading-none transition-colors group-hover:text-[#0EA4E9] ${collapsed ? 'lg:hidden' : ''}`}>
+            <span className={`text-white leading-none whitespace-nowrap transition-colors group-hover:text-[#0EA4E9] ${collapsed ? 'lg:hidden' : ''}`}>
               Hershy
             </span>
           </button>
@@ -148,7 +150,7 @@ export function AppShell({ activeTab, onTabChange, children }: AppShellProps) {
               key={item.id}
               onClick={() => { onTabChange(item.id); setMobileOpen(false); }}
               title={item.label}
-              className={`w-full flex items-center gap-3 py-2.5 rounded-lg text-sm font-medium transition-all ${collapsed ? 'lg:justify-center lg:px-0' : ''} px-3 ${
+              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all ${
                 activeTab === item.id
                   ? 'bg-[#0EA4E9]/15 text-[#0EA4E9] ring-1 ring-inset ring-[#0EA4E9]/20'
                   : item.highlight
@@ -157,7 +159,7 @@ export function AppShell({ activeTab, onTabChange, children }: AppShellProps) {
               }`}
             >
               {item.icon}
-              <span className={`flex-1 text-left ${collapsed ? 'lg:hidden' : ''}`}>{item.label}</span>
+              <span className={`flex-1 text-left whitespace-nowrap ${collapsed ? 'lg:hidden' : ''}`}>{item.label}</span>
               {item.badge && (
                 <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full flex-shrink-0 ${collapsed ? 'lg:hidden' : ''}`} style={{ background: 'rgba(14,164,233,0.12)', color: '#0EA4E9' }}>
                   {item.badge}
@@ -167,17 +169,17 @@ export function AppShell({ activeTab, onTabChange, children }: AppShellProps) {
           ))}
         </nav>
 
-        <div className={`py-4 flex-shrink-0 space-y-1 ${collapsed ? 'lg:px-2' : ''} px-3`} style={{ borderTop: '1px solid rgba(255,255,255,0.08)' }}>
+        <div className="px-3 py-4 flex-shrink-0 space-y-1" style={{ borderTop: '1px solid rgba(255,255,255,0.08)' }}>
           <div className={`px-3 py-2 ${collapsed ? 'lg:hidden' : ''}`}>
             <p className="text-xs text-gray-600 truncate">{user?.email}</p>
           </div>
           <button
             onClick={() => signOut()}
             title={collapsed ? `Sign out (${user?.email ?? ''})` : 'Sign Out'}
-            className={`w-full flex items-center gap-3 py-2.5 rounded-lg text-sm font-medium text-gray-400 hover:text-white hover:bg-white/5 transition-all ${collapsed ? 'lg:justify-center lg:px-0' : ''} px-3`}
+            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-gray-400 hover:text-white hover:bg-white/5 transition-all"
           >
             <LogOut className="w-4 h-4 flex-shrink-0" />
-            <span className={collapsed ? 'lg:hidden' : ''}>Sign Out</span>
+            <span className={`whitespace-nowrap ${collapsed ? 'lg:hidden' : ''}`}>Sign Out</span>
           </button>
         </div>
       </aside>

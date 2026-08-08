@@ -307,8 +307,10 @@ export function HookAnalysis() {
 
   return (
     <div className="h-full flex flex-col">
-      {/* Header — desktop only */}
-      <div className="hidden sm:block px-6 pt-6 pb-2 flex-shrink-0">
+      {/* Header — only past `lg`, where AppShell's own header (which carries the
+          tab name and this same History button) stops rendering. At `sm` both
+          were on screen at once, showing History twice. */}
+      <div className="hidden lg:block px-6 pt-6 pb-2 flex-shrink-0">
         <div className="max-w-2xl mx-auto flex items-center justify-between gap-4">
           <div>
             <h1 className="text-2xl font-bold text-white mb-1">Analysis</h1>
@@ -377,11 +379,11 @@ export function HookAnalysis() {
                   onChange={e => { setUrlInput(e.target.value); setUrlError(''); }}
                   onKeyDown={e => e.key === 'Enter' && urlInput.trim() && !geminiAnalyzing && handleUrlSubmit()}
                   placeholder="youtube.com/shorts/… or paste a video ID"
-                  className="w-full px-4 py-4 bg-transparent text-white text-[15px] focus:outline-none placeholder:text-gray-600"
+                  className="w-full px-4 py-5 sm:py-6 bg-transparent text-white text-[15px] focus:outline-none placeholder:text-gray-600"
                 />
                 <div
                   onClick={() => fileInputRef.current?.click()}
-                  className="mx-1.5 rounded-xl flex flex-col items-center justify-center gap-1.5 py-6 cursor-pointer transition-all"
+                  className="mx-1.5 rounded-xl flex flex-col items-center justify-center gap-2 py-10 sm:py-14 cursor-pointer transition-all"
                   style={{
                     border: `1.5px dashed ${fileDragOver ? 'rgba(14,164,233,0.5)' : 'rgba(255,255,255,0.1)'}`,
                     background: fileDragOver ? 'rgba(14,164,233,0.04)' : 'rgba(255,255,255,0.02)',
