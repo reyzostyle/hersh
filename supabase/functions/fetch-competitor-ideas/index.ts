@@ -25,17 +25,41 @@ function stripDashes(s: unknown): unknown {
   return s;
 }
 
-async function fetchChannelVideos(channelId: string, ytApiKey: string): Promise<Array<{
+// Outlier detection: a video is worth analyzing when it out-performs what this
+// channel normally does, not merely because it's recent. Views alone can't say
+// that — a 13-day-old video has had 13x the time to collect them — so we compare
+// views-per-day against the channel's own median over a longer baseline.
+const BASELINE_SIZE = 30;      // videos pulled to establish "normal" for the channel
+const FRESH_WINDOW_DAYS = 14;  // only surface videos published inside this window
+const OUTLIER_THRESHOLD = 1.5; // times the channel's median views/day
+const MAX_PER_CHANNEL = 8;     // ceiling so a channel that suddenly pops can't blow up token spend
+const MIN_BASELINE = 5;        // below this the median is noise, so don't filter on it
+
+interface ChannelVideo {
   videoId: string;
   title: string;
   thumbnail: string;
   views: number;
   publishedAt: string;
-}>> {
-  // Fetch videos from last 14 days
+  outlierScore: number | null;
+}
+
+function median(nums: number[]): number {
+  if (nums.length === 0) return 0;
+  const sorted = [...nums].sort((a, b) => a - b);
+  const mid = Math.floor(sorted.length / 2);
+  return sorted.length % 2 === 0 ? (sorted[mid - 1] + sorted[mid]) / 2 : sorted[mid];
+}
+
+// Floored at one day so a video published an hour ago doesn't score infinitely.
+function viewsPerDay(views: number, publishedAt: string): number {
+  const days = Math.max(1, (Date.now() - new Date(publishedAt).getTime()) / 86_400_000);
+  return views / days;
+}
+
+async function fetchChannelVideos(channelId: string, ytApiKey: string): Promise<ChannelVideo[]> {
   const cutoff = new Date();
-  cutoff.setDate(cutoff.getDate() - 14);
-  const publishedAfter = cutoff.toISOString();
+  cutoff.setDate(cutoff.getDate() - FRESH_WINDOW_DAYS);
 
   // Get uploads playlist for channel
   const channelRes = await fetch(
@@ -46,38 +70,66 @@ async function fetchChannelVideos(channelId: string, ytApiKey: string): Promise<
   const uploadsPlaylistId = channelData.items?.[0]?.contentDetails?.relatedPlaylists?.uploads;
   if (!uploadsPlaylistId) return [];
 
-  // Fetch recent playlist items
+  // Pull the baseline window, not just the fresh one — the median needs history.
   const playlistRes = await fetch(
-    `https://www.googleapis.com/youtube/v3/playlistItems?playlistId=${uploadsPlaylistId}&part=snippet,contentDetails&maxResults=10&key=${ytApiKey}`
+    `https://www.googleapis.com/youtube/v3/playlistItems?playlistId=${uploadsPlaylistId}&part=snippet,contentDetails&maxResults=${BASELINE_SIZE}&key=${ytApiKey}`
   );
   if (!playlistRes.ok) throw new Error(`YouTube playlistItems API error: ${await playlistRes.text()}`);
   const playlistData = await playlistRes.json();
-  const items = playlistData.items || [];
+  const videoIds = (playlistData.items || [])
+    .map((item: any) => item.contentDetails?.videoId)
+    .filter(Boolean)
+    .slice(0, 50); // videos.list caps at 50 ids per call
 
-  // Filter to last 14 days and get video IDs
-  const recentItems = items.filter((item: any) => {
-    const publishedAt = item.snippet?.publishedAt;
-    return publishedAt && new Date(publishedAt) >= cutoff;
-  }).slice(0, 5);
+  if (videoIds.length === 0) return [];
 
-  if (recentItems.length === 0) return [];
-
-  const videoIds = recentItems.map((item: any) => item.contentDetails?.videoId).filter(Boolean);
-
-  // Fetch stats for these videos
+  // One stats call covers the whole baseline (same quota cost as fetching five).
   const statsRes = await fetch(
     `https://www.googleapis.com/youtube/v3/videos?id=${videoIds.join(',')}&part=snippet,statistics&key=${ytApiKey}`
   );
   if (!statsRes.ok) throw new Error(`YouTube videos API error: ${await statsRes.text()}`);
   const statsData = await statsRes.json();
 
-  return (statsData.items || []).map((item: any) => ({
+  const baseline = (statsData.items || []).map((item: any) => ({
     videoId: item.id,
     title: item.snippet.title,
     thumbnail: item.snippet.thumbnails?.medium?.url || item.snippet.thumbnails?.default?.url || '',
     views: parseInt(item.statistics?.viewCount || '0', 10),
     publishedAt: item.snippet.publishedAt,
+    velocity: viewsPerDay(parseInt(item.statistics?.viewCount || '0', 10), item.snippet.publishedAt),
   }));
+
+  const fresh = baseline.filter((v: any) => v.publishedAt && new Date(v.publishedAt) >= cutoff);
+  if (fresh.length === 0) return [];
+
+  const channelMedian = median(baseline.map((v: any) => v.velocity));
+
+  // Too little history (or a channel with no views at all) to call anything an
+  // outlier — fall back to the most recent handful rather than surfacing nothing.
+  if (baseline.length < MIN_BASELINE || channelMedian <= 0) {
+    return fresh.slice(0, 5).map((v: any) => ({
+      videoId: v.videoId,
+      title: v.title,
+      thumbnail: v.thumbnail,
+      views: v.views,
+      publishedAt: v.publishedAt,
+      outlierScore: null,
+    }));
+  }
+
+  return fresh
+    .map((v: any) => ({ ...v, outlierScore: v.velocity / channelMedian }))
+    .filter((v: any) => v.outlierScore >= OUTLIER_THRESHOLD)
+    .sort((a: any, b: any) => b.outlierScore - a.outlierScore)
+    .slice(0, MAX_PER_CHANNEL)
+    .map((v: any) => ({
+      videoId: v.videoId,
+      title: v.title,
+      thumbnail: v.thumbnail,
+      views: v.views,
+      publishedAt: v.publishedAt,
+      outlierScore: Math.round(v.outlierScore * 10) / 10,
+    }));
 }
 
 async function fetchTranscript(videoId: string): Promise<string> {
@@ -104,6 +156,7 @@ async function fetchTranscript(videoId: string): Promise<string> {
 async function extractConceptAndAdapt(
   title: string,
   views: number,
+  outlierScore: number | null,
   transcript: string,
   niche: string,
   description: string,
@@ -118,11 +171,14 @@ Description: ${description || 'N/A'}
 Competitor video:
 Title: ${title}
 Views: ${views.toLocaleString()}
+Performance: ${outlierScore ? `${outlierScore}x this channel's usual views per day - it outperformed their baseline` : 'N/A'}
 Transcript: ${transcript || 'N/A - transcript not available'}
 
 Extract:
 1. CONCEPT: The core idea/topic of this video in 2-3 sentences. What's the angle? Why does it work for their audience?
 2. ADAPTED_IDEA: How a creator in "${niche || 'this niche'}" could use this same concept. Different angle, same proven format. 2-3 sentences.
+
+Focus on what made this specific video out-perform the channel's other uploads, not on generic advice.
 
 Rules:
 - Never use em-dash or en-dash. Only regular hyphen (-).
@@ -301,7 +357,7 @@ Deno.serve(async (req: Request) => {
     // Fetch and process new videos for each channel
     for (const channel of channels) {
       console.log(`[fetch-competitor-ideas] Processing channel: ${channel.channel_name} (${channel.channel_id})`);
-      let videos: Array<{ videoId: string; title: string; thumbnail: string; views: number; publishedAt: string }>;
+      let videos: ChannelVideo[];
       try {
         videos = await fetchChannelVideos(channel.channel_id, ytApiKey);
       } catch (e) {
@@ -320,7 +376,7 @@ Deno.serve(async (req: Request) => {
         let adapted_idea = '';
         try {
           const result = await extractConceptAndAdapt(
-            video.title, video.views, transcript, niche, description, anthropicApiKey
+            video.title, video.views, video.outlierScore, transcript, niche, description, anthropicApiKey
           );
           concept = result.concept;
           adapted_idea = result.adapted_idea;
@@ -339,6 +395,7 @@ Deno.serve(async (req: Request) => {
             video_thumbnail: video.thumbnail,
             video_views: video.views,
             video_published_at: video.publishedAt,
+            outlier_score: video.outlierScore,
             concept,
             adapted_idea,
           }, { onConflict: 'user_id,video_id' });
@@ -379,7 +436,9 @@ Deno.serve(async (req: Request) => {
         success: true,
         ideas: ideas || [],
         processed: newlyProcessed,
-        message: newlyProcessed === 0 ? 'No new videos from your competitors.' : undefined,
+        message: newlyProcessed === 0
+          ? 'Nothing new stood out. Your competitors have not posted anything that beat their own average lately.'
+          : undefined,
       }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );

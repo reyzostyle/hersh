@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { supabase, getSessionToken } from '../lib/supabase';
 import {
   Plus, Loader2, Sparkles, Eye, ChevronDown, ChevronUp,
-  X, Lightbulb, Users, RefreshCw, Calendar, FileText, Heart, EyeOff, Lock, Trash2
+  X, Lightbulb, Users, RefreshCw, Calendar, FileText, Heart, EyeOff, Lock, Trash2, TrendingUp
 } from 'lucide-react';
 const SUPABASE_FUNCTIONS_URL = 'https://ezlousklksipvwuinpzq.supabase.co/functions/v1';
 
@@ -35,6 +35,7 @@ interface CompetitorIdea {
   video_thumbnail: string | null;
   video_views: number | null;
   video_published_at: string | null;
+  outlier_score: number | null;
   concept: string | null;
   adapted_idea: string | null;
   outline: Outline | null;
@@ -75,6 +76,9 @@ async function callFunction(endpoint: string, token: string, body?: object): Pro
 function IdeaCard({ idea, onUpdated, isPro }: { idea: CompetitorIdea; onUpdated: (updated: CompetitorIdea) => void; isPro: boolean }) {
   const [outlineOpen, setOutlineOpen] = useState(false);
   const [scriptOpen, setScriptOpen] = useState(false);
+  // What the competitor did is background; your angle is the actionable part, so
+  // only the latter is open by default.
+  const [conceptOpen, setConceptOpen] = useState(false);
   const [generatingOutline, setGeneratingOutline] = useState(false);
   const [generatingScript, setGeneratingScript] = useState(false);
   const [error, setError] = useState('');
@@ -163,6 +167,16 @@ function IdeaCard({ idea, onUpdated, isPro }: { idea: CompetitorIdea; onUpdated:
             {idea.video_title || 'Untitled video'}
           </p>
           <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+            {idea.outlier_score != null && (
+              <span
+                className="flex items-center gap-1 text-xs font-semibold px-1.5 py-0.5 rounded-md"
+                style={{ background: 'rgba(52,211,153,0.12)', color: '#6ee7b7' }}
+                title="Views per day versus this channel's usual pace"
+              >
+                <TrendingUp className="w-3 h-3" />
+                {idea.outlier_score}x
+              </span>
+            )}
             <span className="text-xs text-gray-500">{idea.channel_name}</span>
             {idea.video_views !== null && (
               <span className="flex items-center gap-1 text-xs text-gray-500">
@@ -207,9 +221,17 @@ function IdeaCard({ idea, onUpdated, isPro }: { idea: CompetitorIdea; onUpdated:
 
       {/* What they did */}
       {idea.concept && (
-        <div className="rounded-xl p-3 space-y-1" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
-          <p className="text-[10px] font-semibold uppercase tracking-widest text-gray-500">What they did</p>
-          <p className="text-gray-300 text-sm leading-relaxed">{idea.concept}</p>
+        <div>
+          <button
+            onClick={() => setConceptOpen(!conceptOpen)}
+            className="flex items-center gap-1 text-[10px] font-semibold uppercase tracking-widest text-gray-500 hover:text-gray-400 transition-colors"
+          >
+            What they did
+            {conceptOpen ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+          </button>
+          {conceptOpen && (
+            <p className="text-gray-300 text-sm leading-relaxed mt-1.5">{idea.concept}</p>
+          )}
         </div>
       )}
 
@@ -339,7 +361,26 @@ function IdeaCard({ idea, onUpdated, isPro }: { idea: CompetitorIdea; onUpdated:
   );
 }
 
-type IdeaFilter = 'all' | 'saved' | 'dismissed';
+type IdeaFilter = 'new' | 'saved' | 'dismissed';
+
+// The feed is an inbox, not a stream: "New" only holds ideas you haven't ruled
+// on yet, so it empties as you triage instead of growing forever. Anything left
+// untouched this long is stale enough to drop out on its own — the row stays in
+// the database so the same video is never analyzed (or paid for) twice.
+const STALE_AFTER_DAYS = 21;
+
+function isStale(idea: CompetitorIdea): boolean {
+  const published = idea.video_published_at ?? idea.created_at;
+  if (!published) return false;
+  const ageDays = (Date.now() - new Date(published).getTime()) / 86_400_000;
+  return ageDays > STALE_AFTER_DAYS;
+}
+
+function filterIdeas(ideas: CompetitorIdea[], filter: IdeaFilter): CompetitorIdea[] {
+  if (filter === 'saved') return ideas.filter(i => i.liked === true);
+  if (filter === 'dismissed') return ideas.filter(i => i.liked === false);
+  return ideas.filter(i => i.liked == null && !isStale(i));
+}
 
 export function CompetitorsPage() {
   const [channels, setChannels] = useState<CompetitorChannel[]>([]);
@@ -350,9 +391,12 @@ export function CompetitorsPage() {
   const [clearingIdeas, setClearingIdeas] = useState(false);
   const [addError, setAddError] = useState('');
   const [fetchError, setFetchError] = useState('');
+  // "Nothing beat its channel average" is the expected outcome of most runs, so
+  // it reads as a status line rather than a failure.
+  const [fetchNotice, setFetchNotice] = useState('');
   const [initialLoading, setInitialLoading] = useState(true);
   const [removingId, setRemovingId] = useState<string | null>(null);
-  const [ideaFilter, setIdeaFilter] = useState<IdeaFilter>('all');
+  const [ideaFilter, setIdeaFilter] = useState<IdeaFilter>('new');
   const [userPlan, setUserPlan] = useState<string>('free');
 
   const loadData = useCallback(async () => {
@@ -428,6 +472,7 @@ export function CompetitorsPage() {
   const handleFetchIdeas = async () => {
     setFetchingIdeas(true);
     setFetchError('');
+    setFetchNotice('');
     try {
       const token = await getSessionToken();
       if (!token) throw new Error('Not authenticated');
@@ -438,13 +483,15 @@ export function CompetitorsPage() {
         return;
       }
       if (data.error === 'rate_limited' || data.error === 'idle_throttled') {
-        setFetchError(data.message || 'You can run competitor analysis once every 12 hours. Try again later.');
+        setFetchNotice(data.message || 'You can run competitor analysis once every 12 hours. Try again later.');
         return;
       }
       if (!res.ok) throw new Error(data.error || 'Failed to fetch ideas');
       setIdeas(data.ideas || []);
       if (data.processed === 0 && data.message) {
-        setFetchError(data.message);
+        setFetchNotice(data.message);
+      } else if (data.processed > 0) {
+        setIdeaFilter('new');
       }
     } catch (e) {
       setFetchError(e instanceof Error ? e.message : 'Something went wrong');
@@ -457,17 +504,29 @@ export function CompetitorsPage() {
     setIdeas(prev => prev.map(idea => idea.id === updated.id ? updated : idea));
   };
 
+  // Dismisses the inbox rather than deleting it. Deleting would also wipe the
+  // record of which videos have already been analyzed, so the next run would
+  // re-analyze the same videos and bill for them a second time. Saved ideas are
+  // left alone.
   const handleClearIdeas = async () => {
-    if (ideas.length === 0) return;
-    if (!window.confirm('Clear all found ideas? This cannot be undone.')) return;
+    const inbox = filterIdeas(ideas, 'new');
+    if (inbox.length === 0) return;
+    if (!window.confirm(`Dismiss ${inbox.length} unreviewed idea${inbox.length !== 1 ? 's' : ''}? Saved ideas stay.`)) return;
     setClearingIdeas(true);
     try {
       const token = await getSessionToken();
       if (!token) throw new Error('Not authenticated');
       const payload = JSON.parse(atob(token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')));
       const userId = payload.sub;
-      await supabase.from('competitor_ideas').delete().eq('user_id', userId);
-      setIdeas([]);
+      const inboxIds = inbox.map(i => i.id);
+      const { error } = await supabase
+        .from('competitor_ideas')
+        .update({ liked: false })
+        .eq('user_id', userId)
+        .in('id', inboxIds);
+      if (error) throw error;
+      const cleared = new Set(inboxIds);
+      setIdeas(prev => prev.map(i => (cleared.has(i.id) ? { ...i, liked: false } : i)));
     } catch (e) {
       console.error('[CompetitorsPage] clear ideas error:', e);
       setFetchError(e instanceof Error ? e.message : 'Failed to clear ideas');
@@ -475,6 +534,9 @@ export function CompetitorsPage() {
       setClearingIdeas(false);
     }
   };
+
+  const visibleIdeas = filterIdeas(ideas, ideaFilter);
+  const inboxCount = filterIdeas(ideas, 'new').length;
 
   if (initialLoading) {
     return (
@@ -596,19 +658,16 @@ export function CompetitorsPage() {
             {fetchingIdeas ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
             {fetchingIdeas ? 'Finding new ideas...' : 'Find new ideas'}
           </button>
-          {ideas.length > 0 && (
-            <>
-              <span className="text-gray-500 text-xs">{ideas.length} idea{ideas.length !== 1 ? 's' : ''} found</span>
-              <button
-                onClick={handleClearIdeas}
-                disabled={clearingIdeas}
-                className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all disabled:opacity-50 ml-auto"
-                style={{ background: 'rgba(248,113,113,0.12)', border: '1px solid rgba(248,113,113,0.3)', color: '#f87171' }}
-              >
-                {clearingIdeas ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
-                {clearingIdeas ? 'Clearing...' : 'Clear'}
-              </button>
-            </>
+          {inboxCount > 0 && (
+            <button
+              onClick={handleClearIdeas}
+              disabled={clearingIdeas}
+              className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all disabled:opacity-50 ml-auto"
+              style={{ background: 'rgba(248,113,113,0.12)', border: '1px solid rgba(248,113,113,0.3)', color: '#f87171' }}
+            >
+              {clearingIdeas ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+              {clearingIdeas ? 'Clearing...' : 'Clear'}
+            </button>
           )}
         </div>
       )}
@@ -617,12 +676,21 @@ export function CompetitorsPage() {
         <p className="text-red-400 text-sm bg-red-400/10 border border-red-400/20 rounded-xl px-4 py-3">{fetchError}</p>
       )}
 
+      {fetchNotice && (
+        <p
+          className="text-gray-400 text-sm rounded-xl px-4 py-3"
+          style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' }}
+        >
+          {fetchNotice}
+        </p>
+      )}
+
       {/* Ideas feed */}
       {ideas.length > 0 ? (
         <div className="space-y-4">
           {/* Filter tabs */}
           <div className="flex gap-1 p-1 rounded-xl w-full sm:w-fit" style={{ background: 'rgba(255,255,255,0.04)' }}>
-            {(['all', 'saved', 'dismissed'] as IdeaFilter[]).map(f => (
+            {(['new', 'saved', 'dismissed'] as IdeaFilter[]).map(f => (
               <button
                 key={f}
                 onClick={() => setIdeaFilter(f)}
@@ -633,16 +701,29 @@ export function CompetitorsPage() {
                 }
               >
                 {f === 'saved' && <Heart className="w-3 h-3 inline mr-1 -mt-0.5" fill="currentColor" />}
-                {f}{f === 'saved' ? ` (${ideas.filter(i => i.liked === true).length})` : f === 'dismissed' ? ` (${ideas.filter(i => i.liked === false).length})` : ` (${ideas.length})`}
+                {f} ({filterIdeas(ideas, f).length})
               </button>
             ))}
           </div>
-          {ideas
-            .filter(i => ideaFilter === 'all' || (ideaFilter === 'saved' ? i.liked === true : i.liked === false))
-            .map(idea => (
+          {visibleIdeas.length > 0 ? (
+            visibleIdeas.map(idea => (
               <IdeaCard key={idea.id} idea={idea} onUpdated={handleIdeaUpdated} isPro={userPlan === 'pro' || userPlan === 'agency'} />
             ))
-          }
+          ) : (
+            <div
+              className="rounded-2xl p-10 flex flex-col items-center justify-center text-center space-y-3"
+              style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)', borderStyle: 'dashed' }}
+            >
+              <Lightbulb className="w-8 h-8 text-gray-700" />
+              <p className="text-gray-500 text-sm">
+                {ideaFilter === 'new'
+                  ? 'Inbox zero. New ideas land here when a competitor beats their own average.'
+                  : ideaFilter === 'saved'
+                    ? 'Nothing saved yet. Tap the heart on an idea to keep it.'
+                    : 'Nothing dismissed.'}
+              </p>
+            </div>
+          )}
         </div>
       ) : channels.length > 0 ? (
         <div
@@ -650,7 +731,7 @@ export function CompetitorsPage() {
           style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)', borderStyle: 'dashed' }}
         >
           <Lightbulb className="w-8 h-8 text-gray-700" />
-          <p className="text-gray-500 text-sm">No ideas yet. Click "Find new ideas" to check for videos from the last 14 days.</p>
+          <p className="text-gray-500 text-sm">No ideas yet. Click "Find new ideas" to pull the videos that beat their channel's average.</p>
         </div>
       ) : (
         <div
