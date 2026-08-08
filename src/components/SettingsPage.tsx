@@ -62,6 +62,7 @@ const CREATOR_LEVELS = [
 // account's own email, not on knowing this string (see admin-stats function).
 const ADMIN_EMAIL = 'reyzostyle@gmail.com';
 const ADMIN_CODE = 'ADMIN';
+const PLAN_CACHE_KEY = 'hershy_last_plan';
 
 export function SettingsPage() {
   const { user } = useAuth();
@@ -80,7 +81,12 @@ export function SettingsPage() {
     channelName?: string;
     channelThumbnail?: string;
   } | null>(null);
-  const [plan, setPlan] = useState<string | null>(null);
+  // Seeded from the last known plan so the Subscription card is on screen from
+  // the first paint rather than dropping in once the request lands and pushing
+  // the page around. The fetch below corrects it either way.
+  const [plan, setPlan] = useState<string | null>(() => {
+    try { return localStorage.getItem(PLAN_CACHE_KEY); } catch { return null; }
+  });
   const [disconnecting, setDisconnecting] = useState(false);
   const [confirmDisconnect, setConfirmDisconnect] = useState(false);
 
@@ -88,7 +94,7 @@ export function SettingsPage() {
   const [channelNiche, setChannelNiche] = useState('');
   const [channelDescription, setChannelDescription] = useState('');
   const [creatorLevel, setCreatorLevel] = useState('intermediate');
-  const [contextLoading, setContextLoading] = useState(true);
+  const [loading, setLoading] = useState(true);
   const [contextSaving, setContextSaving] = useState(false);
   const [contextSaved, setContextSaved] = useState(false);
   const [contextError, setContextError] = useState('');
@@ -142,44 +148,49 @@ export function SettingsPage() {
     }
   };
 
+  // One row, one request. This used to be two queries against the same row,
+  // which meant the cards filled in at two different moments and the
+  // Subscription card (gated on `plan`) could land noticeably after the rest.
+  // The context columns were split off as a guard against their not existing;
+  // they have been guaranteed by migrations for a while now.
   useEffect(() => {
     if (!user?.id) return;
-    // Query 1: guaranteed columns (tokens + plan)
-    supabase
-      .from('user_tokens')
-      .select('updated_at, access_token, plan, youtube_channel_name, youtube_channel_thumbnail')
-      .eq('user_id', user.id)
-      .maybeSingle()
-      .then(({ data }) => {
-        if (data?.access_token) {
-          setYoutubeStatus({
-            connected: true,
-            updatedAt: data.updated_at,
-            channelName: data.youtube_channel_name,
-            channelThumbnail: data.youtube_channel_thumbnail,
-          });
-        } else {
-          setYoutubeStatus({ connected: false });
-        }
-        setPlan(data?.plan || 'free');
-      })
-      .catch(() => setYoutubeStatus({ connected: false }));
+    let cancelled = false;
 
-    // Query 2: optional context columns (may not exist)
-    supabase
-      .from('user_tokens')
-      .select('channel_niche, channel_description, creator_level')
-      .eq('user_id', user.id)
-      .maybeSingle()
-      .then(({ data }) => {
-        if (data) {
-          setChannelNiche(data.channel_niche || '');
-          setChannelDescription(data.channel_description || '');
-          setCreatorLevel(data.creator_level || 'intermediate');
+    (async () => {
+      try {
+        const { data } = await supabase
+          .from('user_tokens')
+          .select('updated_at, access_token, plan, youtube_channel_name, youtube_channel_thumbnail, channel_niche, channel_description, creator_level')
+          .eq('user_id', user.id)
+          .maybeSingle();
+        if (cancelled) return;
+
+        setYoutubeStatus(data?.access_token
+          ? {
+              connected: true,
+              updatedAt: data.updated_at,
+              channelName: data.youtube_channel_name,
+              channelThumbnail: data.youtube_channel_thumbnail,
+            }
+          : { connected: false });
+        const nextPlan = data?.plan || 'free';
+        setPlan(nextPlan);
+        try { localStorage.setItem(PLAN_CACHE_KEY, nextPlan); } catch { /* private mode */ }
+        setChannelNiche(data?.channel_niche || '');
+        setChannelDescription(data?.channel_description || '');
+        setCreatorLevel(data?.creator_level || 'intermediate');
+      } catch {
+        if (!cancelled) {
+          setYoutubeStatus({ connected: false });
+          setPlan('free');
         }
-        setContextLoading(false);
-      })
-      .catch(() => setContextLoading(false));
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+
+    return () => { cancelled = true; };
   }, [user?.id]);
 
   const connectYouTube = () => {
@@ -280,7 +291,7 @@ export function SettingsPage() {
   };
 
   return (
-    <div className="max-w-2xl mx-auto px-4 sm:px-6 pt-4 sm:pt-6 pb-12 space-y-4 animate-fade-in-up">
+    <div className="max-w-3xl mx-auto px-4 sm:px-6 pt-4 sm:pt-6 pb-12 space-y-4 animate-fade-in-up">
 
       <div className="hidden lg:block mb-6">
         <h1 className="text-2xl font-bold text-white mb-1">Settings</h1>
@@ -294,7 +305,7 @@ export function SettingsPage() {
         iconBg="rgba(14,164,233,0.12)"
         title="Channel profile"
       >
-        {contextLoading ? (
+        {loading ? (
           <Loader2 className="w-4 h-4 text-gray-500 animate-spin" />
         ) : (
           <div className="space-y-4">

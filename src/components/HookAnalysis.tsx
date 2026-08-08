@@ -311,7 +311,7 @@ export function HookAnalysis() {
           tab name and this same History button) stops rendering. At `sm` both
           were on screen at once, showing History twice. */}
       <div className="hidden lg:block px-6 pt-6 pb-2 flex-shrink-0">
-        <div className="max-w-2xl mx-auto flex items-center justify-between gap-4">
+        <div className="max-w-3xl mx-auto flex items-center justify-between gap-4">
           <div>
             <h1 className="text-2xl font-bold text-white mb-1">Analysis</h1>
             <p className="text-sm text-gray-500">Paste a YouTube URL or upload your video file</p>
@@ -328,7 +328,7 @@ export function HookAnalysis() {
       </div>
       {error && (
         <div className="px-4 sm:px-6 flex-shrink-0">
-          <div className="max-w-2xl mx-auto mt-3 text-sm text-red-400 bg-red-400/10 border border-red-400/20 rounded-lg px-4 py-3">
+          <div className="max-w-3xl mx-auto mt-3 text-sm text-red-400 bg-red-400/10 border border-red-400/20 rounded-lg px-4 py-3">
             {error}
           </div>
         </div>
@@ -336,7 +336,7 @@ export function HookAnalysis() {
 
       {/* Main content */}
       <div className="flex-1 overflow-auto px-4 sm:px-6 pt-4 sm:pt-3 pb-8" style={{ overscrollBehavior: 'none', WebkitOverflowScrolling: 'auto' }}>
-        <div className="max-w-2xl mx-auto space-y-3">
+        <div className="max-w-3xl mx-auto space-y-3">
 
           {/* One panel, shaped like Hook Lab's: input on top, controls in a
               footer bar. URL and upload are both offered at once rather than

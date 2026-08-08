@@ -107,7 +107,7 @@ export function RankPage() {
 
   if (error) {
     return (
-      <div className="max-w-2xl mx-auto px-4 sm:px-6 pt-6">
+      <div className="max-w-3xl mx-auto px-4 sm:px-6 pt-6">
         <p className="text-sm text-red-400 bg-red-400/10 border border-red-400/20 rounded-lg px-4 py-3">{error}</p>
       </div>
     );
@@ -126,7 +126,7 @@ export function RankPage() {
   const tierMin = TIERS.find(t => t.name === data.tier)?.min ?? 0;
 
   return (
-    <div className="max-w-2xl mx-auto px-4 sm:px-6 pt-2 sm:pt-6 pb-12 space-y-4 animate-fade-in-up">
+    <div className="max-w-3xl mx-auto px-4 sm:px-6 pt-2 sm:pt-6 pb-12 space-y-4 animate-fade-in-up">
       <div className="hidden lg:block mb-6">
         <h1 className="text-2xl font-bold text-white mb-1">Rank</h1>
         <p className="text-sm text-gray-500">Your creator rank this season. Earn RP by making better Shorts</p>

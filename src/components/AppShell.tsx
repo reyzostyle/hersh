@@ -138,7 +138,7 @@ export function AppShell({ activeTab, onTabChange, children }: AppShellProps) {
                 the same blue. The uppercase wordmark sits on a taller line box
                 than the icon, which is what made the two look a pixel out of
                 line; leading-none drops that extra space. */}
-            <span className={`text-white leading-none whitespace-nowrap transition-colors group-hover:text-[#0EA4E9] ${collapsed ? 'lg:hidden' : ''}`}>
+            <span className={`leading-none whitespace-nowrap transition-colors ${activeTab === 'home' ? 'text-[#0EA4E9]' : 'text-white group-hover:text-[#0EA4E9]'} ${collapsed ? 'lg:hidden' : ''}`}>
               Hershy
             </span>
           </button>
