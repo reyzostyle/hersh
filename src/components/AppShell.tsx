@@ -132,10 +132,11 @@ export function AppShell({ activeTab, onTabChange, children }: AppShellProps) {
             <HubIcon
               className={`w-4 h-4 flex-shrink-0 transition-colors ${activeTab === 'home' ? 'text-[#0EA4E9]' : 'text-gray-600 group-hover:text-[#0EA4E9]'}`}
             />
-            {/* The wordmark is part of the same button as the icon, so it dims on
-                hover too. Without this only the icon reacts and the text reads as
-                a static label rather than something you can click. */}
-            <span className={`text-white transition-colors group-hover:text-gray-400 ${collapsed ? 'lg:hidden' : ''}`}>
+            {/* Icon and wordmark are one button, so hovering either turns both
+                the same blue. The uppercase wordmark sits on a taller line box
+                than the icon, which is what made the two look a pixel out of
+                line; leading-none drops that extra space. */}
+            <span className={`text-white leading-none transition-colors group-hover:text-[#0EA4E9] ${collapsed ? 'lg:hidden' : ''}`}>
               Hershy
             </span>
           </button>

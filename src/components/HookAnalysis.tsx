@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useContext } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase, getSessionToken, Video, Analysis } from '../lib/supabase';
-import { Sparkles, Loader2, History, Film, Link, X } from 'lucide-react';
+import { Sparkles, Loader2, History, Film, X } from 'lucide-react';
 import { AnalysisPanel } from './AnalysisPanel';
 import { HistoryPanel } from './HistoryPanel';
 import { AnalysisProgressModal } from './AnalysisProgressModal';
@@ -51,7 +51,6 @@ export function HookAnalysis() {
   const [progressDone, setProgressDone] = useState(false);
   const [userPlan, setUserPlan] = useState<string>('free');
   const [fileDragOver, setFileDragOver] = useState(false);
-  const [mode, setMode] = useState<'url' | 'file'>('url');
   const fileDropRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -337,15 +336,17 @@ export function HookAnalysis() {
       <div className="flex-1 overflow-auto px-4 sm:px-6 pt-4 sm:pt-3 pb-8" style={{ overscrollBehavior: 'none', WebkitOverflowScrolling: 'auto' }}>
         <div className="max-w-2xl mx-auto space-y-3">
 
-          {/* One panel for both modes, shaped like Hook Lab's: the input owns
-              the card and the controls sit in a footer bar, with the URL/File
-              toggle living in that bar instead of floating above the card. */}
+          {/* One panel, shaped like Hook Lab's: input on top, controls in a
+              footer bar. URL and upload are both offered at once rather than
+              behind a mode switch, so there is nothing to choose before you can
+              start. Picking a file replaces the URL field, which keeps it
+              obvious which of the two is about to be analyzed. */}
           <div
             ref={fileDropRef}
-            onDragOver={e => { if (mode === 'file') { e.preventDefault(); setFileDragOver(true); } }}
+            onDragOver={e => { e.preventDefault(); setFileDragOver(true); }}
             onDragLeave={() => setFileDragOver(false)}
-            onDrop={e => { if (mode === 'file') handleFileDrop(e); }}
-            className={`rounded-2xl p-1.5 transition-all ${mode === 'file' && fileDragOver ? 'glass-panel-accent' : 'glass-panel'}`}
+            onDrop={handleFileDrop}
+            className={`rounded-2xl p-1.5 transition-all ${fileDragOver ? 'glass-panel-accent' : 'glass-panel'}`}
           >
             <input
               ref={fileInputRef}
@@ -355,31 +356,7 @@ export function HookAnalysis() {
               onChange={e => { const f = e.target.files?.[0]; if (f) handleFileSelect(f); e.currentTarget.value = ''; }}
             />
 
-            {mode === 'url' ? (
-              <input
-                type="text"
-                value={urlInput}
-                onChange={e => { setUrlInput(e.target.value); setUrlError(''); }}
-                onKeyDown={e => e.key === 'Enter' && urlInput.trim() && !geminiAnalyzing && handleUrlSubmit()}
-                placeholder="youtube.com/shorts/… or paste a video ID"
-                className="w-full px-4 py-7 sm:py-8 bg-transparent text-white text-[15px] focus:outline-none placeholder:text-gray-600"
-              />
-            ) : !uploadFile ? (
-              <div
-                onClick={() => fileInputRef.current?.click()}
-                className="rounded-xl flex flex-col items-center justify-center gap-2 py-8 sm:py-10 cursor-pointer transition-all"
-                style={{
-                  border: `1.5px dashed ${fileDragOver ? 'rgba(14,164,233,0.5)' : 'rgba(255,255,255,0.1)'}`,
-                  background: fileDragOver ? 'rgba(14,164,233,0.04)' : 'rgba(255,255,255,0.02)',
-                }}
-              >
-                <Film className={`w-7 h-7 ${fileDragOver ? 'text-[#0EA4E9]' : 'text-gray-600'}`} />
-                <p className="text-gray-300 text-sm font-medium">
-                  {fileDragOver ? 'Drop to analyze' : 'Click or drag & drop your video'}
-                </p>
-                <p className="text-gray-600 text-xs">MP4, MOV, WebM, AVI · up to {MAX_SIZE_MB}MB</p>
-              </div>
-            ) : (
+            {uploadFile ? (
               <div className="m-1.5 rounded-xl px-4 py-3 flex items-center gap-3" style={{ background: 'rgba(14,164,233,0.08)', border: '1px solid rgba(14,164,233,0.2)' }}>
                 <div className="w-10 h-10 rounded-lg bg-[#0EA4E9]/15 flex items-center justify-center flex-shrink-0">
                   <Film className="w-5 h-5 text-[#0EA4E9]" />
@@ -392,6 +369,31 @@ export function HookAnalysis() {
                   <X className="w-4 h-4" />
                 </button>
               </div>
+            ) : (
+              <>
+                <input
+                  type="text"
+                  value={urlInput}
+                  onChange={e => { setUrlInput(e.target.value); setUrlError(''); }}
+                  onKeyDown={e => e.key === 'Enter' && urlInput.trim() && !geminiAnalyzing && handleUrlSubmit()}
+                  placeholder="youtube.com/shorts/… or paste a video ID"
+                  className="w-full px-4 py-4 bg-transparent text-white text-[15px] focus:outline-none placeholder:text-gray-600"
+                />
+                <div
+                  onClick={() => fileInputRef.current?.click()}
+                  className="mx-1.5 rounded-xl flex flex-col items-center justify-center gap-1.5 py-6 cursor-pointer transition-all"
+                  style={{
+                    border: `1.5px dashed ${fileDragOver ? 'rgba(14,164,233,0.5)' : 'rgba(255,255,255,0.1)'}`,
+                    background: fileDragOver ? 'rgba(14,164,233,0.04)' : 'rgba(255,255,255,0.02)',
+                  }}
+                >
+                  <Film className={`w-6 h-6 ${fileDragOver ? 'text-[#0EA4E9]' : 'text-gray-600'}`} />
+                  <p className="text-gray-300 text-sm font-medium">
+                    {fileDragOver ? 'Drop to analyze' : 'Click or drag & drop your video'}
+                  </p>
+                  <p className="text-gray-600 text-xs">MP4, MOV, WebM, AVI · up to {MAX_SIZE_MB}MB</p>
+                </div>
+              </>
             )}
 
             {showContext && (
@@ -408,9 +410,9 @@ export function HookAnalysis() {
                   maxLength={600}
                   rows={2}
                   autoFocus
-                  placeholder={mode === 'url'
-                    ? 'e.g. storytime about my worst client, targeting freelancers, wanted a punchy cold open'
-                    : 'e.g. gym transformation, targeting busy dads, wanted a strong first-line hook'}
+                  placeholder={uploadFile
+                    ? 'e.g. gym transformation, targeting busy dads, wanted a strong first-line hook'
+                    : 'e.g. storytime about my worst client, targeting freelancers, wanted a punchy cold open'}
                   className="glass-field w-full px-4 py-3 rounded-xl text-white text-sm resize-none focus:outline-none placeholder:text-gray-600"
                   style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)' }}
                 />
@@ -419,24 +421,6 @@ export function HookAnalysis() {
 
             <div className="flex flex-wrap items-center justify-between gap-3 px-3 pb-2 pt-2">
               <div className="flex items-center gap-3 min-w-0">
-                <div className="inline-flex p-0.5 gap-0.5 rounded-lg flex-shrink-0" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)' }}>
-                  <button
-                    onClick={() => setMode('url')}
-                    className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium transition-all ${
-                      mode === 'url' ? 'bg-[#0EA4E9]/15 text-[#0EA4E9]' : 'text-gray-500 hover:text-gray-300'
-                    }`}
-                  >
-                    <Link className="w-3 h-3" /> URL
-                  </button>
-                  <button
-                    onClick={() => setMode('file')}
-                    className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium transition-all ${
-                      mode === 'file' ? 'bg-[#0EA4E9]/15 text-[#0EA4E9]' : 'text-gray-500 hover:text-gray-300'
-                    }`}
-                  >
-                    <Film className="w-3 h-3" /> File
-                  </button>
-                </div>
                 {!showContext && (
                   <button onClick={() => setShowContext(true)} className="flex items-center gap-1 text-xs text-gray-500 hover:text-gray-300 transition-colors">
                     <Sparkles className="w-3.5 h-3.5" /> Add context
@@ -444,29 +428,22 @@ export function HookAnalysis() {
                 )}
               </div>
 
-              {mode === 'url' ? (
-                <button
-                  onClick={handleUrlSubmit}
-                  disabled={!urlInput.trim() || analyzing}
-                  className="btn-primary flex items-center gap-2 px-4 py-2 text-white text-sm font-medium rounded-lg disabled:opacity-40 active:scale-[0.98]"
-                >
-                  {geminiAnalyzing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
-                  {geminiAnalyzing ? 'Analyzing' : 'Analyze'}
-                </button>
-              ) : uploadFile ? (
-                <button
-                  onClick={() => runUploadAnalysis(uploadFile, context.trim(), true)}
-                  disabled={uploadAnalyzing}
-                  className="btn-primary flex items-center gap-2 px-4 py-2 text-white text-sm font-medium rounded-lg disabled:opacity-40 active:scale-[0.98]"
-                >
-                  {uploadAnalyzing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
-                  {uploadStep === 'uploading' ? 'Uploading' : uploadStep === 'analyzing' ? 'Analyzing' : uploadAnalyzing ? 'Processing' : 'Analyze'}
-                </button>
-              ) : null}
+              {/* A picked file wins over anything typed in the URL field, which
+                  is why choosing one hides that field above. */}
+              <button
+                onClick={() => uploadFile ? runUploadAnalysis(uploadFile, context.trim(), true) : handleUrlSubmit()}
+                disabled={uploadFile ? uploadAnalyzing : (!urlInput.trim() || analyzing)}
+                className="btn-primary flex items-center gap-2 px-4 py-2 text-white text-sm font-medium rounded-lg disabled:opacity-40 active:scale-[0.98]"
+              >
+                {(uploadFile ? uploadAnalyzing : geminiAnalyzing) ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
+                {uploadFile
+                  ? (uploadStep === 'uploading' ? 'Uploading' : uploadStep === 'analyzing' ? 'Analyzing' : uploadAnalyzing ? 'Processing' : 'Analyze')
+                  : (geminiAnalyzing ? 'Analyzing' : 'Analyze')}
+              </button>
             </div>
 
-            {(mode === 'url' ? urlError : fileError) && (
-              <p className="px-3 pb-2 text-xs text-red-400">{mode === 'url' ? urlError : fileError}</p>
+            {(fileError || urlError) && (
+              <p className="px-3 pb-2 text-xs text-red-400">{fileError || urlError}</p>
             )}
           </div>
 
