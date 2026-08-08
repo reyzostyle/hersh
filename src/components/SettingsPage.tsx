@@ -282,7 +282,7 @@ export function SettingsPage() {
   return (
     <div className="max-w-2xl mx-auto px-4 sm:px-6 pt-4 sm:pt-6 pb-12 space-y-4 animate-fade-in-up">
 
-      <div className="hidden sm:block mb-6">
+      <div className="hidden lg:block mb-6">
         <h1 className="text-2xl font-bold text-white mb-1">Settings</h1>
         <p className="text-sm text-gray-500 text-balance">Manage your channel profile, account, and subscription</p>
       </div>

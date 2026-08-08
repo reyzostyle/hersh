@@ -549,7 +549,7 @@ export function CompetitorsPage() {
   if (userPlan === 'free') {
     return (
       <div className="max-w-3xl mx-auto px-4 pt-4 sm:pt-6 pb-8 space-y-5 sm:space-y-8 animate-fade-in-up">
-        <div className="hidden sm:block">
+        <div className="hidden lg:block">
           <h1 className="text-2xl font-bold text-white mb-1">Competitors</h1>
           <p className="text-sm text-gray-500 text-balance">Track competitor channels and generate content ideas</p>
         </div>
@@ -576,7 +576,7 @@ export function CompetitorsPage() {
   return (
     <div className="max-w-3xl mx-auto px-4 pt-4 sm:pt-6 pb-8 space-y-5 sm:space-y-8 animate-fade-in-up">
       {/* Header */}
-      <div className="hidden sm:block">
+      <div className="hidden lg:block">
         <h1 className="text-2xl font-bold text-white mb-1">Competitors</h1>
         <p className="text-sm text-gray-500 text-balance">Track competitor channels and generate content ideas</p>
       </div>

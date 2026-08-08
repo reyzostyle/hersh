@@ -92,7 +92,7 @@ export function HookLab() {
 
   return (
     <div className="max-w-3xl mx-auto px-4 sm:px-6 pt-4 sm:pt-6 pb-12 animate-fade-in-up">
-      <div className="hidden sm:block mb-7">
+      <div className="hidden lg:block mb-7">
         <h1 className="text-2xl font-bold text-white mb-1 tracking-tight">Hook Lab</h1>
         <p className="text-sm text-gray-500 text-balance">Paste a hook, get a score and fresh angles to make it land.</p>
       </div>
