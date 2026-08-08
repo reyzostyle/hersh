@@ -585,7 +585,7 @@ export function CompetitorsPage() {
       <div className="rounded-2xl p-4 sm:p-5 space-y-3 sm:space-y-4 glass-panel">
         <div className="space-y-1">
           <p className="text-white text-sm font-semibold">Add competitor channel</p>
-          <p className="text-gray-500 text-xs">Paste a YouTube channel URL. Up to 5 channels.</p>
+          <p className="text-gray-500 text-xs">Paste a YouTube channel URL. Up to 5 channels. Only their shorts get analyzed.</p>
         </div>
 
         <form onSubmit={handleAddChannel} className="flex gap-2">
@@ -621,17 +621,23 @@ export function CompetitorsPage() {
             {channels.map(channel => (
               <div
                 key={channel.id}
-                className="flex items-center gap-2 px-3 py-1.5 rounded-full text-sm"
+                title={channel.channel_name || channel.channel_id}
+                className="flex items-center gap-2 px-2 sm:px-3 py-1.5 rounded-full text-sm"
                 style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.10)' }}
               >
                 {channel.channel_thumbnail && (
                   <img
                     src={channel.channel_thumbnail}
                     alt={channel.channel_name || ''}
-                    className="w-5 h-5 rounded-full object-cover"
+                    className="w-5 h-5 rounded-full object-cover flex-shrink-0"
                   />
                 )}
-                <span className="text-gray-200 text-xs font-medium">{channel.channel_name || channel.channel_id}</span>
+                {/* On phones the avatar identifies the channel on its own, so the
+                    name is dropped to keep the row compact. Without an avatar
+                    there would be nothing left to recognise, so it stays. */}
+                <span className={`text-gray-200 text-xs font-medium ${channel.channel_thumbnail ? 'hidden sm:inline' : ''}`}>
+                  {channel.channel_name || channel.channel_id}
+                </span>
                 <button
                   onClick={() => handleRemoveChannel(channel)}
                   disabled={removingId === channel.id}
@@ -731,7 +737,7 @@ export function CompetitorsPage() {
           style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)', borderStyle: 'dashed' }}
         >
           <Lightbulb className="w-8 h-8 text-gray-700" />
-          <p className="text-gray-500 text-sm">No ideas yet. Click "Find new ideas" to pull the videos that beat their channel's average.</p>
+          <p className="text-gray-500 text-sm">No ideas yet. Click "Find new ideas" to pull the shorts that beat their channel's average.</p>
         </div>
       ) : (
         <div

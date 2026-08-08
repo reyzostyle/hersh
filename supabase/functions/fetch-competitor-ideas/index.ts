@@ -29,7 +29,7 @@ function stripDashes(s: unknown): unknown {
 // channel normally does, not merely because it's recent. Views alone can't say
 // that — a 13-day-old video has had 13x the time to collect them — so we compare
 // views-per-day against the channel's own median over a longer baseline.
-const BASELINE_SIZE = 30;      // videos pulled to establish "normal" for the channel
+const BASELINE_SIZE = 50;      // uploads pulled to establish "normal" (long-form and streams are dropped from this, so pull the max both endpoints allow)
 const FRESH_WINDOW_DAYS = 14;  // only surface videos published inside this window
 const OUTLIER_THRESHOLD = 1.5; // times the channel's median views/day
 const MAX_PER_CHANNEL = 8;     // ceiling so a channel that suddenly pops can't blow up token spend
@@ -42,6 +42,28 @@ interface ChannelVideo {
   views: number;
   publishedAt: string;
   outlierScore: number | null;
+}
+
+const MAX_SHORT_SECONDS = 180; // YouTube's current ceiling for a Short
+
+// "PT1M30S" -> 90. Returns null when the duration is missing or unparseable,
+// which is treated as "not a Short" rather than guessed at.
+function parseDurationSeconds(iso: string | undefined): number | null {
+  const m = /^P(?:(\d+)D)?T(?:(\d+)H)?(?:(\d+)M)?(?:(\d+(?:\.\d+)?)S)?$/.exec(iso || '');
+  if (!m) return null;
+  const [, d, h, min, s] = m;
+  return Number(d || 0) * 86400 + Number(h || 0) * 3600 + Number(min || 0) * 60 + Number(s || 0);
+}
+
+// Streams and long-form uploads are a different game from Shorts, and mixing
+// them in also skews the channel's median: a Short compared against an average
+// that includes 20-minute videos is being measured against the wrong baseline.
+// A finished stream reports liveBroadcastContent "none", so its presence in
+// liveStreamingDetails is what actually identifies it.
+function isShort(item: any): boolean {
+  if (item.liveStreamingDetails) return false;
+  const seconds = parseDurationSeconds(item.contentDetails?.duration);
+  return seconds !== null && seconds > 0 && seconds <= MAX_SHORT_SECONDS;
 }
 
 function median(nums: number[]): number {
@@ -85,12 +107,12 @@ async function fetchChannelVideos(channelId: string, ytApiKey: string): Promise<
 
   // One stats call covers the whole baseline (same quota cost as fetching five).
   const statsRes = await fetch(
-    `https://www.googleapis.com/youtube/v3/videos?id=${videoIds.join(',')}&part=snippet,statistics&key=${ytApiKey}`
+    `https://www.googleapis.com/youtube/v3/videos?id=${videoIds.join(',')}&part=snippet,statistics,contentDetails,liveStreamingDetails&key=${ytApiKey}`
   );
   if (!statsRes.ok) throw new Error(`YouTube videos API error: ${await statsRes.text()}`);
   const statsData = await statsRes.json();
 
-  const baseline = (statsData.items || []).map((item: any) => ({
+  const baseline = (statsData.items || []).filter(isShort).map((item: any) => ({
     videoId: item.id,
     title: item.snippet.title,
     thumbnail: item.snippet.thumbnails?.medium?.url || item.snippet.thumbnails?.default?.url || '',
@@ -437,7 +459,7 @@ Deno.serve(async (req: Request) => {
         ideas: ideas || [],
         processed: newlyProcessed,
         message: newlyProcessed === 0
-          ? 'Nothing new stood out. Your competitors have not posted anything that beat their own average lately.'
+          ? 'Nothing new stood out. Your competitors have not posted a short that beat their own average lately.'
           : undefined,
       }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
