@@ -1,4 +1,5 @@
 import { createClient } from 'npm:@supabase/supabase-js@2.57.4';
+import { callLLM } from '../_shared/llm.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -229,9 +230,6 @@ async function analyzeWithClaude(
   supabase?: any,
   creatorLevel?: string,
 ) {
-  const anthropicApiKey = Deno.env.get('ANTHROPIC_API_KEY');
-  if (!anthropicApiKey) throw new Error('Anthropic API key not configured');
-
   // Fetch knowledge base
   let knowledgeBaseSection = '';
   if (supabase) {
@@ -356,31 +354,7 @@ Respond with valid JSON only:
   ]
 }`;
 
-  const claudeBody = JSON.stringify({
-    model: 'claude-sonnet-4-6',
-    max_tokens: 2500,
-    system: systemPrompt,
-    messages: [{ role: 'user', content: prompt }],
-  });
-
-  let response: Response | null = null;
-  for (let attempt = 0; attempt < 3; attempt++) {
-    if (attempt > 0) await new Promise(r => setTimeout(r, attempt * 3000));
-    response = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'x-api-key': anthropicApiKey, 'anthropic-version': '2023-06-01' },
-      body: claudeBody,
-    });
-    if (response.ok || response.status !== 529) break;
-  }
-
-  if (!response || !response.ok) {
-    const errText = await response?.text() ?? 'No response';
-    throw new Error(`Claude API error: ${errText}`);
-  }
-
-  const data = await response.json();
-  const content = data.content[0].text;
+  const content = await callLLM(prompt, { system: systemPrompt, maxTokens: 2500 });
 
   const stripDashes = (s: any): any => {
     if (typeof s === 'string') return s.replace(/[—–]/g, '-');

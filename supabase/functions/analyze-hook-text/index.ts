@@ -1,4 +1,5 @@
 import { createClient } from 'npm:@supabase/supabase-js@2.57.4';
+import { callLLM } from '../_shared/llm.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -80,9 +81,6 @@ Deno.serve(async (req: Request) => {
     }
 
     // ── Build prompt ──────────────────────────────────────────────────────────
-    const anthropicApiKey = Deno.env.get('ANTHROPIC_API_KEY');
-    if (!anthropicApiKey) throw new Error('Anthropic API key not configured');
-
     // Per-hook context, when provided, OVERRIDES the channel profile from settings.
     const hasContext = context && typeof context === 'string' && context.trim();
     const profile = (hasContext
@@ -128,31 +126,16 @@ Return ONLY valid JSON, no markdown:
   ]
 }`;
 
-    const aiRes = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'x-api-key': anthropicApiKey,
-        'anthropic-version': '2023-06-01',
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-6',
-        max_tokens: 1200,
-        messages: [{ role: 'user', content: prompt }],
-      }),
-    });
-
-    if (!aiRes.ok) {
-      const errText = await aiRes.text();
-      throw new Error(`Claude error (${aiRes.status}): ${errText}`);
-    }
-
-    const aiData = await aiRes.json();
-    let content = aiData.content?.[0]?.text || '';
+    let content = await callLLM(prompt, { maxTokens: 1200 });
     content = content.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+    // Extract the JSON object rather than parsing the string outright — Claude
+    // reliably returns bare JSON for this prompt, but that's a per-model habit,
+    // not a guarantee, and other providers can preface it with a sentence.
     let result;
     try {
-      result = JSON.parse(content);
+      const jsonMatch = content.match(/\{[\s\S]*\}/);
+      if (!jsonMatch) throw new Error('no JSON object in response');
+      result = JSON.parse(jsonMatch[0]);
     } catch {
       return new Response(JSON.stringify({ error: 'Could not parse analysis. Try again.' }), { status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }

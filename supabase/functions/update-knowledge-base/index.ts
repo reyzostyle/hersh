@@ -1,4 +1,5 @@
 import { createClient } from 'npm:@supabase/supabase-js@2.57.4';
+import { callLLM } from '../_shared/llm.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -52,8 +53,6 @@ Score given: ${a?.hook_analysis?.overall_score ?? 'N/A'}
 Weak spots: ${(a?.weak_spots || []).join(' | ')}`;
   }).join('\n\n---\n\n');
 
-  const anthropicKey = Deno.env.get('ANTHROPIC_API_KEY')!;
-
   const systemPrompt = `You are a quality analyst for Hersh, an AI tool that analyzes YouTube Shorts hooks.
 
 Your job: review creator feedback on analyses and extract GENUINE patterns that should inform future analyses.
@@ -82,25 +81,7 @@ ${feedbackText}
 
 Extract patterns and return knowledge base entries as JSON array.`;
 
-  const res = await fetch('https://api.anthropic.com/v1/messages', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-api-key': anthropicKey,
-      'anthropic-version': '2023-06-01',
-    },
-    body: JSON.stringify({
-      model: 'claude-sonnet-4-6',
-      max_tokens: 2000,
-      system: systemPrompt,
-      messages: [{ role: 'user', content: userPrompt }],
-    }),
-  });
-
-  if (!res.ok) throw new Error(`Claude error: ${await res.text()}`);
-
-  const claudeData = await res.json();
-  const content = claudeData.content[0].text;
+  const content = await callLLM(userPrompt, { system: systemPrompt, maxTokens: 2000 });
 
   let entries: any[] = [];
   try {

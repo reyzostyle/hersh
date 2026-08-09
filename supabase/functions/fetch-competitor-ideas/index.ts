@@ -1,4 +1,5 @@
 import { createClient } from 'npm:@supabase/supabase-js@2.57.4';
+import { callLLM } from '../_shared/llm.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -181,8 +182,7 @@ async function extractConceptAndAdapt(
   outlierScore: number | null,
   transcript: string,
   niche: string,
-  description: string,
-  anthropicApiKey: string
+  description: string
 ): Promise<{ concept: string; adapted_idea: string }> {
   const prompt = `You analyze competitor YouTube Shorts and extract the core concept, then adapt it for a different creator.
 
@@ -211,32 +211,7 @@ Rules:
   "adapted_idea": "..."
 }`;
 
-  let response: Response | null = null;
-  for (let attempt = 0; attempt < 3; attempt++) {
-    if (attempt > 0) await new Promise(r => setTimeout(r, attempt * 3000));
-    response = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': anthropicApiKey,
-        'anthropic-version': '2023-06-01',
-      },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-6',
-        max_tokens: 800,
-        messages: [{ role: 'user', content: prompt }],
-      }),
-    });
-    if (response.ok || response.status !== 529) break;
-  }
-
-  if (!response?.ok) {
-    const errText = await response?.text() ?? 'No response';
-    throw new Error(`Claude API error: ${errText}`);
-  }
-
-  const data = await response.json();
-  const content = data.content[0].text;
+  const content = await callLLM(prompt, { maxTokens: 800 });
 
   try {
     const jsonMatch = content.match(/\{[\s\S]*\}/);
@@ -265,9 +240,7 @@ Deno.serve(async (req: Request) => {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const ytApiKey = Deno.env.get('YOUTUBE_API_KEY');
-    const anthropicApiKey = Deno.env.get('ANTHROPIC_API_KEY');
     if (!ytApiKey) throw new Error('YouTube API key not configured');
-    if (!anthropicApiKey) throw new Error('Anthropic API key not configured');
 
     const supabase = createClient(supabaseUrl, serviceKey, {
       auth: { autoRefreshToken: false, persistSession: false, detectSessionInUrl: false },
@@ -398,7 +371,7 @@ Deno.serve(async (req: Request) => {
         let adapted_idea = '';
         try {
           const result = await extractConceptAndAdapt(
-            video.title, video.views, video.outlierScore, transcript, niche, description, anthropicApiKey
+            video.title, video.views, video.outlierScore, transcript, niche, description
           );
           concept = result.concept;
           adapted_idea = result.adapted_idea;
