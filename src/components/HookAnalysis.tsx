@@ -6,6 +6,7 @@ import { AnalysisPanel } from './AnalysisPanel';
 import { HistoryPanel } from './HistoryPanel';
 import { AnalysisProgressModal } from './AnalysisProgressModal';
 import { MobileHeaderContext } from './AppShell';
+import { ErrorNotice } from './ErrorNotice';
 
 const ACCEPTED_TYPES = ['video/mp4', 'video/quicktime', 'video/webm', 'video/x-msvideo'];
 const MAX_SIZE_MB = 300;
@@ -328,9 +329,7 @@ export function HookAnalysis() {
       </div>
       {error && (
         <div className="px-4 sm:px-6 flex-shrink-0">
-          <div className="max-w-3xl mx-auto mt-3 text-sm text-red-400 bg-red-400/10 border border-red-400/20 rounded-lg px-4 py-3">
-            {error}
-          </div>
+          <ErrorNotice message={error} className="max-w-3xl mx-auto mt-3" />
         </div>
       )}
 

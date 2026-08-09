@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase, getSessionToken } from '../lib/supabase';
 import { Zap, Check, Loader2, BarChart2, RefreshCw } from 'lucide-react';
+import { ErrorNotice } from './ErrorNotice';
 
 const PLAN_LIMITS: Record<string, number> = { free: 3, pro: 30, agency: 100 };
 const HOOK_LIMITS: Record<string, number> = { free: 10, pro: 50, agency: 200 };
@@ -153,11 +154,7 @@ export function UpgradePage() {
           <p className="text-sm text-gray-500">Manage your subscription and analysis usage</p>
         </div>
       <div>
-        {error && (
-          <div className="mb-6 text-sm text-red-400 bg-red-400/10 border border-red-400/20 rounded-lg px-4 py-3">
-            {error}
-          </div>
-        )}
+        {error && <ErrorNotice message={error} className="mb-6" />}
 
         {/* Usage card */}
         <div className="mb-6 sm:mb-8 p-4 sm:p-5 rounded-xl motion-card animate-fade-in-up delay-100 glass-panel">

@@ -4,6 +4,7 @@ import {
   Plus, Loader2, Sparkles, Eye, ChevronDown, ChevronUp,
   X, Lightbulb, Users, RefreshCw, Calendar, FileText, Heart, EyeOff, Lock, Trash2, TrendingUp
 } from 'lucide-react';
+import { ErrorNotice } from './ErrorNotice';
 const SUPABASE_FUNCTIONS_URL = 'https://ezlousklksipvwuinpzq.supabase.co/functions/v1';
 
 interface CompetitorChannel {
@@ -82,6 +83,10 @@ function IdeaCard({ idea, onUpdated, isPro }: { idea: CompetitorIdea; onUpdated:
   const [generatingOutline, setGeneratingOutline] = useState(false);
   const [generatingScript, setGeneratingScript] = useState(false);
   const [error, setError] = useState('');
+  // Distinguishes "user hit their plan limit" (a plain, actionable message)
+  // from an actual backend failure (routed through ErrorNotice) — both land
+  // in the same `error` state, so the render needs to know which is which.
+  const [errorIsPlanLimit, setErrorIsPlanLimit] = useState(false);
 
   const handleLike = async (value: boolean) => {
     const newValue = idea.liked === value ? null : value;
@@ -97,6 +102,7 @@ function IdeaCard({ idea, onUpdated, isPro }: { idea: CompetitorIdea; onUpdated:
   const handleCreateOutline = async () => {
     setGeneratingOutline(true);
     setError('');
+    setErrorIsPlanLimit(false);
     try {
       const token = await getSessionToken();
       if (!token) throw new Error('Not authenticated');
@@ -115,6 +121,7 @@ function IdeaCard({ idea, onUpdated, isPro }: { idea: CompetitorIdea; onUpdated:
   const handleWriteScript = async () => {
     setGeneratingScript(true);
     setError('');
+    setErrorIsPlanLimit(false);
     try {
       const token = await getSessionToken();
       if (!token) throw new Error('Not authenticated');
@@ -125,6 +132,7 @@ function IdeaCard({ idea, onUpdated, isPro }: { idea: CompetitorIdea; onUpdated:
         return;
       }
       if (data.error === 'limit_reached') {
+        setErrorIsPlanLimit(true);
         setError('You\'ve reached your script generation limit for this month.');
         return;
       }
@@ -308,7 +316,9 @@ function IdeaCard({ idea, onUpdated, isPro }: { idea: CompetitorIdea; onUpdated:
 
       {/* Error */}
       {error && (
-        <p className="text-red-400 text-sm bg-red-400/10 border border-red-400/20 rounded-xl px-3 py-2">{error}</p>
+        errorIsPlanLimit
+          ? <p className="text-red-400 text-sm bg-red-400/10 border border-red-400/20 rounded-xl px-3 py-2">{error}</p>
+          : <ErrorNotice message={error} />
       )}
 
       {/* Action buttons */}
@@ -617,9 +627,7 @@ export function CompetitorsPage() {
           </button>
         </form>
 
-        {addError && (
-          <p className="text-red-400 text-sm bg-red-400/10 border border-red-400/20 rounded-xl px-3 py-2">{addError}</p>
-        )}
+        {addError && <ErrorNotice message={addError} />}
 
         {/* Channel pills */}
         {channels.length > 0 && (
@@ -684,9 +692,7 @@ export function CompetitorsPage() {
         </div>
       )}
 
-      {fetchError && (
-        <p className="text-red-400 text-sm bg-red-400/10 border border-red-400/20 rounded-xl px-4 py-3">{fetchError}</p>
-      )}
+      {fetchError && <ErrorNotice message={fetchError} />}
 
       {fetchNotice && (
         <p

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Loader2, Trophy, Flame, Link } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { fetchRank, syncYouTubeIfStale, RankData, TIERS } from '../lib/rank';
+import { ErrorNotice } from './ErrorNotice';
 
 const TIER_COLORS: Record<string, string> = {
   Iron: '#9CA3AF',
@@ -108,7 +109,7 @@ export function RankPage() {
   if (error) {
     return (
       <div className="max-w-3xl mx-auto px-4 sm:px-6 pt-6">
-        <p className="text-sm text-red-400 bg-red-400/10 border border-red-400/20 rounded-lg px-4 py-3">{error}</p>
+        <ErrorNotice message={error} />
       </div>
     );
   }
