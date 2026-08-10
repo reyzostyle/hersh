@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Loader2 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
-import { getSessionToken } from '../lib/supabase';
+import { getSessionToken, fetchWithRetry } from '../lib/supabase';
 
 const ADMIN_EMAIL = 'reyzostyle@gmail.com';
 
@@ -72,7 +72,7 @@ export function AdminPage() {
     (async () => {
       try {
         const token = await getSessionToken();
-        const res = await fetch('https://ezlousklksipvwuinpzq.supabase.co/functions/v1/admin-stats', {
+        const res = await fetchWithRetry('https://ezlousklksipvwuinpzq.supabase.co/functions/v1/admin-stats', {
           headers: { Authorization: `Bearer ${token}` },
         });
         const data = await res.json();

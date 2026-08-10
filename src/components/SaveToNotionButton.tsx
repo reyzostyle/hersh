@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { getSessionToken } from '../lib/supabase';
+import { getSessionToken, fetchWithRetry } from '../lib/supabase';
 import { showToast } from '../lib/toast';
 import { Check, Loader2 } from 'lucide-react';
 
@@ -36,7 +36,7 @@ export function SaveToNotionButton({ type, name, content, eligible = true, class
     try {
       const token = await getSessionToken();
       if (!token) { showToast('Please sign in again.', 'error'); return; }
-      const res = await fetch('https://ezlousklksipvwuinpzq.supabase.co/functions/v1/notion-save', {
+      const res = await fetchWithRetry('https://ezlousklksipvwuinpzq.supabase.co/functions/v1/notion-save', {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({ type, name, content }),

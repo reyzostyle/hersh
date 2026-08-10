@@ -12,6 +12,31 @@ export async function getSessionToken(): Promise<string | null> {
   return data.session?.access_token ?? null;
 }
 
+// A flaky mobile connection makes fetch() itself throw ("Load failed" on
+// Safari, "Failed to fetch" on Chrome) before any response comes back — that
+// class of failure is almost always transient, so it's worth one silent retry
+// instead of surfacing an error the user can do nothing useful with. 502/503/504
+// (gateway/cold-start blips) get the same treatment. Anything that reaches the
+// app and answers - 400/401/403/429, our own quota and rate-limit responses -
+// is a real answer, not a blip, and is returned as-is on the first try.
+const RETRYABLE_STATUS = new Set([502, 503, 504]);
+
+export async function fetchWithRetry(input: RequestInfo | URL, init?: RequestInit, retries = 2): Promise<Response> {
+  let lastError: unknown;
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    if (attempt > 0) await new Promise(r => setTimeout(r, attempt * 800));
+    try {
+      const res = await fetch(input, init);
+      if (res.ok || !RETRYABLE_STATUS.has(res.status) || attempt === retries) return res;
+      lastError = new Error(`HTTP ${res.status}`);
+    } catch (e) {
+      lastError = e;
+      if (attempt === retries) throw e;
+    }
+  }
+  throw lastError;
+}
+
 export interface Video {
   id: string;
   user_id: string;

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { getSessionToken } from '../lib/supabase';
+import { getSessionToken, fetchWithRetry } from '../lib/supabase';
 import { Sparkles, Loader2, Copy, Check, AlertTriangle, Wand2, X } from 'lucide-react';
 import { ScoreCircle, ScoreBreakdown } from './ScoreCircle';
 import { AnalysisProgressModal } from './AnalysisProgressModal';
@@ -68,7 +68,7 @@ export function HookLab() {
     try {
       const token = await getSessionToken();
       if (!token) { setError('Please sign in again.'); setLoading(false); return; }
-      const res = await fetch('https://ezlousklksipvwuinpzq.supabase.co/functions/v1/analyze-hook-text', {
+      const res = await fetchWithRetry('https://ezlousklksipvwuinpzq.supabase.co/functions/v1/analyze-hook-text', {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({ hook: hook.trim(), context: context.trim() || undefined }),

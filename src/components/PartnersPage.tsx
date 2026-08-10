@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { getSessionToken } from '../lib/supabase';
+import { getSessionToken, fetchWithRetry } from '../lib/supabase';
 import { Copy, Check, Users, TrendingUp, DollarSign, Loader2, Plus, RefreshCw, Trash2, Link, Handshake } from 'lucide-react';
 
 const ADMIN_EMAIL = 'reyzostyle@gmail.com';
@@ -85,7 +85,7 @@ function PartnerView({ userId }: { userId?: string }) {
     try {
       const token = await getSessionToken();
       if (!token) return;
-      const res = await fetch(`https://ezlousklksipvwuinpzq.supabase.co/functions/v1/referral-stats`, {
+      const res = await fetchWithRetry(`https://ezlousklksipvwuinpzq.supabase.co/functions/v1/referral-stats`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (!res.ok) { setStats(null); return; }
@@ -156,7 +156,7 @@ function AdminView() {
     try {
       const token = await getSessionToken();
       if (!token) return;
-      const res = await fetch(`https://ezlousklksipvwuinpzq.supabase.co/functions/v1/referral-stats`, {
+      const res = await fetchWithRetry(`https://ezlousklksipvwuinpzq.supabase.co/functions/v1/referral-stats`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       const data = await res.json();
@@ -171,7 +171,7 @@ function AdminView() {
     setCreating(true);
     try {
       const token = await getSessionToken();
-      const res = await fetch(`https://ezlousklksipvwuinpzq.supabase.co/functions/v1/referral-stats`, {
+      const res = await fetchWithRetry(`https://ezlousklksipvwuinpzq.supabase.co/functions/v1/referral-stats`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({ code: newCode.trim().toLowerCase(), partner_name: newName.trim(), owner_email: newEmail.trim() || undefined }),
@@ -196,7 +196,7 @@ function AdminView() {
     if (!confirm(`Delete partner "${code}"? This cannot be undone.`)) return;
     try {
       const token = await getSessionToken();
-      const res = await fetch(`https://ezlousklksipvwuinpzq.supabase.co/functions/v1/referral-stats`, {
+      const res = await fetchWithRetry(`https://ezlousklksipvwuinpzq.supabase.co/functions/v1/referral-stats`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({ code }),
@@ -218,7 +218,7 @@ function AdminView() {
     setAssignLoading(true);
     try {
       const token = await getSessionToken();
-      const res = await fetch(`https://ezlousklksipvwuinpzq.supabase.co/functions/v1/referral-stats`, {
+      const res = await fetchWithRetry(`https://ezlousklksipvwuinpzq.supabase.co/functions/v1/referral-stats`, {
         method: 'PATCH',
         headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({ code, owner_email: assignEmail.trim() }),

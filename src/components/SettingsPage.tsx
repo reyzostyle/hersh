@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { Loader2, Eye, EyeOff, RefreshCw, Link, ChevronDown, Sparkles, User, Zap, MessageCircle, ExternalLink, Ticket } from 'lucide-react';
-import { getSessionToken } from '../lib/supabase';
+import { getSessionToken, fetchWithRetry } from '../lib/supabase';
 
 function YouTubeLogo({ className }: { className?: string }) {
   return (
@@ -132,7 +132,7 @@ export function SettingsPage() {
     setRedeemMsg(null);
     try {
       const token = await getSessionToken();
-      const res = await fetch('https://ezlousklksipvwuinpzq.supabase.co/functions/v1/redeem-code', {
+      const res = await fetchWithRetry('https://ezlousklksipvwuinpzq.supabase.co/functions/v1/redeem-code', {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({ code }),
@@ -275,7 +275,7 @@ export function SettingsPage() {
     setCancelError('');
     try {
       const token = await getSessionToken();
-      const res = await fetch(`https://ezlousklksipvwuinpzq.supabase.co/functions/v1/cancel-subscription`, {
+      const res = await fetchWithRetry(`https://ezlousklksipvwuinpzq.supabase.co/functions/v1/cancel-subscription`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}` },
       });

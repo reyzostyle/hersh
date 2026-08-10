@@ -1,4 +1,4 @@
-import { supabase, getSessionToken } from './supabase';
+import { supabase, getSessionToken, fetchWithRetry } from './supabase';
 
 // ─── Rank system ──────────────────────────────────────────────────────────────
 // Season = calendar month. RP sources (theoretical max 1200):
@@ -279,7 +279,7 @@ export async function syncYouTubeIfStale(userId: string): Promise<boolean> {
   if (!token) return false;
 
   try {
-    const res = await fetch('https://ezlousklksipvwuinpzq.supabase.co/functions/v1/fetch-youtube-data', {
+    const res = await fetchWithRetry('https://ezlousklksipvwuinpzq.supabase.co/functions/v1/fetch-youtube-data', {
       method: 'POST',
       headers: { Authorization: `Bearer ${token}` },
     });

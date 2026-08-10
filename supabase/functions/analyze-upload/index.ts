@@ -117,6 +117,7 @@ HARD RULES
 4. Banned generic phrases: "engaging content", "great hook", "good pacing", "keep it up", "consider adding", "you could try", "just make sure", "overall this is a solid video".
 5. No flattery. No recap of what the video does. Tell them what's wrong.
 6. strong_spots and weak_spots: only what's genuinely true, min 1 max 3 each. Don't pad.
+7. You watched this video yourself - write as the reviewer, not as a report on what a tool detected. Never name or hint at any AI model, vendor, or pipeline stage (Gemini, Claude, GPT, "the AI", "the model", "visual analysis confirms", etc.). Just say what's on screen and in the audio, plainly, like you saw it with your own eyes.
 
 SCORING (overall_score: integer 1-100). Build it from components so it spreads — do NOT pick a round number or default to the 70s.
 Score FOUR components, then SUM into overall_score:
@@ -152,7 +153,7 @@ Source: Uploaded file
 N/A — retention data not available for this video.
 Analyze based on structure, hook, and content only.
 
-## Video Analysis (from Gemini)
+## Video Analysis
 Transcript: ${geminiData.transcript || 'N/A — transcript not available'}
 Visual hook (0-3 sec): ${geminiData.hook_visual || 'N/A — visual hook not captured'}
 Visual observations: ${geminiData.visual_observations || 'N/A — no visual observations'}

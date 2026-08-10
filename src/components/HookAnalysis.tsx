@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useContext } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { supabase, getSessionToken, Video, Analysis } from '../lib/supabase';
+import { supabase, getSessionToken, fetchWithRetry, Video, Analysis } from '../lib/supabase';
 import { Sparkles, Loader2, History, Film, X } from 'lucide-react';
 import { AnalysisPanel } from './AnalysisPanel';
 import { HistoryPanel } from './HistoryPanel';
@@ -162,7 +162,7 @@ export function HookAnalysis() {
 
       const token = await getSessionToken();
       if (!token) { setError('Not authenticated'); setGeminiAnalyzing(false); return; }
-      const res = await fetch(
+      const res = await fetchWithRetry(
         `https://ezlousklksipvwuinpzq.supabase.co/functions/v1/analyze-with-gemini`,
         {
           method: 'POST',
@@ -208,7 +208,7 @@ export function HookAnalysis() {
       if (!token0) throw new Error('Not authenticated');
 
       // Step 1: Start Gemini upload session via edge function
-      const sessionRes = await fetch(
+      const sessionRes = await fetchWithRetry(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/get-upload-url`,
         {
           method: 'POST',
@@ -253,7 +253,7 @@ export function HookAnalysis() {
       // Step 3: Analyze
       const token = await getSessionToken();
       if (!token) throw new Error('Not authenticated');
-      const res = await fetch(
+      const res = await fetchWithRetry(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/analyze-upload`,
         {
           method: 'POST',

@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { supabase, getSessionToken } from '../lib/supabase';
+import { supabase, getSessionToken, fetchWithRetry } from '../lib/supabase';
 import {
   Plus, Loader2, Sparkles, Eye, ChevronDown, ChevronUp,
   X, Lightbulb, Users, RefreshCw, Calendar, FileText, Heart, EyeOff, Lock, Trash2, TrendingUp
@@ -64,7 +64,7 @@ function formatDate(dateStr: string | null): string {
 }
 
 async function callFunction(endpoint: string, token: string, body?: object): Promise<Response> {
-  return fetch(`${SUPABASE_FUNCTIONS_URL}/${endpoint}`, {
+  return fetchWithRetry(`${SUPABASE_FUNCTIONS_URL}/${endpoint}`, {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${token}`,

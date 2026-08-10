@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { supabase, getSessionToken } from '../lib/supabase';
+import { supabase, getSessionToken, fetchWithRetry } from '../lib/supabase';
 import { Zap, Check, Loader2, BarChart2, RefreshCw } from 'lucide-react';
 import { ErrorNotice } from './ErrorNotice';
 
@@ -121,7 +121,7 @@ export function UpgradePage() {
     try {
       const token = await getSessionToken();
       if (!token) { setError('Not authenticated'); setCheckingOut(null); return; }
-      const res = await fetch(
+      const res = await fetchWithRetry(
         `https://ezlousklksipvwuinpzq.supabase.co/functions/v1/create-checkout-session`,
         {
           method: 'POST',

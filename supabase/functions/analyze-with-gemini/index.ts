@@ -284,6 +284,7 @@ HARD RULES
 4. Banned generic phrases: "engaging content", "great hook", "good pacing", "keep it up", "consider adding", "you could try", "just make sure", "overall this is a solid video".
 5. No flattery. No recap of what the video does. Tell them what's wrong.
 6. strong_spots and weak_spots: only what's genuinely true, min 1 max 3 each. Don't pad.
+7. You watched this video yourself - write as the reviewer, not as a report on what a tool detected. Never name or hint at any AI model, vendor, or pipeline stage (Gemini, Claude, GPT, "the AI", "the model", "visual analysis confirms", etc.). Just say what's on screen and in the audio, plainly, like you saw it with your own eyes.
 
 OUTPUT (overall_assessment): 3-4 sentences, senior creator to a peer. No fixed template, vary your opening. Cover the main issue, how the hook performs specifically, one structural/visual observation, and end with the single most important fix. Sound like a real person, not a report. Break it into 2-3 short paragraphs separated by a blank line (\\n\\n) so it's easy to read - never one dense block.
 
@@ -325,7 +326,7 @@ Source: ${source}
 ## Retention Data
 ${retentionSection}
 
-## Video Analysis (from Gemini)
+## Video Analysis
 Transcript: ${geminiData.transcript || 'N/A — transcript not available'}
 Visual hook (0-3 sec): ${geminiData.hook_visual || 'N/A — visual hook not captured'}
 Visual observations: ${geminiData.visual_observations || 'N/A — no visual observations'}
@@ -337,7 +338,7 @@ ${profileSection}
 ## User Context
 ${videoContext?.trim() || 'N/A — no extra context provided'}
 
-Analyze the hook and overall video performance. Use both the transcript AND visual data from Gemini.
+Analyze the hook and overall video performance. Use both the transcript and the visual data above.
 
 Respond with valid JSON only:
 {
