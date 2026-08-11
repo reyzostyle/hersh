@@ -17,7 +17,7 @@ function deleteGeminiFile(geminiFileName: string) {
   }
 }
 
-const GEMINI_MODELS = ['gemini-2.5-flash', 'gemini-2.5-flash-lite', 'gemini-2.5-pro'];
+const GEMINI_MODELS = ['gemini-3.5-flash-lite', 'gemini-2.5-flash-lite', 'gemini-3.5-flash'];
 const sleep = (ms: number) => new Promise(r => setTimeout(r, ms));
 
 // Resilient Gemini call: rotates models and retries transient errors
@@ -67,6 +67,10 @@ Respond ONLY with valid JSON:
       { file_data: { mime_type: mimeType, file_uri: fileUri } },
       { text: prompt },
     ]}],
+    // Both flash-lite models in GEMINI_MODELS don't think by default, and 3.5
+    // Flash-Lite 400s on an explicit thinkingBudget: 0 — so no override here.
+    // The gemini-3.5-flash fallback does think by default and could eat into
+    // this budget, but that's an existing tradeoff of the last-resort model.
     generationConfig: { temperature: 0.2, maxOutputTokens: 2048 },
   });
 

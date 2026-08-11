@@ -63,13 +63,16 @@ async function callOnce(provider: string, model: string, prompt: string, opts: L
     case 'google': {
       const apiKey = Deno.env.get('GEMINI_API_KEY');
       if (!apiKey) throw new Error('GEMINI_API_KEY not configured');
-      // Gemini 2.5 thinks by default, and thinking tokens draw from the same
-      // maxOutputTokens budget as the visible answer — a budget sized for
-      // Claude's answer-only output silently truncates the JSON mid-object
-      // before Gemini gets to finish it. Flash/Flash-Lite can turn thinking
-      // off outright (it adds nothing for a short deterministic JSON task);
-      // Pro can't go below a minimum, so it gets a wider budget instead.
-      const isFlash = /flash/i.test(model);
+      // Plain Flash (2.5 and 3.5) thinks by default, and thinking tokens draw
+      // from the same maxOutputTokens budget as the visible answer — a budget
+      // sized for Claude's answer-only output silently truncates the JSON
+      // mid-object before Gemini gets to finish it. Flash-Lite (both
+      // generations) doesn't think by default, so it needs no override — and
+      // 3.5 Flash-Lite actively 400s if sent thinkingBudget: 0 (2.5 Flash-Lite
+      // tolerates it, but it's a no-op either way). Pro can't go below a
+      // minimum thinking budget, so it gets a wider output budget instead.
+      const isFlashLite = /flash-lite/i.test(model);
+      const isPlainFlash = /flash/i.test(model) && !isFlashLite;
       return fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -77,8 +80,8 @@ async function callOnce(provider: string, model: string, prompt: string, opts: L
           ...(opts.system ? { systemInstruction: { parts: [{ text: opts.system }] } } : {}),
           contents: [{ role: 'user', parts: [{ text: prompt }] }],
           generationConfig: {
-            maxOutputTokens: isFlash ? opts.maxTokens : opts.maxTokens * 4,
-            ...(isFlash ? { thinkingConfig: { thinkingBudget: 0 } } : {}),
+            maxOutputTokens: isFlashLite || isPlainFlash ? opts.maxTokens : opts.maxTokens * 4,
+            ...(isPlainFlash ? { thinkingConfig: { thinkingBudget: 0 } } : {}),
           },
         }),
       });
