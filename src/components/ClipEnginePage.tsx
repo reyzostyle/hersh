@@ -21,21 +21,6 @@ const reasons = [
   },
 ];
 
-const steps = [
-  {
-    title: 'Claim your pack',
-    body: 'Grab hours, message us on Discord.',
-  },
-  {
-    title: 'We set it up with you',
-    body: 'We configure it around your stream, once.',
-  },
-  {
-    title: 'Clips land in your Drive',
-    body: 'Pick your favorites, write a title, post.',
-  },
-];
-
 interface ClipEnginePageProps {
   // When set, the CTA signs the visitor up instead of linking to Discord —
   // used on the public landing page, where setup happens after signup.
@@ -84,23 +69,11 @@ export function ClipEnginePage({ onGetStarted }: ClipEnginePageProps = {}) {
 
       {/* How it works */}
       <div className="mb-10 sm:mb-14">
-        <h2 className="text-lg font-bold text-white mb-5">How it works</h2>
-        <div className="space-y-4">
-          {steps.map((s, i) => (
-            <div key={s.title} className="flex gap-4">
-              <span
-                className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 mt-0.5"
-                style={{ background: 'rgba(14,164,233,0.12)', color: '#0EA4E9' }}
-              >
-                {i + 1}
-              </span>
-              <div className="min-w-0">
-                <p className="text-white font-semibold mb-1">{s.title}</p>
-                <p className="text-sm text-gray-400 leading-relaxed text-pretty">{s.body}</p>
-              </div>
-            </div>
-          ))}
-        </div>
+        <h2 className="text-lg font-bold text-white mb-3">How it works</h2>
+        <p className="text-sm text-gray-400 leading-relaxed max-w-2xl text-pretty">
+          Grab hours on Discord and we set it up around your stream, once. From
+          then on, clips land in your Drive after every stream — you just pick your favorites and post.
+        </p>
       </div>
 
       {/* Pricing */}

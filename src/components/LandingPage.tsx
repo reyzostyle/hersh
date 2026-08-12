@@ -1,8 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
-import { X, Check, Loader2, Zap, ChevronRight, ChevronDown, Activity, Sparkles, Play, Heart, Eye, MessageCircle, Twitter, Mail, Scissors, ArrowLeft } from 'lucide-react';
+import { X, Check, Loader2, Zap, ChevronRight, ChevronDown, Activity, Sparkles, Play, Heart, Eye, MessageCircle, Twitter, Mail, ArrowLeft } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
-import { isClipOfferActive, CLIP_FULL_PRICE, CLIP_OFFER_PRICE } from '../lib/launchOffer';
 import { ClipEnginePage } from './ClipEnginePage';
 
 // ─── Shared styles ────────────────────────────────────────────────────────────
@@ -482,7 +481,6 @@ export function LandingPage() {
   const [view, setView] = useState<'main' | 'clips'>('main');
   const [scrollTop, setScrollTop] = useState(0);
   const scrollRef = useRef<HTMLDivElement>(null);
-  const offerActive = isClipOfferActive();
 
   // Bottom glow fades out as you scroll down the first screen
   const glowOpacity = Math.max(0, 1 - scrollTop / 160);
@@ -696,73 +694,31 @@ export function LandingPage() {
 
         {/* ── Clip Engine ───────────────────────────────────────────────────
             Sits after the plans on purpose: it's a separate product for a
-            different audience, and it's set up inside the app after signup. */}
+            different audience, and it's set up inside the app after signup.
+            Kept deliberately light — full pitch lives on ClipEnginePage,
+            this is just enough to get someone curious to click through. */}
         <section className="pb-10 sm:pb-24 px-6 max-w-4xl mx-auto">
           <RevealSection>
-            <div className="rounded-2xl p-6 sm:p-8 motion-card" style={glass}>
-              <div className="flex flex-col md:flex-row md:items-start gap-6 md:gap-10">
-                <div className="flex-1 min-w-0">
-                  <span
-                    className="inline-flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1 rounded-full mb-4"
-                    style={{ background: 'rgba(14,164,233,0.12)', color: '#0EA4E9' }}
-                  >
-                    <Scissors className="w-3 h-3" />
-                    For streamers
-                  </span>
-                  <h2 className="text-xl sm:text-2xl font-bold text-white mb-2.5 text-balance">
-                    You stream. We clip. You post.
-                  </h2>
-                  <p className="text-gray-400 text-sm leading-relaxed mb-5">
-                    Every stream gets cut into clips, straight to your Drive.
-                    <br />
-                    No editor to hire, no VOD to scrub.
-                  </p>
-                  <ul className="space-y-2">
-                    {['Never misses a moment, even at 4am', 'Clips ready right after you go live', 'No hiring, no chasing, no disappearing clippers'].map(item => (
-                      <li key={item} className="flex items-start gap-2.5 text-sm text-gray-300">
-                        <Check className="w-4 h-4 text-[#0EA4E9] flex-shrink-0 mt-0.5" />
-                        {item}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-
-                <div className="md:w-72 flex-shrink-0 rounded-xl p-5 text-center" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }}>
-                  {offerActive && (
-                    <span className="inline-block text-[11px] font-semibold px-2.5 py-1 rounded-full mb-2.5 bg-amber-400/15 text-amber-400">
-                      Launch week
-                    </span>
-                  )}
-                  <div className="flex items-baseline justify-center gap-2 mb-1">
-                    <span className="text-3xl font-bold text-white">
-                      {offerActive ? CLIP_OFFER_PRICE : CLIP_FULL_PRICE}
-                    </span>
-                    {offerActive && <span className="text-base text-gray-600 line-through">{CLIP_FULL_PRICE}</span>}
+            <div className="rounded-2xl p-5 sm:p-6 motion-card flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4" style={glass}>
+              <div>
+                <h2 className="text-lg sm:text-xl font-bold text-white mb-1">Clip Engine</h2>
+                <p className="text-gray-500 text-sm">Streams watched, cut into clips, dropped in your Drive.</p>
+              </div>
+              <div className="flex items-center gap-4 flex-shrink-0">
+                <div className="text-right">
+                  <div className="flex items-baseline gap-1">
+                    <span className="text-2xl font-bold text-white">$2</span>
+                    <span className="text-sm text-gray-500">/hour</span>
                   </div>
-                  <p className="text-xs text-gray-500 mb-4 leading-relaxed">
-                    10 hours of stream, setup included.
-                    <br />
-                    After that $2 per hour.
-                  </p>
-                  <button
-                    onClick={() => setAuthModal('signup')}
-                    className="w-full py-2.5 rounded-lg text-sm font-semibold text-white hover:opacity-90"
-                    style={{ background: '#0EA4E9' }}
-                  >
-                    Get started
-                  </button>
-                  <p className="mt-3 text-[11px] text-gray-600 leading-relaxed">
-                    Set up with us after you sign up.
-                    <br />
-                    Billed separately from the plans above.
-                  </p>
-                  <button
-                    onClick={() => { setView('clips'); scrollRef.current?.scrollTo({ top: 0 }); }}
-                    className="mt-3 text-[11px] text-gray-500 hover:text-gray-300 underline underline-offset-2 transition-colors"
-                  >
-                    Learn more
-                  </button>
+                  <p className="text-[11px] text-gray-600">$30 min · 10 hrs</p>
                 </div>
+                <button
+                  onClick={() => { setView('clips'); scrollRef.current?.scrollTo({ top: 0 }); }}
+                  className="flex-shrink-0 px-4 py-2.5 rounded-lg text-sm font-semibold text-white hover:opacity-90"
+                  style={{ background: '#0EA4E9' }}
+                >
+                  Learn more
+                </button>
               </div>
             </div>
           </RevealSection>

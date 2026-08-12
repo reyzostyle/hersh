@@ -12,6 +12,7 @@ interface Tool {
   description: string;
   icon: React.ReactNode;
   badge?: string;
+  accent?: 'purple';
 }
 
 const tools: Tool[] = [
@@ -28,17 +29,17 @@ const tools: Tool[] = [
     icon: <Trophy className="w-5 h-5" />,
   },
   {
-    id: 'clips',
-    label: 'Clip Engine',
-    description: 'Your streams get watched and cut into clips that are ready to post.',
-    icon: <Scissors className="w-5 h-5" />,
-    badge: 'New',
-  },
-  {
     id: 'competitors',
     label: 'Competitors',
     description: 'See what is working for the channels you are up against.',
     icon: <Users className="w-5 h-5" />,
+  },
+  {
+    id: 'clips',
+    label: 'Clip Engine',
+    description: 'Your streams get watched and cut into clips that are ready to post.',
+    icon: <Scissors className="w-5 h-5" />,
+    accent: 'purple',
   },
 ];
 
@@ -61,7 +62,7 @@ export function HomePage({ onNavigate }: HomePageProps) {
           <button
             key={tool.id}
             onClick={() => onNavigate(tool.id)}
-            className="group text-left p-5 rounded-xl motion-card glass-panel animate-fade-in-up"
+            className={`group text-left p-5 rounded-xl motion-card animate-fade-in-up ${tool.accent === 'purple' ? 'glass-panel-purple' : 'glass-panel'}`}
             style={{ animationDelay: `${i * 70}ms` }}
           >
             <div className="flex items-center gap-2.5 mb-2.5">
