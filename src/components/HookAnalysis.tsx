@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useContext } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase, getSessionToken, fetchWithRetry, Video, Analysis } from '../lib/supabase';
-import { Sparkles, Loader2, History, Film, X } from 'lucide-react';
+import { Sparkles, Loader2, History, Film, X, Plus } from 'lucide-react';
 import { AnalysisPanel } from './AnalysisPanel';
 import { HistoryPanel } from './HistoryPanel';
 import { AnalysisProgressModal } from './AnalysisProgressModal';
@@ -371,30 +371,25 @@ export function HookAnalysis() {
                 </button>
               </div>
             ) : (
-              <>
+              <div className="flex items-center gap-1.5 px-1.5">
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  title="Upload a video file"
+                  className="flex-shrink-0 w-9 h-9 rounded-full flex items-center justify-center text-gray-400 hover:text-white transition-colors"
+                  style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }}
+                >
+                  <Plus className="w-4 h-4" />
+                </button>
                 <input
                   type="text"
                   value={urlInput}
                   onChange={e => { setUrlInput(e.target.value); setUrlError(''); }}
                   onKeyDown={e => e.key === 'Enter' && urlInput.trim() && !geminiAnalyzing && handleUrlSubmit()}
-                  placeholder="youtube.com/shorts/… or paste a video ID"
-                  className="w-full px-4 py-5 sm:py-6 bg-transparent text-white text-[15px] focus:outline-none placeholder:text-gray-600"
+                  placeholder="Paste link"
+                  className="flex-1 min-w-0 px-2 py-5 sm:py-6 bg-transparent text-white text-[15px] focus:outline-none placeholder:text-gray-600"
                 />
-                <div
-                  onClick={() => fileInputRef.current?.click()}
-                  className="mx-1.5 rounded-xl flex flex-col items-center justify-center gap-2 py-10 sm:py-14 cursor-pointer transition-all"
-                  style={{
-                    border: `1.5px dashed ${fileDragOver ? 'rgba(14,164,233,0.5)' : 'rgba(255,255,255,0.1)'}`,
-                    background: fileDragOver ? 'rgba(14,164,233,0.04)' : 'rgba(255,255,255,0.02)',
-                  }}
-                >
-                  <Film className={`w-6 h-6 ${fileDragOver ? 'text-[#0EA4E9]' : 'text-gray-600'}`} />
-                  <p className="text-gray-300 text-sm font-medium">
-                    {fileDragOver ? 'Drop to analyze' : 'Click or drag & drop your video'}
-                  </p>
-                  <p className="text-gray-600 text-xs">MP4, MOV, WebM, AVI · up to {MAX_SIZE_MB}MB</p>
-                </div>
-              </>
+              </div>
             )}
 
             {showContext && (

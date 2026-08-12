@@ -9,8 +9,11 @@ type Interval = 'month' | 'year';
 interface Plan {
   id: string;
   name: string;
-  monthlyPrice: number | null; // billed monthly
-  yearlyTotal: number | null;  // total charged once/year (not a monthly rate)
+  monthlyPrice: number | null;       // billed monthly
+  yearlyTotal: number | null;        // total charged once/year (not a monthly rate)
+  yearlyMonthlyPrice: number | null; // the "$X/month" figure to show when yearly is selected — an
+                                      // authored number, not yearlyTotal/12 (which rounds to $5.00
+                                      // and reads as inconsistent next to Plus's $4.99 monthly price)
   quotas: string[];
   features: string[];
   cta: string;
@@ -19,30 +22,19 @@ interface Plan {
 // Actual Stripe prices (both plans' yearly total is $59.99 — annual
 // commitment converges Plus and Pro to the same rate; Plus just has less
 // room to fall since its monthly price is already low).
+// Free isn't shown here on purpose — it's a real plan (new signups start on
+// it), but listing it as a third card made this a long scroll on mobile
+// before reaching an actual paid option. New users land on Free without
+// needing to pick it off a pricing grid.
 const plans: Plan[] = [
-  {
-    id: 'free',
-    name: 'Free',
-    monthlyPrice: 0,
-    yearlyTotal: 0,
-    quotas: ['3 video analyses to start', '10 hook checks / month', '10 script checks / month'],
-    features: [
-      'Hook score & assessment',
-      'Weak spot breakdown',
-      'Hook ideas & rewrites',
-      'Video file upload',
-      'Channel profile context',
-    ],
-    cta: 'Current Plan',
-  },
   {
     id: 'pro',
     name: 'Plus',
     monthlyPrice: 4.99,
     yearlyTotal: 59.99,
+    yearlyMonthlyPrice: 4.99,
     quotas: ['30 video analyses / month', '30 hook checks / month', '30 script checks / month'],
     features: [
-      'Everything in Free',
       'Hook score & assessment',
       'Weak spot breakdown',
       'Hook ideas & rewrites',
@@ -56,6 +48,7 @@ const plans: Plan[] = [
     name: 'Pro',
     monthlyPrice: 9.99,
     yearlyTotal: 59.99,
+    yearlyMonthlyPrice: 4.99,
     quotas: ['Unlimited video analyses', 'Unlimited hook checks', 'Unlimited script checks'],
     features: [
       'Everything in Plus',
@@ -136,7 +129,7 @@ export function UpgradePage() {
         </div>
 
         {/* Plans grid */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-2xl mx-auto">
           {plans.map(plan => {
             const isCurrent = currentPlan === plan.id;
             const isHigher = (
@@ -161,24 +154,23 @@ export function UpgradePage() {
 
                 <div className="mb-4">
                   <div className="flex items-center gap-2 mb-2">
-                    <Zap className={`w-4 h-4 ${plan.id === 'free' ? 'text-gray-500' : isPopular ? 'text-[#0EA4E9]' : 'text-[#0EA4E9]/70'}`} />
+                    <Zap className={`w-4 h-4 ${isPopular ? 'text-[#0EA4E9]' : 'text-[#0EA4E9]/70'}`} />
                     <span className="text-white font-semibold">{plan.name}</span>
                   </div>
                   {(() => {
                     const isYearly = interval === 'year';
-                    const monthlyEquivalent = isYearly && plan.yearlyTotal != null ? plan.yearlyTotal / 12 : plan.monthlyPrice;
-                    const displayPrice = monthlyEquivalent === 0 ? '$0' : monthlyEquivalent != null ? `$${monthlyEquivalent.toFixed(2)}` : '—';
-                    const billedYearly = isYearly && plan.yearlyTotal != null && plan.yearlyTotal > 0
+                    const displayPrice = (isYearly ? plan.yearlyMonthlyPrice : plan.monthlyPrice) ?? null;
+                    const billedYearly = isYearly && plan.yearlyTotal != null
                       ? `$${plan.yearlyTotal.toFixed(2)} billed yearly`
                       : null;
                     return (
                       <>
                         <div className="flex items-baseline gap-1 select-none">
-                          <span className="text-3xl font-bold text-white">{displayPrice}</span>
-                          {plan.id !== 'free' && <span className="text-sm text-gray-500">/month</span>}
+                          <span className="text-3xl font-bold text-white">{displayPrice != null ? `$${displayPrice.toFixed(2)}` : '—'}</span>
+                          <span className="text-sm text-gray-500">/month</span>
                         </div>
                         <p className="text-xs text-gray-600 mt-0.5">
-                          {plan.id === 'free' ? 'free forever' : billedYearly ?? 'billed monthly'}
+                          {billedYearly ?? 'billed monthly'}
                         </p>
                       </>
                     );
@@ -187,7 +179,7 @@ export function UpgradePage() {
                   <div className="mt-2.5 space-y-1.5">
                     {plan.quotas.map(q => (
                       <p key={q} className="flex items-center gap-2 text-[13px] font-semibold text-white">
-                        <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: plan.id === 'free' ? 'rgba(255,255,255,0.35)' : '#0EA4E9' }} />
+                        <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: '#0EA4E9' }} />
                         {q}
                       </p>
                     ))}

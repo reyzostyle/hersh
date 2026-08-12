@@ -680,12 +680,11 @@ export function LandingPage() {
         <section className="pb-10 sm:pb-24 px-6 max-w-4xl mx-auto">
           <RevealSection className="text-center mb-8 sm:mb-12">
             <h2 className="text-xl sm:text-2xl font-bold text-white mb-2 text-balance">Simple pricing</h2>
-            <p className="text-gray-500 text-sm">Start free. Upgrade when you need more.</p>
+            <p className="text-gray-500 text-sm">Pick the plan that fits, cancel anytime.</p>
           </RevealSection>
-          <div className="grid md:grid-cols-3 gap-4">
+          <div className="grid sm:grid-cols-2 gap-4 max-w-xl mx-auto">
             {[
-              { name: 'Free', price: '$0', quotas: ['3 video analyses to start', '10 hook checks / month', '10 script checks / month'], period: 'free forever', features: ['Hook score & rewrites', 'Weak spot breakdown', 'Video file upload'], cta: 'Start free', popular: false, highlight: false },
-              { name: 'Plus', price: '$4.99', quotas: ['30 video analyses / month', '30 hook checks / month', '30 script checks / month'], period: '/month', features: ['Everything in Free', 'Channel profile context', 'Retention insights on your videos'], cta: 'Get Plus', popular: false, highlight: false },
+              { name: 'Plus', price: '$4.99', quotas: ['30 video analyses / month', '30 hook checks / month', '30 script checks / month'], period: '/month', features: ['Hook score & rewrites', 'Weak spot breakdown', 'Channel profile context', 'Retention insights on your videos'], cta: 'Get Plus', popular: false, highlight: false },
               { name: 'Pro', price: '$9.99', quotas: ['Unlimited video analyses', 'Unlimited hook checks', 'Unlimited script checks'], period: '/month', note: 'or $59.99/yr, 50% off', features: ['Everything in Plus', 'Highest monthly limits'], cta: 'Get Pro', popular: true, highlight: true },
             ].map((plan, i) => (
               <RevealSection key={plan.name} delay={i * 80}>
