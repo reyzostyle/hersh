@@ -34,9 +34,17 @@ const HOOK_STAGES: Stage[] = [
   { label: 'Drafting fresh angles...', duration: 2500, target: 96 },
 ];
 
+const SCRIPT_STAGES: Stage[] = [
+  { label: 'Reading your script...', duration: 1500, target: 18 },
+  { label: 'Scoring the hook...', duration: 2000, target: 42 },
+  { label: 'Checking pacing and retention...', duration: 2000, target: 62 },
+  { label: 'Judging the payoff...', duration: 2000, target: 78 },
+  { label: 'Finding what holds it back...', duration: 2500, target: 96 },
+];
+
 interface Props {
   open: boolean;
-  mode: 'url' | 'upload' | 'hook';
+  mode: 'url' | 'upload' | 'hook' | 'script';
   done: boolean;
 }
 
@@ -54,7 +62,7 @@ export function AnalysisProgressModal({ open, mode, done }: Props) {
       return;
     }
 
-    const stages = mode === 'upload' ? UPLOAD_STAGES : mode === 'hook' ? HOOK_STAGES : URL_STAGES;
+    const stages = mode === 'upload' ? UPLOAD_STAGES : mode === 'hook' ? HOOK_STAGES : mode === 'script' ? SCRIPT_STAGES : URL_STAGES;
     let elapsed = 0;
 
     stages.forEach((stage, i) => {
@@ -86,7 +94,7 @@ export function AnalysisProgressModal({ open, mode, done }: Props) {
 
   if (!open) return null;
 
-  const title = mode === 'hook' ? 'Analyzing your hook' : 'Analyzing your Short';
+  const title = mode === 'hook' ? 'Analyzing your hook' : mode === 'script' ? 'Analyzing your script' : 'Analyzing your Short';
 
   return createPortal(
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">

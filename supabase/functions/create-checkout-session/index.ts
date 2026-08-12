@@ -34,30 +34,35 @@ Deno.serve(async (req: Request) => {
     }
     const userId = user.id;
 
-    const { priceId: requestedPriceId, plan } = await req.json();
+    const { plan, interval } = await req.json();
 
-    // Resolve the active price from the Stripe product, so price changes in
-    // Stripe take effect without redeploying. Falls back to a price ID if a
-    // product is not configured for the plan.
-    const proProductId = Deno.env.get('STRIPE_PRO_PRODUCT_ID');       // plan 'pro'    = Hershy Plus
-    const agencyProductId = Deno.env.get('STRIPE_AGENCY_PRODUCT_ID'); // plan 'agency' = Hershy Pro
+    // Plus and Pro each have a separate Stripe Product per billing interval
+    // (4 products total) rather than one product with two prices — that's
+    // how they were created in the Stripe dashboard, so resolution is a
+    // plan+interval -> product lookup, then that product's default_price.
+    // Nothing price-related is ever trusted from the client.
+    const PRODUCT_ID_ENV: Record<string, Record<string, string>> = {
+      pro: { month: 'STRIPE_PRO_MONTHLY_PRODUCT_ID', year: 'STRIPE_PRO_YEARLY_PRODUCT_ID' },       // Hershy Plus
+      agency: { month: 'STRIPE_AGENCY_MONTHLY_PRODUCT_ID', year: 'STRIPE_AGENCY_YEARLY_PRODUCT_ID' }, // Hershy Pro
+    };
 
-    const productId = plan === 'pro' ? proProductId : plan === 'agency' ? agencyProductId : null;
+    const billingInterval = interval === 'year' ? 'year' : 'month';
+    const productEnvVar = PRODUCT_ID_ENV[plan]?.[billingInterval];
+    const productId = productEnvVar ? Deno.env.get(productEnvVar) : null;
+    if (!productId) throw new Error('No price configured for this plan');
 
-    let priceId = requestedPriceId;
-    if (productId) {
-      const product = await stripe.products.retrieve(productId);
-      const dp = product.default_price;
-      if (typeof dp === 'string') {
-        priceId = dp;
-      } else if (dp && typeof dp === 'object' && 'id' in dp) {
-        priceId = dp.id;
-      } else {
-        // No default price set — pick the first active recurring price.
-        const prices = await stripe.prices.list({ product: productId, active: true, limit: 10 });
-        const recurring = prices.data.find((p) => p.recurring) || prices.data[0];
-        if (recurring) priceId = recurring.id;
-      }
+    const product = await stripe.products.retrieve(productId);
+    const dp = product.default_price;
+    let priceId: string | undefined;
+    if (typeof dp === 'string') {
+      priceId = dp;
+    } else if (dp && typeof dp === 'object' && 'id' in dp) {
+      priceId = dp.id;
+    } else {
+      // No default price set — pick the first active recurring price.
+      const prices = await stripe.prices.list({ product: productId, active: true, limit: 10 });
+      const recurring = prices.data.find((p) => p.recurring) || prices.data[0];
+      priceId = recurring?.id;
     }
 
     if (!priceId) throw new Error('No price configured for this plan');

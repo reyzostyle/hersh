@@ -81,6 +81,15 @@ export function TermsOfService() {
               are non-refundable except where required by law. We may change pricing with reasonable notice;
               changes apply to subsequent billing periods.
             </p>
+            <p className="mt-3">
+              Plans marketed as unlimited are subject to a fair-use allowance of approximately 100 uses per
+              category per billing month (video analyses, hook checks, and script checks are each tracked
+              separately), which resets at the start of each billing month. The large majority of users never
+              approach this allowance. We may change these allowances and factors at any time. If you reach
+              the allowance and have a genuine need for more, contact us and we will work with you on a
+              custom plan. We may slow, suspend, queue, or decline further processing for usage that exceeds
+              the fair-use allowance or that we reasonably determine to be abusive, fraudulent, or automated.
+            </p>
           </Section>
 
           <Section title="7. Intellectual property">

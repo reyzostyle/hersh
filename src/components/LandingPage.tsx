@@ -401,7 +401,7 @@ function ShortsWall() {
 // ─── Pricing card (collapsible features) ──────────────────────────────────────
 
 interface Plan {
-  name: string; price: string; quotas: string[]; period: string;
+  name: string; price: string; quotas: string[]; period: string; note?: string;
   features: string[]; cta: string; popular: boolean; highlight: boolean;
 }
 
@@ -433,6 +433,7 @@ function PricingCard({ plan, onSelect }: { plan: Plan; onSelect: () => void }) {
           <span className="text-3xl font-bold text-white">{plan.price}</span>
           <span className="text-sm text-gray-500">{plan.period}</span>
         </div>
+        {plan.note && <p className="text-xs text-gray-600 mt-0.5">{plan.note}</p>}
         {/* Monthly quotas — the numbers people actually compare */}
         <div className="mt-2.5 space-y-1.5">
           {plan.quotas.map(q => (
@@ -683,9 +684,9 @@ export function LandingPage() {
           </RevealSection>
           <div className="grid md:grid-cols-3 gap-4">
             {[
-              { name: 'Free', price: '$0', quotas: ['3 video analyses to start', '10 hook checks / month'], period: 'free forever', features: ['Hook score & rewrites', 'Weak spot breakdown', 'Video file upload'], cta: 'Start free', popular: false, highlight: false },
-              { name: 'Plus', price: '$19', quotas: ['30 video analyses / month', '50 hook checks / month'], period: '/month', features: ['Everything in Free', 'Channel profile context', 'Retention insights on your videos'], cta: 'Get Plus', popular: true, highlight: true },
-              { name: 'Pro', price: '$29', quotas: ['100 video analyses / month', '200 hook checks / month'], period: '/month', features: ['Everything in Plus', 'Highest monthly limits'], cta: 'Get Pro', popular: false, highlight: false },
+              { name: 'Free', price: '$0', quotas: ['3 video analyses to start', '10 hook checks / month', '10 script checks / month'], period: 'free forever', features: ['Hook score & rewrites', 'Weak spot breakdown', 'Video file upload'], cta: 'Start free', popular: false, highlight: false },
+              { name: 'Plus', price: '$4.99', quotas: ['30 video analyses / month', '30 hook checks / month', '30 script checks / month'], period: '/month', features: ['Everything in Free', 'Channel profile context', 'Retention insights on your videos'], cta: 'Get Plus', popular: false, highlight: false },
+              { name: 'Pro', price: '$9.99', quotas: ['Unlimited video analyses', 'Unlimited hook checks', 'Unlimited script checks'], period: '/month', note: 'or $59.99/yr, 50% off', features: ['Everything in Plus', 'Highest monthly limits'], cta: 'Get Pro', popular: true, highlight: true },
             ].map((plan, i) => (
               <RevealSection key={plan.name} delay={i * 80}>
                 <PricingCard plan={plan} onSelect={() => setAuthModal('signup')} />

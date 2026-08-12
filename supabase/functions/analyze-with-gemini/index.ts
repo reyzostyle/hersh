@@ -453,8 +453,11 @@ Deno.serve(async (req: Request) => {
     const analysesLimit = userEmail === 'reyzostyle@gmail.com' ? Infinity : (PLAN_LIMITS[plan] ?? 3) + bonusAnalyses;
 
     if (analysesUsed >= analysesLimit) {
+      const message = plan === 'agency'
+        ? "You've hit this month's fair-use limit for video analyses. Contact us if you need more."
+        : 'Analysis limit reached. Please upgrade your plan.';
       return new Response(
-        JSON.stringify({ error: 'Analysis limit reached. Please upgrade your plan.' }),
+        JSON.stringify({ error: message }),
         { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }

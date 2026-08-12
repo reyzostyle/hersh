@@ -1,4 +1,4 @@
-import { Sparkles, Wand2, Trophy, Scissors, Users, ArrowRight } from 'lucide-react';
+import { Sparkles, Trophy, Scissors, Users, ArrowRight } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { NavTab, HIDDEN_TABS } from './AppShell';
 
@@ -17,15 +17,9 @@ interface Tool {
 const tools: Tool[] = [
   {
     id: 'hooks',
-    label: 'Analysis',
-    description: 'Score any short and see the exact second where it starts losing people.',
+    label: 'Analyze',
+    description: 'Score a video, hook, or script and see exactly where it loses people.',
     icon: <Sparkles className="w-5 h-5" />,
-  },
-  {
-    id: 'hooklab',
-    label: 'Hook Lab',
-    description: 'Test hook lines before you spend a whole day filming the video.',
-    icon: <Wand2 className="w-5 h-5" />,
   },
   {
     id: 'rank',

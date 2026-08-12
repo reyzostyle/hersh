@@ -110,7 +110,10 @@ export function AdminPage() {
   }
 
   const paying = stats.plan_plus + stats.plan_pro;
-  const mrr = stats.plan_plus * 19 + stats.plan_pro * 29;
+  // Approximation: assumes every subscriber is on monthly billing. Yearly
+  // subscribers (flat $59.99/yr on both plans) actually contribute less
+  // per month than this — stats doesn't currently track billing interval.
+  const mrr = stats.plan_plus * 4.99 + stats.plan_pro * 9.99;
   const revenue28d = stats.revenue_28d_cents / 100;
 
   return (
@@ -132,7 +135,7 @@ export function AdminPage() {
         icon="💰"
         label="Monthly recurring revenue"
         value={`$${mrr.toLocaleString()}`}
-        sub={`Plus ${stats.plan_plus} × $19 · Pro ${stats.plan_pro} × $29`}
+        sub={`Plus ${stats.plan_plus} × $4.99 · Pro ${stats.plan_pro} × $9.99`}
         color="#34D399"
       />
       <StatCard

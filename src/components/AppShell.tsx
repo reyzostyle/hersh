@@ -1,5 +1,5 @@
 import { useState, useEffect, createContext, useContext, useRef } from 'react';
-import { Sparkles, Settings, LogOut, Menu, X, Zap, Users, Handshake, Wand2, Trophy, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
+import { Sparkles, Settings, LogOut, Menu, X, Zap, Users, Handshake, Trophy, BarChart2, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
 
@@ -17,7 +17,7 @@ export const MobileHeaderContext = createContext<{
   setRightAction: (node: React.ReactNode) => void;
 }>({ setRightAction: () => {} });
 
-export type NavTab = 'home' | 'hooks' | 'hooklab' | 'rank' | 'clips' | 'upgrade' | 'settings' | 'partners' | 'competitors' | 'admin';
+export type NavTab = 'home' | 'hooks' | 'rank' | 'clips' | 'usage' | 'upgrade' | 'settings' | 'partners' | 'competitors' | 'admin';
 
 // Feature flags: tabs hidden from ALL users (incl. admin). Kept in code so they
 // can be re-enabled instantly by removing them from this list.
@@ -42,10 +42,10 @@ interface AppShellProps {
 // Clip Engine intentionally has no sidebar entry — it's reached from the Home
 // hub card instead, so the sidebar stays short.
 const baseNavItems: NavItem[] = [
-  { id: 'hooks', label: 'Analysis', icon: <Sparkles className="w-4 h-4" /> },
-  { id: 'hooklab', label: 'Hook Lab', icon: <Wand2 className="w-4 h-4" /> },
+  { id: 'hooks', label: 'Analyze', icon: <Sparkles className="w-4 h-4" /> },
   { id: 'rank', label: 'Rank', icon: <Trophy className="w-4 h-4" /> },
   { id: 'competitors', label: 'Competitors', icon: <Users className="w-4 h-4" /> },
+  { id: 'usage', label: 'Usage', icon: <BarChart2 className="w-4 h-4" /> },
   { id: 'upgrade', label: 'Upgrade', icon: <Zap className="w-4 h-4" />, highlight: true },
   { id: 'settings', label: 'Settings', icon: <Settings className="w-4 h-4" /> },
 ];
@@ -98,6 +98,33 @@ export function AppShell({ activeTab, onTabChange, children }: AppShellProps) {
     .flatMap(item => (item.id === 'upgrade' && (isAdmin || isPartner) ? [partnersItem, item] : [item]))
     .filter(item => !HIDDEN_TABS.includes(item.id));
 
+  const BOTTOM_TAB_IDS: NavTab[] = ['partners', 'usage', 'upgrade', 'settings'];
+  const topNavItems = navItems.filter(item => !BOTTOM_TAB_IDS.includes(item.id));
+  const bottomNavItems = navItems.filter(item => BOTTOM_TAB_IDS.includes(item.id));
+
+  const renderNavButton = (item: NavItem) => (
+    <button
+      key={item.id}
+      onClick={() => { onTabChange(item.id); setMobileOpen(false); }}
+      title={item.label}
+      className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all ${
+        activeTab === item.id
+          ? 'bg-[#0EA4E9]/15 text-[#0EA4E9] ring-1 ring-inset ring-[#0EA4E9]/20'
+          : item.highlight
+          ? 'text-amber-400 hover:text-amber-300 hover:bg-amber-400/10'
+          : 'text-gray-400 hover:text-white hover:bg-white/5'
+      }`}
+    >
+      {item.icon}
+      <span className={`flex-1 text-left whitespace-nowrap ${collapsed ? 'lg:hidden' : ''}`}>{item.label}</span>
+      {item.badge && (
+        <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full flex-shrink-0 ${collapsed ? 'lg:hidden' : ''}`} style={{ background: 'rgba(14,164,233,0.12)', color: '#0EA4E9' }}>
+          {item.badge}
+        </span>
+      )}
+    </button>
+  );
+
   return (
     <div className="flex overflow-hidden relative" style={{ background: 'linear-gradient(160deg, #0A0F1A 0%, #0D1B2A 100%)', maxWidth: '100vw', height: '100dvh' }}>
       <svg
@@ -144,29 +171,16 @@ export function AppShell({ activeTab, onTabChange, children }: AppShellProps) {
           </button>
         </div>
 
-        <nav className="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto">
-          {navItems.map(item => (
-            <button
-              key={item.id}
-              onClick={() => { onTabChange(item.id); setMobileOpen(false); }}
-              title={item.label}
-              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all ${
-                activeTab === item.id
-                  ? 'bg-[#0EA4E9]/15 text-[#0EA4E9] ring-1 ring-inset ring-[#0EA4E9]/20'
-                  : item.highlight
-                  ? 'text-amber-400 hover:text-amber-300 hover:bg-amber-400/10'
-                  : 'text-gray-400 hover:text-white hover:bg-white/5'
-              }`}
-            >
-              {item.icon}
-              <span className={`flex-1 text-left whitespace-nowrap ${collapsed ? 'lg:hidden' : ''}`}>{item.label}</span>
-              {item.badge && (
-                <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full flex-shrink-0 ${collapsed ? 'lg:hidden' : ''}`} style={{ background: 'rgba(14,164,233,0.12)', color: '#0EA4E9' }}>
-                  {item.badge}
-                </span>
-              )}
-            </button>
-          ))}
+        <nav className="flex-1 flex flex-col px-3 py-4 overflow-y-auto">
+          <div className="space-y-0.5">
+            {topNavItems.map(item => renderNavButton(item))}
+          </div>
+          {/* Upgrade/Partners/Settings sit apart from the main tools, pinned
+              toward the bottom of the sidebar (just above Sign Out) instead
+              of inline in the tool list. */}
+          <div className="mt-auto pt-4 space-y-0.5" style={{ borderTop: '1px solid rgba(255,255,255,0.08)' }}>
+            {bottomNavItems.map(item => renderNavButton(item))}
+          </div>
         </nav>
 
         <div className="px-3 py-4 flex-shrink-0 space-y-1" style={{ borderTop: '1px solid rgba(255,255,255,0.08)' }}>

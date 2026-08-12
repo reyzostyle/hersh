@@ -10,7 +10,7 @@ const corsHeaders = {
 const ADMIN_EMAIL = 'reyzostyle@gmail.com';
 // Hook Lab has its OWN monthly quota (separate from video analyses).
 // Free = 10 hook checks / month (resets monthly).
-const HOOK_LIMITS: Record<string, number> = { free: 10, pro: 50, agency: 200 };
+const HOOK_LIMITS: Record<string, number> = { free: 10, pro: 30, agency: 100 };
 
 const stripDashes = (s: unknown): unknown => {
   if (typeof s === 'string') return s.replace(/[—–]/g, '-');
@@ -77,7 +77,10 @@ Deno.serve(async (req: Request) => {
     const hooksLimit = isAdmin ? Infinity : (HOOK_LIMITS[plan] ?? 10) + bonusHooks;
 
     if (hooksUsed >= hooksLimit) {
-      return new Response(JSON.stringify({ error: "You've used all your hook checks this month. Upgrade for more." }), { status: 403, headers: corsHeaders });
+      const message = plan === 'agency'
+        ? "You've hit this month's fair-use limit for hook checks. Contact us if you need more."
+        : "You've used all your hook checks this month. Upgrade for more.";
+      return new Response(JSON.stringify({ error: message }), { status: 403, headers: corsHeaders });
     }
 
     // ── Build prompt ──────────────────────────────────────────────────────────

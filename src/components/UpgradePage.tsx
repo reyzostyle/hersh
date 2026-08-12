@@ -1,39 +1,31 @@
-import { useState, useEffect } from 'react';
-import { useAuth } from '../contexts/AuthContext';
-import { supabase, getSessionToken, fetchWithRetry } from '../lib/supabase';
-import { Zap, Check, Loader2, BarChart2, RefreshCw } from 'lucide-react';
+import { useState } from 'react';
+import { getSessionToken, fetchWithRetry } from '../lib/supabase';
+import { Zap, Check, Loader2 } from 'lucide-react';
 import { ErrorNotice } from './ErrorNotice';
+import { useUsage } from '../lib/useUsage';
 
-const PLAN_LIMITS: Record<string, number> = { free: 3, pro: 30, agency: 100 };
-const HOOK_LIMITS: Record<string, number> = { free: 10, pro: 50, agency: 200 };
+type Interval = 'month' | 'year';
 
-interface UsageData {
-  plan: string;
-  analysesUsed: number;
-  analysesLimit: number;
-  hooksUsed: number;
-  hooksLimit: number;
-  canAnalyze: boolean;
+interface Plan {
+  id: string;
+  name: string;
+  monthlyPrice: number | null; // billed monthly
+  yearlyTotal: number | null;  // total charged once/year (not a monthly rate)
+  quotas: string[];
+  features: string[];
+  cta: string;
 }
 
-const PLUS_PRICE_ID = import.meta.env.VITE_STRIPE_PRO_PRICE_ID;
-const PRO_PRICE_ID = import.meta.env.VITE_STRIPE_AGENCY_PRICE_ID;
-
-// DB value → display name
-const PLAN_DISPLAY: Record<string, string> = {
-  free: 'Trial',
-  pro: 'Plus',
-  agency: 'Pro',
-};
-
-const plans = [
+// Actual Stripe prices (both plans' yearly total is $59.99 — annual
+// commitment converges Plus and Pro to the same rate; Plus just has less
+// room to fall since its monthly price is already low).
+const plans: Plan[] = [
   {
     id: 'free',
     name: 'Free',
-    price: '$0',
-    period: 'free forever',
-    quotas: ['3 video analyses to start', '10 hook checks / month'],
-    priceId: null,
+    monthlyPrice: 0,
+    yearlyTotal: 0,
+    quotas: ['3 video analyses to start', '10 hook checks / month', '10 script checks / month'],
     features: [
       'Hook score & assessment',
       'Weak spot breakdown',
@@ -46,10 +38,9 @@ const plans = [
   {
     id: 'pro',
     name: 'Plus',
-    price: '$19',
-    period: '/month',
-    quotas: ['30 video analyses / month', '50 hook checks / month'],
-    priceId: PLUS_PRICE_ID,
+    monthlyPrice: 4.99,
+    yearlyTotal: 59.99,
+    quotas: ['30 video analyses / month', '30 hook checks / month', '30 script checks / month'],
     features: [
       'Everything in Free',
       'Hook score & assessment',
@@ -63,10 +54,9 @@ const plans = [
   {
     id: 'agency',
     name: 'Pro',
-    price: '$29',
-    period: '/month',
-    quotas: ['100 video analyses / month', '200 hook checks / month'],
-    priceId: PRO_PRICE_ID,
+    monthlyPrice: 9.99,
+    yearlyTotal: 59.99,
+    quotas: ['Unlimited video analyses', 'Unlimited hook checks', 'Unlimited script checks'],
     features: [
       'Everything in Plus',
       'Highest monthly limits',
@@ -76,48 +66,14 @@ const plans = [
 ];
 
 export function UpgradePage() {
-  const { user } = useAuth();
-  const [usage, setUsage] = useState<UsageData | null>(null);
-  const [loadingUsage, setLoadingUsage] = useState(true);
+  const { usage } = useUsage();
   const [checkingOut, setCheckingOut] = useState<string | null>(null);
   const [error, setError] = useState('');
-
-  useEffect(() => {
-    if (user) loadUsage();
-  }, [user?.id]);
-
-  const loadUsage = async () => {
-    if (!user) return;
-    setLoadingUsage(true);
-    setError('');
-    try {
-      const { data: tokenRow, error: dbError } = await supabase
-        .from('user_tokens')
-        .select('plan, analyses_used, analyses_reset_at, hooks_used, hooks_reset_at, bonus_analyses, bonus_hooks')
-        .eq('user_id', user.id)
-        .maybeSingle();
-
-      if (dbError) throw dbError;
-
-      const plan = tokenRow?.plan || 'free';
-      const analysesUsed = tokenRow?.analyses_used || 0;
-      const analysesLimit = (PLAN_LIMITS[plan] ?? 3) + (tokenRow?.bonus_analyses || 0);
-      const hooksUsed = tokenRow?.hooks_used || 0;
-      const hooksLimit = (HOOK_LIMITS[plan] ?? 10) + (tokenRow?.bonus_hooks || 0);
-      const canAnalyze = analysesUsed < analysesLimit;
-
-      setUsage({ plan, analysesUsed, analysesLimit, hooksUsed, hooksLimit, canAnalyze });
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load usage');
-    } finally {
-      setLoadingUsage(false);
-    }
-  };
+  const [interval, setBillingInterval] = useState<Interval>('month');
 
   const handleUpgrade = async (planId: string) => {
     setCheckingOut(planId);
     setError('');
-    const priceId = planId === 'pro' ? PLUS_PRICE_ID : PRO_PRICE_ID;
     try {
       const token = await getSessionToken();
       if (!token) { setError('Not authenticated'); setCheckingOut(null); return; }
@@ -129,7 +85,7 @@ export function UpgradePage() {
             Authorization: `Bearer ${token}`,
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({ priceId, plan: planId }),
+          body: JSON.stringify({ plan: planId, interval }),
         }
       );
       const data = await res.json();
@@ -143,95 +99,40 @@ export function UpgradePage() {
   };
 
   const currentPlan = usage?.plan || 'free';
-  const currentPlanDisplay = PLAN_DISPLAY[currentPlan] ?? currentPlan;
-  const usagePercent = usage ? Math.min((usage.analysesUsed / usage.analysesLimit) * 100, 100) : 0;
-  const hookPercent = usage ? Math.min((usage.hooksUsed / usage.hooksLimit) * 100, 100) : 0;
+  const proPlan = plans.find(p => p.id === 'agency')!;
+  const proYearlySavings = proPlan.monthlyPrice != null && proPlan.yearlyTotal != null
+    ? Math.round((proPlan.monthlyPrice * 12 - proPlan.yearlyTotal) * 100) / 100
+    : 0;
 
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 pt-4 sm:pt-6 pb-12 animate-fade-in-up">
         <div className="hidden lg:block mb-6">
           <h1 className="text-2xl font-bold text-white mb-1">Plans & Billing</h1>
-          <p className="text-sm text-gray-500">Manage your subscription and analysis usage</p>
+          <p className="text-sm text-gray-500">Compare plans and manage your subscription</p>
         </div>
       <div>
         {error && <ErrorNotice message={error} className="mb-6" />}
 
-        {/* Usage card */}
-        <div className="mb-6 sm:mb-8 p-4 sm:p-5 rounded-xl motion-card animate-fade-in-up delay-100 glass-panel">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-2 min-w-0">
-              <BarChart2 className="w-4 h-4 text-gray-400 flex-shrink-0" />
-              <span className="text-sm font-medium text-white flex-shrink-0">Usage this period</span>
-              {!loadingUsage && usage && (
-                <span className="ml-1.5 flex items-center gap-1.5 text-sm text-gray-500 min-w-0">
-                  <span className="text-gray-600">·</span>
-                  <span className="truncate">{currentPlanDisplay} Plan</span>
-                  {currentPlan !== 'free' && (
-                    <span className="text-[11px] px-2 py-0.5 bg-[#0EA4E9]/15 text-[#0EA4E9] rounded-full flex-shrink-0">Active</span>
-                  )}
-                </span>
-              )}
-            </div>
-            <button
-              onClick={loadUsage}
-              disabled={loadingUsage}
-              className="p-1.5 text-gray-500 hover:text-white transition-colors rounded-lg hover:bg-gray-800 flex-shrink-0"
-            >
-              <RefreshCw className={`w-3.5 h-3.5 ${loadingUsage ? 'animate-spin' : ''}`} />
-            </button>
+        {/* Billing interval toggle */}
+        <div className="flex flex-col items-center mb-6">
+          <div className="inline-flex p-1 rounded-full" style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.08)' }}>
+            {(['month', 'year'] as Interval[]).map(iv => (
+              <button
+                key={iv}
+                onClick={() => setBillingInterval(iv)}
+                className={`px-4 py-1.5 rounded-full text-sm font-medium transition-colors ${
+                  interval === iv ? 'bg-white text-gray-900' : 'text-gray-400 hover:text-white'
+                }`}
+              >
+                {iv === 'month' ? 'Monthly' : 'Yearly'}
+              </button>
+            ))}
           </div>
-
-          {loadingUsage ? (
-            <div className="flex items-center gap-2 text-gray-500 text-sm">
-              <Loader2 className="w-4 h-4 animate-spin" />
-              Loading usage...
-            </div>
-          ) : usage ? (
-            <>
-              {/* Video analyses */}
-              <div className="mb-2">
-                <span className="text-xs text-gray-500 mb-0.5 block">Video analyses</span>
-                <span className="text-3xl font-bold text-white leading-none">
-                  {usage.analysesUsed}
-                  <span className="text-lg text-gray-500 font-normal">/{usage.analysesLimit}</span>
-                </span>
-              </div>
-              <div className="w-full h-1.5 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.08)' }}>
-                <div
-                  className={`h-full rounded-full transition-all duration-500 ${
-                    usagePercent >= 90 ? 'bg-red-500' : usagePercent >= 70 ? 'bg-amber-500' : 'bg-[#0EA4E9]'
-                  }`}
-                  style={{ width: `${usagePercent}%` }}
-                />
-              </div>
-              <p className="mt-2 text-xs text-gray-600">
-                {usage.analysesLimit - usage.analysesUsed} analyses remaining
-                {currentPlan !== 'free' && ' this month'}
-              </p>
-
-              {/* Hook checks (Hook Lab) */}
-              <div className="mt-5 pt-5" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
-                <div className="mb-2">
-                  <span className="text-xs text-gray-500 mb-0.5 block">Hook checks</span>
-                  <span className="text-3xl font-bold text-white leading-none">
-                    {usage.hooksUsed}
-                    <span className="text-lg text-gray-500 font-normal">/{usage.hooksLimit}</span>
-                  </span>
-                </div>
-                <div className="w-full h-1.5 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.08)' }}>
-                  <div
-                    className={`h-full rounded-full transition-all duration-500 ${
-                      hookPercent >= 90 ? 'bg-red-500' : hookPercent >= 70 ? 'bg-amber-500' : 'bg-[#0EA4E9]'
-                    }`}
-                    style={{ width: `${hookPercent}%` }}
-                  />
-                </div>
-                <p className="mt-2 text-xs text-gray-600">
-                  {usage.hooksLimit - usage.hooksUsed} hook checks remaining this month
-                </p>
-              </div>
-            </>
-          ) : null}
+          {interval === 'year' && proYearlySavings > 0 && (
+            <p className="mt-2 text-xs font-medium" style={{ color: '#34D399' }}>
+              Save ${proYearlySavings.toFixed(2)}/yr on Pro, that's 50% off
+            </p>
+          )}
         </div>
 
         {/* Plans grid */}
@@ -242,7 +143,7 @@ export function UpgradePage() {
               (plan.id === 'pro' && currentPlan === 'free') ||
               (plan.id === 'agency' && (currentPlan === 'free' || currentPlan === 'pro'))
             );
-            const isPopular = plan.id === 'pro';
+            const isPopular = plan.id === 'agency';
 
             return (
               <div
@@ -263,10 +164,25 @@ export function UpgradePage() {
                     <Zap className={`w-4 h-4 ${plan.id === 'free' ? 'text-gray-500' : isPopular ? 'text-[#0EA4E9]' : 'text-[#0EA4E9]/70'}`} />
                     <span className="text-white font-semibold">{plan.name}</span>
                   </div>
-                  <div className="flex items-baseline gap-1 select-none">
-                    <span className="text-3xl font-bold text-white">{plan.price}</span>
-                    <span className="text-sm text-gray-500">{plan.period}</span>
-                  </div>
+                  {(() => {
+                    const isYearly = interval === 'year';
+                    const monthlyEquivalent = isYearly && plan.yearlyTotal != null ? plan.yearlyTotal / 12 : plan.monthlyPrice;
+                    const displayPrice = monthlyEquivalent === 0 ? '$0' : monthlyEquivalent != null ? `$${monthlyEquivalent.toFixed(2)}` : '—';
+                    const billedYearly = isYearly && plan.yearlyTotal != null && plan.yearlyTotal > 0
+                      ? `$${plan.yearlyTotal.toFixed(2)} billed yearly`
+                      : null;
+                    return (
+                      <>
+                        <div className="flex items-baseline gap-1 select-none">
+                          <span className="text-3xl font-bold text-white">{displayPrice}</span>
+                          {plan.id !== 'free' && <span className="text-sm text-gray-500">/month</span>}
+                        </div>
+                        <p className="text-xs text-gray-600 mt-0.5">
+                          {plan.id === 'free' ? 'free forever' : billedYearly ?? 'billed monthly'}
+                        </p>
+                      </>
+                    );
+                  })()}
                   {/* Monthly quotas — the numbers people actually compare */}
                   <div className="mt-2.5 space-y-1.5">
                     {plan.quotas.map(q => (
