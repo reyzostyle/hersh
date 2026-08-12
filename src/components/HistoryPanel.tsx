@@ -86,10 +86,11 @@ export function HistoryPanel({ analyses, videos, open, onClose, onSelect }: Hist
         }}
       >
         <SheetGrip onClose={onClose} panelRef={panelRef} />
-        <div className="flex items-center justify-between px-5 sm:px-6 py-1 sm:py-4 flex-shrink-0" style={{ borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
-          <div className="flex items-center gap-2.5">
+        {/* Icon-only header — a title next to the grip's centered pill
+            collided with it on mobile, see AnalysisPanel for the same fix. */}
+        <div className="flex items-center justify-between px-3 sm:px-4 py-1 sm:py-2 flex-shrink-0">
+          <div className="flex items-center gap-2 ml-1">
             <History className="w-5 h-5 text-[#0EA4E9]" />
-            <h2 className="text-lg font-bold text-white">History</h2>
             {analyses.length > 0 && (
               <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-gray-700/60 text-gray-400 border border-gray-600/40">
                 {analyses.length}

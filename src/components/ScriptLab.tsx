@@ -194,11 +194,10 @@ export function ScriptLab() {
             }}
           >
             <SheetGrip onClose={() => setResultOpen(false)} panelRef={panelRef} />
-            <div className="flex items-center justify-between px-5 sm:px-6 py-1 sm:py-4 flex-shrink-0" style={{ borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
-              <div className="flex items-center gap-2.5">
-                <FileText className="w-5 h-5 text-[#0EA4E9]" />
-                <h2 className="text-lg font-bold text-white">Script analysis</h2>
-              </div>
+            {/* Icon-only header — a title next to the grip's centered pill
+                collided with it on mobile, see AnalysisPanel for the same fix. */}
+            <div className="flex items-center justify-between px-3 sm:px-4 py-1 sm:py-2 flex-shrink-0">
+              <FileText className="w-5 h-5 text-[#0EA4E9] ml-1" />
               <button
                 onClick={dismiss}
                 className="p-2 text-gray-400 hover:text-white hover:bg-gray-800 rounded-lg transition-colors"
