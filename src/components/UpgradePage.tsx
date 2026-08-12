@@ -62,7 +62,7 @@ export function UpgradePage() {
   const { usage } = useUsage();
   const [checkingOut, setCheckingOut] = useState<string | null>(null);
   const [error, setError] = useState('');
-  const [interval, setBillingInterval] = useState<Interval>('month');
+  const [interval, setBillingInterval] = useState<Interval>('year');
 
   const handleUpgrade = async (planId: string) => {
     setCheckingOut(planId);
@@ -163,9 +163,15 @@ export function UpgradePage() {
                     const billedYearly = isYearly && plan.yearlyTotal != null
                       ? `$${plan.yearlyTotal.toFixed(2)} billed yearly`
                       : null;
+                    // Only show a struck-through "was" price when yearly billing
+                    // actually undercuts the monthly rate (Plus doesn't).
+                    const showWasPrice = isYearly && plan.monthlyPrice != null && displayPrice != null && plan.monthlyPrice > displayPrice;
                     return (
                       <>
-                        <div className="flex items-baseline gap-1 select-none">
+                        <div className="flex items-baseline gap-1.5 select-none">
+                          {showWasPrice && (
+                            <span className="text-lg text-gray-600 line-through">${plan.monthlyPrice!.toFixed(2)}</span>
+                          )}
                           <span className="text-3xl font-bold text-white">{displayPrice != null ? `$${displayPrice.toFixed(2)}` : '—'}</span>
                           <span className="text-sm text-gray-500">/month</span>
                         </div>
