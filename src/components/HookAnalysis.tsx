@@ -372,6 +372,14 @@ export function HookAnalysis() {
               </div>
             ) : (
               <div className="flex items-center gap-1.5 px-1.5">
+                <input
+                  type="text"
+                  value={urlInput}
+                  onChange={e => { setUrlInput(e.target.value); setUrlError(''); }}
+                  onKeyDown={e => e.key === 'Enter' && urlInput.trim() && !geminiAnalyzing && handleUrlSubmit()}
+                  placeholder="Paste link"
+                  className="flex-1 min-w-0 px-2 py-5 sm:py-6 bg-transparent text-white text-[15px] focus:outline-none placeholder:text-gray-600"
+                />
                 <button
                   type="button"
                   onClick={() => fileInputRef.current?.click()}
@@ -381,14 +389,6 @@ export function HookAnalysis() {
                 >
                   <Plus className="w-4 h-4" />
                 </button>
-                <input
-                  type="text"
-                  value={urlInput}
-                  onChange={e => { setUrlInput(e.target.value); setUrlError(''); }}
-                  onKeyDown={e => e.key === 'Enter' && urlInput.trim() && !geminiAnalyzing && handleUrlSubmit()}
-                  placeholder="Paste link"
-                  className="flex-1 min-w-0 px-2 py-5 sm:py-6 bg-transparent text-white text-[15px] focus:outline-none placeholder:text-gray-600"
-                />
               </div>
             )}
 
