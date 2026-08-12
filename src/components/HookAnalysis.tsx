@@ -307,7 +307,7 @@ export function HookAnalysis() {
   const analyzing = geminiAnalyzing || uploadAnalyzing;
 
   return (
-    <div className="h-full flex flex-col">
+    <div className="h-full flex flex-col animate-fade-in-up">
       {/* Header — only past `lg`, where AppShell's own header (which carries the
           tab name and this same History button) stops rendering. At `sm` both
           were on screen at once, showing History twice. */}
