@@ -1,5 +1,6 @@
 import { createClient } from 'npm:@supabase/supabase-js@2.57.4';
 import { callLLM } from '../_shared/llm.ts';
+import { loadCreditStatus, canAfford, spendCredits, CREDIT_COSTS } from '../_shared/credits.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -426,36 +427,22 @@ Deno.serve(async (req: Request) => {
     // Check plan limits
     const { data: tokenRow } = await supabase
       .from('user_tokens')
-      .select('plan, analyses_used, analyses_reset_at, bonus_analyses, channel_niche, channel_description, channel_context, creator_level, access_token, refresh_token, token_expiry')
+      .select('plan, channel_niche, channel_description, channel_context, creator_level, access_token, refresh_token, token_expiry')
       .eq('user_id', userId)
       .maybeSingle();
 
-    const PLAN_LIMITS: Record<string, number> = { free: 3, pro: 30, agency: 100 };
     const plan = tokenRow?.plan || 'free';
-    let analysesUsed = tokenRow?.analyses_used || 0;
-    let bonusAnalyses = tokenRow?.bonus_analyses || 0;
+    const isAdmin = userEmail === 'reyzostyle@gmail.com';
 
-    // Free video analyses are lifetime (3 total). Monthly reset for paid plans only.
-    if (plan !== 'free' && tokenRow?.analyses_reset_at) {
-      const resetAt = new Date(tokenRow.analyses_reset_at);
-      if (new Date() > resetAt) {
-        const newResetAt = new Date();
-        newResetAt.setDate(newResetAt.getDate() + 30);
-        await supabase
-          .from('user_tokens')
-          .update({ analyses_used: 0, analyses_reset_at: newResetAt.toISOString(), bonus_analyses: 0 })
-          .eq('user_id', userId);
-        analysesUsed = 0;
-        bonusAnalyses = 0;
-      }
-    }
-
-    const analysesLimit = userEmail === 'reyzostyle@gmail.com' ? Infinity : (PLAN_LIMITS[plan] ?? 3) + bonusAnalyses;
-
-    if (analysesUsed >= analysesLimit) {
+    // Every plan, including free, spends from the shared credit pool — free's
+    // allowance is just a one-time grant that never resets (_shared/credits.ts).
+    const creditStatus = await loadCreditStatus(supabase, userId);
+    if (!canAfford(creditStatus, CREDIT_COSTS.video_analysis, isAdmin)) {
       const message = plan === 'agency'
-        ? "You've hit this month's fair-use limit for video analyses. Contact us if you need more."
-        : 'Analysis limit reached. Please upgrade your plan.';
+        ? "You've hit this month's fair-use credit limit. Contact us if you need more."
+        : plan === 'free'
+          ? 'Your free credits are used up. Upgrade to keep analyzing.'
+          : "You've used all your credits this month. Upgrade for more.";
       return new Response(
         JSON.stringify({ error: message }),
         { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -572,10 +559,7 @@ Deno.serve(async (req: Request) => {
 
     if (analysisError) throw analysisError;
 
-    await supabase
-      .from('user_tokens')
-      .update({ analyses_used: analysesUsed + 1 })
-      .eq('user_id', userId);
+    await spendCredits(supabase, userId, creditStatus, CREDIT_COSTS.video_analysis);
 
     return new Response(
       JSON.stringify({ success: true, analysis: analysisData, gemini: geminiData }),

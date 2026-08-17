@@ -1,5 +1,6 @@
 import { createClient } from 'npm:@supabase/supabase-js@2.57.4';
 import { callLLM } from '../_shared/llm.ts';
+import { loadCreditStatus, canAfford, spendCredits, CREDIT_COSTS } from '../_shared/credits.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -9,10 +10,6 @@ const corsHeaders = {
 
 const ADMIN_EMAIL = 'reyzostyle@gmail.com';
 const MAX_SCRIPT_CHARS = 5000;
-// Script analysis has its OWN monthly quota — separate from Hook Lab's
-// hooks_used, and unrelated to script_used (competitor-script generation in
-// generate-competitor-script, a different feature).
-const SCRIPT_ANALYSIS_LIMITS: Record<string, number> = { free: 10, pro: 30, agency: 100 };
 
 const stripDashes = (s: unknown): unknown => {
   if (typeof s === 'string') return s.replace(/[—–]/g, '-');
@@ -53,35 +50,20 @@ Deno.serve(async (req: Request) => {
       return new Response(JSON.stringify({ error: `Script too long (max ${MAX_SCRIPT_CHARS} chars)` }), { status: 400, headers: corsHeaders });
     }
 
-    // ── Usage / plan (Script analysis has its own monthly quota: script_analyses_used) ─
+    // ── Usage / plan (shared credit pool — see _shared/credits.ts) ────────────
     const { data: tokenRow } = await supabase
       .from('user_tokens')
-      .select('plan, script_analyses_used, script_analyses_reset_at, bonus_script_analyses, channel_niche, channel_description, creator_level')
+      .select('plan, channel_niche, channel_description, creator_level')
       .eq('user_id', userId)
       .maybeSingle();
 
-    const plan = tokenRow?.plan || 'free';
-    let scriptAnalysesUsed = tokenRow?.script_analyses_used || 0;
-    let bonusScriptAnalyses = tokenRow?.bonus_script_analyses || 0;
+    const creditStatus = await loadCreditStatus(supabase, userId);
+    const cost = CREDIT_COSTS.script_check;
 
-    // Quota resets monthly for EVERY plan (incl. free), same as Hook Lab.
-    if (tokenRow?.script_analyses_reset_at) {
-      const resetAt = new Date(tokenRow.script_analyses_reset_at);
-      if (new Date() > resetAt) {
-        const newResetAt = new Date();
-        newResetAt.setDate(newResetAt.getDate() + 30);
-        await supabase.from('user_tokens').update({ script_analyses_used: 0, script_analyses_reset_at: newResetAt.toISOString(), bonus_script_analyses: 0 }).eq('user_id', userId);
-        scriptAnalysesUsed = 0;
-        bonusScriptAnalyses = 0;
-      }
-    }
-
-    const scriptAnalysesLimit = isAdmin ? Infinity : (SCRIPT_ANALYSIS_LIMITS[plan] ?? 10) + bonusScriptAnalyses;
-
-    if (scriptAnalysesUsed >= scriptAnalysesLimit) {
-      const message = plan === 'agency'
-        ? "You've hit this month's fair-use limit for script checks. Contact us if you need more."
-        : "You've used all your script checks this month. Upgrade for more.";
+    if (!canAfford(creditStatus, cost, isAdmin)) {
+      const message = creditStatus.plan === 'agency'
+        ? "You've hit this month's fair-use credit limit. Contact us if you need more."
+        : "You've used all your credits this month. Upgrade for more.";
       return new Response(JSON.stringify({ error: message }), { status: 403, headers: corsHeaders });
     }
 
@@ -180,14 +162,7 @@ Respond with valid JSON only:
     }
     result = stripDashes(result);
 
-    // Count this script check toward the monthly script-analysis quota
-    await supabase
-      .from('user_tokens')
-      .update({
-        script_analyses_used: scriptAnalysesUsed + 1,
-        script_analyses_reset_at: tokenRow?.script_analyses_reset_at ?? new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
-      })
-      .eq('user_id', userId);
+    await spendCredits(supabase, userId, creditStatus, cost);
 
     return new Response(JSON.stringify(result), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
   } catch (error) {

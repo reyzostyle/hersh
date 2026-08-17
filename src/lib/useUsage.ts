@@ -2,9 +2,21 @@ import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from './supabase';
 
-export const PLAN_LIMITS: Record<string, number> = { free: 3, pro: 30, agency: 100 };
-export const HOOK_LIMITS: Record<string, number> = { free: 10, pro: 30, agency: 100 };
-export const SCRIPT_ANALYSIS_LIMITS: Record<string, number> = { free: 10, pro: 30, agency: 100 };
+// Mirrors supabase/functions/_shared/credits.ts — kept in sync manually,
+// same as the rest of this app's plan-limit constants (no shared package
+// between edge functions and the client). Free's allowance is a ONE-TIME
+// grant (see credits.ts's loadCreditStatus) — that's the entire free tier,
+// no separate trial mechanism. See credits.ts for how these numbers were
+// picked (worst-case $ budget, compressed real-cost ratios).
+export const CREDIT_LIMITS: Record<string, number> = { free: 50, pro: 300, agency: 1000 };
+export const CREDIT_COSTS = {
+  video_analysis: 5,
+  hook_check: 2,
+  script_check: 3,
+  competitor_idea: 1,
+  competitor_outline: 1,
+  competitor_script: 1,
+} as const;
 
 // DB value → display name
 export const PLAN_DISPLAY: Record<string, string> = {
@@ -15,12 +27,8 @@ export const PLAN_DISPLAY: Record<string, string> = {
 
 export interface UsageData {
   plan: string;
-  analysesUsed: number;
-  analysesLimit: number;
-  hooksUsed: number;
-  hooksLimit: number;
-  scriptAnalysesUsed: number;
-  scriptAnalysesLimit: number;
+  creditsUsed: number;
+  creditsLimit: number;
   canAnalyze: boolean;
 }
 
@@ -40,22 +48,18 @@ export function useUsage() {
     try {
       const { data: tokenRow, error: dbError } = await supabase
         .from('user_tokens')
-        .select('plan, analyses_used, analyses_reset_at, hooks_used, hooks_reset_at, bonus_analyses, bonus_hooks, script_analyses_used, script_analyses_reset_at, bonus_script_analyses')
+        .select('plan, credits_used, bonus_credits')
         .eq('user_id', user.id)
         .maybeSingle();
 
       if (dbError) throw dbError;
 
       const plan = tokenRow?.plan || 'free';
-      const analysesUsed = tokenRow?.analyses_used || 0;
-      const analysesLimit = (PLAN_LIMITS[plan] ?? 3) + (tokenRow?.bonus_analyses || 0);
-      const hooksUsed = tokenRow?.hooks_used || 0;
-      const hooksLimit = (HOOK_LIMITS[plan] ?? 10) + (tokenRow?.bonus_hooks || 0);
-      const scriptAnalysesUsed = tokenRow?.script_analyses_used || 0;
-      const scriptAnalysesLimit = (SCRIPT_ANALYSIS_LIMITS[plan] ?? 10) + (tokenRow?.bonus_script_analyses || 0);
-      const canAnalyze = analysesUsed < analysesLimit;
+      const creditsUsed = tokenRow?.credits_used || 0;
+      const creditsLimit = (CREDIT_LIMITS[plan] ?? CREDIT_LIMITS.free) + (tokenRow?.bonus_credits || 0);
+      const canAnalyze = creditsUsed < creditsLimit;
 
-      setUsage({ plan, analysesUsed, analysesLimit, hooksUsed, hooksLimit, scriptAnalysesUsed, scriptAnalysesLimit, canAnalyze });
+      setUsage({ plan, creditsUsed, creditsLimit, canAnalyze });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load usage');
     } finally {

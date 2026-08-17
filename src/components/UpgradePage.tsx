@@ -19,9 +19,12 @@ interface Plan {
   cta: string;
 }
 
-// Actual Stripe prices (both plans' yearly total is $59.99 — annual
-// commitment converges Plus and Pro to the same rate; Plus just has less
-// room to fall since its monthly price is already low).
+// Actual Stripe prices (2026-08-17 repricing). Plus's yearly total ($119.99)
+// is exactly 12x its monthly rate rounded up 11c to end in .99 — no yearly
+// discount, since Plus is already the cheap option. Pro's yearly total
+// ($155.99) gets the SAME +11c rounding move applied to its $12.99/mo
+// effective rate, which is a real ~35% discount off Pro's $19.99 monthly —
+// pushes commitment toward the higher tier, which is where it matters most.
 // Free isn't shown here on purpose — it's a real plan (new signups start on
 // it), but listing it as a third card made this a long scroll on mobile
 // before reaching an actual paid option. New users land on Free without
@@ -30,26 +33,27 @@ const plans: Plan[] = [
   {
     id: 'pro',
     name: 'Plus',
-    monthlyPrice: 4.99,
-    yearlyTotal: 59.99,
-    yearlyMonthlyPrice: 4.99,
-    quotas: ['30 video analyses / month', '30 hook checks / month', '30 script checks / month'],
+    monthlyPrice: 9.99,
+    yearlyTotal: 119.99,
+    yearlyMonthlyPrice: 9.99,
+    quotas: ['300 credits / month', 'Video, Hook & Script checks', 'Competitor ideas, outlines & scripts'],
     features: [
       'Hook score & assessment',
       'Weak spot breakdown',
       'Hook ideas & rewrites',
       'Channel profile context',
       'Retention insights on your videos',
+      'Track up to 5 competitor channels',
     ],
     cta: 'Upgrade to Plus',
   },
   {
     id: 'agency',
     name: 'Pro',
-    monthlyPrice: 9.99,
-    yearlyTotal: 59.99,
-    yearlyMonthlyPrice: 4.99,
-    quotas: ['Unlimited video analyses', 'Unlimited hook checks', 'Unlimited script checks'],
+    monthlyPrice: 19.99,
+    yearlyTotal: 155.99,
+    yearlyMonthlyPrice: 12.99,
+    quotas: ['Unlimited credits', 'Same coverage as Plus', 'Highest fair-use ceiling'],
     features: [
       'Everything in Plus',
       'Highest monthly limits',
@@ -96,6 +100,12 @@ export function UpgradePage() {
   const proYearlySavings = proPlan.monthlyPrice != null && proPlan.yearlyTotal != null
     ? Math.round((proPlan.monthlyPrice * 12 - proPlan.yearlyTotal) * 100) / 100
     : 0;
+  // Computed, not hardcoded — this drifted silently out of sync with the
+  // actual discount once during the 2026-08-17 repricing (stayed "50% off"
+  // after the real number had moved to ~35%).
+  const proYearlyPercentOff = proPlan.monthlyPrice != null && proPlan.monthlyPrice > 0
+    ? Math.round((proYearlySavings / (proPlan.monthlyPrice * 12)) * 100)
+    : 0;
 
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 pt-4 sm:pt-6 pb-12 animate-fade-in-up">
@@ -123,7 +133,7 @@ export function UpgradePage() {
           </div>
           {interval === 'year' && proYearlySavings > 0 && (
             <p className="mt-2 text-xs font-medium" style={{ color: '#34D399' }}>
-              Save ${proYearlySavings.toFixed(2)}/yr on Pro, that's 50% off
+              Save ${proYearlySavings.toFixed(2)}/yr on Pro, that's {proYearlyPercentOff}% off
             </p>
           )}
         </div>

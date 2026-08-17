@@ -1,5 +1,6 @@
 import { createClient } from 'npm:@supabase/supabase-js@2.57.4';
 import { callLLM } from '../_shared/llm.ts';
+import { loadCreditStatus, canAfford, spendCredits, CREDIT_COSTS } from '../_shared/credits.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -88,9 +89,9 @@ Deno.serve(async (req: Request) => {
       return new Response(JSON.stringify({ error: 'Invalid token' }), { status: 401, headers: corsHeaders });
     }
 
-    // Plan check — scripts are Pro only
+    // Plan check — scripts are Plus+ (same gate as the rest of Competitors)
     const { data: planRow } = await supabase
-      .from('user_tokens').select('plan, script_used, script_reset_at').eq('user_id', userId).maybeSingle();
+      .from('user_tokens').select('plan').eq('user_id', userId).maybeSingle();
     const userPlan = planRow?.plan || 'free';
     if (userPlan !== 'pro' && userPlan !== 'agency') {
       return new Response(JSON.stringify({ error: 'upgrade_required', plan_required: 'pro' }), {
@@ -98,32 +99,16 @@ Deno.serve(async (req: Request) => {
       });
     }
 
-    // Hidden monthly limit — Plus(pro): 30, Pro(agency): 50.
     const ADMIN_EMAIL = 'reyzostyle@gmail.com';
     const { data: { user: authUser } } = await supabase.auth.admin.getUserById(userId);
     const isAdmin = authUser?.email === ADMIN_EMAIL;
-    const SCRIPT_LIMITS: Record<string, number> = { pro: 30, agency: 50 };
-    const scriptLimit = SCRIPT_LIMITS[userPlan] ?? 30;
-    let scriptUsed = planRow?.script_used || 0;
-    // Monthly reset.
-    if (planRow?.script_reset_at) {
-      if (new Date() > new Date(planRow.script_reset_at)) {
-        const newResetAt = new Date();
-        newResetAt.setDate(newResetAt.getDate() + 30);
-        await supabase.from('user_tokens')
-          .update({ script_used: 0, script_reset_at: newResetAt.toISOString() })
-          .eq('user_id', userId);
-        scriptUsed = 0;
-      }
-    } else {
-      // First-ever script: start the monthly window.
-      const newResetAt = new Date();
-      newResetAt.setDate(newResetAt.getDate() + 30);
-      await supabase.from('user_tokens')
-        .update({ script_reset_at: newResetAt.toISOString() })
-        .eq('user_id', userId);
-    }
-    if (!isAdmin && scriptUsed >= scriptLimit) {
+
+    // Shared credit pool (_shared/credits.ts) — replaces the old script_used
+    // counter, which had drifted to the wrong numbers (pro: 30, agency: 50)
+    // instead of matching the rest of the app's fair-use pattern.
+    const creditStatus = await loadCreditStatus(supabase, userId);
+    const cost = CREDIT_COSTS.competitor_script;
+    if (!canAfford(creditStatus, cost, isAdmin)) {
       return new Response(JSON.stringify({ error: 'limit_reached' }), {
         status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
@@ -183,9 +168,7 @@ Deno.serve(async (req: Request) => {
 
     if (updateError) throw updateError;
 
-    await supabase.from('user_tokens')
-      .update({ script_used: scriptUsed + 1 })
-      .eq('user_id', userId);
+    await spendCredits(supabase, userId, creditStatus, cost);
 
     return new Response(
       JSON.stringify({ success: true, idea: updated }),

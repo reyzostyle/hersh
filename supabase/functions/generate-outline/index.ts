@@ -1,11 +1,14 @@
 import { createClient } from 'npm:@supabase/supabase-js@2.57.4';
 import { callLLM } from '../_shared/llm.ts';
+import { loadCreditStatus, canAfford, spendCredits, CREDIT_COSTS } from '../_shared/credits.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
   'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Client-Info, Apikey',
 };
+
+const ADMIN_EMAIL = 'reyzostyle@gmail.com';
 
 // Verifies the JWT signature via the auth server (not just decoding it) and
 // returns the authenticated user id. Throws on any invalid/forged token.
@@ -98,6 +101,24 @@ Deno.serve(async (req: Request) => {
     if (adminError || !authUser) {
       return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: corsHeaders });
     }
+    const isAdmin = authUser.email === ADMIN_EMAIL;
+
+    // Outlines are Plus+ (same gate as the rest of Competitors) and spend
+    // from the shared credit pool — this used to have no plan/usage check at
+    // all, see _shared/credits.ts.
+    const { data: planRow } = await supabase.from('user_tokens').select('plan').eq('user_id', userId).maybeSingle();
+    if ((planRow?.plan || 'free') === 'free') {
+      return new Response(JSON.stringify({ error: 'upgrade_required', plan_required: 'plus' }), {
+        status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+    const creditStatus = await loadCreditStatus(supabase, userId);
+    const cost = CREDIT_COSTS.competitor_outline;
+    if (!canAfford(creditStatus, cost, isAdmin)) {
+      return new Response(JSON.stringify({ error: 'limit_reached' }), {
+        status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
 
     const { ideaId } = await req.json();
     if (!ideaId) {
@@ -136,6 +157,8 @@ Deno.serve(async (req: Request) => {
       .single();
 
     if (updateError) throw updateError;
+
+    await spendCredits(supabase, userId, creditStatus, cost);
 
     return new Response(
       JSON.stringify({ success: true, idea: updated }),

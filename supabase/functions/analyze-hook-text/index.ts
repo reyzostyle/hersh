@@ -1,5 +1,6 @@
 import { createClient } from 'npm:@supabase/supabase-js@2.57.4';
 import { callLLM } from '../_shared/llm.ts';
+import { loadCreditStatus, canAfford, spendCredits, CREDIT_COSTS } from '../_shared/credits.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -8,9 +9,6 @@ const corsHeaders = {
 };
 
 const ADMIN_EMAIL = 'reyzostyle@gmail.com';
-// Hook Lab has its OWN monthly quota (separate from video analyses).
-// Free = 10 hook checks / month (resets monthly).
-const HOOK_LIMITS: Record<string, number> = { free: 10, pro: 30, agency: 100 };
 
 const stripDashes = (s: unknown): unknown => {
   if (typeof s === 'string') return s.replace(/[—–]/g, '-');
@@ -51,35 +49,20 @@ Deno.serve(async (req: Request) => {
       return new Response(JSON.stringify({ error: 'Hook too long (max 600 chars)' }), { status: 400, headers: corsHeaders });
     }
 
-    // ── Usage / plan (Hook Lab has its own monthly quota: hooks_used) ─────────
+    // ── Usage / plan (shared credit pool — see _shared/credits.ts) ────────────
     const { data: tokenRow } = await supabase
       .from('user_tokens')
-      .select('plan, hooks_used, hooks_reset_at, bonus_hooks, channel_niche, channel_description, creator_level')
+      .select('plan, channel_niche, channel_description, creator_level')
       .eq('user_id', userId)
       .maybeSingle();
 
-    const plan = tokenRow?.plan || 'free';
-    let hooksUsed = tokenRow?.hooks_used || 0;
-    let bonusHooks = tokenRow?.bonus_hooks || 0;
+    const creditStatus = await loadCreditStatus(supabase, userId);
+    const cost = CREDIT_COSTS.hook_check;
 
-    // Hook quota resets monthly for EVERY plan (incl. free).
-    if (tokenRow?.hooks_reset_at) {
-      const resetAt = new Date(tokenRow.hooks_reset_at);
-      if (new Date() > resetAt) {
-        const newResetAt = new Date();
-        newResetAt.setDate(newResetAt.getDate() + 30);
-        await supabase.from('user_tokens').update({ hooks_used: 0, hooks_reset_at: newResetAt.toISOString(), bonus_hooks: 0 }).eq('user_id', userId);
-        hooksUsed = 0;
-        bonusHooks = 0;
-      }
-    }
-
-    const hooksLimit = isAdmin ? Infinity : (HOOK_LIMITS[plan] ?? 10) + bonusHooks;
-
-    if (hooksUsed >= hooksLimit) {
-      const message = plan === 'agency'
-        ? "You've hit this month's fair-use limit for hook checks. Contact us if you need more."
-        : "You've used all your hook checks this month. Upgrade for more.";
+    if (!canAfford(creditStatus, cost, isAdmin)) {
+      const message = creditStatus.plan === 'agency'
+        ? "You've hit this month's fair-use credit limit. Contact us if you need more."
+        : "You've used all your credits this month. Upgrade for more.";
       return new Response(JSON.stringify({ error: message }), { status: 403, headers: corsHeaders });
     }
 
@@ -144,14 +127,7 @@ Return ONLY valid JSON, no markdown:
     }
     result = stripDashes(result);
 
-    // Count this hook check toward the monthly hook quota
-    await supabase
-      .from('user_tokens')
-      .update({
-        hooks_used: hooksUsed + 1,
-        hooks_reset_at: tokenRow?.hooks_reset_at ?? new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
-      })
-      .eq('user_id', userId);
+    await spendCredits(supabase, userId, creditStatus, cost);
 
     return new Response(JSON.stringify(result), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
   } catch (error) {

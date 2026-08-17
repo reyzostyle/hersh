@@ -53,6 +53,22 @@ Deno.serve(async (req: Request) => {
         });
       }
 
+      // One-time credit top-up (create-credit-topup-session) — a separate
+      // purchase from the subscription flow below, credited on top of
+      // whatever the plan already grants, never expires on its own.
+      if (session.metadata?.type === 'credit_topup') {
+        const credits = parseInt(session.metadata?.credits || '0', 10);
+        if (credits > 0) {
+          const { data: existing } = await supabase.from('user_tokens').select('bonus_credits').eq('user_id', userId).maybeSingle();
+          await supabase.from('user_tokens').update({ bonus_credits: (existing?.bonus_credits || 0) + credits }).eq('user_id', userId);
+          console.log(`[stripe-webhook] Credited ${credits} top-up credits to user ${userId}`);
+        }
+        return new Response(JSON.stringify({ received: true }), {
+          status: 200,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+
       const subscriptionId = session.subscription as string;
       const customerId = session.customer as string;
       let plan = 'pro';
@@ -73,8 +89,8 @@ Deno.serve(async (req: Request) => {
           access_token: '',
           token_expiry: resetAt.toISOString(),
           plan,
-          analyses_used: 0,
-          analyses_reset_at: resetAt.toISOString(),
+          credits_used: 0,
+          credits_reset_at: resetAt.toISOString(),
           stripe_subscription_id: subscriptionId || null,
           stripe_customer_id: customerId || null,
         }, { onConflict: 'user_id' });
@@ -140,7 +156,6 @@ Deno.serve(async (req: Request) => {
           .update({
             plan: 'free',
             stripe_subscription_id: null,
-            analyses_reset_at: null,
           })
           .eq('user_id', tokenRow.user_id);
 
@@ -181,8 +196,8 @@ Deno.serve(async (req: Request) => {
           .from('user_tokens')
           .update({
             plan,
-            analyses_used: 0,
-            analyses_reset_at: resetAt.toISOString(),
+            credits_used: 0,
+            credits_reset_at: resetAt.toISOString(),
           })
           .eq('user_id', tokenRow.user_id);
 

@@ -7,28 +7,26 @@ const corsHeaders = {
 };
 
 // Server-side catalog — the client never sees what a code grants, only
-// whether it worked. Codes are matched case-insensitively.
-const CODES: Record<string, { type: 'analyses' | 'hooks' | 'rank_multiplier'; value: number; message: string }> = {
+// whether it worked. Codes are matched case-insensitively. Credit values
+// are converted from the old per-feature grants using CREDIT_COSTS (5
+// analyses -> 5*18, 5 hook checks -> 5*2), so a code still buys the same
+// real amount of usage now that everything spends from one pool.
+const CODES: Record<string, { type: 'credits' | 'rank_multiplier'; value: number; message: string }> = {
   MU15: { type: 'rank_multiplier', value: 1.5, message: '1.5x RP boost active for this season!' },
-  AN5: { type: 'analyses', value: 5, message: '+5 video analyses added to your account.' },
-  HL5: { type: 'hooks', value: 5, message: '+5 hook checks added to your account.' },
+  AN5: { type: 'credits', value: 90, message: '+90 credits added to your account.' },
+  HL5: { type: 'credits', value: 10, message: '+10 credits added to your account.' },
 };
 
 function seasonOf(d: Date): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
 }
 
-async function addBonus(
-  supabase: ReturnType<typeof createClient>,
-  userId: string,
-  field: 'bonus_analyses' | 'bonus_hooks',
-  amount: number
-) {
-  const { data: existing } = await supabase.from('user_tokens').select(field).eq('user_id', userId).maybeSingle();
+async function addBonusCredits(supabase: ReturnType<typeof createClient>, userId: string, amount: number) {
+  const { data: existing } = await supabase.from('user_tokens').select('bonus_credits').eq('user_id', userId).maybeSingle();
   if (existing) {
-    await supabase.from('user_tokens').update({ [field]: (existing[field] || 0) + amount }).eq('user_id', userId);
+    await supabase.from('user_tokens').update({ bonus_credits: (existing.bonus_credits || 0) + amount }).eq('user_id', userId);
   } else {
-    await supabase.from('user_tokens').insert({ user_id: userId, access_token: '', refresh_token: '', [field]: amount });
+    await supabase.from('user_tokens').insert({ user_id: userId, access_token: '', refresh_token: '', bonus_credits: amount });
   }
 }
 
@@ -86,10 +84,8 @@ Deno.serve(async (req: Request) => {
       throw insertError;
     }
 
-    if (entry.type === 'analyses') {
-      await addBonus(supabase, user.id, 'bonus_analyses', entry.value);
-    } else if (entry.type === 'hooks') {
-      await addBonus(supabase, user.id, 'bonus_hooks', entry.value);
+    if (entry.type === 'credits') {
+      await addBonusCredits(supabase, user.id, entry.value);
     } else if (entry.type === 'rank_multiplier') {
       await setRankBoost(supabase, user.id, entry.value);
     }

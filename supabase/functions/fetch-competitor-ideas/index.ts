@@ -1,5 +1,6 @@
 import { createClient } from 'npm:@supabase/supabase-js@2.57.4';
 import { callLLM } from '../_shared/llm.ts';
+import { loadCreditStatus, canAfford, spendCredits, CREDIT_COSTS } from '../_shared/credits.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -278,10 +279,22 @@ Deno.serve(async (req: Request) => {
     const ADMIN_EMAIL = 'reyzostyle@gmail.com';
     const isAdmin = authUser.email === ADMIN_EMAIL;
 
-    // Rate limit — one successful run per 12h per user.
+    // A freshly-added channel gets ONE immediate sync of its own, scoped to
+    // just that channel — separate from the account-wide 12h rate limit
+    // below, which only guards the manual "Find new ideas" button. Bounded
+    // blast radius (MAX_PER_CHANNEL ideas on one channel, still credit-gated
+    // in the loop below) is what makes it safe to skip the throttle here.
+    let onlyChannelId: string | null = null;
+    try {
+      const body = await req.json();
+      if (body && typeof body.channelId === 'string') onlyChannelId = body.channelId;
+    } catch { /* no body / not JSON — a normal manual run */ }
+
+    // Rate limit — one successful run per 12h per user. Skipped for a
+    // single-channel onboarding sync (see above).
     const SUCCESS_WINDOW_MS = 12 * 60 * 60 * 1000;
     const lastRun = planCheck?.competitor_run_at ? new Date(planCheck.competitor_run_at) : null;
-    if (!isAdmin && lastRun) {
+    if (!isAdmin && !onlyChannelId && lastRun) {
       const msSince = Date.now() - lastRun.getTime();
       if (msSince < SUCCESS_WINDOW_MS) {
         const retryAfterMs = SUCCESS_WINDOW_MS - msSince;
@@ -303,7 +316,7 @@ Deno.serve(async (req: Request) => {
     const IDLE_WINDOW_MS = 10 * 60 * 1000; // 10 minutes
     const idleCount = planCheck?.competitor_idle_count ?? 0;
     const lastIdle = planCheck?.competitor_idle_at ? new Date(planCheck.competitor_idle_at) : null;
-    if (!isAdmin && idleCount >= IDLE_FREE_ATTEMPTS && lastIdle) {
+    if (!isAdmin && !onlyChannelId && idleCount >= IDLE_FREE_ATTEMPTS && lastIdle) {
       const msSinceIdle = Date.now() - lastIdle.getTime();
       if (msSinceIdle < IDLE_WINDOW_MS) {
         const retryAfterMs = IDLE_WINDOW_MS - msSinceIdle;
@@ -325,11 +338,11 @@ Deno.serve(async (req: Request) => {
     const niche = tokenRow?.channel_niche || '';
     const description = tokenRow?.channel_description || '';
 
-    // Load competitor channels
-    const { data: channels, error: channelsError } = await supabase
-      .from('competitor_channels')
-      .select('*')
-      .eq('user_id', userId);
+    // Load competitor channels — scoped to just the new one for an
+    // onboarding sync, otherwise every tracked channel (a normal manual run).
+    let channelsQuery = supabase.from('competitor_channels').select('*').eq('user_id', userId);
+    if (onlyChannelId) channelsQuery = channelsQuery.eq('channel_id', onlyChannelId);
+    const { data: channels, error: channelsError } = await channelsQuery;
 
     if (channelsError) throw channelsError;
     if (!channels || channels.length === 0) {
@@ -348,9 +361,17 @@ Deno.serve(async (req: Request) => {
     const processedVideoIds = new Set((existingIdeas || []).map((r: any) => r.video_id));
 
     let newlyProcessed = 0;
+    let creditsExhausted = false;
+
+    // Each idea found costs a credit — checked/spent per-video so a run stops
+    // cleanly once the budget runs out instead of erroring the whole request.
+    // Ideas already found earlier in this same run are kept either way.
+    const creditStatus = await loadCreditStatus(supabase, userId);
+    const IDEA_COST = CREDIT_COSTS.competitor_idea;
 
     // Fetch and process new videos for each channel
     for (const channel of channels) {
+      if (creditsExhausted) break;
       console.log(`[fetch-competitor-ideas] Processing channel: ${channel.channel_name} (${channel.channel_id})`);
       let videos: ChannelVideo[];
       try {
@@ -362,6 +383,7 @@ Deno.serve(async (req: Request) => {
 
       for (const video of videos) {
         if (processedVideoIds.has(video.videoId)) continue;
+        if (!isAdmin && !canAfford(creditStatus, IDEA_COST, isAdmin)) { creditsExhausted = true; break; }
 
         console.log(`[fetch-competitor-ideas] Processing video: ${video.title}`);
 
@@ -400,6 +422,8 @@ Deno.serve(async (req: Request) => {
         } else {
           processedVideoIds.add(video.videoId);
           newlyProcessed++;
+          await spendCredits(supabase, userId, creditStatus, IDEA_COST);
+          creditStatus.used += IDEA_COST;
         }
       }
     }
@@ -407,7 +431,11 @@ Deno.serve(async (req: Request) => {
     // A run with new videos resets the idle counter and starts the 12h window.
     // An empty run spends no tokens, so it doesn't start the 12h window — but it
     // bumps the idle counter so repeated empty refreshes get throttled.
-    if (newlyProcessed > 0) {
+    // A single-channel onboarding sync touches neither — it's not the
+    // account-wide manual run these counters throttle.
+    if (onlyChannelId) {
+      // no-op: this was a new channel's one-off sync
+    } else if (newlyProcessed > 0) {
       await supabase.from('user_tokens')
         .update({ competitor_run_at: new Date().toISOString(), competitor_idle_count: 0, competitor_idle_at: null })
         .eq('user_id', userId);
@@ -431,9 +459,11 @@ Deno.serve(async (req: Request) => {
         success: true,
         ideas: ideas || [],
         processed: newlyProcessed,
-        message: newlyProcessed === 0
-          ? 'Nothing new stood out. Your competitors have not posted a short that beat their own average lately.'
-          : undefined,
+        message: creditsExhausted
+          ? `Found ${newlyProcessed} idea${newlyProcessed === 1 ? '' : 's'} before running out of credits for this month.`
+          : newlyProcessed === 0
+            ? 'Nothing new stood out. Your competitors have not posted a short that beat their own average lately.'
+            : undefined,
       }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );

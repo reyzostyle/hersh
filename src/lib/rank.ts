@@ -111,14 +111,17 @@ interface SeasonAnalysisRow {
   hook_analysis: { overall_score?: number; score_breakdown?: { hook?: number; retention?: number } | null } | null;
 }
 
-// Pure math for one season's analyses + channel stats. `hooksUsed` comes from
-// the monthly counter (no per-event log exists), close enough to the season.
-// `multiplier` (from a redeemed MU15-style voucher) speeds up reaching each
-// source's cap — it's applied to the raw pre-cap value, so it never lets a
-// source exceed its usual max (600/300/300).
+// Pure math for one season's analyses + channel stats. `creditsUsed` comes
+// from the shared credit-pool counter (no per-event log exists, and no
+// per-action breakdown since the pool unified Video/Hook/Script/Competitors
+// spend — divided by the hook-check credit cost to land back on roughly the
+// same 0-100 scale the old hooks-only counter used). Close enough to the
+// season, not exact. `multiplier` (from a redeemed MU15-style voucher)
+// speeds up reaching each source's cap — it's applied to the raw pre-cap
+// value, so it never lets a source exceed its usual max (600/300/300).
 function computeSeasonRP(
   rows: SeasonAnalysisRow[],
-  hooksUsed: number,
+  creditsUsed: number,
   seasonVideos: { views: number; likes_count: number; comment_count: number; retention_percentage: number }[],
   carryover: number,
   multiplier = 1,
@@ -149,7 +152,8 @@ function computeSeasonRP(
   const own = Math.min(600, Math.round(points.reduce((s, p) => s + p, 0) * multiplier));
 
   const learningOthers = Math.min(200, Math.round(Math.min(25, othersCount) * 8 * multiplier));
-  const learningHooks = Math.min(100, Math.round(Math.min(100, hooksUsed) * multiplier));
+  const hookEquivalent = creditsUsed / 2; // CREDIT_COSTS.hook_check
+  const learningHooks = Math.min(100, Math.round(Math.min(100, hookEquivalent) * multiplier));
   const learning = learningOthers + learningHooks;
 
   const totalViews = seasonVideos.reduce((s, v) => s + (v.views || 0), 0);
@@ -210,7 +214,7 @@ export async function fetchRank(userId: string): Promise<RankData> {
   const prev = prevSeason(season);
 
   const [{ data: tokenRow }, { data: history }] = await Promise.all([
-    supabase.from('user_tokens').select('hooks_used, access_token, rank_boost_season, rank_boost_multiplier').eq('user_id', userId).maybeSingle(),
+    supabase.from('user_tokens').select('credits_used, access_token, rank_boost_season, rank_boost_multiplier').eq('user_id', userId).maybeSingle(),
     supabase.from('rank_history').select('season, rp').eq('user_id', userId).in('season', [prev, prevSeason(prev)]),
   ]);
 
@@ -239,7 +243,7 @@ export async function fetchRank(userId: string): Promise<RankData> {
 
   const carryover = Math.floor((prevRow?.rp ?? 0) * 0.25);
   const { rows, vids } = await fetchSeasonInputs(userId, season);
-  const res = computeSeasonRP(rows, tokenRow?.hooks_used ?? 0, vids, carryover, boostFor(season));
+  const res = computeSeasonRP(rows, tokenRow?.credits_used ?? 0, vids, carryover, boostFor(season));
   const t = tierFor(res.breakdown.total);
 
   const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 1);
