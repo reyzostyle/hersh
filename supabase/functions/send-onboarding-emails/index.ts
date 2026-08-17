@@ -1,5 +1,12 @@
 import { createClient } from 'npm:@supabase/supabase-js@2.57.4';
 import { renderStep } from '../_shared/emails.ts';
+// NOTE: the version currently deployed (via the dashboard's in-browser editor,
+// see hershy-onboarding-email-drip memory) carries a physical copy of this
+// module inside the function's own file tree instead of importing it from
+// here — the browser editor deploys each function as a self-contained
+// bundle and can't resolve a path above the function's own folder. This repo
+// copy is the source of truth for the next `supabase functions deploy`, which
+// resolves the relative import correctly and needs no manual duplication.
 
 // Drip worker. Runs on a schedule, drains whatever is due, exits.
 //
@@ -101,7 +108,7 @@ Deno.serve(async (req) => {
   const supabase = createClient(supabaseUrl, serviceKey);
 
   const resendKey = Deno.env.get('RESEND_API_KEY');
-  const from = Deno.env.get('EMAIL_FROM') || 'Hershy <hello@hershymedia.com>';
+  const from = Deno.env.get('EMAIL_FROM') || 'Rey from Hershy <noti@hershymedia.com>';
   const appUrl = Deno.env.get('APP_URL') || 'https://hershymedia.com';
   const functionsUrl = `${supabaseUrl}/functions/v1`;
   const dryRun = !resendKey || new URL(req.url).searchParams.get('dry_run') === '1';
