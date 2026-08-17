@@ -24,7 +24,12 @@ export function Dashboard() {
   // Always opens on the hub rather than restoring the last tab: it's where
   // new tools and announcements surface, so it's what should greet you on
   // every entry. (Deliberately not persisted — a reload lands here too.)
-  const [activeTab, setActiveTab] = useState<NavTab>('home');
+  // Exception: a URL pasted into the landing page's hero before signing up
+  // is waiting in localStorage for Video Review to pick it up — go straight
+  // there instead of stranding it on the hub.
+  const [activeTab, setActiveTab] = useState<NavTab>(
+    () => (localStorage.getItem('hershy_pending_video_url') ? 'hooks' : 'home')
+  );
 
   useEffect(() => {
     const handler = (e: Event) => {

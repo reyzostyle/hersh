@@ -79,6 +79,15 @@ export function HookAnalysis() {
     loadUserPlan();
   }, [user?.id]);
 
+  // Picks up a URL handed off from the landing page's hero input (stashed
+  // before the account existed) and drops it straight into the URL field.
+  useEffect(() => {
+    const pending = localStorage.getItem('hershy_pending_video_url');
+    if (!pending) return;
+    localStorage.removeItem('hershy_pending_video_url');
+    setUrlInput(pending);
+  }, []);
+
   const loadUserPlan = async () => {
     if (!user?.id) return;
     const { data } = await supabase
