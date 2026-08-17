@@ -1,401 +1,28 @@
 import { useState, useEffect, useCallback } from 'react';
-import { supabase, getSessionToken, fetchWithRetry } from '../lib/supabase';
-import {
-  Plus, Loader2, Sparkles, Eye, ChevronDown, ChevronUp,
-  X, Lightbulb, Users, RefreshCw, Calendar, FileText, Heart, EyeOff, Lock, Trash2, TrendingUp
-} from 'lucide-react';
-import { ErrorNotice } from './ErrorNotice';
-const SUPABASE_FUNCTIONS_URL = 'https://ezlousklksipvwuinpzq.supabase.co/functions/v1';
+import { Loader2, Users, ListChecks, FileText } from 'lucide-react';
+import { supabase, getSessionToken } from '../lib/supabase';
+import { callFunction, type CompetitorChannel, type CompetitorIdea } from './CompetitorIdeaCard';
+import { CompetitorsFeed, type IdeaFilter, filterIdeas } from './CompetitorsFeed';
+import { CompetitorsChannels } from './CompetitorsChannels';
+import { CompetitorsScripts } from './CompetitorsScripts';
 
-interface CompetitorChannel {
-  id: string;
-  channel_id: string;
-  channel_name: string | null;
-  channel_thumbnail: string | null;
-  created_at: string;
+type CompetitorsMode = 'feed' | 'channels' | 'scripts';
+const SUB_MODE_KEY = 'hershy_competitors_submode';
+
+function readSavedMode(): CompetitorsMode {
+  const saved = localStorage.getItem(SUB_MODE_KEY);
+  return saved === 'channels' || saved === 'scripts' || saved === 'feed' ? saved : 'channels';
 }
 
-interface OutlineSection {
-  title: string;
-  content: string;
-  duration: string;
-}
-
-interface Outline {
-  hook: string;
-  sections: OutlineSection[];
-  cta: string;
-}
-
-interface CompetitorIdea {
-  id: string;
-  channel_id: string;
-  channel_name: string | null;
-  video_id: string;
-  video_title: string | null;
-  video_thumbnail: string | null;
-  video_views: number | null;
-  video_published_at: string | null;
-  outlier_score: number | null;
-  concept: string | null;
-  adapted_idea: string | null;
-  outline: Outline | null;
-  script: string | null;
-  liked: boolean | null;
-  created_at: string;
-}
-
-function formatViews(n: number | null): string {
-  if (n === null) return '-';
-  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
-  if (n >= 1_000) return `${(n / 1_000).toFixed(1)}K`;
-  return n.toString();
-}
-
-function formatDate(dateStr: string | null): string {
-  if (!dateStr) return '';
-  const d = new Date(dateStr);
-  const now = new Date();
-  const diffDays = Math.floor((now.getTime() - d.getTime()) / (1000 * 60 * 60 * 24));
-  if (diffDays === 0) return 'Today';
-  if (diffDays === 1) return 'Yesterday';
-  if (diffDays < 14) return `${diffDays}d ago`;
-  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-}
-
-async function callFunction(endpoint: string, token: string, body?: object): Promise<Response> {
-  return fetchWithRetry(`${SUPABASE_FUNCTIONS_URL}/${endpoint}`, {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${token}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(body ?? {}),
-  });
-}
-
-function IdeaCard({ idea, onUpdated, isPro }: { idea: CompetitorIdea; onUpdated: (updated: CompetitorIdea) => void; isPro: boolean }) {
-  const [outlineOpen, setOutlineOpen] = useState(false);
-  const [scriptOpen, setScriptOpen] = useState(false);
-  // What the competitor did is background; your angle is the actionable part, so
-  // only the latter is open by default.
-  const [conceptOpen, setConceptOpen] = useState(false);
-  const [generatingOutline, setGeneratingOutline] = useState(false);
-  const [generatingScript, setGeneratingScript] = useState(false);
-  const [error, setError] = useState('');
-  // Distinguishes "user hit their plan limit" (a plain, actionable message)
-  // from an actual backend failure (routed through ErrorNotice) — both land
-  // in the same `error` state, so the render needs to know which is which.
-  const [errorIsPlanLimit, setErrorIsPlanLimit] = useState(false);
-
-  const handleLike = async (value: boolean) => {
-    const newValue = idea.liked === value ? null : value;
-    const { data, error } = await supabase
-      .from('competitor_ideas')
-      .update({ liked: newValue })
-      .eq('id', idea.id)
-      .select()
-      .single();
-    if (!error && data) onUpdated({ ...idea, liked: newValue });
-  };
-
-  const handleCreateOutline = async () => {
-    setGeneratingOutline(true);
-    setError('');
-    setErrorIsPlanLimit(false);
-    try {
-      const token = await getSessionToken();
-      if (!token) throw new Error('Not authenticated');
-      const res = await callFunction('generate-outline', token, { ideaId: idea.id });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Failed to generate outline');
-      onUpdated(data.idea);
-      setOutlineOpen(true);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Something went wrong');
-    } finally {
-      setGeneratingOutline(false);
-    }
-  };
-
-  const handleWriteScript = async () => {
-    setGeneratingScript(true);
-    setError('');
-    setErrorIsPlanLimit(false);
-    try {
-      const token = await getSessionToken();
-      if (!token) throw new Error('Not authenticated');
-      const res = await callFunction('generate-competitor-script', token, { ideaId: idea.id });
-      const data = await res.json();
-      if (data.error === 'upgrade_required') {
-        window.dispatchEvent(new CustomEvent('hershy:navigate', { detail: 'upgrade' }));
-        return;
-      }
-      if (data.error === 'limit_reached') {
-        setErrorIsPlanLimit(true);
-        setError('You\'ve reached your script generation limit for this month.');
-        return;
-      }
-      if (!res.ok) throw new Error(data.error || 'Failed to generate script');
-      onUpdated(data.idea);
-      setScriptOpen(true);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Something went wrong');
-    } finally {
-      setGeneratingScript(false);
-    }
-  };
-
-  return (
-    <div
-      className="rounded-2xl p-5 space-y-4 transition-opacity glass-panel"
-      style={{
-        opacity: idea.liked === false ? 0.4 : 1,
-        ...(idea.liked === false ? { border: '1px solid rgba(255,255,255,0.04)' } : {}),
-      }}
-    >
-      {/* Video info row */}
-      <div className="flex gap-3">
-        {idea.video_thumbnail && (
-          <a
-            href={`https://www.youtube.com/watch?v=${idea.video_id}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex-shrink-0"
-          >
-            <img
-              src={idea.video_thumbnail}
-              alt={idea.video_title || ''}
-              className="w-24 h-14 rounded-lg object-cover hover:opacity-80 transition-opacity"
-            />
-          </a>
-        )}
-        <div className="flex-1 min-w-0 space-y-1">
-          <p className="text-white text-sm font-medium leading-snug line-clamp-2">
-            {idea.video_title || 'Untitled video'}
-          </p>
-          <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-            {idea.outlier_score != null && (
-              <span
-                className="flex items-center gap-1 text-xs font-semibold px-1.5 py-0.5 rounded-md"
-                style={{ background: 'rgba(52,211,153,0.12)', color: '#6ee7b7' }}
-                title="Views per day versus this channel's usual pace"
-              >
-                <TrendingUp className="w-3 h-3" />
-                {idea.outlier_score}x
-              </span>
-            )}
-            <span className="text-xs text-gray-500">{idea.channel_name}</span>
-            {idea.video_views !== null && (
-              <span className="flex items-center gap-1 text-xs text-gray-500">
-                <Eye className="w-3 h-3" />
-                {formatViews(idea.video_views)}
-              </span>
-            )}
-            {idea.video_published_at && (
-              <span className="flex items-center gap-1 text-xs text-gray-500">
-                <Calendar className="w-3 h-3" />
-                {formatDate(idea.video_published_at)}
-              </span>
-            )}
-          </div>
-        </div>
-        {/* Like / Dismiss buttons */}
-        <div className="flex items-start gap-1 flex-shrink-0">
-          <button
-            onClick={() => handleLike(true)}
-            title="Save idea"
-            className="p-1.5 rounded-lg transition-all"
-            style={{
-              background: idea.liked === true ? 'rgba(239,68,68,0.15)' : 'transparent',
-              color: idea.liked === true ? '#f87171' : '#4b5563',
-            }}
-          >
-            <Heart className="w-4 h-4" fill={idea.liked === true ? 'currentColor' : 'none'} />
-          </button>
-          <button
-            onClick={() => handleLike(false)}
-            title="Dismiss idea"
-            className="p-1.5 rounded-lg transition-all"
-            style={{
-              background: idea.liked === false ? 'rgba(255,255,255,0.06)' : 'transparent',
-              color: idea.liked === false ? '#6b7280' : '#4b5563',
-            }}
-          >
-            <EyeOff className="w-4 h-4" />
-          </button>
-        </div>
-      </div>
-
-      {/* What they did */}
-      {idea.concept && (
-        <div>
-          <button
-            onClick={() => setConceptOpen(!conceptOpen)}
-            className="flex items-center gap-1 text-[10px] font-semibold uppercase tracking-widest text-gray-500 hover:text-gray-400 transition-colors"
-          >
-            What they did
-            {conceptOpen ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
-          </button>
-          {conceptOpen && (
-            <p className="text-gray-300 text-sm leading-relaxed mt-1.5">{idea.concept}</p>
-          )}
-        </div>
-      )}
-
-      {/* Your angle */}
-      {idea.adapted_idea && (
-        <div className="rounded-xl p-3 space-y-1" style={{ background: 'rgba(139,92,246,0.08)', border: '1px solid rgba(139,92,246,0.2)' }}>
-          <div className="flex items-center gap-1.5">
-            <Lightbulb className="w-3.5 h-3.5 text-violet-400" />
-            <p className="text-[10px] font-semibold uppercase tracking-widest text-violet-400">Your angle</p>
-          </div>
-          <p className="text-violet-100 text-sm leading-relaxed">{idea.adapted_idea}</p>
-        </div>
-      )}
-
-      {/* Outline */}
-      {idea.outline && (
-        <div className="rounded-xl overflow-hidden" style={{ border: '1px solid rgba(52,211,153,0.2)' }}>
-          <button
-            onClick={() => setOutlineOpen(!outlineOpen)}
-            className="w-full flex items-center justify-between px-3 py-2.5 text-left hover:bg-emerald-500/5 transition-colors"
-            style={{ background: 'rgba(52,211,153,0.06)' }}
-          >
-            <div className="flex items-center gap-1.5">
-              <Sparkles className="w-3.5 h-3.5 text-emerald-400" />
-              <span className="text-xs font-semibold text-emerald-400">Outline</span>
-            </div>
-            {outlineOpen ? <ChevronUp className="w-4 h-4 text-emerald-500" /> : <ChevronDown className="w-4 h-4 text-emerald-500" />}
-          </button>
-          {outlineOpen && (
-            <div className="px-3 pb-3 pt-2 space-y-2.5" style={{ background: 'rgba(52,211,153,0.03)' }}>
-              <div>
-                <p className="text-[10px] font-semibold uppercase tracking-widest text-emerald-600 mb-1">Hook (first 3s)</p>
-                <p className="text-emerald-100 text-sm italic">"{idea.outline.hook}"</p>
-              </div>
-              {idea.outline.sections.map((section, i) => (
-                <div key={i} className="pl-2" style={{ borderLeft: '2px solid rgba(52,211,153,0.3)' }}>
-                  <div className="flex items-center gap-2 mb-0.5">
-                    <p className="text-xs font-semibold text-emerald-400">{section.title}</p>
-                    <span className="text-[10px] text-emerald-700 bg-emerald-500/10 px-1.5 py-0.5 rounded-full">{section.duration}</span>
-                  </div>
-                  <p className="text-gray-300 text-sm">{section.content}</p>
-                </div>
-              ))}
-              <div>
-                <p className="text-[10px] font-semibold uppercase tracking-widest text-emerald-600 mb-1">CTA</p>
-                <p className="text-emerald-100 text-sm">"{idea.outline.cta}"</p>
-              </div>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Script */}
-      {idea.script && (
-        <div className="rounded-xl overflow-hidden" style={{ border: '1px solid rgba(255,255,255,0.1)' }}>
-          <button
-            onClick={() => setScriptOpen(!scriptOpen)}
-            className="w-full flex items-center justify-between px-3 py-2.5 text-left hover:bg-white/5 transition-colors"
-            style={{ background: 'rgba(255,255,255,0.04)' }}
-          >
-            <div className="flex items-center gap-1.5">
-              <FileText className="w-3.5 h-3.5 text-gray-300" />
-              <span className="text-xs font-semibold text-gray-300">Full Script</span>
-            </div>
-            {scriptOpen ? <ChevronUp className="w-4 h-4 text-gray-500" /> : <ChevronDown className="w-4 h-4 text-gray-500" />}
-          </button>
-          {scriptOpen && (
-            <div className="px-3 pb-3 pt-2 space-y-3" style={{ background: 'rgba(255,255,255,0.02)' }}>
-              <pre className="text-white text-sm whitespace-pre-wrap font-sans leading-relaxed">{idea.script}</pre>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Error */}
-      {error && (
-        errorIsPlanLimit
-          ? <p className="text-red-400 text-sm bg-red-400/10 border border-red-400/20 rounded-xl px-3 py-2">{error}</p>
-          : <ErrorNotice message={error} />
-      )}
-
-      {/* Action buttons */}
-      <div className="flex gap-2 flex-wrap">
-        {!idea.outline && (
-          <button
-            onClick={handleCreateOutline}
-            disabled={generatingOutline}
-            className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold transition-all disabled:opacity-50"
-            style={{ background: 'rgba(52,211,153,0.12)', color: '#6ee7b7', border: '1px solid rgba(52,211,153,0.25)' }}
-          >
-            {generatingOutline ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
-            {generatingOutline ? 'Creating outline...' : 'Create Outline'}
-          </button>
-        )}
-        {idea.outline && !idea.script && (
-          isPro ? (
-            <button
-              onClick={handleWriteScript}
-              disabled={generatingScript}
-              className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold transition-all disabled:opacity-50"
-              style={{ background: 'rgba(14,164,233,0.12)', color: '#38bdf8', border: '1px solid rgba(14,164,233,0.25)' }}
-            >
-              {generatingScript ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <FileText className="w-3.5 h-3.5" />}
-              {generatingScript ? 'Writing script...' : 'Write Script'}
-            </button>
-          ) : (
-            <button
-              onClick={() => window.dispatchEvent(new CustomEvent('hershy:navigate', { detail: 'upgrade' }))}
-              className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold transition-all"
-              style={{ background: 'rgba(255,255,255,0.05)', color: '#6b7280', border: '1px solid rgba(255,255,255,0.08)' }}
-            >
-              <Lock className="w-3.5 h-3.5" />
-              Write Script — Pro only
-            </button>
-          )
-        )}
-        {idea.outline && idea.script && !scriptOpen && (
-          <button
-            onClick={() => setScriptOpen(true)}
-            className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium transition-all"
-            style={{ color: '#9ca3af', border: '1px solid rgba(255,255,255,0.08)' }}
-          >
-            <FileText className="w-3.5 h-3.5" />
-            View script
-          </button>
-        )}
-      </div>
-    </div>
-  );
-}
-
-type IdeaFilter = 'new' | 'saved' | 'dismissed';
-
-// The feed is an inbox, not a stream: "New" only holds ideas you haven't ruled
-// on yet, so it empties as you triage instead of growing forever. Anything left
-// untouched this long is stale enough to drop out on its own — the row stays in
-// the database so the same video is never analyzed (or paid for) twice.
-const STALE_AFTER_DAYS = 21;
-
-function isStale(idea: CompetitorIdea): boolean {
-  const published = idea.video_published_at ?? idea.created_at;
-  if (!published) return false;
-  const ageDays = (Date.now() - new Date(published).getTime()) / 86_400_000;
-  return ageDays > STALE_AFTER_DAYS;
-}
-
-function filterIdeas(ideas: CompetitorIdea[], filter: IdeaFilter): CompetitorIdea[] {
-  if (filter === 'saved') return ideas.filter(i => i.liked === true);
-  if (filter === 'dismissed') return ideas.filter(i => i.liked === false);
-  return ideas.filter(i => i.liked == null && !isStale(i));
-}
-
+// Competitors used to be one long page — channel management, the fetch
+// button, and the idea feed all stacked on top of each other. That made it
+// hard to add anything without the page turning into clutter. Split the same
+// way Analyze is: a left sub-panel (Feed / Channels / Scripts) sharing one
+// data layer, each panel free to grow on its own.
 export function CompetitorsPage() {
+  const [mode, setMode] = useState<CompetitorsMode>(readSavedMode);
   const [channels, setChannels] = useState<CompetitorChannel[]>([]);
   const [ideas, setIdeas] = useState<CompetitorIdea[]>([]);
-  const [channelUrl, setChannelUrl] = useState('');
   const [addingChannel, setAddingChannel] = useState(false);
   const [fetchingIdeas, setFetchingIdeas] = useState(false);
   const [clearingIdeas, setClearingIdeas] = useState(false);
@@ -406,8 +33,14 @@ export function CompetitorsPage() {
   const [fetchNotice, setFetchNotice] = useState('');
   const [initialLoading, setInitialLoading] = useState(true);
   const [removingId, setRemovingId] = useState<string | null>(null);
+  const [syncingChannelId, setSyncingChannelId] = useState<string | null>(null);
   const [ideaFilter, setIdeaFilter] = useState<IdeaFilter>('new');
   const [userPlan, setUserPlan] = useState<string>('free');
+
+  const select = (m: CompetitorsMode) => {
+    setMode(m);
+    localStorage.setItem(SUB_MODE_KEY, m);
+  };
 
   const loadData = useCallback(async () => {
     try {
@@ -424,7 +57,6 @@ export function CompetitorsPage() {
 
       setUserPlan(planData?.plan || 'free');
 
-      // Map DB column names to expected field names
       const mappedChannels = (channelData || []).map((c: any) => ({
         ...c,
         channel_name: c.channel_name ?? c.channel_title ?? null,
@@ -443,19 +75,32 @@ export function CompetitorsPage() {
     loadData();
   }, [loadData]);
 
-  const handleAddChannel = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!channelUrl.trim()) return;
+  const handleAddChannel = async (channelUrl: string) => {
     setAddingChannel(true);
     setAddError('');
     try {
       const token = await getSessionToken();
       if (!token) throw new Error('Not authenticated');
-      const res = await callFunction('add-competitor-channel', token, { channelUrl: channelUrl.trim() });
+      const res = await callFunction('add-competitor-channel', token, { channelUrl });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed to add channel');
-      setChannelUrl('');
       await loadData();
+
+      // The new channel gets its own one-off sync immediately, scoped to just
+      // that channel, instead of waiting on the shared 12h refresh window.
+      const newChannelId = data.channel?.channel_id;
+      if (newChannelId) {
+        setSyncingChannelId(data.channel.id);
+        try {
+          const syncRes = await callFunction('fetch-competitor-ideas', token, { channelId: newChannelId });
+          const syncData = await syncRes.json();
+          if (syncRes.ok && syncData.ideas) setIdeas(syncData.ideas);
+        } catch (e) {
+          console.error('[CompetitorsPage] onboarding sync error:', e);
+        } finally {
+          setSyncingChannelId(null);
+        }
+      }
     } catch (e) {
       setAddError(e instanceof Error ? e.message : 'Something went wrong');
     } finally {
@@ -502,6 +147,7 @@ export function CompetitorsPage() {
         setFetchNotice(data.message);
       } else if (data.processed > 0) {
         setIdeaFilter('new');
+        select('feed');
       }
     } catch (e) {
       setFetchError(e instanceof Error ? e.message : 'Something went wrong');
@@ -545,9 +191,6 @@ export function CompetitorsPage() {
     }
   };
 
-  const visibleIdeas = filterIdeas(ideas, ideaFilter);
-  const inboxCount = filterIdeas(ideas, 'new').length;
-
   if (initialLoading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -583,183 +226,97 @@ export function CompetitorsPage() {
     );
   }
 
+  const isPro = userPlan === 'pro' || userPlan === 'agency';
+  const inboxCount = filterIdeas(ideas, 'new').length;
+  const scriptsCount = ideas.filter(i => i.outline || i.script).length;
+
+  const modes: { id: CompetitorsMode; label: string; icon: React.ReactNode; badge: number }[] = [
+    { id: 'channels', label: 'Channels', icon: <Users className="w-4 h-4" />, badge: channels.length },
+    { id: 'feed', label: 'Feed', icon: <ListChecks className="w-4 h-4" />, badge: inboxCount },
+    { id: 'scripts', label: 'Scripts', icon: <FileText className="w-4 h-4" />, badge: scriptsCount },
+  ];
+
   return (
-    <div className="max-w-3xl mx-auto px-4 sm:px-6 pt-4 sm:pt-6 pb-8 space-y-5 sm:space-y-8 animate-fade-in-up">
-      {/* Header */}
-      <div className="hidden lg:block">
-        <h1 className="text-2xl font-bold text-white mb-1">Competitors</h1>
-        <p className="text-sm text-gray-500 text-balance">Track competitor channels and generate content ideas</p>
-      </div>
-
-      {/* Add channel */}
-      <div className="rounded-2xl p-4 sm:p-5 space-y-3 sm:space-y-4 glass-panel">
-        <div className="space-y-1">
-          <p className="text-white text-sm font-semibold">Add competitor channel</p>
-          {/* Phones get the one line that carries a real constraint. The rest is
-              inferable from the input's placeholder and the results themselves. */}
-          <p className="text-gray-500 text-xs">
-            <span className="hidden sm:inline">Paste a YouTube channel URL. </span>
-            Up to 5 channels.
-            <span className="hidden sm:inline"> Only their shorts get analyzed.</span>
-          </p>
-        </div>
-
-        <form onSubmit={handleAddChannel} className="flex gap-2">
-          <input
-            type="text"
-            value={channelUrl}
-            onChange={e => setChannelUrl(e.target.value)}
-            placeholder="youtube.com/@channelname"
-            disabled={addingChannel || channels.length >= 5}
-            className="flex-1 px-3 py-2.5 rounded-xl text-white text-sm placeholder-gray-600 focus:outline-none disabled:opacity-50"
-            style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.10)' }}
-            onFocus={e => { e.currentTarget.style.borderColor = '#0EA4E9'; }}
-            onBlur={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.10)'; }}
-          />
+    <div className="h-full flex">
+      {/* Desktop sub-nav — same shell as AnalyzeHub. pt-16 clears AppShell's
+          fixed sidebar-collapse toggle. */}
+      <div className="hidden lg:flex lg:flex-col w-44 flex-shrink-0 px-3 pt-16 pb-5 gap-0.5" style={{ borderRight: '1px solid rgba(255,255,255,0.08)' }}>
+        {modes.map(m => (
           <button
-            type="submit"
-            disabled={addingChannel || !channelUrl.trim() || channels.length >= 5}
-            className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-white text-sm font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-            style={{ background: '#0EA4E9' }}
+            key={m.id}
+            onClick={() => select(m.id)}
+            className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm font-medium transition-all ${
+              mode === m.id
+                ? 'bg-[#0EA4E9]/15 text-[#0EA4E9] ring-1 ring-inset ring-[#0EA4E9]/20'
+                : 'text-gray-400 hover:text-white hover:bg-white/5'
+            }`}
           >
-            {addingChannel ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
-            Add
-          </button>
-        </form>
-
-        {addError && <ErrorNotice message={addError} />}
-
-        {/* Channel pills */}
-        {channels.length > 0 && (
-          <div className="flex flex-wrap gap-2">
-            {channels.map(channel => (
-              <div
-                key={channel.id}
-                title={channel.channel_name || channel.channel_id}
-                className="flex items-center gap-2 px-2 sm:px-3 py-1.5 rounded-full text-sm"
-                style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.10)' }}
+            {m.icon}
+            <span className="flex-1 text-left">{m.label}</span>
+            {m.badge > 0 && (
+              <span
+                className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full tabular-nums"
+                style={mode === m.id ? { background: 'rgba(14,164,233,0.22)', color: '#38bdf8' } : { background: 'rgba(255,255,255,0.08)', color: '#9ca3af' }}
               >
-                {channel.channel_thumbnail && (
-                  <img
-                    src={channel.channel_thumbnail}
-                    alt={channel.channel_name || ''}
-                    className="w-5 h-5 rounded-full object-cover flex-shrink-0"
-                  />
-                )}
-                {/* On phones the avatar identifies the channel on its own, so the
-                    name is dropped to keep the row compact. Without an avatar
-                    there would be nothing left to recognise, so it stays. */}
-                <span className={`text-gray-200 text-xs font-medium ${channel.channel_thumbnail ? 'hidden sm:inline' : ''}`}>
-                  {channel.channel_name || channel.channel_id}
-                </span>
-                <button
-                  onClick={() => handleRemoveChannel(channel)}
-                  disabled={removingId === channel.id}
-                  className="text-gray-500 hover:text-red-400 transition-colors ml-0.5"
-                >
-                  {removingId === channel.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <X className="w-3.5 h-3.5" />}
-                </button>
-              </div>
-            ))}
-          </div>
-        )}
-
+                {m.badge}
+              </span>
+            )}
+          </button>
+        ))}
       </div>
 
-      {/* Fetch ideas button */}
-      {channels.length > 0 && (
-        <div className="flex items-center gap-3">
-          <button
-            onClick={handleFetchIdeas}
-            disabled={fetchingIdeas}
-            className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold transition-all disabled:opacity-50"
-            style={{ background: 'rgba(14,164,233,0.15)', border: '1px solid rgba(14,164,233,0.35)', color: '#38bdf8' }}
-          >
-            {fetchingIdeas ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
-            {fetchingIdeas ? 'Finding new ideas...' : 'Find new ideas'}
-          </button>
-          {inboxCount > 0 && (
+      <div className="flex-1 min-w-0 h-full flex flex-col">
+        {/* Mobile sub-nav */}
+        <div className="lg:hidden flex items-center gap-2 px-4 pt-3 pb-2 flex-shrink-0 overflow-x-auto" style={{ borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+          {modes.map(m => (
             <button
-              onClick={handleClearIdeas}
-              disabled={clearingIdeas}
-              className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all disabled:opacity-50 ml-auto"
-              style={{ background: 'rgba(248,113,113,0.12)', border: '1px solid rgba(248,113,113,0.3)', color: '#f87171' }}
+              key={m.id}
+              onClick={() => select(m.id)}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-all flex-shrink-0 ${
+                mode === m.id ? 'bg-[#0EA4E9]/15 text-[#0EA4E9]' : 'text-gray-500 hover:text-gray-300'
+              }`}
             >
-              {clearingIdeas ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
-              {clearingIdeas ? 'Clearing...' : 'Clear'}
+              {m.icon}
+              {m.label}
+              {m.badge > 0 && <span className="tabular-nums">({m.badge})</span>}
             </button>
+          ))}
+        </div>
+
+        <div className="flex-1 min-h-0 overflow-y-auto">
+          {mode === 'feed' && (
+            <CompetitorsFeed
+              ideas={ideas}
+              hasChannels={channels.length > 0}
+              filter={ideaFilter}
+              onFilterChange={setIdeaFilter}
+              onIdeaUpdated={handleIdeaUpdated}
+              isPro={isPro}
+              onClear={handleClearIdeas}
+              clearingIdeas={clearingIdeas}
+            />
+          )}
+          {mode === 'channels' && (
+            <CompetitorsChannels
+              channels={channels}
+              ideas={ideas}
+              addingChannel={addingChannel}
+              addError={addError}
+              removingId={removingId}
+              syncingChannelId={syncingChannelId}
+              onAddChannel={handleAddChannel}
+              onRemoveChannel={handleRemoveChannel}
+              fetchingIdeas={fetchingIdeas}
+              fetchError={fetchError}
+              fetchNotice={fetchNotice}
+              onFetchIdeas={handleFetchIdeas}
+            />
+          )}
+          {mode === 'scripts' && (
+            <CompetitorsScripts ideas={ideas} onIdeaUpdated={handleIdeaUpdated} isPro={isPro} />
           )}
         </div>
-      )}
-
-      {fetchError && <ErrorNotice message={fetchError} />}
-
-      {fetchNotice && (
-        <p
-          className="text-gray-400 text-sm rounded-xl px-4 py-3"
-          style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' }}
-        >
-          {fetchNotice}
-        </p>
-      )}
-
-      {/* Ideas feed */}
-      {ideas.length > 0 ? (
-        <div className="space-y-4">
-          {/* Filter tabs */}
-          <div className="flex gap-1 p-1 rounded-xl w-full sm:w-fit" style={{ background: 'rgba(255,255,255,0.04)' }}>
-            {(['new', 'saved', 'dismissed'] as IdeaFilter[]).map(f => (
-              <button
-                key={f}
-                onClick={() => setIdeaFilter(f)}
-                className="flex-1 sm:flex-none px-3 py-2 sm:py-1.5 rounded-lg text-xs font-medium transition-all capitalize"
-                style={ideaFilter === f
-                  ? { background: 'rgba(255,255,255,0.1)', color: '#e5e7eb' }
-                  : { color: '#6b7280' }
-                }
-              >
-                {f === 'saved' && <Heart className="w-3 h-3 inline mr-1 -mt-0.5" fill="currentColor" />}
-                {f} ({filterIdeas(ideas, f).length})
-              </button>
-            ))}
-          </div>
-          {visibleIdeas.length > 0 ? (
-            visibleIdeas.map(idea => (
-              <IdeaCard key={idea.id} idea={idea} onUpdated={handleIdeaUpdated} isPro={userPlan === 'pro' || userPlan === 'agency'} />
-            ))
-          ) : (
-            <div
-              className="rounded-2xl p-10 flex flex-col items-center justify-center text-center space-y-3"
-              style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)', borderStyle: 'dashed' }}
-            >
-              <Lightbulb className="w-8 h-8 text-gray-700" />
-              <p className="text-gray-500 text-sm">
-                {ideaFilter === 'new'
-                  ? 'Inbox zero. New ideas land here when a competitor beats their own average.'
-                  : ideaFilter === 'saved'
-                    ? 'Nothing saved yet. Tap the heart on an idea to keep it.'
-                    : 'Nothing dismissed.'}
-              </p>
-            </div>
-          )}
-        </div>
-      ) : channels.length > 0 ? (
-        <div
-          className="rounded-2xl p-10 flex flex-col items-center justify-center text-center space-y-3"
-          style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)', borderStyle: 'dashed' }}
-        >
-          <Lightbulb className="w-8 h-8 text-gray-700" />
-          <p className="text-gray-500 text-sm">No ideas yet. Click "Find new ideas" to pull the shorts that beat their channel's average.</p>
-        </div>
-      ) : (
-        <div
-          className="rounded-2xl p-10 flex flex-col items-center justify-center text-center space-y-3"
-          style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)', borderStyle: 'dashed' }}
-        >
-          <Users className="w-8 h-8 text-gray-700" />
-          <p className="text-gray-500 text-sm">Add competitor channels above to start tracking their content.</p>
-        </div>
-      )}
+      </div>
     </div>
   );
 }
