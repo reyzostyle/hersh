@@ -1,4 +1,4 @@
-import { Sparkles, Trophy, Scissors, Users, ArrowRight } from 'lucide-react';
+import { Sparkles, Trophy, Users, Settings, ArrowRight } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { NavTab, HIDDEN_TABS } from './AppShell';
 
@@ -35,11 +35,10 @@ const tools: Tool[] = [
     icon: <Users className="w-5 h-5" />,
   },
   {
-    id: 'clips',
-    label: 'Clip Engine',
-    description: 'Your streams get watched and cut into clips that are ready to post.',
-    icon: <Scissors className="w-5 h-5" />,
-    accent: 'purple',
+    id: 'settings',
+    label: 'Settings',
+    description: 'Channel profile, connected accounts, and plan.',
+    icon: <Settings className="w-5 h-5" />,
   },
 ];
 

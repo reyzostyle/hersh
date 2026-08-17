@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import { AppShell, NavTab, HIDDEN_TABS } from './AppShell';
 import { HomePage } from './HomePage';
 import { AnalyzeHub } from './AnalyzeHub';
-import { ClipEnginePage } from './ClipEnginePage';
 import { UpgradePage } from './UpgradePage';
 import { UsagePage } from './UsagePage';
 import { SettingsPage } from './SettingsPage';
@@ -15,7 +14,7 @@ import { AdminPage } from './AdminPage';
 // only reached by entering the admin code in Settings. AdminPage itself
 // re-checks the caller's email before rendering anything or fetching data.
 // 'home' also has no nav entry: it's reached from the brand row in the sidebar.
-const VALID_TABS: NavTab[] = ['home', 'hooks', 'rank', 'clips', 'competitors', 'usage', 'upgrade', 'partners', 'settings', 'admin'];
+const VALID_TABS: NavTab[] = ['home', 'hooks', 'rank', 'competitors', 'usage', 'upgrade', 'partners', 'settings', 'admin'];
 
 // A tab is reachable only if it's known and not feature-flagged off.
 const isTabReachable = (t: string): t is NavTab =>
@@ -52,7 +51,6 @@ export function Dashboard() {
     <AppShell activeTab={activeTab} onTabChange={setActiveTab}>
       {activeTab === 'home' && <HomePage onNavigate={setActiveTab} />}
       {activeTab === 'hooks' && <AnalyzeHub />}
-      {activeTab === 'clips' && <ClipEnginePage />}
       {activeTab === 'rank' && <RankPage />}
       {activeTab === 'competitors' && <CompetitorsPage />}
       {activeTab === 'usage' && <UsagePage />}

@@ -19,9 +19,9 @@ function readSavedMode(): AnalyzeMode {
   return saved === 'hook' || saved === 'script' || saved === 'video' ? saved : 'video';
 }
 
-// Analyze is the one pillar with a left sub-panel — Video/Hook/Script share
-// the same "score it, tell me what to fix" mechanic on three different
-// inputs. Competitors and Clip Engine stay single-flow, no sub-panel.
+// Analyze is one of the pillars with a left sub-panel — Video/Hook/Script
+// share the same "score it, tell me what to fix" mechanic on three different
+// inputs (Competitors got its own Feed/Channels/Scripts split too).
 export function AnalyzeHub() {
   const [mode, setMode] = useState<AnalyzeMode>(readSavedMode);
 

@@ -17,7 +17,7 @@ export const MobileHeaderContext = createContext<{
   setRightAction: (node: React.ReactNode) => void;
 }>({ setRightAction: () => {} });
 
-export type NavTab = 'home' | 'hooks' | 'rank' | 'clips' | 'usage' | 'upgrade' | 'settings' | 'partners' | 'competitors' | 'admin';
+export type NavTab = 'home' | 'hooks' | 'rank' | 'usage' | 'upgrade' | 'settings' | 'partners' | 'competitors' | 'admin';
 
 // Feature flags: tabs hidden from ALL users (incl. admin). Kept in code so they
 // can be re-enabled instantly by removing them from this list.
@@ -39,8 +39,6 @@ interface AppShellProps {
   children: React.ReactNode;
 }
 
-// Clip Engine intentionally has no sidebar entry — it's reached from the Home
-// hub card instead, so the sidebar stays short.
 const baseNavItems: NavItem[] = [
   { id: 'hooks', label: 'Analyze', icon: <Sparkles className="w-4 h-4" /> },
   { id: 'rank', label: 'Rank', icon: <Trophy className="w-4 h-4" /> },
@@ -53,7 +51,7 @@ const baseNavItems: NavItem[] = [
 const partnersItem: NavItem = { id: 'partners', label: 'Partners', icon: <Handshake className="w-4 h-4" /> };
 
 // Labels for tabs with no sidebar entry, used only for the mobile header title.
-const TAB_LABELS: Partial<Record<NavTab, string>> = { home: 'Hershy', clips: 'Clip Engine' };
+const TAB_LABELS: Partial<Record<NavTab, string>> = { home: 'Hershy' };
 
 const SIDEBAR_COLLAPSED_KEY = 'hershy_sidebar_collapsed';
 
