@@ -1264,9 +1264,13 @@ export function LandingPage() {
                   )
                 ))}
 
+                {/* Set apart from the anchors above with a hairline and the
+                    brand tint: it's the one entry that does something rather
+                    than jumping down the page. */}
                 <button
                   onClick={() => { closeMenu(); setAuthModal('login'); }}
-                  className="py-3 text-left text-[17px] text-gray-200 active:text-white transition-colors"
+                  className="mt-2 pt-5 py-3 text-left text-[17px] font-medium transition-colors"
+                  style={{ color: '#38BDF8', borderTop: '1px solid rgba(255,255,255,0.08)' }}
                 >
                   Sign in
                 </button>
@@ -1326,21 +1330,24 @@ export function LandingPage() {
             </div>
           </div>
 
-          <div className="relative z-10 w-full max-w-4xl mt-20 sm:mt-12 animate-fade-in delay-300">
-            <HeroTicker />
-          </div>
+          {/* Ticker and cue travel as one block pinned to the bottom of the
+              hero. The cue alone on mt-auto sat on the last visible line but
+              tore a gap open above itself on tall phones; grouped, the slack
+              collects above the ticker and the cue stays a fixed step under
+              it, still inside the first screen. */}
+          <div className="relative z-10 w-full mt-auto pt-12 flex flex-col items-center">
+            <div className="w-full max-w-4xl animate-fade-in delay-300">
+              <HeroTicker />
+            </div>
 
-          {/* Deliberate scroll cue, replacing the cropped heading that used to
-              bleed into the fold. It rides with the centred block rather than
-              being pinned to the bottom with mt-auto — pinned, it left a dead
-              void between the ticker and the cue on tall phones. */}
-          <button
-            onClick={() => scrollTo('tools')}
-            className="relative z-10 mt-24 sm:mt-[72px] flex flex-col items-center gap-1.5 text-xs text-gray-600 hover:text-gray-400 transition-colors animate-fade-in delay-500"
-          >
-            See how it works
-            <ChevronDown className="w-4 h-4 animate-float" />
-          </button>
+            <button
+              onClick={() => scrollTo('tools')}
+              className="mt-8 flex flex-col items-center gap-1.5 text-xs text-gray-600 hover:text-gray-400 transition-colors animate-fade-in delay-500"
+            >
+              See how it works
+              <ChevronDown className="w-4 h-4 animate-float" />
+            </button>
+          </div>
           </section>
         </div>
 
