@@ -212,6 +212,19 @@ function AppContent() {
   // null = unknown/loading, true/false once fetched
   const [needsOnboarding, setNeedsOnboarding] = useState<boolean | null>(null);
 
+  // A link pasted on the landing page before signing up is waiting for
+  // HookAnalysis to run it — that's a stronger signal of what this visit is
+  // for than the standard first-login flow, so onboarding is skipped this one
+  // time rather than making "paste a link" end in five profile questions.
+  // Read once at mount (not on every render): HookAnalysis clears this same
+  // key once it picks the URL up, and re-reading it live would flip Dashboard
+  // back to the onboarding screen mid-session the moment that happens.
+  // onboarding_completed is deliberately left unset by this bypass, so it
+  // still surfaces normally on a later, less time-pressured visit.
+  const [bypassOnboardingForPendingUrl] = useState(
+    () => !!localStorage.getItem('hershy_pending_video_url')
+  );
+
   // Determine whether the logged-in user still needs onboarding.
   useEffect(() => {
     if (!user) { setNeedsOnboarding(null); return; }
@@ -282,7 +295,7 @@ function AppContent() {
     );
   }
 
-  if (needsOnboarding) {
+  if (needsOnboarding && !bypassOnboardingForPendingUrl) {
     return <Onboarding onDone={() => setNeedsOnboarding(false)} />;
   }
 
