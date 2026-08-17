@@ -79,13 +79,25 @@ export function HookAnalysis() {
     loadUserPlan();
   }, [user?.id]);
 
-  // Picks up a URL handed off from the landing page's hero input (stashed
-  // before the account existed) and drops it straight into the URL field.
+  // Picks up the URL handed off from the landing page's hero input (stashed
+  // before the account existed) and runs it, so signing up is the last thing
+  // asked of you rather than one step in the middle. The key is consumed
+  // before anything can throw, so a reload never re-analyses and never
+  // double-charges — that also makes StrictMode's double effect a no-op.
   useEffect(() => {
     const pending = localStorage.getItem('hershy_pending_video_url');
     if (!pending) return;
     localStorage.removeItem('hershy_pending_video_url');
-    setUrlInput(pending);
+
+    const videoId = extractVideoId(pending);
+    if (!videoId) {
+      // Landing already screens the link, so this is a rare fallback: leave it
+      // in the field with the error rather than silently dropping it.
+      setUrlInput(pending);
+      setUrlError('Invalid YouTube URL or video ID');
+      return;
+    }
+    runGeminiAnalysis(videoId, '', false);
   }, []);
 
   const loadUserPlan = async () => {

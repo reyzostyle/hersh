@@ -1042,7 +1042,21 @@ export function LandingPage() {
   const [scrollTop, setScrollTop] = useState(0);
   const [billingInterval, setBillingInterval] = useState<Interval>('year');
   const [heroUrl, setHeroUrl] = useState('');
+  const [heroError, setHeroError] = useState('');
   const [mobileMenu, setMobileMenu] = useState(false);
+
+  // The placeholder carries a concrete example, but the full one doesn't fit a
+  // phone-width field, so the example is dropped below sm rather than clipped
+  // mid-URL. Placeholders can't be styled per breakpoint in CSS.
+  const [wideField, setWideField] = useState(
+    () => typeof window !== 'undefined' && window.matchMedia('(min-width: 640px)').matches
+  );
+  useEffect(() => {
+    const mq = window.matchMedia('(min-width: 640px)');
+    const sync = () => setWideField(mq.matches);
+    mq.addEventListener('change', sync);
+    return () => mq.removeEventListener('change', sync);
+  }, []);
   const [menuClosing, setMenuClosing] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -1057,13 +1071,29 @@ export function LandingPage() {
     setTimeout(() => { setMobileMenu(false); setMenuClosing(false); }, 220);
   };
 
-  // No session yet on the landing page, so a pasted URL can't be analyzed
-  // right here — hand it off to Video Review via localStorage and let
-  // Dashboard/HookAnalysis pick it up once the account exists.
+  // Mirrors extractVideoId in HookAnalysis exactly, so nothing this accepts
+  // gets rejected on the other side (and vice versa). Screening here means a
+  // channel or playlist link is caught before the visitor is asked to sign up,
+  // instead of failing after.
+  const looksLikeVideoLink = (url: string) => {
+    const t = url.trim();
+    if (/^[a-zA-Z0-9_-]{11}$/.test(t)) return true;
+    return /[?&]v=([^&]+)/.test(t) || /shorts\/([^?&/\n]+)/.test(t) || /youtu\.be\/([^?&/\n]+)/.test(t);
+  };
+
+  // This page only ever renders for guests (App.tsx routes anyone with a
+  // session straight to the Dashboard), so there is no logged-in branch to
+  // take here. The link is stashed, signup opens, and HookAnalysis picks the
+  // key up on mount and runs the analysis without asking for it again.
   const handleHeroAnalyze = (e: React.FormEvent) => {
     e.preventDefault();
     const trimmed = heroUrl.trim();
     if (!trimmed) return;
+    if (!looksLikeVideoLink(trimmed)) {
+      setHeroError('That does not look like a video link. Paste a Short, e.g. youtube.com/shorts/...');
+      return;
+    }
+    setHeroError('');
     localStorage.setItem('hershy_pending_video_url', trimmed);
     setAuthModal('signup');
   };
@@ -1312,8 +1342,9 @@ export function LandingPage() {
                 <input
                   type="text"
                   value={heroUrl}
-                  onChange={e => setHeroUrl(e.target.value)}
-                  placeholder="Paste a short link..."
+                  onChange={e => { setHeroUrl(e.target.value); if (heroError) setHeroError(''); }}
+                  placeholder={wideField ? 'Paste a YouTube Shorts link (e.g. youtube.com/shorts/...)' : 'Paste a Shorts link'}
+                  aria-invalid={!!heroError}
                   className="flex-1 min-w-0 bg-transparent px-3 py-2.5 text-sm sm:text-[15px] text-white placeholder-gray-500 outline-none"
                 />
                 <button
@@ -1326,7 +1357,9 @@ export function LandingPage() {
                 </button>
               </form>
 
-              <p className="text-xs text-gray-600">50 free credits · no card required</p>
+              {heroError
+                ? <p className="text-xs" style={{ color: '#F87171' }}>{heroError}</p>
+                : <p className="text-xs text-gray-600">50 free credits · no card required</p>}
             </div>
           </div>
 
