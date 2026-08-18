@@ -9,7 +9,7 @@
 // (video), so that's what the ceiling has to survive. At these numbers the
 // worst case is ~$0.13 (free), ~$0.78 (Plus), ~$2.60 (Pro) of model spend
 // per period. Realistic mixed usage lands at roughly a third of that.
-export const CREDIT_LIMITS: Record<string, number> = { free: 50, pro: 300, agency: 1000 };
+export const CREDIT_LIMITS: Record<string, number> = { free: 20, pro: 300, agency: 1000 };
 
 // Ordered by real DOLLAR cost (not raw token count — output tokens bill
 // ~8x input, so a big-input/small-output action like video is cheaper than

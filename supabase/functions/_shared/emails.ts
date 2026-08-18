@@ -71,7 +71,7 @@ const strong = (s: string) => `<strong style="color:#FFFFFF;">${s}</strong>`;
 function welcome(ctx: EmailCtx): RenderedEmail {
   const text = `you're in.
 
-50 credits are sitting on your account. no card, nothing to activate.
+20 credits are sitting on your account. no card, nothing to activate.
 
 quick thing worth knowing: hershy only does youtube shorts. not long-form,
 not podcast clips, not everything at once. that's the whole point, it's why
@@ -87,7 +87,7 @@ analyze your first short: ${ctx.appUrl}
 unsubscribe: ${ctx.unsubscribeUrl}`;
 
   return {
-    subject: "you're in. 50 credits are on your account",
+    subject: "you're in. 20 credits are on your account",
     text,
     html: layout({
       preheader: 'paste your last short and see where people actually left',
@@ -96,7 +96,7 @@ unsubscribe: ${ctx.unsubscribeUrl}`;
       unsubscribeUrl: ctx.unsubscribeUrl,
       body:
         p("you're in.") +
-        p(`${strong('50 credits')} are sitting on your account. no card, nothing to activate.`) +
+        p(`${strong('20 credits')} are sitting on your account. no card, nothing to activate.`) +
         p(`one thing worth knowing up front: hershy only does ${strong('youtube shorts')}. not long-form, not podcast clips, not everything at once. that's the point. it's why it can name the exact second people swiped instead of handing you a generic content tip.`) +
         p('fastest way to see what it does is to paste a link to your last short. you get back the second people left, a score on your hook, and what to change next time.'),
     }),
@@ -182,7 +182,7 @@ function upgrade(ctx: EmailCtx): RenderedEmail {
   const url = `${ctx.appUrl}/#pricing`;
   const text = `you've had about a week with it, so here's the honest version.
 
-the free 50 credits are a one-time grant. they don't refill monthly. once
+the free 20 credits are a one-time grant. they don't refill monthly. once
 they're gone that's it until you upgrade.
 
 Plus is $9.99/mo: 300 credits every month, plus competitor tracking, which
@@ -202,13 +202,13 @@ unsubscribe: ${ctx.unsubscribeUrl}`;
     subject: 'running low on credits?',
     text,
     html: layout({
-      preheader: 'the free 50 are one-time, here is what the paid tiers change',
+      preheader: 'the free 20 are one-time, here is what the paid tiers change',
       ctaLabel: 'see the plans',
       ctaUrl: url,
       unsubscribeUrl: ctx.unsubscribeUrl,
       body:
         p("you've had about a week with it, so here's the honest version.") +
-        p(`the free 50 credits are a ${strong('one-time grant')}. they don't refill monthly. once they're gone that's it until you upgrade.`) +
+        p(`the free 20 credits are a ${strong('one-time grant')}. they don't refill monthly. once they're gone that's it until you upgrade.`) +
         p(`${strong('Plus, $9.99/mo')} gets you 300 credits a month plus competitor tracking, which is the part people actually stick around for. ${strong('Pro, $19.99/mo')} is unlimited credits, for posting daily or running more than one channel.`) +
         p('if you connected your youtube, the paid tiers are where the retention reads get useful, because you check every upload instead of rationing.'),
     }),

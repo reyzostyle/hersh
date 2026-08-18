@@ -936,7 +936,7 @@ const faqs: { q: string; a: string }[] = [
   },
   {
     q: 'Can I start for free?',
-    a: 'Yes. New accounts get 50 credits, no card required - enough for a couple of video reviews or a handful of hook and script checks. No monthly refill on the free tier; upgrade when you need more.',
+    a: 'Yes. New accounts get 20 credits, no card required - enough for a couple of video reviews or a handful of hook and script checks. No monthly refill on the free tier; upgrade when you need more.',
   },
   {
     q: 'How does Competitors find ideas?',
@@ -1370,7 +1370,7 @@ export function LandingPage() {
 
               {heroError
                 ? <p className="text-xs" style={{ color: '#F87171' }}>{heroError}</p>
-                : <p className="text-xs text-gray-600">50 free credits · no card required</p>}
+                : <p className="text-xs text-gray-600">20 free credits · no card required</p>}
             </div>
           </div>
 

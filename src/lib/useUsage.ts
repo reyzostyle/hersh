@@ -8,7 +8,7 @@ import { supabase } from './supabase';
 // grant (see credits.ts's loadCreditStatus) — that's the entire free tier,
 // no separate trial mechanism. See credits.ts for how these numbers were
 // picked (worst-case $ budget, compressed real-cost ratios).
-export const CREDIT_LIMITS: Record<string, number> = { free: 50, pro: 300, agency: 1000 };
+export const CREDIT_LIMITS: Record<string, number> = { free: 20, pro: 300, agency: 1000 };
 export const CREDIT_COSTS = {
   video_analysis: 5,
   hook_check: 2,
