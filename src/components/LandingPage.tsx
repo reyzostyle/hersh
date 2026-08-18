@@ -573,12 +573,12 @@ function HeroTicker() {
     <div className="marquee-mask w-full overflow-hidden py-1" aria-hidden="true">
       {/* The item list is rendered twice — the CSS loop translates the track by
           exactly -50%, so the second copy lands where the first began. */}
-      <div className="marquee-track items-center gap-3">
+      <div className="marquee-track items-center gap-3 min-[2200px]:gap-5">
         {[0, 1].map(copy =>
           tickerItems.map((item, i) => (
-            <div key={`${copy}-${i}`} className="w-[186px] flex-shrink-0">
-              <div className="h-[78px]">{item.mock}</div>
-              <p className="mt-1.5 text-[10px] font-medium uppercase tracking-[0.12em] text-gray-600 text-center">
+            <div key={`${copy}-${i}`} className="w-[186px] min-[2200px]:w-[236px] flex-shrink-0">
+              <div className="h-[78px] min-[2200px]:h-[100px]">{item.mock}</div>
+              <p className="mt-1.5 text-[10px] min-[2200px]:text-[12px] font-medium uppercase tracking-[0.12em] text-gray-600 text-center">
                 {item.label}
               </p>
             </div>
@@ -1369,7 +1369,7 @@ export function LandingPage() {
               collects above the ticker and the cue stays a fixed step under
               it, still inside the first screen. */}
           <div className="relative z-10 w-full mt-auto pt-12 flex flex-col items-center">
-            <div className="w-full max-w-4xl animate-fade-in delay-300">
+            <div className="w-full max-w-4xl min-[2200px]:max-w-6xl animate-fade-in delay-300">
               <HeroTicker />
             </div>
 
