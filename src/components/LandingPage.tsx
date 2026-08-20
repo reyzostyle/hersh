@@ -15,6 +15,17 @@ function DiscordIcon({ className, style }: { className?: string; style?: React.C
   );
 }
 
+// Same brand mark and path used in SettingsPage.tsx's real "YouTube account"
+// row, so the mock banner below is a copy of the actual connected state, not
+// an invented one.
+function YouTubeLogo({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="currentColor">
+      <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z" />
+    </svg>
+  );
+}
+
 // ─── Shared styles ────────────────────────────────────────────────────────────
 
 // No backdrop-filter: blur over the static app background caused Chromium
@@ -31,6 +42,52 @@ const glassInput: React.CSSProperties = {
   border: '1px solid rgba(255,255,255,0.12)',
   outline: 'none',
 };
+
+// Blue-tinted variant of `glass`, used only on the hero paste field so it
+// reads as THE action on the page rather than blending into the neutral
+// glass panels used everywhere else.
+const heroInputGlass: React.CSSProperties = {
+  background:
+    'linear-gradient(180deg, rgba(14,164,233,0.12), rgba(14,164,233,0.04) 45%, rgba(14,164,233,0.06)), linear-gradient(180deg, rgba(14,80,133,0.08), rgba(14,80,133,0.04))',
+  border: '1px solid rgba(14,164,233,0.4)',
+  boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.12), 0 10px 34px -14px rgba(0,0,0,0.6)',
+};
+
+// Every mockup panel on the page (tool tiles, the retention chart, the
+// competitor card) carries `motion-card`'s hover lift, which reads as "this
+// is clickable" — Clarity recordings showed people trying to interact with
+// them and landing on nothing. Since none of these can run for real before
+// signup, the click now does the next best thing: jumps back to the one
+// thing that IS live, the hero paste field.
+const HERO_INPUT_ID = 'hero-url-input';
+function focusHeroInput() {
+  const el = document.getElementById(HERO_INPUT_ID) as HTMLInputElement | null;
+  if (!el) return;
+  // `block: 'start'` + the input's own `scroll-mt-20` (matching every other
+  // section's nav-clearance offset) lands the field right under the sticky
+  // nav rather than centered mid-screen, so it's the first thing visible.
+  el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  // `preventScroll` is the actual fix for the "works every other click" bug:
+  // without it, focusing the input makes the browser do its OWN instant
+  // scroll-into-view too, racing our smooth one — whichever request the
+  // browser processes last wins, so the result was a coin flip depending on
+  // scroll distance. Blocking the browser's own scroll leaves only ours.
+  el.focus({ preventScroll: true });
+}
+
+// Hover-only affordance so the click isn't a total surprise on desktop; on
+// touch the tap itself (onClick) is the whole fix, no hint needed.
+function TryHint() {
+  return (
+    <span
+      className="mt-2 inline-flex items-center gap-1 text-[11px] font-medium opacity-0 group-hover:opacity-100 transition-opacity"
+      style={{ color: '#38BDF8' }}
+    >
+      Try it above
+      <ChevronDown className="w-3 h-3 rotate-180" />
+    </span>
+  );
+}
 
 // ─── Scroll reveal hook ────────────────────────────────────────────────────────
 
@@ -276,6 +333,10 @@ interface Plan {
   yearlyMonthlyPrice: number;
   yearlyTotal: number;
   quotas: string[];
+  // What the credit number actually converts to, spent one way at a time.
+  // Only set where a concrete number is honest to show (Pro's ceiling is a
+  // fair-use number that's deliberately not on this page, see credits.ts).
+  breakdown?: { amount: string; label: string }[];
   features: string[];
   cta: string;
   popular: boolean;
@@ -285,16 +346,26 @@ interface Plan {
 // Mirrors UpgradePage.tsx's live Stripe prices. yearlyTotal is 12x the
 // monthly rate rounded up 11c to end in .99 (Plus has no further discount
 // on top of that; Pro's yearlyMonthlyPrice is the real ~35% cut).
+// breakdown amounts are 300 credits divided by each action's real cost in
+// supabase/functions/_shared/credits.ts (video 5, hook 2, script 3,
+// competitor items 1) — i.e. what 300 credits buys if spent entirely on
+// that one thing, not an average. Keep in sync if CREDIT_COSTS changes.
 const pricingPlans: Plan[] = [
   {
     name: 'Plus', monthlyPrice: 9.99, yearlyMonthlyPrice: 9.99, yearlyTotal: 119.99,
-    quotas: ['300 credits / month', 'Video, Hook & Script checks', 'Competitor ideas, outlines & scripts'],
+    quotas: ['300 credits / month', 'Spend them on any tool, any mix'],
+    breakdown: [
+      { amount: '60', label: 'video reviews' },
+      { amount: '150', label: 'hook checks' },
+      { amount: '100', label: 'script checks' },
+      { amount: '300', label: 'competitor ideas' },
+    ],
     features: ['Hook score & rewrites', 'Weak spot breakdown', 'Channel profile context', 'Retention insights on your videos'],
     cta: 'Get Plus', popular: false, highlight: false,
   },
   {
     name: 'Pro', monthlyPrice: 19.99, yearlyMonthlyPrice: 12.99, yearlyTotal: 155.99,
-    quotas: ['Unlimited credits', 'Same coverage as Plus', 'Highest fair-use ceiling'],
+    quotas: ['Unlimited credits', 'Every tool, no per-feature caps'],
     features: ['Everything in Plus', 'Highest monthly limits'],
     cta: 'Get Pro', popular: true, highlight: true,
   },
@@ -386,6 +457,24 @@ function PricingCard({ plan, interval, onSelect }: { plan: Plan; interval: Inter
             </p>
           ))}
         </div>
+
+        {/* Converts the credit number into what people actually came here to
+            check: how many videos, hooks, scripts that gets them. Each figure
+            is 300 credits spent entirely on that one action, so this is the
+            floor if you split them, not an average. */}
+        {plan.breakdown && (
+          <>
+            <div className="mt-3 grid grid-cols-2 gap-1.5">
+              {plan.breakdown.map(b => (
+                <div key={b.label} className="rounded-lg px-2.5 py-1.5" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
+                  <span className="block text-sm font-bold text-white leading-tight">{b.amount}</span>
+                  <span className="block text-[10.5px] text-gray-500 leading-tight">{b.label}</span>
+                </div>
+              ))}
+            </div>
+            <p className="text-[11px] text-gray-600 mt-2">Mix and match. It's your call where they go.</p>
+          </>
+        )}
       </div>
 
       {/* Toggle — mobile only; on desktop features are always shown */}
@@ -456,24 +545,21 @@ function MiniIdeaCard() {
 function MiniRetention() {
   return (
     <div className="rounded-lg p-2.5 h-full flex flex-col justify-center" style={mockShell}>
-      {/* preserveAspectRatio="none" stretches the curve to the tile width, so
-          every stroke carries vector-effect to keep its width honest. The drop
-          marker is an HTML dot rather than an SVG circle for the same reason:
-          a circle would come out as an ellipse under the same stretch. */}
+      {/* Matches the real YouTube Studio "relative retention" chart style
+          (gridlines, no area fill, a curve that opens above 100%) rather than
+          an invented decoration — too small here for the axis numbers, but
+          the RealDataBlock version below carries them. preserveAspectRatio="none"
+          stretches the curve to the tile width, so every stroke carries
+          vector-effect to keep its width honest. The drop marker is an HTML
+          dot rather than an SVG circle for the same reason: a circle would
+          come out as an ellipse under the same stretch. */}
       <div className="relative">
-        <svg viewBox="0 0 100 34" className="w-full h-[38px] wipe-in" preserveAspectRatio="none">
-          <defs>
-            <linearGradient id="lp-ret-fill" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#0EA4E9" stopOpacity="0.30" />
-              <stop offset="100%" stopColor="#0EA4E9" stopOpacity="0" />
-            </linearGradient>
-          </defs>
-          <polygon
-            points="0,4 18,7 34,9 44,10 52,23 68,26 84,29 100,30 100,34 0,34"
-            fill="url(#lp-ret-fill)"
-          />
+        {[0, 33.3, 66.6, 100].map(top => (
+          <div key={top} className="absolute inset-x-0 h-px" style={{ top: `${top}%`, background: 'rgba(255,255,255,0.06)' }} />
+        ))}
+        <svg viewBox="0 0 100 34" className="relative w-full h-[38px] wipe-in" preserveAspectRatio="none">
           <polyline
-            points="0,4 18,7 34,9 44,10 52,23 68,26 84,29 100,30"
+            points="0,5 15,6 30,7 40,11 48,18.5 60,21 72,23 84,25 100,27"
             fill="none"
             stroke="#0EA4E9"
             strokeWidth="2"
@@ -489,7 +575,7 @@ function MiniRetention() {
         </svg>
         <span
           className="absolute w-[7px] h-[7px] rounded-full animate-dot-pulse"
-          style={{ left: '48%', top: '48%', marginLeft: -3.5, marginTop: -3.5, background: '#F87171' }}
+          style={{ left: '48%', top: '54%', marginLeft: -3.5, marginTop: -3.5, background: '#F87171' }}
         />
       </div>
       <div className="flex items-center justify-between mt-2">
@@ -551,14 +637,25 @@ function ToolsGrid() {
         <RevealSection key={tool.name} delay={i * 80}>
           {/* The mock sits in a fixed-height box so the title and body line up
               across all four cards — the mocks are different heights, which
-              previously left each card's text starting at its own offset. */}
-          <div className="rounded-xl p-3.5 h-full flex flex-col motion-card" style={glass}>
+              previously left each card's text starting at its own offset.
+              motion-card's hover lift already reads as "clickable", so the
+              card now actually does something on click: jumps to the one
+              live thing on the page, the hero paste field. */}
+          <div
+            role="button"
+            tabIndex={0}
+            onClick={focusHeroInput}
+            onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); focusHeroInput(); } }}
+            className="group rounded-xl p-3.5 h-full flex flex-col motion-card cursor-pointer"
+            style={glass}
+          >
             <div className="h-[78px] mb-3.5">{tool.mock}</div>
             <div className="flex items-center gap-1.5 mb-2">
               <span style={{ color: '#0EA4E9' }}>{tool.icon}</span>
               <h3 className="text-white font-semibold text-sm">{tool.name}</h3>
             </div>
             <p className="text-gray-500 text-xs leading-relaxed">{tool.desc}</p>
+            <TryHint />
           </div>
         </RevealSection>
       ))}
@@ -609,6 +706,48 @@ function HeroTicker() {
 // explanations that used to float are just a list, and nothing on screen is a
 // placeholder.
 
+// A quick scan of the feed itself, ahead of the single-card deep dive below —
+// "steal what already works" reads as a claim about a whole feed, not one
+// example, so this shows three before the spotlight zooms into one.
+const feedPreviewItems: { title: string; handle: string; views: string; multiplier: string }[] = [
+  { title: '3 hooks I stole from MrBeast', handle: '@growthlab', views: '96K views', multiplier: '2.4x' },
+  { title: 'Why nobody edits like this anymore', handle: '@cliqclub', views: '142K views', multiplier: '3.1x' },
+  { title: 'I tested every hook format in a week', handle: '@dailyshortz', views: '58K views', multiplier: '1.8x' },
+];
+
+function CompetitorsFeedPreview() {
+  return (
+    <div
+      role="button"
+      tabIndex={0}
+      onClick={focusHeroInput}
+      onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); focusHeroInput(); } }}
+      className="group rounded-2xl overflow-hidden motion-card cursor-pointer"
+      style={glass}
+    >
+      {feedPreviewItems.map((item, i) => (
+        <div
+          key={item.title}
+          className="flex items-center gap-3 px-4 py-3"
+          style={i > 0 ? { borderTop: '1px solid rgba(255,255,255,0.06)' } : undefined}
+        >
+          <div className="w-11 h-7 rounded flex-shrink-0 flex items-center justify-center" style={{ background: 'linear-gradient(135deg,#233246,#0f172a)' }}>
+            <Play className="w-3 h-3 text-white/70" fill="currentColor" />
+          </div>
+          <p className="flex-1 min-w-0 text-sm text-gray-200 truncate">{item.title}</p>
+          <span className="hidden sm:inline text-xs text-gray-600 flex-shrink-0">{item.handle} · {item.views}</span>
+          <span className="flex items-center gap-1 text-xs font-bold px-1.5 py-0.5 rounded flex-shrink-0" style={{ background: 'rgba(52,211,153,0.14)', color: '#6ee7b7' }}>
+            <TrendingUp className="w-3 h-3" />{item.multiplier}
+          </span>
+        </div>
+      ))}
+      <div className="px-4 pb-3 pt-1">
+        <TryHint />
+      </div>
+    </div>
+  );
+}
+
 const competitorPoints: { icon: React.ReactNode; title: string; desc: string }[] = [
   {
     icon: <TrendingUp className="w-4 h-4" />,
@@ -630,8 +769,17 @@ const competitorPoints: { icon: React.ReactNode; title: string; desc: string }[]
 function CompetitorsSpotlight() {
   return (
     <div className="grid lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] gap-6 lg:gap-10 items-center">
-      {/* The card, at the size it actually appears in the Feed */}
-      <div className="rounded-2xl p-4 sm:p-5 motion-card" style={glass}>
+      {/* The card, at the size it actually appears in the Feed. Same dead-click
+          fix as the Tools grid: motion-card's hover lift invites a click that
+          nothing pre-signup could otherwise answer. */}
+      <div
+        role="button"
+        tabIndex={0}
+        onClick={focusHeroInput}
+        onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); focusHeroInput(); } }}
+        className="group rounded-2xl p-4 sm:p-5 motion-card cursor-pointer"
+        style={glass}
+      >
         <div className="flex gap-3">
           <div className="w-[74px] h-[46px] rounded-lg flex-shrink-0 flex items-center justify-center" style={{ background: 'linear-gradient(135deg,#233246,#0f172a)' }}>
             <Play className="w-4 h-4 text-white/70" fill="currentColor" />
@@ -653,6 +801,7 @@ function CompetitorsSpotlight() {
           </div>
           <p className="text-violet-100 text-xs leading-relaxed">Same hook-swap format, rebuilt around 3 editing tricks from your niche instead.</p>
         </div>
+        <TryHint />
       </div>
 
       <div className="space-y-5">
@@ -684,6 +833,13 @@ function CompetitorsSpotlight() {
 // verified the app and that the scopes are read-only — Ivan cut both: that's
 // baseline for any real product, and spelling it out reads as a small tool
 // arguing it deserves to be trusted.
+// Right-side % scale and bottom time ticks for the retention chart below.
+// 150/100/50/0 (not 0-100) matches YouTube Studio's actual "relative
+// retention" chart, which opens above 100% since it's read against
+// similar-length videos rather than a flat scale.
+const retentionAxisLabels = [150, 100, 50, 0];
+const retentionTimeLabels = [{ t: '0:00', x: 0 }, { t: '0:11', x: 40 }, { t: '0:20', x: 100 }];
+
 const realDataPoints: { icon: React.ReactNode; title: string; desc: string }[] = [
   {
     icon: <TrendingUp className="w-4 h-4" />,
@@ -702,37 +858,109 @@ const realDataPoints: { icon: React.ReactNode; title: string; desc: string }[] =
   },
 ];
 
+// A copy of the actual "Connected" row from SettingsPage.tsx's YouTube
+// account card (same avatar circle, green status dot, "Last synced" line and
+// outlined Reconnect pill) — so the System section opens by showing exactly
+// what connecting looks like, not just describing it.
+function YouTubeConnectedBanner() {
+  return (
+    <div className="rounded-xl p-3 sm:p-3.5 flex items-center justify-between gap-3" style={glass}>
+      <div className="flex items-center gap-3 min-w-0">
+        <div className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(255,0,0,0.1)' }}>
+          <YouTubeLogo className="w-4 h-4 text-red-500" />
+        </div>
+        <div className="min-w-0">
+          <div className="flex items-center gap-2">
+            <p className="text-sm text-white font-medium truncate">YouTube account</p>
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block flex-shrink-0" />
+          </div>
+          <p className="text-xs text-gray-500 mt-0.5">Connected in two clicks</p>
+        </div>
+      </div>
+      <span
+        className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-400 rounded-lg flex-shrink-0"
+        style={{ border: '1px solid rgba(255,255,255,0.12)' }}
+      >
+        Connected
+      </span>
+    </div>
+  );
+}
+
 function RealDataBlock() {
   return (
     <div className="grid lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] gap-6 lg:gap-10 items-center">
-      <div className="rounded-2xl p-4 sm:p-5 motion-card" style={glass}>
+      {/* This is the panel that showed up as dead clicks in session recordings:
+          it looks like a live chart, but it's a static mockup pre-signup.
+          Same fix as the Tools grid and Competitors card — the click now
+          jumps to the hero field instead of doing nothing. */}
+      <div
+        role="button"
+        tabIndex={0}
+        onClick={focusHeroInput}
+        onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); focusHeroInput(); } }}
+        className="group rounded-2xl p-4 sm:p-5 motion-card cursor-pointer"
+        style={glass}
+      >
         <div className="flex items-center justify-between mb-3">
           <span className="flex items-center gap-1.5 text-[11px] font-semibold px-2 py-1 rounded-md" style={{ background: 'rgba(52,211,153,0.14)', color: '#6ee7b7' }}>
-            <Check className="w-3 h-3" />Your video
+            <Check className="w-3 h-3" />Actual data
           </span>
           <span className="text-[11px] text-gray-600">from YouTube Analytics</span>
         </div>
 
-        <div className="relative">
-          <svg viewBox="0 0 100 40" className="w-full h-[104px] wipe-in" preserveAspectRatio="none">
-            <defs>
-              <linearGradient id="lp-real-fill" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#0EA4E9" stopOpacity="0.32" />
-                <stop offset="100%" stopColor="#0EA4E9" stopOpacity="0" />
-              </linearGradient>
-            </defs>
-            <polygon points="0,3 16,6 32,8 43,9 52,27 68,30 84,33 100,35 100,40 0,40" fill="url(#lp-real-fill)" />
-            <polyline
-              points="0,3 16,6 32,8 43,9 52,27 68,30 84,33 100,35"
-              fill="none" stroke="#0EA4E9" strokeWidth="2.5"
-              strokeLinejoin="round" strokeLinecap="round" vectorEffect="non-scaling-stroke"
+        {/* Same axis-labeled shape YouTube Studio's own "relative retention"
+            chart uses (a curve that opens above 100%, since it reads against
+            similar-length videos, not a flat 0-100 scale) — matching the
+            real chrome makes "the same retention graph YouTube Studio shows
+            you" a claim you can see, not just read. Labels are HTML, not SVG
+            <text>: preserveAspectRatio="none" stretches the viewBox
+            non-uniformly, which would warp glyphs the same way it turns a
+            circle into an ellipse (see the drop-marker note below). */}
+        <div className="flex gap-2">
+          <div className="relative flex-1 min-w-0">
+            {retentionAxisLabels.map(v => (
+              <div key={v} className="absolute inset-x-0 h-px" style={{ top: `${(1 - v / 150) * 100}%`, background: 'rgba(255,255,255,0.08)' }} />
+            ))}
+            <svg viewBox="0 0 100 60" className="relative w-full h-[104px] wipe-in" preserveAspectRatio="none">
+              <polyline
+                points="0,8 10,8.8 20,10 30,11.2 35,12 40,22 50,32.8 60,34.4 70,36 80,40 90,44.8 100,47.2"
+                fill="none" stroke="#0EA4E9" strokeWidth="2"
+                strokeLinejoin="round" strokeLinecap="round" vectorEffect="non-scaling-stroke"
+              />
+              <line x1="40" y1="0" x2="40" y2="60" stroke="#F87171" strokeWidth="1" strokeDasharray="3 3" opacity="0.6" vectorEffect="non-scaling-stroke" />
+            </svg>
+            <span
+              className="absolute w-2.5 h-2.5 rounded-full animate-dot-pulse"
+              style={{ left: '40%', top: '36.7%', marginLeft: -5, marginTop: -5, background: '#F87171' }}
             />
-            <line x1="47.5" y1="0" x2="47.5" y2="40" stroke="#F87171" strokeWidth="1" strokeDasharray="3 3" opacity="0.6" vectorEffect="non-scaling-stroke" />
-          </svg>
-          <span
-            className="absolute w-2.5 h-2.5 rounded-full animate-dot-pulse"
-            style={{ left: '47.5%', top: '45%', marginLeft: -5, marginTop: -5, background: '#F87171' }}
-          />
+            <div className="relative mt-1.5 h-3">
+              {retentionTimeLabels.map(({ t, x }, i) => (
+                <span
+                  key={t}
+                  className="absolute text-[10px] tabular-nums"
+                  style={{
+                    left: `${x}%`,
+                    transform: i === 0 ? 'translateX(0)' : i === retentionTimeLabels.length - 1 ? 'translateX(-100%)' : 'translateX(-50%)',
+                    color: t === '0:11' ? '#F87171' : '#4B5563',
+                  }}
+                >
+                  {t}
+                </span>
+              ))}
+            </div>
+          </div>
+          <div className="relative flex-shrink-0 w-7" style={{ height: 104 }}>
+            {retentionAxisLabels.map(v => (
+              <span
+                key={v}
+                className="absolute right-0 -translate-y-1/2 text-[10px] text-gray-600 tabular-nums"
+                style={{ top: `${(1 - v / 150) * 100}%` }}
+              >
+                {v}%
+              </span>
+            ))}
+          </div>
         </div>
 
         <div className="flex items-center gap-2 mt-3">
@@ -745,6 +973,7 @@ function RealDataBlock() {
             <p className="text-sm font-bold" style={{ color: '#F87171' }}>0:11</p>
           </div>
         </div>
+        <TryHint />
       </div>
 
       <div className="space-y-5">
@@ -878,7 +1107,7 @@ const testimonials: { quote: string[]; name: string; tool: string; note: string 
       'usually ai scripts sound like a corporate robot talking to toddlers',
       'this actually kept my slang and structure, just adapted the competitor idea to my niche',
     ],
-    name: 'yonatan',
+    name: 'Yonatan',
     tool: 'Competitors',
     note: 'Generated a ready-to-film script without losing personal creator voice.',
   },
@@ -1226,27 +1455,19 @@ export function LandingPage() {
                 brand and CTA stay pinned to the same edges on phones. */}
             <div className="md:hidden" />
 
-            <div className="flex items-center justify-self-end">
-              {/* Phones get the hamburger alone — the CTA there was competing
-                  with the hero's paste field for the same tap. */}
-              <button
-                onClick={() => setAuthModal('login')}
-                className="hidden md:flex items-center gap-1.5 px-4 py-2 text-sm font-semibold text-white rounded-lg whitespace-nowrap hover:opacity-90 transition-opacity"
-                style={{ background: '#0EA4E9' }}
-              >
-                Get started
-                <ChevronRight className="w-3.5 h-3.5" />
-              </button>
+            <div className="flex items-center gap-2 justify-self-end">
               {/* The only thing that changes when the menu opens. Both icons
                   render inside the same 24x24 box, so the bar's height never
                   shifts and the brand beside it does not move a pixel — the
                   menu used to draw its own copy of the logo on top of this
-                  one, which is what made it look like it jumped and faded. */}
+                  one, which is what made it look like it jumped and faded.
+                  Sits left of Get started on phones now (Ivan asked the CTA
+                  back on mobile, to the burger's right). */}
               <button
                 onClick={() => (menuOpen ? closeMenu() : setMobileMenu(true))}
                 aria-label={menuOpen ? 'Close menu' : 'Open menu'}
                 aria-expanded={menuOpen}
-                className="md:hidden -mr-1 p-1.5 text-white"
+                className="md:hidden p-1.5 text-white"
               >
                 <span className="w-6 h-6 flex items-center justify-center">
                   {menuOpen ? (
@@ -1257,6 +1478,14 @@ export function LandingPage() {
                     </svg>
                   )}
                 </span>
+              </button>
+              <button
+                onClick={() => setAuthModal('login')}
+                className="flex items-center gap-1 sm:gap-1.5 px-3 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-semibold text-white rounded-lg whitespace-nowrap hover:opacity-90 transition-opacity"
+                style={{ background: '#0EA4E9' }}
+              >
+                Get started
+                <ChevronRight className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
               </button>
             </div>
           </div>
@@ -1342,31 +1571,47 @@ export function LandingPage() {
               Stop posting blind.
             </h1>
 
+            {/* Two sentences, explicit line break between them per the
+                site's copy rule — letting them wrap freely as one block
+                risked an arbitrary break mid-thought. */}
             <p className="animate-fade-in-up delay-100 text-base sm:text-lg text-gray-500 leading-relaxed mb-8 max-w-md sm:max-w-xl mx-auto text-balance">
-              Your shorts producer. It steals what already works, rebuilds it for your channel, and tells you exactly where the last one lost people.
+              Your personal shorts producer.<br />
+              Steals what already works, rebuilds it for you, and analyzes your data to keep improving.
             </p>
 
             {/* The paste field is the only hero CTA now — the button above it
-                was a second door to the same signup and split attention. */}
+                was a second door to the same signup and split attention.
+                Given its own blue-tinted glass (not the neutral `glass` used
+                everywhere else) plus a soft always-on halo, so it visually
+                separates itself from the rest of the page as THE thing to
+                do here, not one more panel among many. */}
             <div className="animate-fade-in-up delay-200 flex flex-col items-center gap-3">
-              <form onSubmit={handleHeroAnalyze} className="w-full max-w-lg flex items-center gap-2 rounded-2xl p-2" style={glass}>
-                <input
-                  type="text"
-                  value={heroUrl}
-                  onChange={e => { setHeroUrl(e.target.value); if (heroError) setHeroError(''); }}
-                  placeholder={wideField ? 'Paste a YouTube Shorts link (e.g. youtube.com/shorts/...)' : 'Paste a Shorts link'}
-                  aria-invalid={!!heroError}
-                  className="flex-1 min-w-0 bg-transparent px-3 py-2.5 text-sm sm:text-[15px] text-white placeholder-gray-500 outline-none"
-                />
-                <button
-                  type="submit"
-                  className="flex items-center gap-1.5 px-4 sm:px-5 py-2.5 text-white font-semibold rounded-xl text-sm whitespace-nowrap hover:opacity-90 flex-shrink-0 animate-glow-pulse"
-                  style={{ background: '#0EA4E9' }}
+              <div className="relative w-full max-w-xl">
+                <div aria-hidden="true" className="absolute inset-0 rounded-2xl pointer-events-none animate-glow-pulse" />
+                <form
+                  onSubmit={handleHeroAnalyze}
+                  className="relative w-full flex items-center gap-2 rounded-2xl p-2.5"
+                  style={heroInputGlass}
                 >
-                  <Sparkles className="w-4 h-4" />
-                  Analyze
-                </button>
-              </form>
+                  <input
+                    id={HERO_INPUT_ID}
+                    type="text"
+                    value={heroUrl}
+                    onChange={e => { setHeroUrl(e.target.value); if (heroError) setHeroError(''); }}
+                    placeholder={wideField ? 'Paste a YouTube Shorts link (e.g. youtube.com/shorts/...)' : 'Paste a Shorts link'}
+                    aria-invalid={!!heroError}
+                    className="flex-1 min-w-0 bg-transparent px-3.5 py-3 text-sm sm:text-base text-white placeholder-gray-500 outline-none scroll-mt-20"
+                  />
+                  <button
+                    type="submit"
+                    className="flex items-center gap-1.5 px-4 sm:px-6 py-3 text-white font-semibold rounded-xl text-sm sm:text-[15px] whitespace-nowrap hover:opacity-90 flex-shrink-0"
+                    style={{ background: '#0EA4E9' }}
+                  >
+                    <Sparkles className="w-4 h-4" />
+                    Analyze
+                  </button>
+                </form>
+              </div>
 
               {heroError
                 ? <p className="text-xs" style={{ color: '#F87171' }}>{heroError}</p>
@@ -1415,6 +1660,9 @@ export function LandingPage() {
               Forget "what's trending". Hershy surfaces the shorts beating <em className="not-italic text-gray-300">their own channel's average</em>, then rebuilds the angle for yours.
             </p>
           </RevealSection>
+          <RevealSection className="mb-6 sm:mb-8">
+            <CompetitorsFeedPreview />
+          </RevealSection>
           <RevealSection>
             <CompetitorsSpotlight />
           </RevealSection>
@@ -1428,8 +1676,13 @@ export function LandingPage() {
               It runs on your real numbers.
             </h2>
             <p className="text-gray-500 text-sm sm:text-[15px] leading-relaxed">
-              Connect your channel and the guessing stops. Every drop Hershy names comes off your own retention data, so the notes are about your video, not your topic.
+              Connect your channel and the guessing stops. Every fix Hershy shows you is checked against{' '}
+              <span className="text-white font-semibold">your actual retention numbers</span>, not a guess.
             </p>
+          </RevealSection>
+
+          <RevealSection className="mb-6 sm:mb-8 max-w-md">
+            <YouTubeConnectedBanner />
           </RevealSection>
 
           <RevealSection>
@@ -1461,7 +1714,9 @@ export function LandingPage() {
         <section id="pricing" className="pb-10 sm:pb-24 px-6 max-w-4xl mx-auto scroll-mt-20">
           <RevealSection className="text-center mb-6">
             <h2 className="text-xl sm:text-2xl font-bold text-white mb-2 text-balance">Simple pricing</h2>
-            <p className="text-gray-500 text-sm">Pick the plan that fits, cancel anytime.</p>
+            <p className="text-gray-500 text-sm max-w-md mx-auto text-balance">
+              One shared credit balance, not four separate limits. Spend it on whatever this week's video actually needs.
+            </p>
           </RevealSection>
           <RevealSection className="mb-8 sm:mb-12">
             <BillingToggle interval={billingInterval} onChange={setBillingInterval} percentOff={proPercentOff} />
