@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 
-import { X, Check, Loader2, Zap, ChevronRight, ChevronDown, MessageCircle, Twitter, Mail, TrendingUp, FileText, Wand2, Video as VideoIcon, Users, Play, Sparkles, Repeat } from 'lucide-react';
+import { X, Check, Loader2, Zap, ChevronRight, ChevronDown, MessageCircle, Twitter, Mail, TrendingUp, FileText, Wand2, Video as VideoIcon, Users, Play, Sparkles, Repeat, Lock } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
 
@@ -317,7 +317,11 @@ interface Plan {
 const pricingPlans: Plan[] = [
   {
     name: 'Plus', monthlyPrice: 9.99, yearlyMonthlyPrice: 9.99, yearlyTotal: 119.99,
-    quotas: ['300 credits / month', 'Spend them on any tool, any mix'],
+    // Competitors sits in `quotas` rather than `features` on purpose: quotas
+    // render as bold white rows and features as grey ticks, and this is the
+    // one line that separates paid from the free trial (enforced server-side
+    // in fetch-competitor-ideas / generate-outline, not just hidden in the UI).
+    quotas: ['300 credits / month', 'Competitors tab unlocked'],
     breakdown: [
       { amount: '60', label: 'video reviews' },
       { amount: '150', label: 'hook checks' },
@@ -329,7 +333,7 @@ const pricingPlans: Plan[] = [
   },
   {
     name: 'Pro', monthlyPrice: 19.99, yearlyMonthlyPrice: 12.99, yearlyTotal: 155.99,
-    quotas: ['Unlimited credits', 'Every tool, no per-feature caps'],
+    quotas: ['Unlimited credits', 'Competitors tab unlocked'],
     features: ['Everything in Plus', 'Highest monthly limits'],
     cta: 'Get Pro', popular: true, highlight: true,
   },
@@ -908,7 +912,7 @@ const faqs: { q: string; a: string }[] = [
   },
   {
     q: 'Can I start for free?',
-    a: 'Yes. New accounts get 20 credits, no card required - enough for a couple of video reviews or a handful of hook and script checks. No monthly refill on the free tier; upgrade when you need more.',
+    a: 'Yes. New accounts get 20 credits, no card required - enough for a couple of video reviews or a handful of hook and script checks. Competitors needs a paid plan, and the free credits are one time, with no monthly refill.',
   },
   {
     q: 'How does Competitors find ideas?',
@@ -1449,6 +1453,32 @@ export function LandingPage() {
               One shared credit balance, not four separate limits. Spend it on whatever this week's video actually needs.
             </p>
           </RevealSection>
+          {/* The free tier stated as its own row rather than a third card:
+              it's the contrast that makes the paid cards land, but giving it
+              equal card weight would sell it as a real option. Dashed border
+              + muted text reads as "the sample", not "the plan". The numbers
+              match CREDIT_LIMITS.free in supabase/functions/_shared/credits.ts
+              (20, one-time, never resets) and the Competitors gate really is
+              enforced server-side for free accounts. */}
+          <RevealSection className="mb-5 sm:mb-6">
+            {/* Stacks on phones instead of wrapping: as a single wrapping row
+                the separator dot ended up stranded at the end of a line. The
+                dots only exist in the one-line desktop layout. */}
+            <div
+              className="rounded-xl px-4 py-3 flex flex-col sm:flex-row items-center justify-center gap-x-2.5 gap-y-1 max-w-lg mx-auto"
+              style={{ background: 'rgba(255,255,255,0.02)', border: '1px dashed rgba(255,255,255,0.12)' }}
+            >
+              <span className="text-[13px] font-semibold text-gray-300">Free trial</span>
+              <span className="hidden sm:inline text-gray-700" aria-hidden="true">·</span>
+              <span className="text-[13px] text-gray-500">20 credits, one time</span>
+              <span className="hidden sm:inline text-gray-700" aria-hidden="true">·</span>
+              <span className="flex items-center gap-1.5 text-[13px] text-gray-500">
+                <Lock className="w-3 h-3 flex-shrink-0" />
+                no Competitors
+              </span>
+            </div>
+          </RevealSection>
+
           <RevealSection className="mb-8 sm:mb-12">
             <BillingToggle interval={billingInterval} onChange={setBillingInterval} percentOff={proPercentOff} />
           </RevealSection>
@@ -1473,8 +1503,32 @@ export function LandingPage() {
           </RevealSection>
         </section>
 
-        {/* ── 6. Community ──────────────────────────────────────────────────── */}
+        {/* ── 6. Closing CTA, then Community ────────────────────────────────── */}
         <section id="community" className="pb-14 sm:pb-24 px-6 max-w-4xl mx-auto scroll-mt-20">
+          {/* The page's second signup door. Anyone who read this far already
+              decided; making them scroll back to the hero field to act on it
+              is where that intent gets lost. Carries the hero field's accent
+              styling so it reads as the primary action on the screen, and the
+              Discord card below is deliberately left on plain glass so the
+              two don't compete. */}
+          <RevealSection className="mb-4">
+            <div className="rounded-2xl p-6 sm:p-8 text-center" style={heroInputGlass}>
+              <h2 className="text-xl sm:text-2xl font-bold text-white mb-2.5 text-balance">Start with your next short</h2>
+              <p className="text-gray-400 text-sm leading-relaxed max-w-md mx-auto mb-6">
+                Connect your channel, read the last video, and have the next one written before you film it.
+              </p>
+              <button
+                onClick={() => setAuthModal('signup')}
+                className="inline-flex items-center gap-2 px-6 py-3 text-white font-semibold rounded-xl text-sm sm:text-[15px] hover:opacity-90 transition-opacity"
+                style={{ background: '#0EA4E9' }}
+              >
+                Get started for free
+                <ChevronRight className="w-4 h-4" />
+              </button>
+              <p className="text-xs text-gray-600 mt-3">20 free credits · no card required</p>
+            </div>
+          </RevealSection>
+
           <RevealSection>
             <div className="rounded-2xl p-6 sm:p-8 text-center motion-card" style={glass}>
               <h2 className="text-xl sm:text-2xl font-bold text-white mb-2.5 text-balance">Updates land here first</h2>
