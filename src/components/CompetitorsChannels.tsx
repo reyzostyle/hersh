@@ -1,8 +1,11 @@
 import { useState } from 'react';
-import { Plus, Loader2, X, Users, RefreshCw, CheckCircle2 } from 'lucide-react';
+import { Plus, Loader2, X, CheckCircle2 } from 'lucide-react';
 import { ErrorNotice } from './ErrorNotice';
-import { formatDate, type CompetitorChannel, type CompetitorIdea } from './CompetitorIdeaCard';
+import { formatDate, type CompetitorChannel, type CompetitorIdea } from '../lib/competitors';
 
+// The manage panel behind "Manage" in the feed header. It owns adding and
+// removing only: "Find new ideas" moved to the feed header, since refreshing
+// is something you do to the feed, not to the channel list.
 interface Props {
   channels: CompetitorChannel[];
   ideas: CompetitorIdea[];
@@ -12,15 +15,11 @@ interface Props {
   syncingChannelId: string | null;
   onAddChannel: (url: string) => void;
   onRemoveChannel: (channel: CompetitorChannel) => void;
-  fetchingIdeas: boolean;
-  fetchError: string;
-  fetchNotice: string;
-  onFetchIdeas: () => void;
 }
 
 export function CompetitorsChannels({
   channels, ideas, addingChannel, addError, removingId, syncingChannelId,
-  onAddChannel, onRemoveChannel, fetchingIdeas, fetchError, fetchNotice, onFetchIdeas,
+  onAddChannel, onRemoveChannel,
 }: Props) {
   const [channelUrl, setChannelUrl] = useState('');
 
@@ -32,12 +31,7 @@ export function CompetitorsChannels({
   };
 
   return (
-    <div className="max-w-3xl mx-auto px-4 sm:px-6 pt-4 sm:pt-6 pb-8 space-y-5 animate-fade-in-up">
-      <div className="hidden lg:block mb-2">
-        <h1 className="text-2xl font-bold text-white mb-1 tracking-tight">Channels</h1>
-        <p className="text-sm text-gray-500 text-balance">Track up to 5 competitor channels. A new one syncs right away.</p>
-      </div>
-
+    <div className="animate-fade-in-up">
       {/* Add channel */}
       <div className="rounded-2xl p-4 sm:p-5 space-y-3 glass-panel">
         <form onSubmit={submit} className="flex gap-2">
@@ -65,8 +59,10 @@ export function CompetitorsChannels({
 
         {addError && <ErrorNotice message={addError} />}
 
+        {/* Always shown now — the desktop page header that used to carry this
+            line is gone along with the standalone Channels tab. */}
         {channels.length < 5 && (
-          <p className="lg:hidden text-[11px] text-gray-600">Up to 5 channels · a new one syncs right away</p>
+          <p className="text-[11px] text-gray-600">Up to 5 channels · a new one syncs right away</p>
         )}
 
         {channels.length > 0 && (
@@ -126,40 +122,6 @@ export function CompetitorsChannels({
           </div>
         )}
       </div>
-
-      {/* Manual refresh — 12h cooldown, shared across all tracked channels.
-          A newly-added channel above already got its own sync, so this is
-          for picking up new uploads on channels you've had for a while. */}
-      {channels.length > 0 && (
-        <div className="flex items-center gap-3">
-          <button
-            onClick={onFetchIdeas}
-            disabled={fetchingIdeas}
-            className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold transition-all disabled:opacity-50"
-            style={{ background: 'rgba(14,164,233,0.15)', border: '1px solid rgba(14,164,233,0.35)', color: '#38bdf8' }}
-          >
-            {fetchingIdeas ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
-            {fetchingIdeas ? 'Finding new ideas...' : 'Find new ideas'}
-          </button>
-        </div>
-      )}
-
-      {fetchError && <ErrorNotice message={fetchError} />}
-      {fetchNotice && (
-        <p className="text-gray-400 text-sm rounded-xl px-4 py-3" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' }}>
-          {fetchNotice}
-        </p>
-      )}
-
-      {channels.length === 0 && (
-        <div
-          className="rounded-2xl p-10 flex flex-col items-center justify-center text-center space-y-3"
-          style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)', borderStyle: 'dashed' }}
-        >
-          <Users className="w-8 h-8 text-gray-700" />
-          <p className="text-gray-500 text-sm">Add a competitor channel above to start tracking their content.</p>
-        </div>
-      )}
     </div>
   );
 }

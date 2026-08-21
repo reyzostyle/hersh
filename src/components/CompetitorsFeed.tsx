@@ -1,109 +1,269 @@
-import { Heart, Lightbulb, Trash2, Loader2 } from 'lucide-react';
-import { CompetitorIdeaCard, type CompetitorIdea } from './CompetitorIdeaCard';
-
-export type IdeaFilter = 'new' | 'saved' | 'dismissed';
-
-// The feed is an inbox, not a stream: "New" only holds ideas you haven't ruled
-// on yet, so it empties as you triage instead of growing forever. Anything left
-// untouched this long is stale enough to drop out on its own — the row stays in
-// the database so the same video is never analyzed (or paid for) twice.
-const STALE_AFTER_DAYS = 21;
-
-function isStale(idea: CompetitorIdea): boolean {
-  const published = idea.video_published_at ?? idea.created_at;
-  if (!published) return false;
-  const ageDays = (Date.now() - new Date(published).getTime()) / 86_400_000;
-  return ageDays > STALE_AFTER_DAYS;
-}
-
-export function filterIdeas(ideas: CompetitorIdea[], filter: IdeaFilter): CompetitorIdea[] {
-  if (filter === 'saved') return ideas.filter(i => i.liked === true);
-  if (filter === 'dismissed') return ideas.filter(i => i.liked === false);
-  return ideas.filter(i => i.liked == null && !isStale(i));
-}
+import { useState } from 'react';
+import { Heart, Lightbulb, Trash2, Loader2, Plus, RefreshCw, ChevronUp, Users } from 'lucide-react';
+import {
+  filterIdeas, sortAndFilterIdeas,
+  type CompetitorIdea, type CompetitorChannel, type IdeaFilter, type OutlierFloor, type IdeaSort,
+} from '../lib/competitors';
+import { CompetitorVideoCard } from './CompetitorVideoCard';
+import { CompetitorIdeaDrawer } from './CompetitorIdeaDrawer';
+import { CompetitorsChannels } from './CompetitorsChannels';
+import { ErrorNotice } from './ErrorNotice';
 
 interface Props {
   ideas: CompetitorIdea[];
-  hasChannels: boolean;
+  channels: CompetitorChannel[];
   filter: IdeaFilter;
   onFilterChange: (f: IdeaFilter) => void;
   onIdeaUpdated: (updated: CompetitorIdea) => void;
   isPro: boolean;
   onClear: () => void;
   clearingIdeas: boolean;
+  addingChannel: boolean;
+  addError: string;
+  removingId: string | null;
+  syncingChannelId: string | null;
+  onAddChannel: (url: string) => void;
+  onRemoveChannel: (channel: CompetitorChannel) => void;
+  fetchingIdeas: boolean;
+  fetchError: string;
+  fetchNotice: string;
+  onFetchIdeas: () => void;
 }
 
-export function CompetitorsFeed({ ideas, hasChannels, filter, onFilterChange, onIdeaUpdated, isPro, onClear, clearingIdeas }: Props) {
-  const visibleIdeas = filterIdeas(ideas, filter);
+const FLOORS: { value: OutlierFloor; label: string }[] = [
+  { value: 0, label: 'All' },
+  { value: 2, label: '2x+' },
+  { value: 5, label: '5x+' },
+];
+
+const SORTS: { value: IdeaSort; label: string }[] = [
+  { value: 'outlier', label: 'Top outliers' },
+  { value: 'recent', label: 'Newest' },
+  { value: 'views', label: 'Most viewed' },
+];
+
+// One screen for the whole discovery job: who you track, what came back, and
+// which of it is worth opening. Channels used to be a separate tab, which
+// meant adding a competitor and seeing what they produced were two different
+// places — every refresh cost you a round trip through the nav.
+export function CompetitorsFeed({
+  ideas, channels, filter, onFilterChange, onIdeaUpdated, isPro, onClear, clearingIdeas,
+  addingChannel, addError, removingId, syncingChannelId, onAddChannel, onRemoveChannel,
+  fetchingIdeas, fetchError, fetchNotice, onFetchIdeas,
+}: Props) {
+  const [manageOpen, setManageOpen] = useState(false);
+  const [floor, setFloor] = useState<OutlierFloor>(0);
+  const [sort, setSort] = useState<IdeaSort>('outlier');
+  const [channelFilter, setChannelFilter] = useState<string | null>(null);
+  // Held by id, not by value: regenerating an outline replaces the idea
+  // object, and a stale copy would leave the open drawer showing the old
+  // state until you closed and reopened it.
+  const [openIdeaId, setOpenIdeaId] = useState<string | null>(null);
+
+  const triaged = filterIdeas(ideas, filter);
+  const visibleIdeas = sortAndFilterIdeas(triaged, { floor, sort, channelId: channelFilter });
   const inboxCount = filterIdeas(ideas, 'new').length;
+  const openIdea = openIdeaId ? ideas.find(i => i.id === openIdeaId) ?? null : null;
+
+  const handleLike = (idea: CompetitorIdea, value: boolean) => {
+    onIdeaUpdated({ ...idea, liked: idea.liked === value ? null : value });
+  };
 
   return (
-    <div className="max-w-3xl mx-auto px-4 sm:px-6 pt-4 sm:pt-6 pb-8 space-y-4 sm:space-y-5 animate-fade-in-up">
+    <div className="max-w-5xl mx-auto px-4 sm:px-6 pt-4 sm:pt-6 pb-8 space-y-4 animate-fade-in-up">
+      {/* ── Tracked channels ───────────────────────────────────────────────
+          Avatars double as the channel filter, so narrowing the feed to one
+          competitor is a single tap instead of a control that has to be
+          explained. */}
+      <div className="flex items-center gap-2 flex-wrap">
+        {channels.length > 0 && (
+          <button
+            onClick={() => setChannelFilter(null)}
+            className="px-3 py-1.5 rounded-full text-xs font-medium transition-all"
+            style={channelFilter === null
+              ? { background: 'rgba(14,164,233,0.15)', color: '#38bdf8', border: '1px solid rgba(14,164,233,0.3)' }
+              : { background: 'rgba(255,255,255,0.04)', color: '#9ca3af', border: '1px solid rgba(255,255,255,0.08)' }}
+          >
+            All
+          </button>
+        )}
+        {channels.map(c => {
+          const active = channelFilter === c.channel_id;
+          return (
+            <button
+              key={c.id}
+              onClick={() => setChannelFilter(active ? null : c.channel_id)}
+              title={c.channel_name || c.channel_id}
+              className="flex items-center gap-1.5 pl-1 pr-2.5 py-1 rounded-full text-xs font-medium transition-all max-w-[180px]"
+              style={active
+                ? { background: 'rgba(14,164,233,0.15)', color: '#38bdf8', border: '1px solid rgba(14,164,233,0.3)' }
+                : { background: 'rgba(255,255,255,0.04)', color: '#9ca3af', border: '1px solid rgba(255,255,255,0.08)' }}
+            >
+              {c.channel_thumbnail ? (
+                <img src={c.channel_thumbnail} alt="" className="w-5 h-5 rounded-full object-cover flex-shrink-0" />
+              ) : (
+                <span className="w-5 h-5 rounded-full flex-shrink-0" style={{ background: 'rgba(255,255,255,0.1)' }} />
+              )}
+              <span className="truncate">{c.channel_name || c.channel_id}</span>
+              {syncingChannelId === c.id && <Loader2 className="w-3 h-3 animate-spin flex-shrink-0" />}
+            </button>
+          );
+        })}
+
+        <button
+          onClick={() => setManageOpen(o => !o)}
+          className="flex items-center gap-1 px-2.5 py-1.5 rounded-full text-xs font-medium transition-all"
+          style={{ background: 'rgba(255,255,255,0.04)', color: '#9ca3af', border: '1px dashed rgba(255,255,255,0.14)' }}
+        >
+          {manageOpen ? <ChevronUp className="w-3.5 h-3.5" /> : <Plus className="w-3.5 h-3.5" />}
+          {channels.length === 0 ? 'Add channel' : 'Manage'}
+        </button>
+
+        {channels.length > 0 && (
+          <button
+            onClick={onFetchIdeas}
+            disabled={fetchingIdeas}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-all disabled:opacity-50 sm:ml-auto"
+            style={{ background: 'rgba(14,164,233,0.15)', border: '1px solid rgba(14,164,233,0.35)', color: '#38bdf8' }}
+          >
+            {fetchingIdeas ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
+            {fetchingIdeas ? 'Finding...' : 'Find new ideas'}
+          </button>
+        )}
+      </div>
+
+      {manageOpen && (
+        <CompetitorsChannels
+          channels={channels}
+          ideas={ideas}
+          addingChannel={addingChannel}
+          addError={addError}
+          removingId={removingId}
+          syncingChannelId={syncingChannelId}
+          onAddChannel={onAddChannel}
+          onRemoveChannel={onRemoveChannel}
+        />
+      )}
+
+      {fetchError && <ErrorNotice message={fetchError} />}
+      {fetchNotice && (
+        <p className="text-gray-400 text-sm rounded-xl px-4 py-3" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' }}>
+          {fetchNotice}
+        </p>
+      )}
+
       {ideas.length > 0 ? (
         <>
-          {/* Filter tabs */}
-          <div className="flex items-center gap-2">
-            <div className="flex gap-1 p-1 rounded-xl w-full sm:w-fit" style={{ background: 'rgba(255,255,255,0.04)' }}>
+          {/* ── Filters ──────────────────────────────────────────────────
+              Two independent axes: triage state (have you ruled on it) and
+              performance (how hard did it beat its channel). Keeping them
+              separate is what lets you sweep the inbox for 5x+ only. */}
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="flex gap-1 p-1 rounded-xl" style={{ background: 'rgba(255,255,255,0.04)' }}>
               {(['new', 'saved', 'dismissed'] as IdeaFilter[]).map(f => (
                 <button
                   key={f}
                   onClick={() => onFilterChange(f)}
-                  className="flex-1 sm:flex-none px-3 py-2 sm:py-1.5 rounded-lg text-xs font-medium transition-all capitalize"
+                  className="px-3 py-1.5 rounded-lg text-xs font-medium transition-all capitalize"
                   style={filter === f
                     ? { background: 'rgba(255,255,255,0.1)', color: '#e5e7eb' }
-                    : { color: '#6b7280' }
-                  }
+                    : { color: '#6b7280' }}
                 >
                   {f === 'saved' && <Heart className="w-3 h-3 inline mr-1 -mt-0.5" fill="currentColor" />}
                   {f} ({filterIdeas(ideas, f).length})
                 </button>
               ))}
             </div>
+
+            <div className="flex gap-1 p-1 rounded-xl" style={{ background: 'rgba(255,255,255,0.04)' }}>
+              {FLOORS.map(f => (
+                <button
+                  key={f.value}
+                  onClick={() => setFloor(f.value)}
+                  title="Filter by how far the video beat its own channel's pace"
+                  className="px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all tabular-nums"
+                  style={floor === f.value
+                    ? { background: 'rgba(52,211,153,0.15)', color: '#6ee7b7' }
+                    : { color: '#6b7280' }}
+                >
+                  {f.label}
+                </button>
+              ))}
+            </div>
+
+            <select
+              value={sort}
+              onChange={e => setSort(e.target.value as IdeaSort)}
+              className="px-2.5 py-2 rounded-xl text-xs font-medium text-gray-300 focus:outline-none cursor-pointer"
+              style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}
+            >
+              {SORTS.map(s => <option key={s.value} value={s.value} style={{ background: '#0B121F' }}>{s.label}</option>)}
+            </select>
+
             {filter === 'new' && inboxCount > 0 && (
               <button
                 onClick={onClear}
                 disabled={clearingIdeas}
                 title="Dismiss all unreviewed ideas"
-                className="p-2 rounded-lg transition-all disabled:opacity-50 flex-shrink-0"
+                className="p-2 rounded-lg transition-all disabled:opacity-50 flex-shrink-0 sm:ml-auto"
                 style={{ background: 'rgba(248,113,113,0.10)', border: '1px solid rgba(248,113,113,0.25)', color: '#f87171' }}
               >
                 {clearingIdeas ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
               </button>
             )}
           </div>
+
           {visibleIdeas.length > 0 ? (
-            <div className="space-y-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
               {visibleIdeas.map(idea => (
-                <CompetitorIdeaCard key={idea.id} idea={idea} onUpdated={onIdeaUpdated} isPro={isPro} />
+                <CompetitorVideoCard
+                  key={idea.id}
+                  idea={idea}
+                  onOpen={() => setOpenIdeaId(idea.id)}
+                  onLike={value => handleLike(idea, value)}
+                />
               ))}
             </div>
           ) : (
             <EmptyState>
-              {filter === 'new'
-                ? 'Inbox zero. New ideas land here when a competitor beats their own average.'
-                : filter === 'saved'
-                  ? 'Nothing saved yet. Tap the heart on an idea to keep it.'
-                  : 'Nothing dismissed.'}
+              {floor > 0 || channelFilter
+                ? 'Nothing matches these filters. Try lowering the multiplier or switching back to All channels.'
+                : filter === 'new'
+                  ? 'Inbox zero. New ideas land here when a competitor beats their own average.'
+                  : filter === 'saved'
+                    ? 'Nothing saved yet. Tap the heart on an idea to keep it.'
+                    : 'Nothing dismissed.'}
             </EmptyState>
           )}
         </>
-      ) : hasChannels ? (
-        <EmptyState>No ideas yet. Head to Channels and hit "Find new ideas" to pull the shorts that beat their channel's average.</EmptyState>
+      ) : channels.length > 0 ? (
+        <EmptyState>No ideas yet. Hit "Find new ideas" to pull the shorts that beat their channel's average.</EmptyState>
       ) : (
-        <EmptyState>Add competitor channels in the Channels tab to start tracking their content.</EmptyState>
+        <EmptyState icon={<Users className="w-8 h-8 text-gray-700" />}>
+          Add a competitor channel to start tracking what actually works on their channel.
+        </EmptyState>
+      )}
+
+      {openIdea && (
+        <CompetitorIdeaDrawer
+          idea={openIdea}
+          onClose={() => setOpenIdeaId(null)}
+          onUpdated={onIdeaUpdated}
+          isPro={isPro}
+        />
       )}
     </div>
   );
 }
 
-function EmptyState({ children }: { children: React.ReactNode }) {
+function EmptyState({ children, icon }: { children: React.ReactNode; icon?: React.ReactNode }) {
   return (
     <div
       className="rounded-2xl p-10 flex flex-col items-center justify-center text-center space-y-3"
       style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)', borderStyle: 'dashed' }}
     >
-      <Lightbulb className="w-8 h-8 text-gray-700" />
-      <p className="text-gray-500 text-sm">{children}</p>
+      {icon ?? <Lightbulb className="w-8 h-8 text-gray-700" />}
+      <p className="text-gray-500 text-sm max-w-sm">{children}</p>
     </div>
   );
 }

@@ -1,24 +1,26 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Loader2, Users, ListChecks, FileText } from 'lucide-react';
+import { Loader2, ListChecks, FileText, Users } from 'lucide-react';
 import { supabase, getSessionToken } from '../lib/supabase';
-import { callFunction, type CompetitorChannel, type CompetitorIdea } from './CompetitorIdeaCard';
-import { CompetitorsFeed, type IdeaFilter, filterIdeas } from './CompetitorsFeed';
-import { CompetitorsChannels } from './CompetitorsChannels';
+import { callFunction, filterIdeas, type CompetitorChannel, type CompetitorIdea, type IdeaFilter } from '../lib/competitors';
+import { CompetitorsFeed } from './CompetitorsFeed';
 import { CompetitorsScripts } from './CompetitorsScripts';
 
-type CompetitorsMode = 'feed' | 'channels' | 'scripts';
+type CompetitorsMode = 'feed' | 'scripts';
 const SUB_MODE_KEY = 'hershy_competitors_submode';
 
 function readSavedMode(): CompetitorsMode {
   const saved = localStorage.getItem(SUB_MODE_KEY);
-  return saved === 'channels' || saved === 'scripts' || saved === 'feed' ? saved : 'channels';
+  // 'channels' is a stale value from when channel management was its own
+  // tab; it now lives inside the feed header, so anyone carrying that in
+  // localStorage lands on the feed instead of a tab that no longer exists.
+  return saved === 'scripts' ? saved : 'feed';
 }
 
-// Competitors used to be one long page — channel management, the fetch
-// button, and the idea feed all stacked on top of each other. That made it
-// hard to add anything without the page turning into clutter. Split the same
-// way Analyze is: a left sub-panel (Feed / Channels / Scripts) sharing one
-// data layer, each panel free to grow on its own.
+// Two jobs, two panels: Feed is discovery (who you track, what beat their
+// average, which of it is worth opening) and Scripts is the workspace of
+// what you've already generated. Channels used to be a third tab, but
+// adding a competitor and seeing what they produced being two separate
+// places meant every refresh cost a round trip through the nav.
 export function CompetitorsPage() {
   const [mode, setMode] = useState<CompetitorsMode>(readSavedMode);
   const [channels, setChannels] = useState<CompetitorChannel[]>([]);
@@ -231,7 +233,6 @@ export function CompetitorsPage() {
   const scriptsCount = ideas.filter(i => i.outline || i.script).length;
 
   const modes: { id: CompetitorsMode; label: string; icon: React.ReactNode; badge: number }[] = [
-    { id: 'channels', label: 'Channels', icon: <Users className="w-4 h-4" />, badge: channels.length },
     { id: 'feed', label: 'Feed', icon: <ListChecks className="w-4 h-4" />, badge: inboxCount },
     { id: 'scripts', label: 'Scripts', icon: <FileText className="w-4 h-4" />, badge: scriptsCount },
   ];
@@ -287,19 +288,13 @@ export function CompetitorsPage() {
           {mode === 'feed' && (
             <CompetitorsFeed
               ideas={ideas}
-              hasChannels={channels.length > 0}
+              channels={channels}
               filter={ideaFilter}
               onFilterChange={setIdeaFilter}
               onIdeaUpdated={handleIdeaUpdated}
               isPro={isPro}
               onClear={handleClearIdeas}
               clearingIdeas={clearingIdeas}
-            />
-          )}
-          {mode === 'channels' && (
-            <CompetitorsChannels
-              channels={channels}
-              ideas={ideas}
               addingChannel={addingChannel}
               addError={addError}
               removingId={removingId}

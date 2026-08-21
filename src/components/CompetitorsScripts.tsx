@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { FileText } from 'lucide-react';
-import { CompetitorIdeaCard, type CompetitorIdea } from './CompetitorIdeaCard';
+import { CompetitorIdeaCard } from './CompetitorIdeaCard';
+import { type CompetitorIdea } from '../lib/competitors';
 
 type ScriptFilter = 'all' | 'outline' | 'script';
 
