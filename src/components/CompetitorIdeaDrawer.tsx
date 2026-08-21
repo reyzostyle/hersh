@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { X, Eye, Calendar, TrendingUp, ExternalLink, Heart, EyeOff } from 'lucide-react';
 import { formatViews, formatDate, type CompetitorIdea } from '../lib/competitors';
 import { CompetitorIdeaAnalysis } from './CompetitorIdeaAnalysis';
@@ -13,21 +14,19 @@ export function CompetitorIdeaDrawer({ idea, onClose, onUpdated, isPro }: {
   onUpdated: (updated: CompetitorIdea) => void;
   isPro: boolean;
 }) {
-  // Esc closes, and the body underneath stops scrolling while it's open —
-  // without the lock, scrolling inside the panel bleeds into the feed behind
-  // it and you lose your place in the grid.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
     window.addEventListener('keydown', onKey);
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    return () => {
-      window.removeEventListener('keydown', onKey);
-      document.body.style.overflow = prev;
-    };
+    return () => window.removeEventListener('keydown', onKey);
   }, [onClose]);
 
-  return (
+  // Portalled to <body> rather than rendered in place. The dashboard scrolls
+  // an inner div, not the window, so locking `body.overflow` did nothing and
+  // wheel events over the drawer chained straight into the feed behind it —
+  // scrolling the panel scrolled the grid too. Out here the only scroll
+  // ancestor is the page itself, and `overscroll-contain` on the panel stops
+  // the chain at its own edges.
+  return createPortal(
     <div className="fixed inset-0 z-50 flex justify-end">
       <div
         className="absolute inset-0 animate-fade-in"
@@ -72,7 +71,7 @@ export function CompetitorIdeaDrawer({ idea, onClose, onUpdated, isPro }: {
           </div>
         </div>
 
-        <div className="flex-1 min-h-0 overflow-y-auto px-4 py-4 space-y-4">
+        <div className="flex-1 min-h-0 overflow-y-auto px-4 py-4 space-y-4" style={{ overscrollBehavior: 'contain' }}>
           {/* Source video. Deliberately a small row, not a hero image: a
               full-width thumbnail pushed the actual actions below the fold,
               and a Shorts mqdefault blown up to that size is mostly the
@@ -122,6 +121,7 @@ export function CompetitorIdeaDrawer({ idea, onClose, onUpdated, isPro }: {
           <CompetitorIdeaAnalysis idea={idea} onUpdated={onUpdated} isPro={isPro} stickyActions />
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

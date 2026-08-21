@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Eye, Heart, EyeOff, Calendar, TrendingUp, Trash2, Loader2 } from 'lucide-react';
+import { Eye, Calendar, TrendingUp, Trash2, Loader2 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { formatViews, formatDate, type CompetitorIdea } from '../lib/competitors';
 import { CompetitorIdeaAnalysis } from './CompetitorIdeaAnalysis';
@@ -18,14 +18,6 @@ export function CompetitorIdeaCard({ idea, onUpdated, isPro, onRemove }: {
 }) {
   const [removing, setRemoving] = useState(false);
 
-  const handleLike = async (value: boolean) => {
-    const newValue = idea.liked === value ? null : value;
-    const { error } = await supabase
-      .from('competitor_ideas')
-      .update({ liked: newValue })
-      .eq('id', idea.id);
-    if (!error) onUpdated({ ...idea, liked: newValue });
-  };
 
   // Clears the outline and script rather than deleting the row. The row is
   // also the record that this video was already analyzed — dropping it would
@@ -100,31 +92,12 @@ export function CompetitorIdeaCard({ idea, onUpdated, isPro, onRemove }: {
             )}
           </div>
         </div>
-        {/* Like / Dismiss buttons */}
-        <div className="flex items-start gap-1 flex-shrink-0">
-          <button
-            onClick={() => handleLike(true)}
-            title="Save idea"
-            className="p-1.5 rounded-lg transition-all"
-            style={{
-              background: idea.liked === true ? 'rgba(239,68,68,0.15)' : 'transparent',
-              color: idea.liked === true ? '#f87171' : '#4b5563',
-            }}
-          >
-            <Heart className="w-4 h-4" fill={idea.liked === true ? 'currentColor' : 'none'} />
-          </button>
-          <button
-            onClick={() => handleLike(false)}
-            title="Dismiss idea"
-            className="p-1.5 rounded-lg transition-all"
-            style={{
-              background: idea.liked === false ? 'rgba(255,255,255,0.06)' : 'transparent',
-              color: idea.liked === false ? '#6b7280' : '#4b5563',
-            }}
-          >
-            <EyeOff className="w-4 h-4" />
-          </button>
-          {onRemove && (
+        {/* No save/dismiss here on purpose. This list is built from "has an
+            outline or script", not from the liked flag, so those two buttons
+            changed nothing you could see — they only mean something in the
+            Feed, where Saved and Dismissed are actual tabs. */}
+        {onRemove && (
+          <div className="flex items-start flex-shrink-0">
             <button
               onClick={handleRemove}
               disabled={removing}
@@ -133,8 +106,8 @@ export function CompetitorIdeaCard({ idea, onUpdated, isPro, onRemove }: {
             >
               {removing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
             </button>
-          )}
-        </div>
+          </div>
+        )}
       </div>
 
       <CompetitorIdeaAnalysis idea={idea} onUpdated={onUpdated} isPro={isPro} />

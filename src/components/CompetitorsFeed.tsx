@@ -221,6 +221,8 @@ export function CompetitorsFeed({
                   idea={idea}
                   onOpen={() => setOpenIdeaId(idea.id)}
                   onLike={value => handleLike(idea, value)}
+                  onUpdated={onIdeaUpdated}
+                  isPro={isPro}
                 />
               ))}
             </div>

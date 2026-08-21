@@ -1,5 +1,6 @@
-import { Eye, Heart, EyeOff, TrendingUp, Sparkles, FileText, Play } from 'lucide-react';
+import { Eye, Heart, EyeOff, TrendingUp, Sparkles, FileText, Play, Loader2, Lock } from 'lucide-react';
 import { formatViews, formatDate, type CompetitorIdea } from '../lib/competitors';
+import { useIdeaGeneration } from '../lib/useIdeaGeneration';
 
 // One tile in the discovery grid. Deliberately shows only what you need to
 // judge the video at a glance — thumbnail, how far it beat its channel, and
@@ -10,13 +11,37 @@ import { formatViews, formatDate, type CompetitorIdea } from '../lib/competitors
 // 16:9 rather than a vertical shorts frame on purpose: the backend stores
 // `thumbnails.medium` (mqdefault, 320x180), so a 9:16 tile would have to
 // crop a 16:9 source and would cut the subject out of frame.
-export function CompetitorVideoCard({ idea, onOpen, onLike }: {
+export function CompetitorVideoCard({ idea, onOpen, onLike, onUpdated, isPro }: {
   idea: CompetitorIdea;
   onOpen: () => void;
   onLike: (value: boolean) => void;
+  onUpdated: (updated: CompetitorIdea) => void;
+  isPro: boolean;
 }) {
   const hasScript = !!idea.script;
   const hasOutline = !!idea.outline;
+  const { generatingOutline, generatingScript, generateOutline, generateScript } = useIdeaGeneration(idea, onUpdated);
+  const busy = generatingOutline || generatingScript;
+
+  // The card's action runs the generation right here rather than only
+  // opening the drawer: this label used to be a plain span inside the
+  // stopPropagation row, so clicking the one thing that named a next step
+  // did nothing at all. The drawer opens afterwards to show the result.
+  const handleAction = async () => {
+    if (hasScript) { onOpen(); return; }
+    if (hasOutline) {
+      if (!isPro) { window.dispatchEvent(new CustomEvent('hershy:navigate', { detail: 'upgrade' })); return; }
+      if (await generateScript()) onOpen();
+      return;
+    }
+    if (await generateOutline()) onOpen();
+  };
+
+  const actionLabel = hasScript
+    ? 'Open script'
+    : hasOutline
+      ? (generatingScript ? 'Writing...' : 'Write script')
+      : (generatingOutline ? 'Creating...' : 'Create outline');
 
   return (
     <div
@@ -114,12 +139,21 @@ export function CompetitorVideoCard({ idea, onOpen, onLike }: {
         >
           <EyeOff className="w-4 h-4" />
         </button>
-        {/* Names the actual next step. It used to read "Get angle" for an
-            idea whose angle was already written at fetch time, so the one
-            thing left to do — the outline — went unnamed. */}
-        <span className="ml-auto text-[11px] font-medium text-gray-600 group-hover:text-[#38bdf8] transition-colors">
-          {hasScript ? 'Open script' : hasOutline ? 'Write script' : 'Create outline'}
-        </span>
+        <button
+          onClick={handleAction}
+          disabled={busy}
+          className="ml-auto flex items-center gap-1 text-[11px] font-semibold px-2 py-1 rounded-lg transition-colors disabled:opacity-60"
+          style={{ color: '#38bdf8', background: 'rgba(14,164,233,0.10)' }}
+        >
+          {busy
+            ? <Loader2 className="w-3 h-3 animate-spin" />
+            : hasScript
+              ? <FileText className="w-3 h-3" />
+              : hasOutline && !isPro
+                ? <Lock className="w-3 h-3" />
+                : <Sparkles className="w-3 h-3" />}
+          {actionLabel}
+        </button>
       </div>
     </div>
   );

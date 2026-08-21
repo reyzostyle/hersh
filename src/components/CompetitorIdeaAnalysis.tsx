@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Loader2, Sparkles, ChevronDown, ChevronUp, Lightbulb, Lock, FileText } from 'lucide-react';
-import { getSessionToken } from '../lib/supabase';
-import { callFunction, type CompetitorIdea } from '../lib/competitors';
+import { type CompetitorIdea } from '../lib/competitors';
+import { useIdeaGeneration } from '../lib/useIdeaGeneration';
 import { ErrorNotice } from './ErrorNotice';
 
 // The AI half of an idea: what the competitor did, the angle rewritten for
@@ -23,45 +23,10 @@ export function CompetitorIdeaAnalysis({ idea, onUpdated, isPro, stickyActions =
   // What the competitor did is background; your angle is the actionable part,
   // so only the latter is open by default.
   const [conceptOpen, setConceptOpen] = useState(false);
-  const [generatingOutline, setGeneratingOutline] = useState(false);
-  const [generatingScript, setGeneratingScript] = useState(false);
-  const [error, setError] = useState('');
-  // Distinguishes "user hit their credit limit" (a plain, actionable message)
-  // from an actual backend failure (routed through ErrorNotice) — both land
-  // in the same `error` state, so the render needs to know which is which.
-  const [errorIsPlanLimit, setErrorIsPlanLimit] = useState(false);
-
-  const generate = async (
-    endpoint: string,
-    setBusy: (v: boolean) => void,
-    onDone: () => void
-  ) => {
-    setBusy(true);
-    setError('');
-    setErrorIsPlanLimit(false);
-    try {
-      const token = await getSessionToken();
-      if (!token) throw new Error('Not authenticated');
-      const res = await callFunction(endpoint, token, { ideaId: idea.id });
-      const data = await res.json();
-      if (data.error === 'upgrade_required') {
-        window.dispatchEvent(new CustomEvent('hershy:navigate', { detail: 'upgrade' }));
-        return;
-      }
-      if (data.error === 'limit_reached') {
-        setErrorIsPlanLimit(true);
-        setError("You've used all your credits for this month.");
-        return;
-      }
-      if (!res.ok) throw new Error(data.error || 'Something went wrong');
-      onUpdated(data.idea);
-      onDone();
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Something went wrong');
-    } finally {
-      setBusy(false);
-    }
-  };
+  const {
+    generatingOutline, generatingScript, error, errorIsPlanLimit,
+    generateOutline, generateScript,
+  } = useIdeaGeneration(idea, onUpdated);
 
   return (
     <div className="space-y-4">
@@ -165,7 +130,7 @@ export function CompetitorIdeaAnalysis({ idea, onUpdated, isPro, stickyActions =
       >
         {!idea.outline && (
           <button
-            onClick={() => generate('generate-outline', setGeneratingOutline, () => setOutlineOpen(true))}
+            onClick={async () => { if (await generateOutline()) setOutlineOpen(true); }}
             disabled={generatingOutline}
             className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold transition-all disabled:opacity-50"
             style={{ background: 'rgba(52,211,153,0.12)', color: '#6ee7b7', border: '1px solid rgba(52,211,153,0.25)' }}
@@ -177,7 +142,7 @@ export function CompetitorIdeaAnalysis({ idea, onUpdated, isPro, stickyActions =
         {idea.outline && !idea.script && (
           isPro ? (
             <button
-              onClick={() => generate('generate-competitor-script', setGeneratingScript, () => setScriptOpen(true))}
+              onClick={async () => { if (await generateScript()) setScriptOpen(true); }}
               disabled={generatingScript}
               className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold transition-all disabled:opacity-50"
               style={{ background: 'rgba(14,164,233,0.12)', color: '#38bdf8', border: '1px solid rgba(14,164,233,0.25)' }}
