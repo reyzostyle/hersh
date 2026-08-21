@@ -9,10 +9,14 @@ import { ErrorNotice } from './ErrorNotice';
 // detail drawer and the Scripts workspace card share one copy of the
 // generation logic — credit exhaustion, upgrade redirects and error states
 // all behave identically wherever an idea is opened.
-export function CompetitorIdeaAnalysis({ idea, onUpdated, isPro }: {
+export function CompetitorIdeaAnalysis({ idea, onUpdated, isPro, stickyActions = false }: {
   idea: CompetitorIdea;
   onUpdated: (updated: CompetitorIdea) => void;
   isPro: boolean;
+  // In the drawer the angle text is long enough to push the buttons off
+  // screen, so "Create Outline" looked like it didn't exist unless you
+  // scrolled. Pinned to the bottom of the drawer's scroll area instead.
+  stickyActions?: boolean;
 }) {
   const [outlineOpen, setOutlineOpen] = useState(false);
   const [scriptOpen, setScriptOpen] = useState(false);
@@ -153,7 +157,12 @@ export function CompetitorIdeaAnalysis({ idea, onUpdated, isPro }: {
       )}
 
       {/* Action buttons */}
-      <div className="flex gap-2 flex-wrap">
+      <div
+        className={`flex gap-2 flex-wrap ${stickyActions ? 'sticky bottom-0 -mx-4 px-4 py-3' : ''}`}
+        style={stickyActions
+          ? { background: 'linear-gradient(180deg, rgba(11,18,31,0) 0%, #0B121F 35%)', borderTop: '1px solid rgba(255,255,255,0.06)' }
+          : undefined}
+      >
         {!idea.outline && (
           <button
             onClick={() => generate('generate-outline', setGeneratingOutline, () => setOutlineOpen(true))}

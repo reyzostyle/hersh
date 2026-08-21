@@ -29,6 +29,12 @@ export function CompetitorsScripts({ ideas, onIdeaUpdated, isPro }: Props) {
     <div className="max-w-3xl mx-auto px-4 sm:px-6 pt-4 sm:pt-6 pb-8 space-y-4 sm:space-y-5 animate-fade-in-up">
       {all.length > 0 ? (
         <>
+          {/* Says what this tab is. Without it the list read as a second,
+              differently-shaped copy of the Feed rather than the place your
+              generated work collects. */}
+          <p className="text-sm text-gray-500">
+            Outlines and scripts you generated from the Feed. Delete one to take it off this list.
+          </p>
           <div className="flex gap-1 p-1 rounded-xl w-full sm:w-fit" style={{ background: 'rgba(255,255,255,0.04)' }}>
             {([
               ['all', `All (${filterByStage(ideas, 'all').length})`],
@@ -47,7 +53,7 @@ export function CompetitorsScripts({ ideas, onIdeaUpdated, isPro }: Props) {
           </div>
           <div className="space-y-4">
             {visible.map(idea => (
-              <CompetitorIdeaCard key={idea.id} idea={idea} onUpdated={onIdeaUpdated} isPro={isPro} />
+              <CompetitorIdeaCard key={idea.id} idea={idea} onUpdated={onIdeaUpdated} isPro={isPro} onRemove={() => {}} />
             ))}
           </div>
         </>

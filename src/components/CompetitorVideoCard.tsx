@@ -114,8 +114,11 @@ export function CompetitorVideoCard({ idea, onOpen, onLike }: {
         >
           <EyeOff className="w-4 h-4" />
         </button>
+        {/* Names the actual next step. It used to read "Get angle" for an
+            idea whose angle was already written at fetch time, so the one
+            thing left to do — the outline — went unnamed. */}
         <span className="ml-auto text-[11px] font-medium text-gray-600 group-hover:text-[#38bdf8] transition-colors">
-          {hasScript ? 'Open script' : hasOutline ? 'Open outline' : 'Get angle'}
+          {hasScript ? 'Open script' : hasOutline ? 'Write script' : 'Create outline'}
         </span>
       </div>
     </div>

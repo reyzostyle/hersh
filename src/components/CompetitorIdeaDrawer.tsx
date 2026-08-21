@@ -42,7 +42,7 @@ export function CompetitorIdeaDrawer({ idea, onClose, onUpdated, isPro }: {
         style={{ background: '#0B121F', borderLeft: '1px solid rgba(255,255,255,0.1)' }}
       >
         <div className="flex items-center justify-between gap-3 px-4 py-3 flex-shrink-0" style={{ borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
-          <p className="text-sm font-semibold text-white truncate">Idea</p>
+          <p className="text-sm font-semibold text-white truncate">{idea.channel_name || 'Idea'}</p>
           <div className="flex items-center gap-1 flex-shrink-0">
             <button
               onClick={() => onUpdated({ ...idea, liked: idea.liked === true ? null : true })}
@@ -73,25 +73,28 @@ export function CompetitorIdeaDrawer({ idea, onClose, onUpdated, isPro }: {
         </div>
 
         <div className="flex-1 min-h-0 overflow-y-auto px-4 py-4 space-y-4">
-          {/* Source video */}
+          {/* Source video. Deliberately a small row, not a hero image: a
+              full-width thumbnail pushed the actual actions below the fold,
+              and a Shorts mqdefault blown up to that size is mostly the
+              blurred padding YouTube bakes around the vertical frame. */}
           <a
             href={`https://www.youtube.com/watch?v=${idea.video_id}`}
             target="_blank"
             rel="noopener noreferrer"
-            className="block rounded-xl overflow-hidden group"
+            className="flex gap-3 rounded-xl p-2.5 group transition-colors hover:bg-white/[0.03]"
             style={{ border: '1px solid rgba(255,255,255,0.08)' }}
           >
             {idea.video_thumbnail && (
-              <div className="relative aspect-video">
+              <div className="relative w-28 h-16 rounded-lg overflow-hidden flex-shrink-0">
                 <img src={idea.video_thumbnail} alt="" className="w-full h-full object-cover" />
-                <span className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity" style={{ background: 'rgba(0,0,0,0.4)' }}>
-                  <ExternalLink className="w-5 h-5 text-white" />
+                <span className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity" style={{ background: 'rgba(0,0,0,0.45)' }}>
+                  <ExternalLink className="w-4 h-4 text-white" />
                 </span>
               </div>
             )}
-            <div className="p-3 space-y-1.5">
-              <p className="text-white text-sm font-medium leading-snug">{idea.video_title || 'Untitled video'}</p>
-              <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+            <div className="flex-1 min-w-0 space-y-1.5">
+              <p className="text-white text-sm font-medium leading-snug line-clamp-2">{idea.video_title || 'Untitled video'}</p>
+              <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
                 {idea.outlier_score != null && (
                   <span
                     className="flex items-center gap-1 text-xs font-semibold px-1.5 py-0.5 rounded-md"
@@ -102,7 +105,6 @@ export function CompetitorIdeaDrawer({ idea, onClose, onUpdated, isPro }: {
                     {idea.outlier_score}x
                   </span>
                 )}
-                <span className="text-xs text-gray-500">{idea.channel_name}</span>
                 {idea.video_views !== null && (
                   <span className="flex items-center gap-1 text-xs text-gray-500">
                     <Eye className="w-3 h-3" />{formatViews(idea.video_views)}
@@ -117,7 +119,7 @@ export function CompetitorIdeaDrawer({ idea, onClose, onUpdated, isPro }: {
             </div>
           </a>
 
-          <CompetitorIdeaAnalysis idea={idea} onUpdated={onUpdated} isPro={isPro} />
+          <CompetitorIdeaAnalysis idea={idea} onUpdated={onUpdated} isPro={isPro} stickyActions />
         </div>
       </div>
     </div>
