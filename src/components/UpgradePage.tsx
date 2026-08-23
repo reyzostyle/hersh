@@ -36,7 +36,10 @@ const plans: Plan[] = [
     monthlyPrice: 9.99,
     yearlyTotal: 119.99,
     yearlyMonthlyPrice: 9.99,
-    quotas: ['300 credits / month', 'Video, Hook & Script checks', 'Competitor ideas, outlines & scripts'],
+    // "& scripts" dropped 2026-08-23 along with competitor full-script
+    // generation. "Script checks" above is Script Lab, a different tool that
+    // reviews a script you wrote, and it stays.
+    quotas: ['300 credits / month', 'Video, Hook & Script checks', 'Competitor ideas & outlines'],
     features: [
       'Hook score & assessment',
       'Weak spot breakdown',

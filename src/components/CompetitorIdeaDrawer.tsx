@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { X, Eye, Calendar, TrendingUp, ExternalLink, Heart, EyeOff } from 'lucide-react';
+import { X, Eye, Calendar, TrendingUp, ExternalLink, FolderPlus, EyeOff, Check } from 'lucide-react';
 import { formatViews, formatDate, type CompetitorIdea } from '../lib/competitors';
 import { CompetitorIdeaAnalysis } from './CompetitorIdeaAnalysis';
 
@@ -8,11 +8,11 @@ import { CompetitorIdeaAnalysis } from './CompetitorIdeaAnalysis';
 // writeup here is what lets the feed stay scannable: you judge on the
 // thumbnail and the multiplier, and only pay attention to the text for the
 // one idea you actually picked.
-export function CompetitorIdeaDrawer({ idea, onClose, onUpdated, isPro }: {
+export function CompetitorIdeaDrawer({ idea, onClose, onUpdated, onSave }: {
   idea: CompetitorIdea;
   onClose: () => void;
   onUpdated: (updated: CompetitorIdea) => void;
-  isPro: boolean;
+  onSave: () => void;
 }) {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
@@ -44,15 +44,15 @@ export function CompetitorIdeaDrawer({ idea, onClose, onUpdated, isPro }: {
           <p className="text-sm font-semibold text-white truncate">{idea.channel_name || 'Idea'}</p>
           <div className="flex items-center gap-1 flex-shrink-0">
             <button
-              onClick={() => onUpdated({ ...idea, liked: idea.liked === true ? null : true })}
-              title="Save idea"
-              className="p-1.5 rounded-lg transition-all"
-              style={{
-                background: idea.liked === true ? 'rgba(239,68,68,0.15)' : 'transparent',
-                color: idea.liked === true ? '#f87171' : '#6b7280',
-              }}
+              onClick={onSave}
+              title={idea.liked === true ? 'Saved — change folder' : 'Save to folder'}
+              className="flex items-center gap-1 text-xs font-medium px-2 py-1.5 rounded-lg transition-all"
+              style={idea.liked === true
+                ? { background: 'rgba(52,211,153,0.12)', color: '#6ee7b7' }
+                : { color: '#6b7280' }}
             >
-              <Heart className="w-4 h-4" fill={idea.liked === true ? 'currentColor' : 'none'} />
+              {idea.liked === true ? <Check className="w-3.5 h-3.5" /> : <FolderPlus className="w-3.5 h-3.5" />}
+              {idea.liked === true ? 'Saved' : 'Save'}
             </button>
             <button
               onClick={() => onUpdated({ ...idea, liked: idea.liked === false ? null : false })}
@@ -118,7 +118,7 @@ export function CompetitorIdeaDrawer({ idea, onClose, onUpdated, isPro }: {
             </div>
           </a>
 
-          <CompetitorIdeaAnalysis idea={idea} onUpdated={onUpdated} isPro={isPro} stickyActions />
+          <CompetitorIdeaAnalysis idea={idea} onUpdated={onUpdated} stickyActions />
         </div>
       </div>
     </div>,

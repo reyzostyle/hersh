@@ -27,6 +27,12 @@ export interface Outline {
   cta: string;
 }
 
+export interface IdeaFolder {
+  id: string;
+  name: string;
+  created_at: string;
+}
+
 export interface CompetitorIdea {
   id: string;
   channel_id: string;
@@ -40,8 +46,11 @@ export interface CompetitorIdea {
   concept: string | null;
   adapted_idea: string | null;
   outline: Outline | null;
+  // Full-script generation was dropped 2026-08-23. The column stays so
+  // existing rows keep their content, but nothing reads it any more.
   script: string | null;
   liked: boolean | null;
+  folder_id: string | null;
   created_at: string;
 }
 

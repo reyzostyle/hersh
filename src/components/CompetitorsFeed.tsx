@@ -1,11 +1,10 @@
 import { useState } from 'react';
-import { Heart, Lightbulb, Trash2, Loader2, Plus, RefreshCw, ChevronUp, Users } from 'lucide-react';
+import { Lightbulb, Trash2, Loader2, Plus, RefreshCw, ChevronUp, Users, Check } from 'lucide-react';
 import {
   filterIdeas, sortAndFilterIdeas,
   type CompetitorIdea, type CompetitorChannel, type IdeaFilter, type OutlierFloor, type IdeaSort,
 } from '../lib/competitors';
 import { CompetitorVideoCard } from './CompetitorVideoCard';
-import { CompetitorIdeaDrawer } from './CompetitorIdeaDrawer';
 import { CompetitorsChannels } from './CompetitorsChannels';
 import { ErrorNotice } from './ErrorNotice';
 
@@ -15,7 +14,8 @@ interface Props {
   filter: IdeaFilter;
   onFilterChange: (f: IdeaFilter) => void;
   onIdeaUpdated: (updated: CompetitorIdea) => void;
-  isPro: boolean;
+  onOpenIdea: (id: string) => void;
+  onSaveIdea: (idea: CompetitorIdea) => void;
   onClear: () => void;
   clearingIdeas: boolean;
   addingChannel: boolean;
@@ -27,7 +27,7 @@ interface Props {
   fetchingIdeas: boolean;
   fetchError: string;
   fetchNotice: string;
-  onFetchIdeas: () => void;
+  onFetchIdeas: (adaptForProfile: boolean) => void;
 }
 
 const FLOORS: { value: OutlierFloor; label: string }[] = [
@@ -43,11 +43,10 @@ const SORTS: { value: IdeaSort; label: string }[] = [
 ];
 
 // One screen for the whole discovery job: who you track, what came back, and
-// which of it is worth opening. Channels used to be a separate tab, which
-// meant adding a competitor and seeing what they produced were two different
-// places — every refresh cost you a round trip through the nav.
+// which of it is worth keeping. Saved ideas moved out to their own folder
+// view — this stays a triage inbox, so it empties as you work.
 export function CompetitorsFeed({
-  ideas, channels, filter, onFilterChange, onIdeaUpdated, isPro, onClear, clearingIdeas,
+  ideas, channels, filter, onFilterChange, onIdeaUpdated, onOpenIdea, onSaveIdea, onClear, clearingIdeas,
   addingChannel, addError, removingId, syncingChannelId, onAddChannel, onRemoveChannel,
   fetchingIdeas, fetchError, fetchNotice, onFetchIdeas,
 }: Props) {
@@ -55,22 +54,17 @@ export function CompetitorsFeed({
   const [floor, setFloor] = useState<OutlierFloor>(0);
   const [sort, setSort] = useState<IdeaSort>('outlier');
   const [channelFilter, setChannelFilter] = useState<string | null>(null);
-  // Held by id, not by value: regenerating an outline replaces the idea
-  // object, and a stale copy would leave the open drawer showing the old
-  // state until you closed and reopened it.
-  const [openIdeaId, setOpenIdeaId] = useState<string | null>(null);
+  // On by default: the angle being written for your channel is the point of
+  // the feature. Off gives a plain read of the format instead, for anyone
+  // whose profile settings would bend every idea the same way.
+  const [adaptForProfile, setAdaptForProfile] = useState(true);
 
   const triaged = filterIdeas(ideas, filter);
   const visibleIdeas = sortAndFilterIdeas(triaged, { floor, sort, channelId: channelFilter });
   const inboxCount = filterIdeas(ideas, 'new').length;
-  const openIdea = openIdeaId ? ideas.find(i => i.id === openIdeaId) ?? null : null;
-
-  const handleLike = (idea: CompetitorIdea, value: boolean) => {
-    onIdeaUpdated({ ...idea, liked: idea.liked === value ? null : value });
-  };
 
   return (
-    <div className="max-w-5xl mx-auto px-4 sm:px-6 pt-4 sm:pt-6 pb-8 space-y-4 animate-fade-in-up">
+    <div className="max-w-5xl mx-auto px-4 sm:px-6 pt-4 sm:pt-6 pb-8 space-y-3 animate-fade-in-up">
       {/* ── Tracked channels ───────────────────────────────────────────────
           Avatars double as the channel filter, so narrowing the feed to one
           competitor is a single tap instead of a control that has to be
@@ -120,15 +114,36 @@ export function CompetitorsFeed({
         </button>
 
         {channels.length > 0 && (
-          <button
-            onClick={onFetchIdeas}
-            disabled={fetchingIdeas}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-all disabled:opacity-50 sm:ml-auto"
-            style={{ background: 'rgba(14,164,233,0.15)', border: '1px solid rgba(14,164,233,0.35)', color: '#38bdf8' }}
-          >
-            {fetchingIdeas ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
-            {fetchingIdeas ? 'Finding...' : 'Find new ideas'}
-          </button>
+          <div className="flex items-center gap-2 sm:ml-auto">
+            <button
+              onClick={() => setAdaptForProfile(v => !v)}
+              title="Write each angle for your niche, using your channel profile"
+              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-xs font-medium transition-all"
+              style={adaptForProfile
+                ? { background: 'rgba(139,92,246,0.14)', color: '#c4b5fd', border: '1px solid rgba(139,92,246,0.3)' }
+                : { background: 'rgba(255,255,255,0.04)', color: '#6b7280', border: '1px solid rgba(255,255,255,0.08)' }}
+            >
+              <span
+                className="w-3.5 h-3.5 rounded flex items-center justify-center flex-shrink-0"
+                style={adaptForProfile
+                  ? { background: '#8b5cf6' }
+                  : { border: '1px solid rgba(255,255,255,0.25)' }}
+              >
+                {adaptForProfile && <Check className="w-2.5 h-2.5 text-white" />}
+              </span>
+              Adapt for my profile
+            </button>
+
+            <button
+              onClick={() => onFetchIdeas(adaptForProfile)}
+              disabled={fetchingIdeas}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-all disabled:opacity-50"
+              style={{ background: 'rgba(14,164,233,0.15)', border: '1px solid rgba(14,164,233,0.35)', color: '#38bdf8' }}
+            >
+              {fetchingIdeas ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
+              {fetchingIdeas ? 'Finding...' : 'Find new ideas'}
+            </button>
+          </div>
         )}
       </div>
 
@@ -154,13 +169,12 @@ export function CompetitorsFeed({
 
       {ideas.length > 0 ? (
         <>
-          {/* ── Filters ──────────────────────────────────────────────────
-              Two independent axes: triage state (have you ruled on it) and
-              performance (how hard did it beat its channel). Keeping them
-              separate is what lets you sweep the inbox for 5x+ only. */}
+          {/* Two independent axes: whether you've ruled on it, and how hard it
+              beat its channel. Keeping them separate is what lets you sweep
+              the inbox for 5x+ only. */}
           <div className="flex flex-wrap items-center gap-2">
             <div className="flex gap-1 p-1 rounded-xl" style={{ background: 'rgba(255,255,255,0.04)' }}>
-              {(['new', 'saved', 'dismissed'] as IdeaFilter[]).map(f => (
+              {(['new', 'dismissed'] as IdeaFilter[]).map(f => (
                 <button
                   key={f}
                   onClick={() => onFilterChange(f)}
@@ -169,7 +183,6 @@ export function CompetitorsFeed({
                     ? { background: 'rgba(255,255,255,0.1)', color: '#e5e7eb' }
                     : { color: '#6b7280' }}
                 >
-                  {f === 'saved' && <Heart className="w-3 h-3 inline mr-1 -mt-0.5" fill="currentColor" />}
                   {f} ({filterIdeas(ideas, f).length})
                 </button>
               ))}
@@ -214,15 +227,15 @@ export function CompetitorsFeed({
           </div>
 
           {visibleIdeas.length > 0 ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
               {visibleIdeas.map(idea => (
                 <CompetitorVideoCard
                   key={idea.id}
                   idea={idea}
-                  onOpen={() => setOpenIdeaId(idea.id)}
-                  onLike={value => handleLike(idea, value)}
+                  onOpen={() => onOpenIdea(idea.id)}
+                  onLike={value => onIdeaUpdated({ ...idea, liked: idea.liked === value ? null : value })}
                   onUpdated={onIdeaUpdated}
-                  isPro={isPro}
+                  onSave={() => onSaveIdea(idea)}
                 />
               ))}
             </div>
@@ -232,9 +245,7 @@ export function CompetitorsFeed({
                 ? 'Nothing matches these filters. Try lowering the multiplier or switching back to All channels.'
                 : filter === 'new'
                   ? 'Inbox zero. New ideas land here when a competitor beats their own average.'
-                  : filter === 'saved'
-                    ? 'Nothing saved yet. Tap the heart on an idea to keep it.'
-                    : 'Nothing dismissed.'}
+                  : 'Nothing dismissed.'}
             </EmptyState>
           )}
         </>
@@ -244,15 +255,6 @@ export function CompetitorsFeed({
         <EmptyState icon={<Users className="w-8 h-8 text-gray-700" />}>
           Add a competitor channel to start tracking what actually works on their channel.
         </EmptyState>
-      )}
-
-      {openIdea && (
-        <CompetitorIdeaDrawer
-          idea={openIdea}
-          onClose={() => setOpenIdeaId(null)}
-          onUpdated={onIdeaUpdated}
-          isPro={isPro}
-        />
       )}
     </div>
   );

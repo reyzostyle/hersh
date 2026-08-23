@@ -285,9 +285,13 @@ Deno.serve(async (req: Request) => {
     // blast radius (MAX_PER_CHANNEL ideas on one channel, still credit-gated
     // in the loop below) is what makes it safe to skip the throttle here.
     let onlyChannelId: string | null = null;
+    // Defaults to true so an older client, or a call with no body at all,
+    // keeps the personalised behaviour it had before this flag existed.
+    let adaptForProfile = true;
     try {
       const body = await req.json();
       if (body && typeof body.channelId === 'string') onlyChannelId = body.channelId;
+      if (body && body.adaptForProfile === false) adaptForProfile = false;
     } catch { /* no body / not JSON — a normal manual run */ }
 
     // Rate limit — one successful run per 12h per user. Skipped for a
@@ -335,8 +339,11 @@ Deno.serve(async (req: Request) => {
     // Load user profile for niche/description
     const tokenRow = planCheck;
 
-    const niche = tokenRow?.channel_niche || '';
-    const description = tokenRow?.channel_description || '';
+    // With the feed's "Adapt for my profile" toggle off, the model gets no
+    // niche or channel description, so the angle it writes is a general
+    // read of the format rather than one bent toward this channel.
+    const niche = adaptForProfile ? (tokenRow?.channel_niche || '') : '';
+    const description = adaptForProfile ? (tokenRow?.channel_description || '') : '';
 
     // Load competitor channels — scoped to just the new one for an
     // onboarding sync, otherwise every tracked channel (a normal manual run).

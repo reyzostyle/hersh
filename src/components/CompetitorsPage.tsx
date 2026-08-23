@@ -1,19 +1,21 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Loader2, ListChecks, FileText, Users } from 'lucide-react';
+import { Loader2, ListChecks, Bookmark, Users } from 'lucide-react';
 import { supabase, getSessionToken } from '../lib/supabase';
-import { callFunction, filterIdeas, type CompetitorChannel, type CompetitorIdea, type IdeaFilter } from '../lib/competitors';
+import { callFunction, filterIdeas, type CompetitorChannel, type CompetitorIdea, type IdeaFilter, type IdeaFolder } from '../lib/competitors';
 import { CompetitorsFeed } from './CompetitorsFeed';
-import { CompetitorsScripts } from './CompetitorsScripts';
+import { CompetitorsSaved } from './CompetitorsSaved';
+import { CompetitorIdeaDrawer } from './CompetitorIdeaDrawer';
+import { SaveToFolderModal } from './SaveToFolderModal';
 
-type CompetitorsMode = 'feed' | 'scripts';
+type CompetitorsMode = 'feed' | 'saved';
 const SUB_MODE_KEY = 'hershy_competitors_submode';
 
 function readSavedMode(): CompetitorsMode {
   const saved = localStorage.getItem(SUB_MODE_KEY);
-  // 'channels' is a stale value from when channel management was its own
-  // tab; it now lives inside the feed header, so anyone carrying that in
-  // localStorage lands on the feed instead of a tab that no longer exists.
-  return saved === 'scripts' ? saved : 'feed';
+  // 'channels' and 'scripts' are stale values from earlier layouts (channel
+  // management moved into the feed header, and the Scripts tab became Saved
+  // when full-script generation was dropped), so both land on the feed.
+  return saved === 'saved' ? saved : 'feed';
 }
 
 // Two jobs, two panels: Feed is discovery (who you track, what beat their
@@ -38,6 +40,10 @@ export function CompetitorsPage() {
   const [syncingChannelId, setSyncingChannelId] = useState<string | null>(null);
   const [ideaFilter, setIdeaFilter] = useState<IdeaFilter>('new');
   const [userPlan, setUserPlan] = useState<string>('free');
+  const [folders, setFolders] = useState<IdeaFolder[]>([]);
+  const [deletingFolderId, setDeletingFolderId] = useState<string | null>(null);
+  const [openIdeaId, setOpenIdeaId] = useState<string | null>(null);
+  const [savingIdeaId, setSavingIdeaId] = useState<string | null>(null);
 
   const select = (m: CompetitorsMode) => {
     setMode(m);
@@ -51,11 +57,14 @@ export function CompetitorsPage() {
       const payload = JSON.parse(atob(token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')));
       const userId = payload.sub;
 
-      const [{ data: planData }, { data: channelData }, { data: ideaData }] = await Promise.all([
+      const [{ data: planData }, { data: channelData }, { data: ideaData }, { data: folderData }] = await Promise.all([
         supabase.from('user_tokens').select('plan').eq('user_id', userId).maybeSingle(),
         supabase.from('competitor_channels').select('*').eq('user_id', userId).order('created_at', { ascending: true }),
         supabase.from('competitor_ideas').select('*').eq('user_id', userId).order('video_published_at', { ascending: false }),
+        supabase.from('idea_folders').select('*').eq('user_id', userId).order('created_at', { ascending: true }),
       ]);
+
+      setFolders(folderData || []);
 
       setUserPlan(planData?.plan || 'free');
 
@@ -126,14 +135,14 @@ export function CompetitorsPage() {
     }
   };
 
-  const handleFetchIdeas = async () => {
+  const handleFetchIdeas = async (adaptForProfile = true) => {
     setFetchingIdeas(true);
     setFetchError('');
     setFetchNotice('');
     try {
       const token = await getSessionToken();
       if (!token) throw new Error('Not authenticated');
-      const res = await callFunction('fetch-competitor-ideas', token);
+      const res = await callFunction('fetch-competitor-ideas', token, { adaptForProfile });
       const data = await res.json();
       if (data.error === 'upgrade_required') {
         window.dispatchEvent(new CustomEvent('hershy:navigate', { detail: 'upgrade' }));
@@ -158,8 +167,46 @@ export function CompetitorsPage() {
     }
   };
 
+  // Writes through to the database as well as local state. The grid's save
+  // and dismiss buttons used to call a local-only version of this, so a
+  // rating survived until the next reload and no further.
   const handleIdeaUpdated = (updated: CompetitorIdea) => {
     setIdeas(prev => prev.map(idea => idea.id === updated.id ? updated : idea));
+    supabase
+      .from('competitor_ideas')
+      .update({ liked: updated.liked, folder_id: updated.folder_id, outline: updated.outline })
+      .eq('id', updated.id)
+      .then(({ error }) => { if (error) console.error('[CompetitorsPage] persist idea error:', error); });
+  };
+
+  const handleCreateFolder = async (name: string): Promise<IdeaFolder | null> => {
+    const token = await getSessionToken();
+    if (!token) return null;
+    const payload = JSON.parse(atob(token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')));
+    const { data, error } = await supabase
+      .from('idea_folders')
+      .insert({ user_id: payload.sub, name })
+      .select()
+      .single();
+    if (error || !data) {
+      setFetchError(error?.message.includes('duplicate') ? 'A folder with that name already exists.' : 'Could not create the folder.');
+      return null;
+    }
+    setFolders(prev => [...prev, data]);
+    return data;
+  };
+
+  // The ideas inside are deliberately kept — the column is ON DELETE SET
+  // NULL, so they fall back to Unfiled rather than disappearing with the
+  // folder.
+  const handleDeleteFolder = async (folder: IdeaFolder) => {
+    if (!window.confirm(`Delete "${folder.name}"? The ideas inside stay saved, just unfiled.`)) return;
+    setDeletingFolderId(folder.id);
+    const { error } = await supabase.from('idea_folders').delete().eq('id', folder.id);
+    setDeletingFolderId(null);
+    if (error) { setFetchError('Could not delete the folder.'); return; }
+    setFolders(prev => prev.filter(f => f.id !== folder.id));
+    setIdeas(prev => prev.map(i => (i.folder_id === folder.id ? { ...i, folder_id: null } : i)));
   };
 
   // Dismisses the inbox rather than deleting it. Deleting would also wipe the
@@ -228,13 +275,14 @@ export function CompetitorsPage() {
     );
   }
 
-  const isPro = userPlan === 'pro' || userPlan === 'agency';
   const inboxCount = filterIdeas(ideas, 'new').length;
-  const scriptsCount = ideas.filter(i => i.outline || i.script).length;
+  const savedCount = ideas.filter(i => i.liked === true).length;
+  const openIdea = openIdeaId ? ideas.find(i => i.id === openIdeaId) ?? null : null;
+  const savingIdea = savingIdeaId ? ideas.find(i => i.id === savingIdeaId) ?? null : null;
 
   const modes: { id: CompetitorsMode; label: string; icon: React.ReactNode; badge: number }[] = [
     { id: 'feed', label: 'Feed', icon: <ListChecks className="w-4 h-4" />, badge: inboxCount },
-    { id: 'scripts', label: 'Scripts', icon: <FileText className="w-4 h-4" />, badge: scriptsCount },
+    { id: 'saved', label: 'Saved', icon: <Bookmark className="w-4 h-4" />, badge: savedCount },
   ];
 
   return (
@@ -292,7 +340,8 @@ export function CompetitorsPage() {
               filter={ideaFilter}
               onFilterChange={setIdeaFilter}
               onIdeaUpdated={handleIdeaUpdated}
-              isPro={isPro}
+              onOpenIdea={setOpenIdeaId}
+              onSaveIdea={idea => setSavingIdeaId(idea.id)}
               onClear={handleClearIdeas}
               clearingIdeas={clearingIdeas}
               addingChannel={addingChannel}
@@ -307,11 +356,49 @@ export function CompetitorsPage() {
               onFetchIdeas={handleFetchIdeas}
             />
           )}
-          {mode === 'scripts' && (
-            <CompetitorsScripts ideas={ideas} onIdeaUpdated={handleIdeaUpdated} isPro={isPro} />
+          {mode === 'saved' && (
+            <CompetitorsSaved
+              ideas={ideas}
+              folders={folders}
+              onIdeaUpdated={handleIdeaUpdated}
+              onOpenIdea={setOpenIdeaId}
+              onSaveIdea={idea => setSavingIdeaId(idea.id)}
+              onCreateFolder={handleCreateFolder}
+              onDeleteFolder={handleDeleteFolder}
+              deletingFolderId={deletingFolderId}
+            />
           )}
         </div>
       </div>
+
+      {/* Both live at page level so an idea opened from the Feed and the same
+          idea opened from Saved get the identical panel. */}
+      {openIdea && (
+        <CompetitorIdeaDrawer
+          idea={openIdea}
+          onClose={() => setOpenIdeaId(null)}
+          onUpdated={handleIdeaUpdated}
+          onSave={() => setSavingIdeaId(openIdea.id)}
+        />
+      )}
+
+      {savingIdea && (
+        <SaveToFolderModal
+          folders={folders}
+          currentFolderId={savingIdea.folder_id}
+          isSaved={savingIdea.liked === true}
+          onPick={folderId => {
+            handleIdeaUpdated({ ...savingIdea, liked: true, folder_id: folderId });
+            setSavingIdeaId(null);
+          }}
+          onUnsave={() => {
+            handleIdeaUpdated({ ...savingIdea, liked: null, folder_id: null });
+            setSavingIdeaId(null);
+          }}
+          onCreateFolder={handleCreateFolder}
+          onClose={() => setSavingIdeaId(null)}
+        />
+      )}
     </div>
   );
 }

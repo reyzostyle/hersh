@@ -1,32 +1,27 @@
 import { useState } from 'react';
-import { Loader2, Sparkles, ChevronDown, ChevronUp, Lightbulb, Lock, FileText } from 'lucide-react';
+import { Loader2, Sparkles, ChevronDown, ChevronUp, Lightbulb } from 'lucide-react';
 import { type CompetitorIdea } from '../lib/competitors';
 import { useIdeaGeneration } from '../lib/useIdeaGeneration';
 import { ErrorNotice } from './ErrorNotice';
 
 // The AI half of an idea: what the competitor did, the angle rewritten for
-// you, and the outline/script generation on top. Extracted so the feed's
-// detail drawer and the Scripts workspace card share one copy of the
-// generation logic — credit exhaustion, upgrade redirects and error states
-// all behave identically wherever an idea is opened.
-export function CompetitorIdeaAnalysis({ idea, onUpdated, isPro, stickyActions = false }: {
+// you, and the outline. Full script generation was dropped 2026-08-23 — the
+// value is the concept and the structure, and a whole generated script just
+// buried both. `competitor_ideas.script` is still read nowhere but remains in
+// the schema so existing rows aren't destroyed.
+export function CompetitorIdeaAnalysis({ idea, onUpdated, stickyActions = false }: {
   idea: CompetitorIdea;
   onUpdated: (updated: CompetitorIdea) => void;
-  isPro: boolean;
-  // In the drawer the angle text is long enough to push the buttons off
+  // In the drawer the angle text is long enough to push the button off
   // screen, so "Create Outline" looked like it didn't exist unless you
   // scrolled. Pinned to the bottom of the drawer's scroll area instead.
   stickyActions?: boolean;
 }) {
-  const [outlineOpen, setOutlineOpen] = useState(false);
-  const [scriptOpen, setScriptOpen] = useState(false);
+  const [outlineOpen, setOutlineOpen] = useState(true);
   // What the competitor did is background; your angle is the actionable part,
   // so only the latter is open by default.
   const [conceptOpen, setConceptOpen] = useState(false);
-  const {
-    generatingOutline, generatingScript, error, errorIsPlanLimit,
-    generateOutline, generateScript,
-  } = useIdeaGeneration(idea, onUpdated);
+  const { generatingOutline, error, errorIsPlanLimit, generateOutline } = useIdeaGeneration(idea, onUpdated);
 
   return (
     <div className="space-y-4">
@@ -55,7 +50,8 @@ export function CompetitorIdeaAnalysis({ idea, onUpdated, isPro, stickyActions =
         </div>
       )}
 
-      {/* Outline */}
+      {/* Outline. Open by default now that it's the end of the chain rather
+          than a step on the way to a script. */}
       {idea.outline && (
         <div className="rounded-xl overflow-hidden" style={{ border: '1px solid rgba(52,211,153,0.2)' }}>
           <button
@@ -93,44 +89,21 @@ export function CompetitorIdeaAnalysis({ idea, onUpdated, isPro, stickyActions =
         </div>
       )}
 
-      {/* Script */}
-      {idea.script && (
-        <div className="rounded-xl overflow-hidden" style={{ border: '1px solid rgba(255,255,255,0.1)' }}>
-          <button
-            onClick={() => setScriptOpen(!scriptOpen)}
-            className="w-full flex items-center justify-between px-3 py-2.5 text-left hover:bg-white/5 transition-colors"
-            style={{ background: 'rgba(255,255,255,0.04)' }}
-          >
-            <div className="flex items-center gap-1.5">
-              <FileText className="w-3.5 h-3.5 text-gray-300" />
-              <span className="text-xs font-semibold text-gray-300">Full Script</span>
-            </div>
-            {scriptOpen ? <ChevronUp className="w-4 h-4 text-gray-500" /> : <ChevronDown className="w-4 h-4 text-gray-500" />}
-          </button>
-          {scriptOpen && (
-            <div className="px-3 pb-3 pt-2" style={{ background: 'rgba(255,255,255,0.02)' }}>
-              <pre className="text-white text-sm whitespace-pre-wrap font-sans leading-relaxed">{idea.script}</pre>
-            </div>
-          )}
-        </div>
-      )}
-
       {error && (
         errorIsPlanLimit
           ? <p className="text-red-400 text-sm bg-red-400/10 border border-red-400/20 rounded-xl px-3 py-2">{error}</p>
           : <ErrorNotice message={error} />
       )}
 
-      {/* Action buttons */}
-      <div
-        className={`flex gap-2 flex-wrap ${stickyActions ? 'sticky bottom-0 -mx-4 px-4 py-3' : ''}`}
-        style={stickyActions
-          ? { background: 'linear-gradient(180deg, rgba(11,18,31,0) 0%, #0B121F 35%)', borderTop: '1px solid rgba(255,255,255,0.06)' }
-          : undefined}
-      >
-        {!idea.outline && (
+      {!idea.outline && (
+        <div
+          className={`flex gap-2 flex-wrap ${stickyActions ? 'sticky bottom-0 -mx-4 px-4 py-3' : ''}`}
+          style={stickyActions
+            ? { background: 'linear-gradient(180deg, rgba(11,18,31,0) 0%, #0B121F 35%)', borderTop: '1px solid rgba(255,255,255,0.06)' }
+            : undefined}
+        >
           <button
-            onClick={async () => { if (await generateOutline()) setOutlineOpen(true); }}
+            onClick={() => generateOutline()}
             disabled={generatingOutline}
             className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold transition-all disabled:opacity-50"
             style={{ background: 'rgba(52,211,153,0.12)', color: '#6ee7b7', border: '1px solid rgba(52,211,153,0.25)' }}
@@ -138,40 +111,8 @@ export function CompetitorIdeaAnalysis({ idea, onUpdated, isPro, stickyActions =
             {generatingOutline ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
             {generatingOutline ? 'Creating outline...' : 'Create Outline'}
           </button>
-        )}
-        {idea.outline && !idea.script && (
-          isPro ? (
-            <button
-              onClick={async () => { if (await generateScript()) setScriptOpen(true); }}
-              disabled={generatingScript}
-              className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold transition-all disabled:opacity-50"
-              style={{ background: 'rgba(14,164,233,0.12)', color: '#38bdf8', border: '1px solid rgba(14,164,233,0.25)' }}
-            >
-              {generatingScript ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <FileText className="w-3.5 h-3.5" />}
-              {generatingScript ? 'Writing script...' : 'Write Script'}
-            </button>
-          ) : (
-            <button
-              onClick={() => window.dispatchEvent(new CustomEvent('hershy:navigate', { detail: 'upgrade' }))}
-              className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold transition-all"
-              style={{ background: 'rgba(255,255,255,0.05)', color: '#6b7280', border: '1px solid rgba(255,255,255,0.08)' }}
-            >
-              <Lock className="w-3.5 h-3.5" />
-              Write Script (Pro only)
-            </button>
-          )
-        )}
-        {idea.outline && idea.script && !scriptOpen && (
-          <button
-            onClick={() => setScriptOpen(true)}
-            className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium transition-all"
-            style={{ color: '#9ca3af', border: '1px solid rgba(255,255,255,0.08)' }}
-          >
-            <FileText className="w-3.5 h-3.5" />
-            View script
-          </button>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 }

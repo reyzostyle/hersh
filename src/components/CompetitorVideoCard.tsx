@@ -1,158 +1,110 @@
-import { Eye, Heart, EyeOff, TrendingUp, Sparkles, FileText, Play, Loader2, Lock } from 'lucide-react';
+import { Eye, EyeOff, TrendingUp, Sparkles, Loader2, FolderPlus, ExternalLink, Check } from 'lucide-react';
 import { formatViews, formatDate, type CompetitorIdea } from '../lib/competitors';
 import { useIdeaGeneration } from '../lib/useIdeaGeneration';
 
-// One tile in the discovery grid. Deliberately shows only what you need to
-// judge the video at a glance — thumbnail, how far it beat its channel, and
-// the basic numbers. The AI writeup lives in the drawer behind a click,
-// because rendering it inline was what turned the old feed into a wall of
-// text you had to scroll past to reach the next idea.
-//
-// 16:9 rather than a vertical shorts frame on purpose: the backend stores
-// `thumbnails.medium` (mqdefault, 320x180), so a 9:16 tile would have to
-// crop a 16:9 source and would cut the subject out of frame.
-export function CompetitorVideoCard({ idea, onOpen, onLike, onUpdated, isPro }: {
+// Text-first, no thumbnail. The 16:9 image block was most of the card's
+// height while telling you almost nothing — a Shorts mqdefault is the
+// vertical frame padded with blur — so on a phone you could compare two
+// ideas per screen. The multiplier, the title and the first lines of the
+// angle are what you actually judge on, and those fit three or four to a
+// screen without an image.
+export function CompetitorVideoCard({ idea, onOpen, onLike, onUpdated, onSave }: {
   idea: CompetitorIdea;
   onOpen: () => void;
   onLike: (value: boolean) => void;
   onUpdated: (updated: CompetitorIdea) => void;
-  isPro: boolean;
+  onSave: () => void;
 }) {
-  const hasScript = !!idea.script;
   const hasOutline = !!idea.outline;
-  const { generatingOutline, generatingScript, generateOutline, generateScript } = useIdeaGeneration(idea, onUpdated);
-  const busy = generatingOutline || generatingScript;
+  const { generatingOutline, generateOutline } = useIdeaGeneration(idea, onUpdated);
 
-  // The card's action runs the generation right here rather than only
-  // opening the drawer: this label used to be a plain span inside the
-  // stopPropagation row, so clicking the one thing that named a next step
-  // did nothing at all. The drawer opens afterwards to show the result.
   const handleAction = async () => {
-    if (hasScript) { onOpen(); return; }
-    if (hasOutline) {
-      if (!isPro) { window.dispatchEvent(new CustomEvent('hershy:navigate', { detail: 'upgrade' })); return; }
-      if (await generateScript()) onOpen();
-      return;
-    }
+    if (hasOutline) { onOpen(); return; }
     if (await generateOutline()) onOpen();
   };
 
-  const actionLabel = hasScript
-    ? 'Open script'
-    : hasOutline
-      ? (generatingScript ? 'Writing...' : 'Write script')
-      : (generatingOutline ? 'Creating...' : 'Create outline');
-
   return (
     <div
-      className="group relative rounded-2xl overflow-hidden flex flex-col transition-all cursor-pointer glass-panel hover:ring-1 hover:ring-[#0EA4E9]/40"
+      className="group rounded-xl p-3 flex flex-col gap-2 transition-all cursor-pointer glass-panel hover:ring-1 hover:ring-[#0EA4E9]/40"
       style={{ opacity: idea.liked === false ? 0.45 : 1 }}
       onClick={onOpen}
       role="button"
       tabIndex={0}
       onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onOpen(); } }}
     >
-      {/* Thumbnail */}
-      <div className="relative aspect-video flex-shrink-0" style={{ background: 'rgba(255,255,255,0.04)' }}>
-        {idea.video_thumbnail ? (
-          <img src={idea.video_thumbnail} alt="" className="w-full h-full object-cover" loading="lazy" />
-        ) : (
-          <div className="w-full h-full flex items-center justify-center">
-            <Play className="w-6 h-6 text-gray-700" fill="currentColor" />
-          </div>
-        )}
-
-        {/* The number the whole feed exists to surface, so it sits on the
-            image itself rather than in the metadata row below it. */}
+      {/* Header: the numbers you sort on, in one line */}
+      <div className="flex items-center gap-2 min-w-0">
         {idea.outlier_score != null && (
           <span
-            className="absolute top-2 left-2 flex items-center gap-1 text-[11px] font-bold px-2 py-1 rounded-lg backdrop-blur-sm"
-            style={{ background: 'rgba(6,32,24,0.82)', color: '#6ee7b7', border: '1px solid rgba(52,211,153,0.35)' }}
+            className="flex items-center gap-1 text-[11px] font-bold px-1.5 py-0.5 rounded-md flex-shrink-0"
+            style={{ background: 'rgba(52,211,153,0.14)', color: '#6ee7b7' }}
             title="Views per day versus this channel's usual pace"
           >
             <TrendingUp className="w-3 h-3" />
             {idea.outlier_score}x
           </span>
         )}
-
-        {/* Workspace state stays visible without opening the drawer — the
-            script is the thing people come back for, so "already written"
-            has to be readable from the grid. */}
-        {(hasOutline || hasScript) && (
-          <span
-            className="absolute top-2 right-2 flex items-center gap-1 text-[10px] font-semibold px-1.5 py-1 rounded-lg backdrop-blur-sm"
-            style={hasScript
-              ? { background: 'rgba(8,28,45,0.82)', color: '#38bdf8', border: '1px solid rgba(14,164,233,0.35)' }
-              : { background: 'rgba(6,32,24,0.82)', color: '#6ee7b7', border: '1px solid rgba(52,211,153,0.3)' }}
-          >
-            {hasScript ? <FileText className="w-3 h-3" /> : <Sparkles className="w-3 h-3" />}
-            {hasScript ? 'Script' : 'Outline'}
-          </span>
-        )}
-      </div>
-
-      {/* Meta */}
-      <div className="flex-1 min-w-0 p-3 flex flex-col gap-2">
-        <p className="text-white text-[13px] font-medium leading-snug line-clamp-2">
-          {idea.video_title || 'Untitled video'}
-        </p>
-
-        <div className="mt-auto flex items-center gap-2 min-w-0">
-          <span className="text-[11px] text-gray-500 truncate flex-1 min-w-0">{idea.channel_name}</span>
+        <span className="text-[11px] text-gray-500 truncate min-w-0">{idea.channel_name}</span>
+        <span className="ml-auto flex items-center gap-2 flex-shrink-0 text-[11px] text-gray-600 tabular-nums">
           {idea.video_views !== null && (
-            <span className="flex items-center gap-1 text-[11px] text-gray-500 flex-shrink-0 tabular-nums">
-              <Eye className="w-3 h-3" />
-              {formatViews(idea.video_views)}
-            </span>
+            <span className="flex items-center gap-1"><Eye className="w-3 h-3" />{formatViews(idea.video_views)}</span>
           )}
-          {idea.video_published_at && (
-            <span className="text-[11px] text-gray-600 flex-shrink-0 tabular-nums">{formatDate(idea.video_published_at)}</span>
-          )}
-        </div>
+          {idea.video_published_at && <span>{formatDate(idea.video_published_at)}</span>}
+        </span>
       </div>
 
-      {/* Triage. stopPropagation so rating an idea never also opens it — the
-          feed is meant to be cleared fast without a drawer opening each time. */}
-      <div
-        className="flex items-center gap-1 px-3 pb-3"
-        onClick={e => e.stopPropagation()}
-      >
+      <p className="text-white text-[13px] font-medium leading-snug line-clamp-2">
+        {idea.video_title || 'Untitled video'}
+      </p>
+
+      {idea.adapted_idea && (
+        <p className="text-[12px] leading-relaxed line-clamp-2 text-violet-200/70">
+          {idea.adapted_idea}
+        </p>
+      )}
+
+      {/* Action pills. stopPropagation so filing or dismissing an idea never
+          also opens it — the feed is meant to be cleared fast. */}
+      <div className="flex items-center gap-1.5 mt-auto pt-0.5" onClick={e => e.stopPropagation()}>
         <button
-          onClick={() => onLike(true)}
-          title="Save idea"
-          className="p-1.5 rounded-lg transition-all"
-          style={{
-            background: idea.liked === true ? 'rgba(239,68,68,0.15)' : 'transparent',
-            color: idea.liked === true ? '#f87171' : '#4b5563',
-          }}
+          onClick={onSave}
+          title={idea.liked === true ? 'Saved — change folder' : 'Save to folder'}
+          className="flex items-center gap-1 text-[11px] font-medium px-2 py-1 rounded-lg transition-colors"
+          style={idea.liked === true
+            ? { background: 'rgba(52,211,153,0.12)', color: '#6ee7b7' }
+            : { color: '#6b7280' }}
         >
-          <Heart className="w-4 h-4" fill={idea.liked === true ? 'currentColor' : 'none'} />
+          {idea.liked === true ? <Check className="w-3 h-3" /> : <FolderPlus className="w-3 h-3" />}
+          {idea.liked === true ? 'Saved' : 'Save'}
         </button>
+
         <button
           onClick={() => onLike(false)}
           title="Dismiss idea"
-          className="p-1.5 rounded-lg transition-all"
-          style={{
-            background: idea.liked === false ? 'rgba(255,255,255,0.06)' : 'transparent',
-            color: idea.liked === false ? '#6b7280' : '#4b5563',
-          }}
+          className="p-1 rounded-lg transition-colors"
+          style={{ color: idea.liked === false ? '#9ca3af' : '#4b5563' }}
         >
-          <EyeOff className="w-4 h-4" />
+          <EyeOff className="w-3.5 h-3.5" />
         </button>
+
+        <a
+          href={`https://www.youtube.com/watch?v=${idea.video_id}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          title="Open on YouTube"
+          className="p-1 rounded-lg text-gray-600 hover:text-gray-300 transition-colors"
+        >
+          <ExternalLink className="w-3.5 h-3.5" />
+        </a>
+
         <button
           onClick={handleAction}
-          disabled={busy}
+          disabled={generatingOutline}
           className="ml-auto flex items-center gap-1 text-[11px] font-semibold px-2 py-1 rounded-lg transition-colors disabled:opacity-60"
           style={{ color: '#38bdf8', background: 'rgba(14,164,233,0.10)' }}
         >
-          {busy
-            ? <Loader2 className="w-3 h-3 animate-spin" />
-            : hasScript
-              ? <FileText className="w-3 h-3" />
-              : hasOutline && !isPro
-                ? <Lock className="w-3 h-3" />
-                : <Sparkles className="w-3 h-3" />}
-          {actionLabel}
+          {generatingOutline ? <Loader2 className="w-3 h-3 animate-spin" /> : <Sparkles className="w-3 h-3" />}
+          {generatingOutline ? 'Creating...' : hasOutline ? 'View outline' : 'Create outline'}
         </button>
       </div>
     </div>
