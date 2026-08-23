@@ -445,15 +445,21 @@ function PricingCard({ plan, interval, onSelect }: { plan: Plan; interval: Inter
         )}
       </div>
 
-      {/* Toggle — mobile only; on desktop features are always shown */}
+      {/* Collapsed by default on every breakpoint now, not just mobile.
+          Plus has a breakdown grid plus 4 features and Pro has neither, so
+          with the list always open the grid row (both cards stretch to
+          match the taller one) was sized by Plus alone — Pro just carried
+          empty space down to match. Collapsing both to the same closed
+          height fixes that without needing to fake Pro's height any other
+          way. */}
       <button
         onClick={() => setOpen(o => !o)}
-        className="sm:hidden self-start inline-flex items-center gap-1 text-xs font-medium text-gray-400 hover:text-white transition-colors mb-3"
+        className="self-start inline-flex items-center gap-1 text-xs font-medium text-gray-400 hover:text-white transition-colors mb-3"
       >
         What's included
         <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${open ? 'rotate-180' : ''}`} />
       </button>
-      <ul className={`space-y-2 mb-4 ${open ? 'block' : 'hidden'} sm:block`}>
+      <ul className={`space-y-2 mb-4 ${open ? 'block' : 'hidden'}`}>
         {plan.features.map(f => (
           <li key={f} className="flex items-center gap-2 text-sm text-gray-400">
             <Check className="w-3.5 h-3.5 flex-shrink-0" style={{ color: plan.highlight ? '#0EA4E9' : '#4B5563' }} />
