@@ -820,69 +820,52 @@ function SystemSteps() {
 // each card lands on a different problem rather than four people praising the
 // same feature. `tool` labels which part the quote is about and `note` is the
 // takeaway for anyone scrolling past without reading the quotes themselves.
-const testimonials: { quote: string[]; name: string; tool: string; note: string }[] = [
+// Three, one line each, one row. The fourth was about competitor script
+// generation, which no longer exists — a real quote praising a removed
+// feature is worse than one fewer card. The remaining lines are the same
+// verbatim Discord messages, just the single strongest line from each
+// instead of the full exchange, so three fit side by side without the
+// cards turning into paragraphs.
+const testimonials: { quote: string; name: string; tool: string }[] = [
   {
-    quote: [
-      'bro I used to spend like 3 hours every night looking at what other channels posted',
-      'added 4 competitors yesterday and the tool literally picked out the exact 2 shorts that blew up on their channels lol',
-    ],
+    quote: 'added 4 competitors yesterday and the tool literally picked out the exact 2 shorts that blew up on their channels lol',
     name: 'alexvfx',
     tool: 'Competitors',
-    note: 'Saved hours on trend research. Found 2 winning concepts in under 2 minutes.',
   },
   {
-    quote: [
-      'the script feedback told me my hook was way too slow at second 3',
-      're-wrote the first 5 seconds based on the prompt, retention actually stayed flat through the intro',
-    ],
-    name: 'shindy',
+    quote: 're-wrote the first 5 seconds based on the prompt, retention actually stayed flat through the intro',
+    name: 'Yonatan',
     tool: 'Script Lab',
-    note: 'Fixed a weak hook before filming. Saw a direct improvement in early retention.',
   },
   {
-    quote: [
-      'wait so it actually overlays the script over the retention dip?',
-      'figured out people were swiping away right when I started doing the sponsor plug... that graph read is insane',
-    ],
+    quote: 'figured out people were swiping away right when I started doing the sponsor plug... that graph read is insane',
     name: 'd4wki',
     tool: 'Video Review',
-    note: 'Identified the exact second viewers dropped off using automated graph analysis.',
-  },
-  {
-    quote: [
-      'usually ai scripts sound like a corporate robot talking to toddlers',
-      'this actually kept my slang and structure, just adapted the competitor idea to my niche',
-    ],
-    name: 'Yonatan',
-    tool: 'Competitors',
-    note: 'Generated a ready-to-film script without losing personal creator voice.',
   },
 ];
 
+// Three across on desktop, stacked on phones. The separate takeaway box
+// under each quote is gone: with one quote per card the tool name fits on
+// the header row, and the box was restating the quote in flatter words.
 function TestimonialsSection() {
   return (
-    <div className="grid sm:grid-cols-2 gap-4">
+    <div className="grid sm:grid-cols-3 gap-3 sm:gap-4">
       {testimonials.map((t, i) => (
         <RevealSection key={t.name} delay={i * 100}>
-          <div className="rounded-2xl p-5 sm:p-6 h-full flex flex-col motion-card" style={glass}>
-            <div className="flex items-center gap-2.5 mb-4">
-              <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(88,101,242,0.15)', border: '1px solid rgba(88,101,242,0.25)' }}>
-                <DiscordIcon className="w-4 h-4" style={{ color: '#8ea1ff' }} />
+          <div className="rounded-2xl p-4 sm:p-5 h-full flex flex-col motion-card" style={glass}>
+            <div className="flex items-center gap-2 mb-3">
+              <div className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(88,101,242,0.15)', border: '1px solid rgba(88,101,242,0.25)' }}>
+                <DiscordIcon className="w-3.5 h-3.5" style={{ color: '#8ea1ff' }} />
               </div>
-              <span className="text-sm font-semibold text-white">{t.name}</span>
-              <span className="text-[10px] text-gray-600 ml-auto">Discord</span>
+              <span className="text-[13px] font-semibold text-white truncate">{t.name}</span>
+              <span
+                className="ml-auto text-[9.5px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded flex-shrink-0"
+                style={{ background: 'rgba(14,164,233,0.10)', color: '#38BDF8' }}
+              >
+                {t.tool}
+              </span>
             </div>
-            <div className="space-y-2.5 mb-5 flex-1">
-              {t.quote.map(line => (
-                <p key={line} className="text-gray-200 text-sm sm:text-[15px] leading-relaxed">&ldquo;{line}&rdquo;</p>
-              ))}
-            </div>
-            {/* The takeaway carries the tool name too, so someone scrolling
-                past the quotes still sees which part of the product this is. */}
-            <div className="rounded-xl px-3.5 py-3" style={{ background: 'rgba(14,164,233,0.06)', border: '1px solid rgba(14,164,233,0.15)' }}>
-              <p className="text-[10px] font-semibold uppercase tracking-widest mb-1" style={{ color: '#38BDF8' }}>{t.tool}</p>
-              <p className="text-xs text-gray-400 leading-relaxed">{t.note}</p>
-            </div>
+            <p className="text-gray-200 text-[13.5px] leading-relaxed">&ldquo;{t.quote}&rdquo;</p>
           </div>
         </RevealSection>
       ))}
