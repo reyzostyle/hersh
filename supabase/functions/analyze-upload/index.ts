@@ -1,6 +1,6 @@
 import { createClient } from 'npm:@supabase/supabase-js@2.57.4';
-import { callLLM } from '../_shared/llm.ts';
 import { loadCreditStatus, canAfford, spendCredits, CREDIT_COSTS } from '../_shared/credits.ts';
+import { analyzeVideo } from '../_shared/analyze-video.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -15,189 +15,6 @@ function deleteGeminiFile(geminiFileName: string) {
   if (geminiApiKey && geminiFileName) {
     fetch(`https://generativelanguage.googleapis.com/v1beta/${geminiFileName}?key=${geminiApiKey}`, { method: 'DELETE' })
       .catch(e => console.log('[analyze-upload] Gemini cleanup error:', e));
-  }
-}
-
-const GEMINI_MODELS = ['gemini-3.5-flash-lite', 'gemini-2.5-flash-lite', 'gemini-3.5-flash'];
-const sleep = (ms: number) => new Promise(r => setTimeout(r, ms));
-
-// Resilient Gemini call: rotates models and retries transient errors
-// (503/429/5xx) with exponential backoff across multiple rounds.
-async function callGeminiWithRetry(body: string, apiKey: string): Promise<Response> {
-  let last: Response | null = null;
-  const ROUNDS = 3;
-  for (let round = 0; round < ROUNDS; round++) {
-    for (const model of GEMINI_MODELS) {
-      const res = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
-        { method: 'POST', headers: { 'Content-Type': 'application/json' }, body }
-      );
-      if (res.ok) return res;
-      last = res;
-      const transient = res.status === 503 || res.status === 429 || res.status >= 500;
-      if (!transient) return res;
-      await sleep(Math.min(1000 * Math.pow(2, round), 8000));
-    }
-  }
-  return last as Response;
-}
-
-async function analyzeVideoWithGeminiFile(fileUri: string, mimeType: string): Promise<{
-  transcript: string; hook_visual: string; visual_observations: string; overall_energy: string;
-}> {
-  const geminiApiKey = Deno.env.get('GEMINI_API_KEY');
-  if (!geminiApiKey) throw new Error('Gemini API key not configured');
-
-  const prompt = `Analyze this video carefully. Watch it fully and provide:
-
-1. TRANSCRIPT: Full word-for-word transcript of everything spoken/said
-2. HOOK_VISUAL: What happens visually in the first 3-5 seconds
-3. VISUAL_OBSERVATIONS: Editing style, pacing, text overlays, engagement tactics
-4. OVERALL_ENERGY: "low", "medium", or "high"
-
-Respond ONLY with valid JSON:
-{
-  "transcript": "...",
-  "hook_visual": "...",
-  "visual_observations": "...",
-  "overall_energy": "low|medium|high"
-}`;
-
-  const body = JSON.stringify({
-    contents: [{ parts: [
-      { file_data: { mime_type: mimeType, file_uri: fileUri } },
-      { text: prompt },
-    ]}],
-    // Both flash-lite models in GEMINI_MODELS don't think by default, and 3.5
-    // Flash-Lite 400s on an explicit thinkingBudget: 0 — so no override here.
-    // The gemini-3.5-flash fallback does think by default and could eat into
-    // this budget, but that's an existing tradeoff of the last-resort model.
-    generationConfig: { temperature: 0.2, maxOutputTokens: 2048 },
-  });
-
-  const response = await callGeminiWithRetry(body, geminiApiKey);
-  if (!response.ok) throw new Error(`Gemini API error: ${await response.text()}`);
-
-  const data = await response.json();
-  const content = data.candidates?.[0]?.content?.parts?.[0]?.text;
-  if (!content) throw new Error('Empty Gemini response');
-
-  try {
-    const m = content.match(/\{[\s\S]*\}/);
-    if (m) return JSON.parse(m[0]);
-    throw new Error('No JSON in Gemini response');
-  } catch {
-    return { transcript: content, hook_visual: '', visual_observations: '', overall_energy: 'medium' };
-  }
-}
-
-async function analyzeWithClaude(
-  videoTitle: string,
-  geminiData: { transcript: string; hook_visual: string; visual_observations: string; overall_energy: string },
-  profile: { channel_niche: string; channel_description: string; channel_context: string; creator_level?: string },
-  videoContext?: string,
-  supabase?: any
-) {
-  let knowledgeBaseSection = '';
-  if (supabase) {
-    const { data: kbRecords } = await supabase.from('knowledge_base').select('category, title, content').order('category');
-    if (kbRecords?.length) {
-      knowledgeBaseSection = kbRecords.map((r: any) => `[${r.category}] ${r.title}: ${r.content}`).join('\n');
-    }
-  }
-
-  const level = profile.creator_level || 'intermediate';
-
-  const systemPrompt = `You analyze YouTube Shorts and tell creators exactly what's killing performance and how to fix it.
-
-CREATOR LEVEL: ${level}
-- beginner: explain the "why", avoid jargon, focus on the 1-2 fundamentals that matter most. Encouraging but honest.
-- intermediate: skip fundamentals (they know hook/retention/CTA). Focus on execution and what to change specifically.
-- advanced: reference advanced concepts (pattern interrupts, retention curves, loop mechanics, cold opens). Challenge assumptions, be opinionated.
-
-HARD RULES
-1. Ground every claim in the transcript, visuals, or stats. If you can't cite it, don't say it.
-2. Never invent retention numbers, views, or stats. If retention is N/A, analyze on structure/hook/content only.
-3. If niche/channel profile is N/A, analyze the video on its own merits. Don't guess the niche.
-4. Banned generic phrases: "engaging content", "great hook", "good pacing", "keep it up", "consider adding", "you could try", "just make sure", "overall this is a solid video".
-5. No flattery. No recap of what the video does. Tell them what's wrong.
-6. strong_spots and weak_spots: only what's genuinely true, min 1 max 3 each. Don't pad.
-7. You watched this video yourself - write as the reviewer, not as a report on what a tool detected. Never name or hint at any AI model, vendor, or pipeline stage (Gemini, Claude, GPT, "the AI", "the model", "visual analysis confirms", etc.). Just say what's on screen and in the audio, plainly, like you saw it with your own eyes.
-
-SCORING (overall_score: integer 1-100). Build it from components so it spreads — do NOT pick a round number or default to the 70s.
-Score FOUR components, then SUM into overall_score:
-- Hook strength (0-30): does the first 0-3s stop the scroll for THIS format's hook?
-- Retention & pacing (0-25): does it hold attention — no dead air, no drag, no filler?
-- Payoff & ending (0-25): does it deliver on the hook's promise and end with a reason to stay/act?
-- Clarity & delivery (0-20): audio, visuals, energy, comprehension.
-overall_score = hook + retention + payoff + delivery. Output the EXACT sum, avoid magnet numbers (50, 70, 75, 80).
-Bands (sanity-check only): 85-100 exceptional (rare), 70-84 strong, 55-69 decent with clear fixes, 40-54 below average, 25-39 weak, 1-24 broken.
-A strong Short earns 80+; a weak or average one MUST land below 60. Never inflate to be nice.
-
-OUTPUT (overall_assessment): 3-4 sentences, senior creator to a peer. No fixed template, vary your opening. Cover the main issue, how the hook performs specifically, one structural/visual observation, and end with the single most important fix. Sound like a real person, not a report. Break it into 2-3 short paragraphs separated by a blank line (\\n\\n) so it's easy to read - never one dense block.
-
-PUNCTUATION: never use em-dash (—) or en-dash (–) anywhere. Only the regular hyphen (-).
-
-TONE: peer-to-peer senior creator notes. Zero fluff, direct, specific, opinionated. Like texting a friend a real review.
-
-${knowledgeBaseSection ? `Knowledge base (use as instinct, don't quote):\n${knowledgeBaseSection}\n` : ''}`;
-
-  const hasProfile = profile.channel_niche || profile.channel_description;
-  const profileSection = hasProfile
-    ? `Niche: ${profile.channel_niche || 'N/A'}\nDescription: ${profile.channel_description || 'N/A'}${profile.channel_context ? `\nAdditional Context: ${profile.channel_context}` : ''}\n\nRELEVANCE RULE: Only tailor the analysis to this niche if THIS uploaded video's actual content clearly fits it. If the video is obviously a different topic/niche than described above, IGNORE this profile completely and analyze the video on its own merits - do not force the creator's niche onto unrelated content.`
-    : `N/A — channel profile not provided`;
-
-  const prompt = `## Video Stats
-Title: ${videoTitle || 'N/A'}
-Duration: N/A — not yet available
-Views: N/A — not published yet
-Likes: N/A — not published yet
-Source: Uploaded file
-
-## Retention Data
-N/A — retention data not available for this video.
-Analyze based on structure, hook, and content only.
-
-## Video Analysis
-Transcript: ${geminiData.transcript || 'N/A — transcript not available'}
-Visual hook (0-3 sec): ${geminiData.hook_visual || 'N/A — visual hook not captured'}
-Visual observations: ${geminiData.visual_observations || 'N/A — no visual observations'}
-Energy level: ${geminiData.overall_energy || 'N/A'}
-
-## Channel Profile
-${profileSection}
-
-## User Context
-${videoContext?.trim() || 'N/A — no extra context provided'}
-
-Respond with valid JSON only:
-{
-  "overall_score": <integer 1-100, the EXACT sum of the four scoring components above>,
-  "score_breakdown": { "hook": <0-30>, "retention": <0-25>, "payoff": <0-25>, "delivery": <0-20> },
-  "overall_assessment": "3-4 sentences about hook effectiveness, what works and what doesn't",
-  "strong_spots": ["what specifically works and why (1-3 items, only real ones)"],
-  "weak_spots": ["issue + actionable fix (1-3 items, only real ones)"]
-}`;
-
-  const content = await callLLM(prompt, { system: systemPrompt, maxTokens: 2500 });
-
-  const stripDashes = (s: any): any => {
-    if (typeof s === 'string') return s.replace(/[—–]/g, '-');
-    if (Array.isArray(s)) return s.map(stripDashes);
-    if (s && typeof s === 'object') {
-      const out: any = {};
-      for (const k of Object.keys(s)) out[k] = stripDashes(s[k]);
-      return out;
-    }
-    return s;
-  };
-
-  try {
-    const m = content.match(/\{[\s\S]*\}/);
-    if (m) return stripDashes(JSON.parse(m[0]));
-    throw new Error('No JSON in Claude response');
-  } catch {
-    return { overall_assessment: content.substring(0, 500).replace(/[—–]/g, '-'), weak_spots: [], new_hook_ideas: [] };
   }
 }
 
@@ -292,9 +109,6 @@ Deno.serve(async (req: Request) => {
       if (!geminiFileUri) throw new Error('Gemini file processing timed out');
       console.log('[analyze-upload] File ACTIVE, analyzing...');
 
-      const geminiData = await analyzeVideoWithGeminiFile(geminiFileUri, fileMimeType);
-      console.log('[analyze-upload] Gemini analysis done');
-
       const profile = {
         channel_niche: tokenRow?.channel_niche || '',
         channel_description: tokenRow?.channel_description || '',
@@ -303,7 +117,24 @@ Deno.serve(async (req: Request) => {
       };
 
       const videoTitle = (fileName || 'video').replace(/\.[^.]+$/, '');
-      const analysis = await analyzeWithClaude(videoTitle, geminiData, profile, videoContext, supabase);
+      // An upload is the creator's own footage, usually unpublished: no public
+      // stats and no retention curve, but the channel profile does apply.
+      const video = {
+        title: videoTitle,
+        duration: null,
+        views: null,
+        likes_count: null,
+        retention_percentage: null,
+        average_view_duration: null,
+        retention_drops: '',
+        is_external: false,
+      };
+
+      const analysis = await analyzeVideo(
+        { fileUri: geminiFileUri, mimeType: fileMimeType },
+        video, profile, videoContext, supabase, profile.creator_level,
+      );
+      console.log('[analyze-upload] Analysis done');
 
       const { data: analysisData, error: analysisError } = await supabase
         .from('analyses')
