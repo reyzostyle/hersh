@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
-import { CircleNotch as Loader2, ArrowLeft, ArrowRight, Check, CurrencyDollar as DollarSign, Fire as Flame, TrendUp as TrendingUp, Trophy, YoutubeLogo as Youtube, Plant as Sprout, RocketLaunch as Rocket, ShoppingBag } from '@phosphor-icons/react';
+import { RefreshOutlineIcon as Loader2, ArrowLeftOutlineIcon as ArrowLeft, ArrowRightOutlineIcon as ArrowRight, DollarOutlineIcon as DollarSign, FireOutlineIcon as Flame, GraphUpOutlineIcon as TrendingUp, CupOutlineIcon as Trophy, LeafOutlineIcon as Sprout, RocketOutlineIcon as Rocket, BagOutlineIcon as ShoppingBag } from '@solar-icons/react';
+import { Youtube, Check } from './BrandIcons';
 
 const STORAGE_KEY = 'hershy_onboarding';
 

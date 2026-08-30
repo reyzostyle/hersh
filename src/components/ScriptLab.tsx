@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { getSessionToken, fetchWithRetry } from '../lib/supabase';
-import { Sparkle as Sparkles, CircleNotch as Loader2, FileText, WarningCircle as AlertCircle, ThumbsUp, X } from '@phosphor-icons/react';
+import { Stars2OutlineIcon as Sparkles, RefreshOutlineIcon as Loader2, DocumentTextOutlineIcon as FileText, DangerCircleOutlineIcon as AlertCircle, LikeOutlineIcon as ThumbsUp, CloseCircleOutlineIcon as X } from '@solar-icons/react';
 import { ScoreCircle, ScoreBreakdown } from './ScoreCircle';
 import { AnalysisProgressModal } from './AnalysisProgressModal';
 import { ErrorNotice } from './ErrorNotice';

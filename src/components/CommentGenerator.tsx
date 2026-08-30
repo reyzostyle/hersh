@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { DownloadSimple as Download, Copy, Check, UploadSimple as Upload, X } from '@phosphor-icons/react';
+import { DownloadOutlineIcon as Download, CopyOutlineIcon as Copy, UploadOutlineIcon as Upload, CloseCircleOutlineIcon as X } from '@solar-icons/react';
+import { Check } from './BrandIcons';
 import {
   renderComment, downloadCanvas, TWITCH_COLORS,
   WIDTH_MIN, WIDTH_MAX, WIDTH_DEFAULT,

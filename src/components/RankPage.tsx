@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { CircleNotch as Loader2, Trophy, Fire as Flame, LinkSimple as Link } from '@phosphor-icons/react';
+import { RefreshOutlineIcon as Loader2, CupOutlineIcon as Trophy, FireOutlineIcon as Flame, LinkOutlineIcon as Link } from '@solar-icons/react';
 import { useAuth } from '../contexts/AuthContext';
 import { fetchRank, syncYouTubeIfStale, RankData, TIERS } from '../lib/rank';
 import { ErrorNotice } from './ErrorNotice';

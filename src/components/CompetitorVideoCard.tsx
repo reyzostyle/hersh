@@ -1,4 +1,5 @@
-import { Eye, EyeSlash as EyeOff, TrendUp as TrendingUp, Sparkle as Sparkles, CircleNotch as Loader2, FolderPlus, ArrowSquareOut as ExternalLink, Check } from '@phosphor-icons/react';
+import { EyeOutlineIcon as Eye, EyeClosedOutlineIcon as EyeOff, GraphUpOutlineIcon as TrendingUp, Stars2OutlineIcon as Sparkles, RefreshOutlineIcon as Loader2, AddFolderOutlineIcon as FolderPlus, SquareArrowRightUpOutlineIcon as ExternalLink } from '@solar-icons/react';
+import { Check } from './BrandIcons';
 import { formatViews, formatDate, type CompetitorIdea } from '../lib/competitors';
 import { useIdeaGeneration } from '../lib/useIdeaGeneration';
 

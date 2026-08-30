@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { Sparkle as Sparkles, ClockCounterClockwise as History } from '@phosphor-icons/react';
+import { Stars2OutlineIcon as Sparkles, HistoryOutlineIcon as History } from '@solar-icons/react';
 import { AppShell } from './AppShell';
 import { AnalysisProgressModal } from './AnalysisProgressModal';
 

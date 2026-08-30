@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { CaretDown as ChevronDown, CaretUp as ChevronUp, ChatCircle as MessageCircle, Copy, Check } from '@phosphor-icons/react';
+import { AltArrowDownOutlineIcon as ChevronDown, AltArrowUpOutlineIcon as ChevronUp, ChatRoundOutlineIcon as MessageCircle, CopyOutlineIcon as Copy } from '@solar-icons/react';
+import { Check } from './BrandIcons';
 
 const DISCORD_URL = 'https://discord.com/invite/N8S6C95Ry2';
 

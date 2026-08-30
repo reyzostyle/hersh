@@ -1,4 +1,4 @@
-import { VideoCamera as VideoIcon, MagicWand as Wand2, FileText, UsersThree as Users, ArrowUpRight } from '@phosphor-icons/react';
+import { VideocameraOutlineIcon as VideoIcon, MagicWandOutlineIcon as Wand2, DocumentTextOutlineIcon as FileText, UsersGroupRoundedOutlineIcon as Users, ArrowRightUpOutlineIcon as ArrowUpRight } from '@solar-icons/react';
 import { useAuth } from '../contexts/AuthContext';
 import { NavTab, HIDDEN_TABS } from './AppShell';
 

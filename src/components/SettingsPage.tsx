@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
-import { CircleNotch as Loader2, Eye, EyeSlash as EyeOff, ArrowsClockwise as RefreshCw, LinkSimple as Link, CaretDown as ChevronDown, Sparkle as Sparkles, User, Lightning as Zap, ChatCircle as MessageCircle, ArrowSquareOut as ExternalLink, Ticket } from '@phosphor-icons/react';
+import { RefreshOutlineIcon as Loader2, EyeOutlineIcon as Eye, EyeClosedOutlineIcon as EyeOff, RefreshOutlineIcon as RefreshCw, LinkOutlineIcon as Link, AltArrowDownOutlineIcon as ChevronDown, Stars2OutlineIcon as Sparkles, UserOutlineIcon as User, BoltOutlineIcon as Zap, ChatRoundOutlineIcon as MessageCircle, SquareArrowRightUpOutlineIcon as ExternalLink, TicketOutlineIcon as Ticket } from '@solar-icons/react';
 import { getSessionToken, fetchWithRetry } from '../lib/supabase';
 
 function YouTubeLogo({ className }: { className?: string }) {

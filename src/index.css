@@ -7,43 +7,30 @@
    the accent at low opacity (tinted chips, focus rings, glass underlays), and
    rgba() needs the numbers, not the hex. */
 :root {
-  /* White is the accent. A filled button is white on near-black, and colour is
-     reserved for state - progress, success, the active row - rather than being
-     what sells the action. It is the pattern the references have in common,
-     and the furthest thing from a coloured primary button on every screen. */
+  /* Taken off the ChatGPT composer rather than invented: a near-black page,
+     one grey for every raised surface, white for the single filled action.
+     No hue anywhere - the blue experiment is over. */
+  --bg-app: #171717;
+  --bg-raised: #262626;
+  --bg-raised-hover: #2E2E2E;
+
   --accent: #FFFFFF;
   --accent-rgb: 255, 255, 255;
+  --on-accent: #171717;
+  --accent-soft: #ECECEC;
 
-  /* Hairlines do the work borders used to. One weight for structure, a
-     brighter one for the element you are on. */
-  --line: rgba(255, 255, 255, 0.07);
-  --line-strong: rgba(255, 255, 255, 0.16);
+  --text: #ECECEC;
+  --text-muted: #9B9B9B;
+  --text-faint: #6E6E6E;
 
-  /* Blue is not gone, it moved underneath. The base is a deep blue-black
-     rather than neutral, so the product keeps a temperature without spending
-     the colour on buttons, and --brand carries it into the active row. */
-  --brand-rgb: 37, 99, 235;
-  --bg-raised: #0A0D18;
-  /* Anything drawn ON the accent. Kept as a token because a white fill with
-     white text is the one way this palette can silently break. */
-  --on-accent: #0A0A0B;
-  --accent-soft: #C9CED9;
-  --bg-app: #06080F;
+  --line: rgba(255, 255, 255, 0.06);
+  --line-strong: rgba(255, 255, 255, 0.14);
 
-  /* The wash under every glass panel. Separate from --accent because it is a
-     deep, desaturated version rather than the accent at low opacity, and going
-     monochrome means neutralising this as well as the accent - a panel tinted
-     blue reads blue however grey the buttons get. */
+  /* Kept so the old call sites resolve; all neutral now. */
+  --brand-rgb: 255, 255, 255;
   --glass-tint-rgb: 255, 255, 255;
-
-  /* Panels, modals and the ambient washes. These were a dark navy and a
-     decorative purple, which is most of what made the app read as blue even
-     where nothing was explicitly the accent colour. Both are neutral now:
-     depth comes from value, not from hue. */
-  --surface-rgb: 10, 13, 24;
   --wash-rgb: 255, 255, 255;
-
-  /* Semantic colours, so "success" and "danger" are not spelled out per file. */
+  --surface-rgb: 38, 38, 38;
   --ok-rgb: 52, 211, 153;
   --danger-rgb: 248, 113, 113;
 }
@@ -272,9 +259,7 @@ input, textarea, select {
   will-change: transform;
 }
 .motion-card:hover {
-  /* A card that jumps under the cursor reads as a toy. The border brightening
-     is enough to say it is interactive. */
-  border-color: var(--line-strong);
+  background: var(--bg-raised-hover);
 }
 
 /* ─── Scroll-reveal base ─────────────────────────────────────────────────────── */
@@ -328,23 +313,22 @@ input, textarea, select {
    bands in Chromium when a sibling repainted (accordion toggle, hover). The
    second gradient layer stands in for the old blur(22px) saturate(150%). */
 .glass-panel {
-  /* Flat. The gradient sheen, the white inset highlight and the drop shadow
-     that used to be here are the signature of a generated interface; depth
-     now comes from the surface being a step lighter than the page, and from
-     a single hairline. */
   background: var(--bg-raised);
-  border: 1px solid var(--line);
+  border: 1px solid transparent;
+  border-radius: 16px;
 }
 .glass-panel-accent {
   background: var(--bg-raised);
   border: 1px solid var(--line-strong);
+  border-radius: 16px;
 }
 
 /* Very subtle purple glow — a lighter touch than .glass-panel-accent, for
    surfacing one card among peers without shouting "most popular" at it. */
 .glass-panel-purple {
   background: var(--bg-raised);
-  border: 1px solid var(--line);
+  border: 1px solid transparent;
+  border-radius: 16px;
 }
 
 /* ─── Glass system: fields + primary buttons (cohesive with .glass-panel) ───── */
@@ -386,13 +370,4 @@ input, textarea, select {
   color: rgba(255, 255, 255, 0.38);
 }
 
-/* ─── Grid ────────────────────────────────────────────────────────────────── */
 
-/* Replaces the drifting glows. A ruled surface reads as precision instead of
-   decoration, and it is one gradient rather than three animated blobs. */
-.grid-surface {
-  background-image:
-    linear-gradient(to right, var(--line) 1px, transparent 1px),
-    linear-gradient(to bottom, var(--line) 1px, transparent 1px);
-  background-size: 96px 96px;
-}

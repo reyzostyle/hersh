@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { X, Eye, Calendar, TrendUp as TrendingUp, ArrowSquareOut as ExternalLink, FolderPlus, EyeSlash as EyeOff, Check } from '@phosphor-icons/react';
+import { CloseCircleOutlineIcon as X, EyeOutlineIcon as Eye, CalendarOutlineIcon as Calendar, GraphUpOutlineIcon as TrendingUp, SquareArrowRightUpOutlineIcon as ExternalLink, AddFolderOutlineIcon as FolderPlus, EyeClosedOutlineIcon as EyeOff } from '@solar-icons/react';
+import { Check } from './BrandIcons';
 import { formatViews, formatDate, type CompetitorIdea } from '../lib/competitors';
 import { CompetitorIdeaAnalysis } from './CompetitorIdeaAnalysis';
 

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ChartBar as BarChart2, CircleNotch as Loader2, ArrowsClockwise as RefreshCw, Infinity as InfinityIcon, Plus } from '@phosphor-icons/react';
+import { ChartSquareOutlineIcon as BarChart2, RefreshOutlineIcon as Loader2, RefreshOutlineIcon as RefreshCw, InfiniteOutlineIcon as InfinityIcon, AddOutlineIcon as Plus } from '@solar-icons/react';
 import { ErrorNotice } from './ErrorNotice';
 import { getSessionToken, fetchWithRetry } from '../lib/supabase';
 import { useUsage, PLAN_DISPLAY, CREDIT_COSTS } from '../lib/useUsage';

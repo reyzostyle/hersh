@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Video } from '../lib/supabase';
-import { X, Sparkle as Sparkles, CircleNotch as Loader2, Eye, ThumbsUp, ChatText as MessageSquare } from '@phosphor-icons/react';
+import { CloseCircleOutlineIcon as X, Stars2OutlineIcon as Sparkles, RefreshOutlineIcon as Loader2, EyeOutlineIcon as Eye, LikeOutlineIcon as ThumbsUp, ChatSquareOutlineIcon as MessageSquare } from '@solar-icons/react';
 
 interface VideoScriptPanelProps {
   video: Video | null;

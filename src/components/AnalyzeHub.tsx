@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { VideoCamera as VideoIcon, MagicWand as Wand2, FileText } from '@phosphor-icons/react';
+import { VideocameraOutlineIcon as VideoIcon, MagicWandOutlineIcon as Wand2, DocumentTextOutlineIcon as FileText } from '@solar-icons/react';
 import { HookAnalysis } from './HookAnalysis';
 import { HookLab } from './HookLab';
 import { ScriptLab } from './ScriptLab';

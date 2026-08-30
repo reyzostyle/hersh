@@ -1,5 +1,5 @@
 import { useState, useEffect, createContext, useContext, useRef } from 'react';
-import { GearSix as Settings, SignOut as LogOut, List as Menu, X, Lightning as Zap, UsersThree as Users, Handshake, ChartBar as BarChart2, SidebarSimple as PanelLeftClose, Sidebar as PanelLeftOpen, VideoCamera as VideoIcon, MagicWand as Wand2, FileText } from '@phosphor-icons/react';
+import { SettingsOutlineIcon as Settings, LogoutOutlineIcon as LogOut, HamburgerMenuOutlineIcon as Menu, CloseCircleOutlineIcon as X, BoltOutlineIcon as Zap, UsersGroupRoundedOutlineIcon as Users, HandShakeOutlineIcon as Handshake, ChartSquareOutlineIcon as BarChart2, SidebarMinimalisticOutlineIcon as PanelLeftClose, SidebarMinimalisticOutlineIcon as PanelLeftOpen, VideocameraOutlineIcon as VideoIcon, MagicWandOutlineIcon as Wand2, DocumentTextOutlineIcon as FileText } from '@solar-icons/react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
 
@@ -114,12 +114,9 @@ export function AppShell({ activeTab, onTabChange, children }: AppShellProps) {
           ? 'text-white'
           : 'text-white/45 hover:text-white/80'
       }`}
-      style={activeTab === item.id ? { background: 'rgba(var(--brand-rgb),0.22)' } : undefined}
+      style={activeTab === item.id ? { background: 'var(--bg-raised)' } : undefined}
     >
-      {activeTab === item.id && (
-        <span className="absolute left-0 top-1.5 bottom-1.5 w-[2px] rounded-full" style={{ background: 'rgb(var(--brand-rgb))' }} />
-      )}
-      {item.icon}
+            {item.icon}
       <span className={`flex-1 text-left whitespace-nowrap ${collapsed ? 'lg:hidden' : ''}`}>{item.label}</span>
       {item.badge && (
         <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full flex-shrink-0 ${collapsed ? 'lg:hidden' : ''}`} style={{ background: 'rgba(var(--accent-rgb),0.12)', color: 'var(--accent)' }}>
@@ -131,9 +128,6 @@ export function AppShell({ activeTab, onTabChange, children }: AppShellProps) {
 
   return (
     <div className="flex overflow-hidden relative" style={{ background: 'var(--bg-app)', maxWidth: '100vw', height: '100dvh' }}>
-      {/* Ruled rather than dotted, and static: the drifting glows and the dot
-          field were decoration that every generated dashboard also has. */}
-      <div className="absolute inset-0 pointer-events-none grid-surface" style={{ zIndex: 0, opacity: 0.6 }} />
 
       {/* Collapsing narrows the sidebar to an icon rail rather than hiding it, so
           every tab stays one click away. On phones this is always the full-width

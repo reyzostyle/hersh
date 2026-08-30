@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { getSessionToken, fetchWithRetry } from '../lib/supabase';
-import { Lightning as Zap, Check, CircleNotch as Loader2 } from '@phosphor-icons/react';
+import { BoltOutlineIcon as Zap, RefreshOutlineIcon as Loader2 } from '@solar-icons/react';
+import { Check } from './BrandIcons';
 import { ErrorNotice } from './ErrorNotice';
 import { useUsage } from '../lib/useUsage';
 

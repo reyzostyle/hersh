@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Analysis, Video } from '../lib/supabase';
-import { ClockCounterClockwise as History, Sparkle as Sparkles, X, CaretRight as ChevronRight, LinkSimple as Link, FilmSlate as Film } from '@phosphor-icons/react';
+import { HistoryOutlineIcon as History, Stars2OutlineIcon as Sparkles, CloseCircleOutlineIcon as X, AltArrowRightOutlineIcon as ChevronRight, LinkOutlineIcon as Link, ClapperboardOpenOutlineIcon as Film } from '@solar-icons/react';
 import { SheetGrip, useSheetDismiss } from './SheetGrip';
 
 interface HistoryPanelProps {

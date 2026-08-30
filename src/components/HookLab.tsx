@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { getSessionToken, fetchWithRetry } from '../lib/supabase';
-import { Sparkle as Sparkles, CircleNotch as Loader2, Copy, Check, Warning as AlertTriangle, MagicWand as Wand2, X } from '@phosphor-icons/react';
+import { Stars2OutlineIcon as Sparkles, RefreshOutlineIcon as Loader2, CopyOutlineIcon as Copy, DangerTriangleOutlineIcon as AlertTriangle, MagicWandOutlineIcon as Wand2, CloseCircleOutlineIcon as X } from '@solar-icons/react';
+import { Check } from './BrandIcons';
 import { ScoreCircle, ScoreBreakdown } from './ScoreCircle';
 import { AnalysisProgressModal } from './AnalysisProgressModal';
 import { SheetGrip, useSheetDismiss } from './SheetGrip';

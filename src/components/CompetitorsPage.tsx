@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { CircleNotch as Loader2, ListChecks, BookmarkSimple as Bookmark, UsersThree as Users } from '@phosphor-icons/react';
+import { RefreshOutlineIcon as Loader2, ChecklistMinimalisticOutlineIcon as ListChecks, BookmarkOutlineIcon as Bookmark, UsersGroupRoundedOutlineIcon as Users } from '@solar-icons/react';
 import { supabase, getSessionToken } from '../lib/supabase';
 import { callFunction, filterIdeas, type CompetitorChannel, type CompetitorIdea, type IdeaFilter, type IdeaFolder } from '../lib/competitors';
 import { CompetitorsFeed } from './CompetitorsFeed';

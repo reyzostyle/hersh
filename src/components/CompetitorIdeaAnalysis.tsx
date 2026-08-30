@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { CircleNotch as Loader2, Sparkle as Sparkles, CaretDown as ChevronDown, CaretUp as ChevronUp, Lightbulb } from '@phosphor-icons/react';
+import { RefreshOutlineIcon as Loader2, Stars2OutlineIcon as Sparkles, AltArrowDownOutlineIcon as ChevronDown, AltArrowUpOutlineIcon as ChevronUp, LightbulbOutlineIcon as Lightbulb } from '@solar-icons/react';
 import { type CompetitorIdea } from '../lib/competitors';
 import { useIdeaGeneration } from '../lib/useIdeaGeneration';
 import { ErrorNotice } from './ErrorNotice';

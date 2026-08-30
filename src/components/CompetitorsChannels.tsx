@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus, CircleNotch as Loader2, X, CheckCircle as CheckCircle2 } from '@phosphor-icons/react';
+import { AddOutlineIcon as Plus, RefreshOutlineIcon as Loader2, CloseCircleOutlineIcon as X, CheckCircleOutlineIcon as CheckCircle2 } from '@solar-icons/react';
 import { ErrorNotice } from './ErrorNotice';
 import { formatDate, type CompetitorChannel, type CompetitorIdea } from '../lib/competitors';
 

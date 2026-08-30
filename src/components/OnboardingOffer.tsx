@@ -1,4 +1,4 @@
-import { Sparkle as Sparkles, X } from '@phosphor-icons/react';
+import { Stars2OutlineIcon as Sparkles, CloseCircleOutlineIcon as X } from '@solar-icons/react';
 
 // Shown once, after the first analysis lands, to someone who came in through
 // the landing page's hero and therefore skipped onboarding.

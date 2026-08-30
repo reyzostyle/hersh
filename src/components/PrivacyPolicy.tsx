@@ -1,4 +1,4 @@
-import { ArrowLeft } from '@phosphor-icons/react';
+import { ArrowLeftOutlineIcon as ArrowLeft } from '@solar-icons/react';
 
 const UPDATED = 'July 1, 2026';
 

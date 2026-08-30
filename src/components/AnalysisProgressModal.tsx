@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { Sparkle as Sparkles } from '@phosphor-icons/react';
+import { Stars2OutlineIcon as Sparkles } from '@solar-icons/react';
 
 interface Stage {
   label: string;

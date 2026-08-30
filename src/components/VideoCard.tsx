@@ -1,5 +1,6 @@
 import { Video } from '../lib/supabase';
-import { Eye, ThumbsUp, ChatText as MessageSquare, Check, FileText } from '@phosphor-icons/react';
+import { EyeOutlineIcon as Eye, LikeOutlineIcon as ThumbsUp, ChatSquareOutlineIcon as MessageSquare, DocumentTextOutlineIcon as FileText } from '@solar-icons/react';
+import { Check } from './BrandIcons';
 
 interface VideoCardProps {
   video: Video;

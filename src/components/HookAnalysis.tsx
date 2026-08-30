@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useContext } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase, getSessionToken, fetchWithRetry, Video, Analysis } from '../lib/supabase';
-import { Sparkle as Sparkles, CircleNotch as Loader2, ClockCounterClockwise as History, FilmSlate as Film, X, Plus } from '@phosphor-icons/react';
+import { ArrowUpOutlineIcon as ArrowUp, RefreshOutlineIcon as Loader2, HistoryOutlineIcon as History, ClapperboardOpenOutlineIcon as Film, CloseCircleOutlineIcon as X, AddOutlineIcon as Plus } from '@solar-icons/react';
 import { AnalysisPanel } from './AnalysisPanel';
 import { HistoryPanel } from './HistoryPanel';
 import { AnalysisProgressModal } from './AnalysisProgressModal';
@@ -32,6 +32,21 @@ export function HookAnalysis() {
   const [historyPanelOpen, setHistoryPanelOpen] = useState(false);
   const [error, setError] = useState('');
   const [analysisPanelOpen, setAnalysisPanelOpen] = useState(false);
+
+  // Everything typed lives here. urlInput and context stay as they were so the
+  // submit paths below did not have to change; they are just read out of this.
+  const [composer, setComposer] = useState('');
+
+  const submitComposer = () => {
+    const text = composer.trim();
+    const url = text.match(/https?:\/\/\S+/)?.[0] ?? '';
+    const rest = text.replace(url, '').trim();
+    if (uploadFile) { runUploadAnalysis(uploadFile, rest, true); return; }
+    if (!url) { setUrlError('Paste a video link, or attach a file with the plus button.'); return; }
+    setUrlInput(url);
+    setContext(rest);
+    handleUrlSubmit(url, rest);
+  };
   // True when the open analysis was picked from History — shows a back arrow
   // in the analysis window that returns to the list instead of closing fully.
   const [openedFromHistory, setOpenedFromHistory] = useState(false);
@@ -148,16 +163,19 @@ export function HookAnalysis() {
     return null;
   };
 
-  const handleUrlSubmit = () => {
+  // The composer passes what it parsed directly: setState is async, so reading
+  // urlInput back here would use the previous keystroke's value.
+  const handleUrlSubmit = (urlOverride?: string, contextOverride?: string) => {
     setUrlError('');
-    const videoId = extractVideoId(urlInput);
-    if (!videoId) { setUrlError('Invalid YouTube URL or video ID'); return; }
+    const videoId = extractVideoId(urlOverride ?? urlInput);
+    if (!videoId) { setUrlError('That does not look like a YouTube link.'); return; }
     // Ownership + retention are resolved server-side in analyze-with-gemini.
     // For synced videos we can pass the known title to skip the oembed lookup.
     const ownVideo = videos.find(v => v.video_id === videoId);
-    runGeminiAnalysis(videoId, context.trim(), false, ownVideo?.title);
+    runGeminiAnalysis(videoId, (contextOverride ?? context).trim(), false, ownVideo?.title);
     setUrlInput('');
     setContext('');
+    setComposer('');
     setShowContext(false);
   };
 
@@ -380,93 +398,63 @@ export function HookAnalysis() {
               onChange={e => { const f = e.target.files?.[0]; if (f) handleFileSelect(f); e.currentTarget.value = ''; }}
             />
 
-            {uploadFile ? (
-              <div className="m-1.5 rounded-xl px-4 py-3 flex items-center gap-3" style={{ background: 'rgba(var(--accent-rgb),0.08)', border: '1px solid rgba(var(--accent-rgb),0.2)' }}>
-                <div className="w-10 h-10 rounded-lg bg-[var(--accent)]/15 flex items-center justify-center flex-shrink-0">
-                  <Film className="w-5 h-5 text-[var(--accent)]" />
-                </div>
+            {uploadFile && (
+              <div className="mx-2 mt-2 rounded-2xl px-3 py-2.5 flex items-center gap-3" style={{ background: 'rgba(255,255,255,0.05)' }}>
+                <Film className="w-4 h-4 text-white/50 flex-shrink-0" />
                 <div className="flex-1 min-w-0">
-                  <p className="text-white text-sm font-medium truncate">{uploadFile.name}</p>
-                  <p className="text-gray-500 text-xs">{formatSize(uploadFile.size)}</p>
+                  <p className="text-[13px] text-white truncate">{uploadFile.name}</p>
+                  <p className="text-[11px] text-white/35">{formatSize(uploadFile.size)}</p>
                 </div>
-                <button onClick={() => { setUploadFile(null); setFileError(''); }} disabled={uploadAnalyzing} className="p-1 text-gray-500 hover:text-white rounded transition-colors disabled:opacity-40">
+                <button onClick={() => { setUploadFile(null); setFileError(''); }} disabled={uploadAnalyzing}
+                  className="p-1 text-white/35 hover:text-white transition-colors disabled:opacity-40">
                   <X className="w-4 h-4" />
                 </button>
               </div>
-            ) : (
-              <div className="flex items-center gap-1.5 px-1.5">
-                <input
-                  type="text"
-                  value={urlInput}
-                  onChange={e => { setUrlInput(e.target.value); setUrlError(''); }}
-                  onKeyDown={e => e.key === 'Enter' && urlInput.trim() && !geminiAnalyzing && handleUrlSubmit()}
-                  placeholder="Paste link"
-                  autoComplete="off"
-                  spellCheck={false}
-                  autoCorrect="off"
-                  autoCapitalize="off"
-                  className="flex-1 min-w-0 px-2 py-5 sm:py-6 bg-transparent text-white text-[15px] focus:outline-none placeholder:text-gray-600"
-                />
-                <button
-                  type="button"
-                  onClick={() => fileInputRef.current?.click()}
-                  title="Upload a video file"
-                  className="flex-shrink-0 w-9 h-9 rounded-full flex items-center justify-center text-gray-400 hover:text-white transition-colors"
-                  style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }}
-                >
-                  <Plus className="w-4 h-4" />
-                </button>
-              </div>
             )}
 
-            {showContext && (
-              <div className="px-1.5 pt-1.5">
-                <div className="flex items-center justify-between px-1 mb-1.5">
-                  <span className="text-xs text-gray-500">Context <span className="text-gray-600">helps tailor the analysis</span></span>
-                  <button onClick={() => { setShowContext(false); setContext(''); }} className="text-gray-600 hover:text-gray-300 transition-colors p-0.5" title="Hide context">
-                    <X className="w-3.5 h-3.5" />
-                  </button>
-                </div>
-                <textarea
-                  value={context}
-                  onChange={e => setContext(e.target.value)}
-                  maxLength={600}
-                  rows={2}
-                  autoFocus
-                  placeholder={uploadFile
-                    ? 'e.g. gym transformation, targeting busy dads, wanted a strong first-line hook'
-                    : 'e.g. storytime about my worst client, targeting freelancers, wanted a punchy cold open'}
-                  className="glass-field w-full px-4 py-3 rounded-xl text-white text-sm resize-none focus:outline-none placeholder:text-gray-600"
-                  style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)' }}
-                />
-              </div>
-            )}
+            {/* One field for both. Paste a link and keep typing: the first URL
+                becomes the video, everything else around it becomes the context
+                that used to live behind an "Add context" toggle nobody opened. */}
+            <textarea
+              value={composer}
+              onChange={e => setComposer(e.target.value)}
+              onKeyDown={e => {
+                if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); submitComposer(); }
+              }}
+              rows={1}
+              placeholder={uploadFile ? 'Add context, or just send' : 'Paste a link, or add context with it'}
+              autoComplete="off"
+              spellCheck={false}
+              className="w-full bg-transparent resize-none px-5 pt-4 pb-1 text-[15px] leading-relaxed focus:outline-none"
+              style={{ color: 'var(--text)', maxHeight: 200 }}
+            />
 
-            <div className="flex flex-wrap items-center justify-between gap-3 px-3 pb-2 pt-2">
-              <div className="flex items-center gap-3 min-w-0">
-                {!showContext && (
-                  <button onClick={() => setShowContext(true)} className="flex items-center gap-1 text-xs text-gray-500 hover:text-gray-300 transition-colors">
-                    <Sparkles className="w-3.5 h-3.5" /> Add context
-                  </button>
-                )}
-              </div>
-
-              {/* A picked file wins over anything typed in the URL field, which
-                  is why choosing one hides that field above. */}
+            <div className="flex items-center justify-between gap-3 px-3 pb-3 pt-1">
               <button
-                onClick={() => uploadFile ? runUploadAnalysis(uploadFile, context.trim(), true) : handleUrlSubmit()}
-                disabled={uploadFile ? uploadAnalyzing : (!urlInput.trim() || analyzing)}
-                className="btn-primary flex items-center gap-2 px-4 py-2 text-white text-sm font-medium rounded-lg disabled:opacity-40 active:scale-[0.98]"
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                title="Attach a video file"
+                className="w-8 h-8 rounded-full flex items-center justify-center transition-colors"
+                style={{ color: 'var(--text-muted)' }}
               >
-                {(uploadFile ? uploadAnalyzing : geminiAnalyzing) ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
-                {uploadFile
-                  ? (uploadStep === 'uploading' ? 'Uploading' : uploadStep === 'analyzing' ? 'Analyzing' : uploadAnalyzing ? 'Processing' : 'Analyze')
-                  : (geminiAnalyzing ? 'Analyzing' : 'Analyze')}
+                <Plus className="w-[18px] h-[18px]" />
+              </button>
+
+              <button
+                onClick={submitComposer}
+                disabled={uploadFile ? uploadAnalyzing : (!composer.trim() || analyzing)}
+                title="Analyze"
+                className="w-8 h-8 rounded-full flex items-center justify-center transition-opacity disabled:opacity-25"
+                style={{ background: 'var(--accent)', color: 'var(--on-accent)' }}
+              >
+                {(uploadFile ? uploadAnalyzing : geminiAnalyzing)
+                  ? <Loader2 className="w-4 h-4 animate-spin" />
+                  : <ArrowUp className="w-[18px] h-[18px]" />}
               </button>
             </div>
 
             {(fileError || urlError) && (
-              <p className="px-3 pb-2 text-xs text-red-400">{fileError || urlError}</p>
+              <p className="px-5 pb-3 text-xs" style={{ color: '#f87171' }}>{fileError || urlError}</p>
             )}
           </div>
 

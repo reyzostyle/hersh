@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Folder, FolderPlus, CircleNotch as Loader2, X, BookmarkSimple as Bookmark } from '@phosphor-icons/react';
+import { FolderOutlineIcon as Folder, AddFolderOutlineIcon as FolderPlus, RefreshOutlineIcon as Loader2, CloseCircleOutlineIcon as X, BookmarkOutlineIcon as Bookmark } from '@solar-icons/react';
 import { type CompetitorIdea, type IdeaFolder } from '../lib/competitors';
 import { CompetitorVideoCard } from './CompetitorVideoCard';
 

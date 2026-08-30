@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { Lightbulb, Trash as Trash2, CircleNotch as Loader2, Plus, ArrowsClockwise as RefreshCw, CaretUp as ChevronUp, UsersThree as Users, Check } from '@phosphor-icons/react';
+import { LightbulbOutlineIcon as Lightbulb, TrashBinMinimalisticOutlineIcon as Trash2, RefreshOutlineIcon as Loader2, AddOutlineIcon as Plus, RefreshOutlineIcon as RefreshCw, AltArrowUpOutlineIcon as ChevronUp, UsersGroupRoundedOutlineIcon as Users } from '@solar-icons/react';
+import { Check } from './BrandIcons';
 import {
   filterIdeas, sortAndFilterIdeas,
   type CompetitorIdea, type CompetitorChannel, type IdeaFilter, type OutlierFloor, type IdeaSort,

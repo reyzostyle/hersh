@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { getSessionToken, fetchWithRetry } from '../lib/supabase';
 import { showToast } from '../lib/toast';
-import { Check, CircleNotch as Loader2 } from '@phosphor-icons/react';
+import { RefreshOutlineIcon as Loader2 } from '@solar-icons/react';
+import { Check } from './BrandIcons';
 
 function NotionGlyph({ className }: { className?: string }) {
   return (

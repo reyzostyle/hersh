@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Analysis } from '../lib/supabase';
 import { SheetGrip, useSheetDismiss } from './SheetGrip';
-import { WarningCircle as AlertCircle, X, ArrowLeft, ThumbsUp, ThumbsDown, PaperPlaneTilt as Send } from '@phosphor-icons/react';
+import { DangerCircleOutlineIcon as AlertCircle, CloseCircleOutlineIcon as X, ArrowLeftOutlineIcon as ArrowLeft, LikeOutlineIcon as ThumbsUp, DislikeOutlineIcon as ThumbsDown, SendSquareOutlineIcon as Send } from '@solar-icons/react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { ScoreCircle, ScoreBreakdown } from './ScoreCircle';

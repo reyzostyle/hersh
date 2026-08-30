@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { getSessionToken, fetchWithRetry } from '../lib/supabase';
-import { Copy, Check, UsersThree as Users, TrendUp as TrendingUp, CurrencyDollar as DollarSign, CircleNotch as Loader2, Plus, ArrowsClockwise as RefreshCw, Trash as Trash2, LinkSimple as Link, Handshake, Clock, Wallet } from '@phosphor-icons/react';
+import { CopyOutlineIcon as Copy, UsersGroupRoundedOutlineIcon as Users, GraphUpOutlineIcon as TrendingUp, DollarOutlineIcon as DollarSign, RefreshOutlineIcon as Loader2, AddOutlineIcon as Plus, RefreshOutlineIcon as RefreshCw, TrashBinMinimalisticOutlineIcon as Trash2, LinkOutlineIcon as Link, HandShakeOutlineIcon as Handshake, ClockCircleOutlineIcon as Clock, WalletOutlineIcon as Wallet } from '@solar-icons/react';
+import { Check } from './BrandIcons';
 
 const ADMIN_EMAIL = 'reyzostyle@gmail.com';
 

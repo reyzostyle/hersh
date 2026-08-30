@@ -11,7 +11,6 @@
 // prerendered markup exists purely to be read before JavaScript runs, and it
 // cannot desynchronise from the live app - the live app overwrites it.
 import { renderToStaticMarkup } from 'react-dom/server';
-import { IconContext } from '@phosphor-icons/react';
 import { AuthProvider } from './contexts/AuthContext';
 import { LandingPage } from './components/LandingPage';
 import { PrivacyPolicy } from './components/PrivacyPolicy';
@@ -28,11 +27,7 @@ export interface PrerenderRoute {
 // Its effects never run here, so the tree renders in its signed-out state,
 // which is exactly what a crawler should see.
 const wrap = (node: JSX.Element) =>
-  renderToStaticMarkup(
-    <IconContext.Provider value={{ weight: 'bold' }}>
-      <AuthProvider>{node}</AuthProvider>
-    </IconContext.Provider>,
-  );
+  renderToStaticMarkup(<AuthProvider>{node}</AuthProvider>);
 
 export function render(): PrerenderRoute[] {
   return [

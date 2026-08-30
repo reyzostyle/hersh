@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { createPortal } from 'react-dom';
-import { X, Folder, Plus, CircleNotch as Loader2, Check } from '@phosphor-icons/react';
+import { CloseCircleOutlineIcon as X, FolderOutlineIcon as Folder, AddOutlineIcon as Plus, RefreshOutlineIcon as Loader2 } from '@solar-icons/react';
+import { Check } from './BrandIcons';
 import { type IdeaFolder } from '../lib/competitors';
 
 // Picking where a saved idea goes. Unfiled is a real, first-class choice

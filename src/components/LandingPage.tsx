@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 
-import { X, Check, CircleNotch as Loader2, Lightning as Zap, CaretRight as ChevronRight, CaretDown as ChevronDown, ChatCircle as MessageCircle, XLogo as Twitter, Envelope as Mail, TrendUp as TrendingUp, FileText, MagicWand as Wand2, VideoCamera as VideoIcon, UsersThree as Users, Play, Sparkle as Sparkles, Repeat, Lock } from '@phosphor-icons/react';
+import { CloseCircleOutlineIcon as X, RefreshOutlineIcon as Loader2, BoltOutlineIcon as Zap, AltArrowRightOutlineIcon as ChevronRight, AltArrowDownOutlineIcon as ChevronDown, ChatRoundOutlineIcon as MessageCircle, LetterOutlineIcon as Mail, GraphUpOutlineIcon as TrendingUp, DocumentTextOutlineIcon as FileText, MagicWandOutlineIcon as Wand2, VideocameraOutlineIcon as VideoIcon, UsersGroupRoundedOutlineIcon as Users, PlayOutlineIcon as Play, Stars2OutlineIcon as Sparkles, RepeatOutlineIcon as Repeat, LockOutlineIcon as Lock } from '@solar-icons/react';
+import { Twitter, Check } from './BrandIcons';
 import { useAuth } from '../contexts/AuthContext';
 import { HeroAnalysisGate } from './HeroAnalysisGate';
 import { supabase } from '../lib/supabase';
