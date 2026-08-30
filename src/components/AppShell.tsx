@@ -128,6 +128,7 @@ export function AppShell({ activeTab, onTabChange, children }: AppShellProps) {
 
   return (
     <div className="flex overflow-hidden relative" style={{ background: 'var(--bg-app)', maxWidth: '100vw', height: '100dvh' }}>
+      <div className="absolute inset-0 pointer-events-none grid-surface" style={{ zIndex: 0 }} />
 
       {/* Collapsing narrows the sidebar to an icon rail rather than hiding it, so
           every tab stays one click away. On phones this is always the full-width

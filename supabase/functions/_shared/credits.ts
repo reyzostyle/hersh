@@ -28,6 +28,9 @@ export const CREDIT_COSTS = {
   competitor_idea: 1,
   competitor_outline: 1,
   competitor_script: 1,
+  // A follow-up answers from the analysis already in the thread, so it is a
+  // short text call rather than another look at the video.
+  chat_followup: 1,
 } as const;
 
 export type CreditAction = keyof typeof CREDIT_COSTS;

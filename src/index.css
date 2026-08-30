@@ -7,30 +7,30 @@
    the accent at low opacity (tinted chips, focus rings, glass underlays), and
    rgba() needs the numbers, not the hex. */
 :root {
-  /* Taken off the ChatGPT composer rather than invented: a near-black page,
-     one grey for every raised surface, white for the single filled action.
-     No hue anywhere - the blue experiment is over. */
-  --bg-app: #171717;
-  --bg-raised: #262626;
-  --bg-raised-hover: #2E2E2E;
+  /* Near-black page with a ruled grid, panels lifted a step above it with a
+     hairline. Flat grey everywhere read as cheap: what makes the pricing screen
+     look expensive is the page being darker than the panels and the grid giving
+     the eye something precise to sit on. */
+  --bg-app: #0A0A0B;
+  --bg-raised: #121214;
+  --bg-raised-hover: #17171A;
 
   --accent: #FFFFFF;
   --accent-rgb: 255, 255, 255;
-  --on-accent: #171717;
+  --on-accent: #0A0A0B;
   --accent-soft: #ECECEC;
 
   --text: #ECECEC;
   --text-muted: #9B9B9B;
   --text-faint: #6E6E6E;
 
-  --line: rgba(255, 255, 255, 0.06);
+  --line: rgba(255, 255, 255, 0.07);
   --line-strong: rgba(255, 255, 255, 0.14);
 
-  /* Kept so the old call sites resolve; all neutral now. */
   --brand-rgb: 255, 255, 255;
   --glass-tint-rgb: 255, 255, 255;
   --wash-rgb: 255, 255, 255;
-  --surface-rgb: 38, 38, 38;
+  --surface-rgb: 18, 18, 20;
   --ok-rgb: 52, 211, 153;
   --danger-rgb: 248, 113, 113;
 }
@@ -314,21 +314,21 @@ input, textarea, select {
    second gradient layer stands in for the old blur(22px) saturate(150%). */
 .glass-panel {
   background: var(--bg-raised);
-  border: 1px solid transparent;
-  border-radius: 16px;
+  border: 1px solid var(--line);
+  border-radius: 18px;
 }
 .glass-panel-accent {
   background: var(--bg-raised);
   border: 1px solid var(--line-strong);
-  border-radius: 16px;
+  border-radius: 18px;
 }
 
 /* Very subtle purple glow — a lighter touch than .glass-panel-accent, for
    surfacing one card among peers without shouting "most popular" at it. */
 .glass-panel-purple {
   background: var(--bg-raised);
-  border: 1px solid transparent;
-  border-radius: 16px;
+  border: 1px solid var(--line);
+  border-radius: 18px;
 }
 
 /* ─── Glass system: fields + primary buttons (cohesive with .glass-panel) ───── */
@@ -371,3 +371,13 @@ input, textarea, select {
 }
 
 
+
+/* The ruled grid is back. It was the thing giving the dark surface a sense of
+   precision, and taking it out is what made the app look cheap rather than
+   minimal. */
+.grid-surface {
+  background-image:
+    linear-gradient(to right, var(--line) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--line) 1px, transparent 1px);
+  background-size: 110px 110px;
+}

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { AppShell, NavTab, HIDDEN_TABS } from './AppShell';
 import { HomePage } from './HomePage';
-import { HookAnalysis } from './HookAnalysis';
+import { AnalysisChat } from './AnalysisChat';
 import { HookLab } from './HookLab';
 import { ScriptLab } from './ScriptLab';
 import { UpgradePage } from './UpgradePage';
@@ -56,7 +56,7 @@ export function Dashboard() {
   return (
     <AppShell activeTab={activeTab} onTabChange={setActiveTab}>
       {activeTab === 'home' && <HomePage onNavigate={setActiveTab} />}
-      {activeTab === 'video' && <HookAnalysis />}
+      {activeTab === 'video' && <AnalysisChat />}
       {activeTab === 'hook' && <HookLab />}
       {activeTab === 'script' && <ScriptLab />}
       {activeTab === 'competitors' && <CompetitorsPage />}
