@@ -41,7 +41,12 @@
   --glass-tint-rgb: 255, 255, 255;
   --wash-rgb: 255, 255, 255;
   --surface-rgb: 18, 18, 20;
-  --ok-rgb: 52, 211, 153;
+  /* The one colour in the app, and it only ever means something is happening
+     or something worked: progress bars, the watching state, a connected
+     account. Never a button, never decoration. */
+  --process: #2BD97C;
+  --process-rgb: 43, 217, 124;
+  --ok-rgb: 43, 217, 124;
   --danger-rgb: 248, 113, 113;
 }
 

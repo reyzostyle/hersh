@@ -12,6 +12,13 @@ export default {
       // three-step scale so every existing class lands on one of them and no
       // component had to be edited.
       colors: {
+        // Emerald was in use at three different shades for the same idea.
+        // All of it resolves to the one process colour.
+        emerald: {
+          100: 'var(--process)', 200: 'var(--process)', 300: 'var(--process)',
+          400: 'var(--process)', 500: 'var(--process)', 600: 'var(--process)',
+          700: 'var(--process)',
+        },
         gray: {
           100: 'var(--text)',
           200: 'var(--text)',

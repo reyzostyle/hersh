@@ -279,7 +279,7 @@ export function AnalysisChat() {
               ))}
 
               {busy && (
-                <div className="flex items-center gap-2 text-[13px]" style={{ color: 'var(--text-faint)' }}>
+                <div className="flex items-center gap-2 text-[13px]" style={{ color: 'var(--process)' }}>
                   <Loader2 className="w-4 h-4 animate-spin" /> Watching
                 </div>
               )}

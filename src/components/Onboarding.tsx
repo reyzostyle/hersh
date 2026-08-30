@@ -169,7 +169,7 @@ export function Onboarding({ onDone }: { onDone: () => void }) {
             <div className="h-1 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.08)' }}>
               <div
                 className="h-full rounded-full transition-all duration-500"
-                style={{ width: `${(step / TOTAL_STEPS) * 100}%`, background: accent }}
+                style={{ width: `${(step / TOTAL_STEPS) * 100}%`, background: 'var(--process)' }}
               />
             </div>
           </div>
