@@ -2,6 +2,7 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import { Download, Copy, Check, Upload, X } from 'lucide-react';
 import {
   renderComment, downloadCanvas, TWITCH_COLORS,
+  WIDTH_MIN, WIDTH_MAX, WIDTH_DEFAULT,
   type Platform, type CommentSpec, type TwitchBadge,
 } from '../lib/commentImage';
 
@@ -43,6 +44,8 @@ export function CommentGenerator() {
   const [usernameColor, setUsernameColor] = useState(TWITCH_COLORS[13]);
   const [badges, setBadges] = useState<TwitchBadge[]>(['subscriber']);
   const [replySticker, setReplySticker] = useState(false);
+  const [width, setWidth] = useState(WIDTH_DEFAULT);
+  const [rounded, setRounded] = useState(true);
   const [avatar, setAvatar] = useState<HTMLImageElement | null>(null);
   const [avatarName, setAvatarName] = useState('');
   const [copied, setCopied] = useState(false);
@@ -52,12 +55,12 @@ export function CommentGenerator() {
 
   const spec: CommentSpec = {
     platform, username, text, verified, avatar, likes, time,
-    dark, transparent, usernameColor, badges, replySticker,
+    dark, transparent, usernameColor, badges, replySticker, width, rounded,
   };
 
   const draw = useCallback(() => {
     if (canvasRef.current) renderComment(canvasRef.current, spec);
-  }, [platform, username, text, verified, avatar, likes, time, dark, transparent, usernameColor, badges, replySticker]);
+  }, [platform, username, text, verified, avatar, likes, time, dark, transparent, usernameColor, badges, replySticker, width, rounded]);
 
   useEffect(() => { draw(); }, [draw]);
 
@@ -84,7 +87,6 @@ export function CommentGenerator() {
   };
 
   const isTwitch = platform === 'twitch';
-  const isTikTok = platform === 'tiktok';
 
   return (
     <div className="max-w-5xl mx-auto px-4 sm:px-6 pt-4 sm:pt-6 pb-12 animate-fade-in-up">
@@ -217,6 +219,22 @@ export function CommentGenerator() {
             </div>
           )}
 
+          <div>
+            <div className="flex items-baseline justify-between mb-1.5">
+              <label className="text-xs font-medium uppercase tracking-wide text-gray-500">Width</label>
+              <span className="text-[11px] text-gray-600">{width}px · narrower = bigger text in your video</span>
+            </div>
+            <input
+              type="range"
+              min={WIDTH_MIN}
+              max={WIDTH_MAX}
+              step={10}
+              value={width}
+              onChange={e => setWidth(Number(e.target.value))}
+              className="w-full accent-[#0EA4E9]"
+            />
+          </div>
+
           <div className="flex flex-wrap gap-x-5 gap-y-2 pt-1">
             {!isTwitch && (
               <label className="flex items-center gap-2 cursor-pointer">
@@ -224,12 +242,10 @@ export function CommentGenerator() {
                 <span className="text-xs text-gray-400">Verified badge</span>
               </label>
             )}
-            {isTikTok && (
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input type="checkbox" checked={replySticker} onChange={e => setReplySticker(e.target.checked)} className="accent-[#0EA4E9]" />
-                <span className="text-xs text-gray-400">"Replying to" sticker</span>
-              </label>
-            )}
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input type="checkbox" checked={replySticker} onChange={e => setReplySticker(e.target.checked)} className="accent-[#0EA4E9]" />
+              <span className="text-xs text-gray-400">"Replying to" sticker</span>
+            </label>
             {!isTwitch && !replySticker && (
               <label className="flex items-center gap-2 cursor-pointer">
                 <input type="checkbox" checked={dark} onChange={e => setDark(e.target.checked)} className="accent-[#0EA4E9]" />
@@ -240,6 +256,12 @@ export function CommentGenerator() {
               <label className="flex items-center gap-2 cursor-pointer">
                 <input type="checkbox" checked={transparent} onChange={e => setTransparent(e.target.checked)} className="accent-[#0EA4E9]" />
                 <span className="text-xs text-gray-400">Transparent background</span>
+              </label>
+            )}
+            {!replySticker && !transparent && (
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input type="checkbox" checked={rounded} onChange={e => setRounded(e.target.checked)} className="accent-[#0EA4E9]" />
+                <span className="text-xs text-gray-400">Rounded corners</span>
               </label>
             )}
           </div>

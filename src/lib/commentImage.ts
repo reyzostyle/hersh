@@ -21,9 +21,21 @@ export interface CommentSpec {
   transparent: boolean;
   usernameColor: string;
   badges: TwitchBadge[];
-  /** TikTok only: the white "Replying to X" sticker instead of a feed comment. */
+  /** The white "Replying to" card used as a video hook, on any platform. */
   replySticker: boolean;
+  /** Logical width. Narrower art means bigger text once it sits in a vertical video. */
+  width: number;
+  rounded: boolean;
 }
+
+export const WIDTH_MIN = 380;
+export const WIDTH_MAX = 900;
+export const WIDTH_DEFAULT = 560;
+
+// The tick colour each platform uses on a verified account.
+const ACCENT: Record<Platform, string> = {
+  tiktok: '#20D5EC', twitch: '#9146FF', youtube: '#606060', instagram: '#3897F0',
+};
 
 export const TWITCH_COLORS = [
   '#FF0000', '#0000FF', '#008000', '#B22222', '#FF7F50',
@@ -145,83 +157,109 @@ function wrapText(ctx: CanvasRenderingContext2D, text: string, maxWidth: number)
 
 interface Layout { width: number; height: number; draw: (ctx: CanvasRenderingContext2D) => void }
 
-// ── TikTok ──────────────────────────────────────────────────────────────────
-function tiktok(measure: CanvasRenderingContext2D, spec: CommentSpec): Layout {
-  const c = palette('tiktok', spec.dark);
-
-  if (spec.replySticker) {
-    // The white rounded card used as a video hook, not a feed comment.
-    const PAD = 26, AV = 44, W = 760;
-    measure.font = font(600, 30);
-    const lines = wrapText(measure, spec.text || 'your comment here', W - PAD * 2);
-    const height = PAD + 30 + 16 + lines.length * 40 + PAD;
-
-    return {
-      width: W, height,
-      draw: ctx => {
-        ctx.fillStyle = '#FFFFFF';
-        ctx.beginPath();
-        ctx.roundRect(0, 0, W, height, 20);
-        ctx.fill();
-
-        drawAvatar(ctx, spec, PAD, PAD, AV * 0.62);
-        ctx.textAlign = 'left';
-        ctx.textBaseline = 'middle';
-        ctx.fillStyle = '#6B6B72';
-        ctx.font = font(400, 21);
-        ctx.fillText(`Replying to ${spec.username || 'user'}'s comment`, PAD + AV * 0.62 + 12, PAD + AV * 0.31);
-
-        ctx.fillStyle = '#161823';
-        ctx.font = font(700, 30);
-        ctx.textBaseline = 'top';
-        lines.forEach((l, i) => ctx.fillText(l, PAD, PAD + 46 + i * 40));
-      },
-    };
+// Transparent skips the fill entirely: there is no background left to round.
+function fillBg(ctx: CanvasRenderingContext2D, spec: CommentSpec, w: number, h: number, color: string) {
+  if (spec.transparent) return;
+  ctx.fillStyle = color;
+  if (spec.rounded) {
+    ctx.beginPath();
+    ctx.roundRect(0, 0, w, h, Math.min(24, h / 3));
+    ctx.fill();
+  } else {
+    ctx.fillRect(0, 0, w, h);
   }
+}
 
-  const PAD = 24, AV = 76, GAP = 20, W = 900;
-  const textW = W - PAD * 2 - AV - GAP;
-  measure.font = font(400, 27);
-  const lines = wrapText(measure, spec.text || 'your comment here', textW);
-  const height = PAD * 2 + Math.max(AV, 36 + lines.length * 36 + 30);
+// ── "Replying to" card ──────────────────────────────────────────────────────
+// The hook format, shared by every platform so it reads the same wherever it
+// came from. Always white and always rounded - that is the look being copied.
+function replyCard(measure: CanvasRenderingContext2D, spec: CommentSpec): Layout {
+  const W = spec.width;
+  const PAD = Math.round(W * 0.034) + 10;
+  const AV = 28;
+  const NAME = Math.max(15, Math.round(W * 0.028));
+  const BODY = Math.max(21, Math.round(W * 0.04));
+
+  measure.font = font(700, BODY);
+  const lines = wrapText(measure, spec.text || 'your comment here', W - PAD * 2);
+  const lineH = Math.round(BODY * 1.34);
+  const height = PAD + AV + 14 + lines.length * lineH + PAD;
 
   return {
     width: W, height,
     draw: ctx => {
-      if (!spec.transparent) { ctx.fillStyle = c.bg; ctx.fillRect(0, 0, W, height); }
+      ctx.fillStyle = '#FFFFFF';
+      ctx.beginPath();
+      ctx.roundRect(0, 0, W, height, 18);
+      ctx.fill();
+
+      drawAvatar(ctx, spec, PAD, PAD, AV);
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'middle';
+      ctx.fillStyle = '#6B6B72';
+      ctx.font = font(400, NAME);
+      const label = `Replying to ${spec.username || 'user'}'s comment`;
+      ctx.fillText(label, PAD + AV + 10, PAD + AV / 2);
+      if (spec.verified) {
+        const w = ctx.measureText(label).width;
+        drawVerified(ctx, PAD + AV + 16 + w, PAD + AV / 2 - NAME * 0.5, NAME, ACCENT[spec.platform]);
+      }
+
+      ctx.fillStyle = '#161823';
+      ctx.font = font(700, BODY);
+      ctx.textBaseline = 'top';
+      lines.forEach((l, i) => ctx.fillText(l, PAD, PAD + AV + 14 + i * lineH));
+    },
+  };
+}
+
+// ── TikTok ──────────────────────────────────────────────────────────────────
+function tiktok(measure: CanvasRenderingContext2D, spec: CommentSpec): Layout {
+  const c = palette('tiktok', spec.dark);
+  const W = spec.width;
+  const PAD = 24, AV = 60, GAP = 16;
+  const textW = W - PAD * 2 - AV - GAP;
+
+  measure.font = font(400, 25);
+  const lines = wrapText(measure, spec.text || 'your comment here', textW);
+  const height = PAD * 2 + Math.max(AV, 34 + lines.length * 33 + 28);
+
+  return {
+    width: W, height,
+    draw: ctx => {
+      fillBg(ctx, spec, W, height, c.bg);
       drawAvatar(ctx, spec, PAD, PAD, AV);
 
       const tx = PAD + AV + GAP;
       ctx.textAlign = 'left';
       ctx.textBaseline = 'top';
       ctx.fillStyle = c.muted;
-      ctx.font = font(600, 24);
-      ctx.fillText(spec.username || 'username', tx, PAD + 2);
-      const nameW = ctx.measureText(spec.username || 'username').width;
-      if (spec.verified) drawVerified(ctx, tx + nameW + 8, PAD + 2, 22, '#20D5EC');
+      ctx.font = font(600, 22);
+      const name = spec.username || 'username';
+      ctx.fillText(name, tx, PAD + 2);
+      if (spec.verified) drawVerified(ctx, tx + ctx.measureText(name).width + 7, PAD + 2, 20, ACCENT.tiktok);
 
       ctx.fillStyle = c.text;
-      ctx.font = font(400, 27);
-      lines.forEach((l, i) => ctx.fillText(l, tx, PAD + 38 + i * 36));
+      ctx.font = font(400, 25);
+      lines.forEach((l, i) => ctx.fillText(l, tx, PAD + 34 + i * 33));
 
-      const by = PAD + 38 + lines.length * 36 + 6;
+      const by = PAD + 34 + lines.length * 33 + 5;
       ctx.fillStyle = c.muted;
-      ctx.font = font(400, 22);
+      ctx.font = font(400, 20);
       ctx.fillText(spec.time || '2h', tx, by);
-      ctx.fillText('Reply', tx + 76, by);
+      ctx.fillText('Reply', tx + 62, by);
 
-      // Heart, right-aligned with its count under nothing in particular.
-      const hx = W - PAD - 30, hy = by + 4;
+      const hx = W - PAD - 24, hy = by + 3;
       ctx.strokeStyle = c.muted;
-      ctx.lineWidth = 2;
+      ctx.lineWidth = 1.8;
       ctx.beginPath();
-      ctx.moveTo(hx, hy + 16);
-      ctx.bezierCurveTo(hx - 14, hy + 4, hx - 8, hy - 6, hx, hy + 2);
-      ctx.bezierCurveTo(hx + 8, hy - 6, hx + 14, hy + 4, hx, hy + 16);
+      ctx.moveTo(hx, hy + 14);
+      ctx.bezierCurveTo(hx - 12, hy + 3, hx - 7, hy - 5, hx, hy + 2);
+      ctx.bezierCurveTo(hx + 7, hy - 5, hx + 12, hy + 3, hx, hy + 14);
       ctx.stroke();
       if (spec.likes) {
         ctx.textAlign = 'right';
-        ctx.fillText(spec.likes, hx - 22, by);
+        ctx.fillText(spec.likes, hx - 18, by);
         ctx.textAlign = 'left';
       }
     },
@@ -231,7 +269,8 @@ function tiktok(measure: CanvasRenderingContext2D, spec: CommentSpec): Layout {
 // ── Twitch ──────────────────────────────────────────────────────────────────
 function twitch(measure: CanvasRenderingContext2D, spec: CommentSpec): Layout {
   const c = palette('twitch', true);
-  const PAD = 20, BADGE = 26, SIZE = 27, W = 900;
+  const W = spec.width;
+  const PAD = 18, BADGE = 24, SIZE = 24;
 
   measure.font = font(700, SIZE);
   const nameW = measure.measureText(`${spec.username || 'username'}:`).width;
@@ -245,12 +284,7 @@ function twitch(measure: CanvasRenderingContext2D, spec: CommentSpec): Layout {
   return {
     width: W, height,
     draw: ctx => {
-      if (!spec.transparent) {
-        ctx.fillStyle = c.bg;
-        ctx.beginPath();
-        ctx.roundRect(0, 0, W, height, 10);
-        ctx.fill();
-      }
+      fillBg(ctx, spec, W, height, c.bg);
       ctx.textAlign = 'left';
       ctx.textBaseline = 'middle';
       const midY = PAD + 17;
@@ -272,7 +306,8 @@ function twitch(measure: CanvasRenderingContext2D, spec: CommentSpec): Layout {
 // ── YouTube ─────────────────────────────────────────────────────────────────
 function youtube(measure: CanvasRenderingContext2D, spec: CommentSpec): Layout {
   const c = palette('youtube', spec.dark);
-  const PAD = 24, AV = 72, GAP = 20, W = 900;
+  const W = spec.width;
+  const PAD = 22, AV = 58, GAP = 16;
   const textW = W - PAD * 2 - AV - GAP;
 
   measure.font = font(400, 27);
@@ -282,7 +317,7 @@ function youtube(measure: CanvasRenderingContext2D, spec: CommentSpec): Layout {
   return {
     width: W, height,
     draw: ctx => {
-      if (!spec.transparent) { ctx.fillStyle = c.bg; ctx.fillRect(0, 0, W, height); }
+      fillBg(ctx, spec, W, height, c.bg);
       drawAvatar(ctx, spec, PAD, PAD, AV);
 
       const tx = PAD + AV + GAP;
@@ -337,12 +372,18 @@ function youtube(measure: CanvasRenderingContext2D, spec: CommentSpec): Layout {
 // ── Instagram ───────────────────────────────────────────────────────────────
 function instagram(measure: CanvasRenderingContext2D, spec: CommentSpec): Layout {
   const c = palette('instagram', spec.dark);
-  const PAD = 24, AV = 64, GAP = 18, W = 900;
+  const W = spec.width;
+  const PAD = 22, AV = 54, GAP = 16;
   const textW = W - PAD * 2 - AV - GAP - 40;
 
   // Username sits inline before the text, so the first line starts indented.
+  // The badge needs its own room in that indent: folding it into nameW put the
+  // tick exactly where the comment began and the two drew on top of each other.
+  const BADGE = 20;
   measure.font = font(600, 26);
-  const nameW = measure.measureText(spec.username || 'username').width + 12;
+  const rawNameW = measure.measureText(spec.username || 'username').width;
+  const badgeW = spec.verified ? BADGE + 7 : 0;
+  const nameW = rawNameW + badgeW + 12;
   measure.font = font(400, 26);
 
   const words = (spec.text || 'your comment here').split(' ');
@@ -362,7 +403,7 @@ function instagram(measure: CanvasRenderingContext2D, spec: CommentSpec): Layout
   return {
     width: W, height,
     draw: ctx => {
-      if (!spec.transparent) { ctx.fillStyle = c.bg; ctx.fillRect(0, 0, W, height); }
+      fillBg(ctx, spec, W, height, c.bg);
       drawAvatar(ctx, spec, PAD, PAD, AV);
 
       const tx = PAD + AV + GAP;
@@ -371,7 +412,7 @@ function instagram(measure: CanvasRenderingContext2D, spec: CommentSpec): Layout
       ctx.fillStyle = c.text;
       ctx.font = font(600, 26);
       ctx.fillText(spec.username || 'username', tx, PAD);
-      if (spec.verified) drawVerified(ctx, tx + nameW - 8, PAD + 1, 20, '#3897F0');
+      if (spec.verified) drawVerified(ctx, tx + rawNameW + 6, PAD + 4, BADGE, ACCENT.instagram);
 
       ctx.font = font(400, 26);
       lines.forEach((l, i) => ctx.fillText(l, i === 0 ? tx + nameW : tx, PAD + i * 34));
@@ -399,7 +440,7 @@ export function renderComment(canvas: HTMLCanvasElement, spec: CommentSpec, scal
   if (!ctx) return;
 
   // Measuring needs a context with the same font metrics, and this one is free.
-  const layout = RENDERERS[spec.platform](ctx, spec);
+  const layout = spec.replySticker ? replyCard(ctx, spec) : RENDERERS[spec.platform](ctx, spec);
 
   canvas.width = Math.round(layout.width * scale);
   canvas.height = Math.round(layout.height * scale);
