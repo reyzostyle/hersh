@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 
 import { X, Check, Loader2, Zap, ChevronRight, ChevronDown, MessageCircle, Twitter, Mail, TrendingUp, FileText, Wand2, Video as VideoIcon, Users, Play, Sparkles, Repeat, Lock } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import { HeroAnalysisGate } from './HeroAnalysisGate';
 import { supabase } from '../lib/supabase';
 
 // lucide-react has no brand marks, so the real Discord glyph is inlined here
@@ -73,7 +74,14 @@ function useReveal(threshold = 0.12) {
 
 // ─── Auth Modal ───────────────────────────────────────────────────────────────
 
-function AuthModal({ initialMode, onClose }: { initialMode: 'login' | 'signup'; onClose: () => void }) {
+function AuthModal({ initialMode, onClose, context }: {
+  initialMode: 'login' | 'signup';
+  onClose: () => void;
+  // Set when the form is raised at the end of the hero analysis, so the
+  // headline answers "why am I being asked this" instead of introducing the
+  // product to someone who is already five steps in.
+  context?: { title: string; sub: string };
+}) {
   const [mode, setMode] = useState<'login' | 'signup' | 'forgot'>(initialMode);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -138,10 +146,10 @@ function AuthModal({ initialMode, onClose }: { initialMode: 'login' | 'signup'; 
 
         <div className="mb-6">
           <p className="text-white font-bold text-xl mb-1">
-            {emailSent ? 'Almost there!' : mode === 'forgot' ? 'Reset password' : mode === 'login' ? 'Welcome back' : 'Start for free'}
+            {emailSent ? 'Almost there!' : mode === 'forgot' ? 'Reset password' : mode === 'login' ? 'Welcome back' : (context?.title ?? 'Start for free')}
           </p>
           <p className="text-gray-500 text-sm">
-            {emailSent ? 'Confirm your email to activate your account.' : mode === 'forgot' ? "We'll send you a reset link." : mode === 'login' ? 'Sign in to your Hershy account.' : 'No credit card required.'}
+            {emailSent ? 'Confirm your email to activate your account.' : mode === 'forgot' ? "We'll send you a reset link." : mode === 'login' ? 'Sign in to your Hershy account.' : (context?.sub ?? 'No credit card required.')}
           </p>
         </div>
 
@@ -1016,6 +1024,7 @@ const navLinks: { label: string; id?: string; href?: string }[] = [
 
 export function LandingPage() {
   const [authModal, setAuthModal] = useState<null | 'login' | 'signup'>(null);
+  const [heroGate, setHeroGate] = useState<string | null>(null);
   const [scrollTop, setScrollTop] = useState(0);
   const [billingInterval, setBillingInterval] = useState<Interval>('year');
   const [heroUrl, setHeroUrl] = useState('');
@@ -1072,7 +1081,9 @@ export function LandingPage() {
     }
     setHeroError('');
     localStorage.setItem('hershy_pending_video_url', trimmed);
-    setAuthModal('signup');
+    // Show the work starting before asking for anything. The signup form comes
+    // up on the last step, from inside the gate.
+    setHeroGate(trimmed);
   };
 
   // Bottom glow fades out as you scroll down the first screen
@@ -1561,7 +1572,29 @@ export function LandingPage() {
         </footer>
       </div>
 
-      {authModal && <AuthModal initialMode={authModal} onClose={() => setAuthModal(null)} />}
+      {heroGate && (
+        <HeroAnalysisGate
+          url={heroGate}
+          onNeedAccount={() => setAuthModal('signup')}
+          onBack={() => {
+            localStorage.removeItem('hershy_pending_video_url');
+            setHeroGate(null);
+            setAuthModal(null);
+          }}
+        />
+      )}
+
+      {authModal && (
+        <AuthModal
+          initialMode={authModal}
+          onClose={() => setAuthModal(null)}
+          context={
+            heroGate && authModal === 'signup'
+              ? { title: 'Your breakdown is ready', sub: 'Create an account to see it. 20 free credits, no card.' }
+              : undefined
+          }
+        />
+      )}
     </div>
   );
 }
