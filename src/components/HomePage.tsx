@@ -1,4 +1,4 @@
-import { VideocameraOutlineIcon as VideoIcon, MagicWandOutlineIcon as Wand2, DocumentTextOutlineIcon as FileText, UsersGroupRoundedOutlineIcon as Users, ArrowRightUpOutlineIcon as ArrowUpRight } from '@solar-icons/react';
+import { VideocameraOutlineIcon as VideoIcon, FolderOutlineIcon as Folder, UsersGroupRoundedOutlineIcon as Users, ArrowRightUpOutlineIcon as ArrowUpRight } from '@solar-icons/react';
 import { useAuth } from '../contexts/AuthContext';
 import { NavTab, HIDDEN_TABS } from './AppShell';
 
@@ -18,31 +18,24 @@ interface Tool {
 // mono numerals are the same voice used for scores and timestamps elsewhere.
 const tools: Tool[] = [
   {
-    id: 'video',
+    id: 'analyze',
     index: '01',
-    label: 'Video',
-    description: 'Watches the cut and returns timestamped fixes, against your real retention curve.',
+    label: 'Analyze',
+    description: 'Send a link, a hook or a script and talk it through until you know what to change.',
     icon: <VideoIcon className="w-[18px] h-[18px]" />,
   },
   {
-    id: 'hook',
+    id: 'projects',
     index: '02',
-    label: 'Hook',
-    description: 'Scores an opening line and hands back three finished rewrites.',
-    icon: <Wand2 className="w-[18px] h-[18px]" />,
-  },
-  {
-    id: 'script',
-    index: '03',
-    label: 'Script',
-    description: 'Breaks a script down before you film, with the lines to paste.',
-    icon: <FileText className="w-[18px] h-[18px]" />,
+    label: 'Projects',
+    description: 'Keep the conversation, the reference video and the ideas off it in one place.',
+    icon: <Folder className="w-[18px] h-[18px]" />,
   },
   {
     id: 'competitors',
-    index: '04',
+    index: '03',
     label: 'Competitors',
-    description: 'Surfaces only the shorts beating a channel’s own median, rebuilt for yours.',
+    description: 'Surfaces only the shorts beating a channel\'s own median, rebuilt for yours.',
     icon: <Users className="w-[18px] h-[18px]" />,
   },
 ];

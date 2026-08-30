@@ -155,6 +155,43 @@ export function AnalysisChat() {
     }
   };
 
+  // Hook Lab and Script Lab used to be their own tabs. Same functions, same
+  // credits, now answered in the thread so the follow-ups work on them too.
+  const runTextAnalysis = async (kind: 'hook' | 'script', text: string) => {
+    setBusy(true);
+    setError('');
+    push({ role: 'user', content: text });
+
+    const tid = await startThread(text.slice(0, 60));
+    setThreadId(tid);
+    if (tid) await persist(tid, 'user', text);
+
+    try {
+      const token = await getSessionToken();
+      if (!token) throw new Error('Not authenticated');
+      const res = await fetchWithRetry(`${FN}/analyze-${kind}-text`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify(kind === 'hook' ? { hook: text, context: '' } : { script: text, context: '' }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Analysis failed');
+
+      const a: Analysis = {
+        overall_score: data.overall_score,
+        overall_assessment: data.overall_assessment,
+        strong_spots: data.strong_spots ?? [],
+        weak_spots: data.weak_spots ?? [],
+      };
+      push({ role: 'assistant', content: `Read that as a ${kind}.`, analysis: a });
+      if (tid) await persist(tid, 'assistant', `Read that as a ${kind}.`, a);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Analysis failed');
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const askFollowUp = async (question: string) => {
     if (!threadId) return;
     setBusy(true);
@@ -191,13 +228,13 @@ export function AnalysisChat() {
 
     const url = text.match(/https?:\/\/\S+/)?.[0] ?? text;
     const videoId = extractVideoId(url);
-    if (!videoId) {
-      setError('');
-      push({ role: 'user', content: text });
-      push({ role: 'assistant', content: 'Send me a YouTube link and I will watch it. You can add what you were going for in the same message.' });
-      return;
-    }
-    runAnalysis(videoId, text.replace(url, '').trim(), text);
+    if (videoId) { runAnalysis(videoId, text.replace(url, '').trim(), text); return; }
+
+    // No link means they pasted the writing itself. A script is long or has
+    // line breaks; a hook is the one line that opens a video. The reply says
+    // which it assumed, so a wrong guess costs one sentence to correct.
+    const isScript = text.includes('\n') || text.length > 200;
+    runTextAnalysis(isScript ? 'script' : 'hook', text);
   };
 
   const empty = messages.length === 0;
@@ -211,7 +248,7 @@ export function AnalysisChat() {
             <Composer
               value={composer} onChange={setComposer} onSubmit={submit} busy={busy}
               file={file} setFile={setFile} fileRef={fileRef} taRef={taRef}
-              placeholder="Paste a link, and say what you were going for"
+              placeholder="Paste a link, a hook or a script"
             />
           </div>
         </div>
@@ -228,7 +265,12 @@ export function AnalysisChat() {
                     </div>
                   </div>
                 ) : m.analysis ? (
-                  <AnalysisCard key={m.id} a={m.analysis} />
+                  <div key={m.id} className="space-y-2">
+                    {m.content && (
+                      <p className="label-mono">{m.content}</p>
+                    )}
+                    <AnalysisCard a={m.analysis} />
+                  </div>
                 ) : (
                   <div key={m.id} className="text-[14px] leading-relaxed whitespace-pre-line" style={{ color: 'var(--text-muted)' }}>
                     {m.content}

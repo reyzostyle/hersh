@@ -1,5 +1,5 @@
 import { useState, useEffect, createContext, useContext, useRef } from 'react';
-import { SettingsOutlineIcon as Settings, LogoutOutlineIcon as LogOut, HamburgerMenuOutlineIcon as Menu, CloseCircleOutlineIcon as X, BoltOutlineIcon as Zap, UsersGroupRoundedOutlineIcon as Users, HandShakeOutlineIcon as Handshake, ChartSquareOutlineIcon as BarChart2, SidebarMinimalisticOutlineIcon as PanelLeftClose, SidebarMinimalisticOutlineIcon as PanelLeftOpen, VideocameraOutlineIcon as VideoIcon, MagicWandOutlineIcon as Wand2, DocumentTextOutlineIcon as FileText } from '@solar-icons/react';
+import { FolderOutlineIcon as Folder, SettingsOutlineIcon as Settings, LogoutOutlineIcon as LogOut, HamburgerMenuOutlineIcon as Menu, CloseCircleOutlineIcon as X, BoltOutlineIcon as Zap, UsersGroupRoundedOutlineIcon as Users, HandShakeOutlineIcon as Handshake, ChartSquareOutlineIcon as BarChart2, SidebarMinimalisticOutlineIcon as PanelLeftClose, SidebarMinimalisticOutlineIcon as PanelLeftOpen, VideocameraOutlineIcon as VideoIcon } from '@solar-icons/react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
 
@@ -17,7 +17,7 @@ export const MobileHeaderContext = createContext<{
   setRightAction: (node: React.ReactNode) => void;
 }>({ setRightAction: () => {} });
 
-export type NavTab = 'home' | 'video' | 'hook' | 'script' | 'hooks' | 'rank' | 'usage' | 'upgrade' | 'settings' | 'partners' | 'competitors' | 'admin';
+export type NavTab = 'home' | 'analyze' | 'projects' | 'analytics' | 'competitors' | 'usage' | 'upgrade' | 'settings' | 'partners' | 'admin';
 
 // Feature flags: tabs hidden from ALL users (incl. admin). Kept in code so they
 // can be re-enabled instantly by removing them from this list.
@@ -43,9 +43,12 @@ interface AppShellProps {
 // second column, which cost a whole column on desktop and had nowhere sensible
 // to live on a phone. They are tabs like everything else now.
 const baseNavItems: NavItem[] = [
-  { id: 'video', label: 'Video', icon: <VideoIcon className="w-4 h-4" /> },
-  { id: 'hook', label: 'Hook', icon: <Wand2 className="w-4 h-4" /> },
-  { id: 'script', label: 'Script', icon: <FileText className="w-4 h-4" /> },
+  // Hook and Script folded into Analyze. They were three doors into one room:
+  // the chat takes a link, a hook or a script and answers in the same thread,
+  // so splitting them cost a tab each and taught the user a distinction the
+  // product no longer makes.
+  { id: 'analyze', label: 'Analyze', icon: <VideoIcon className="w-4 h-4" /> },
+  { id: 'projects', label: 'Projects', icon: <Folder className="w-4 h-4" /> },
   { id: 'competitors', label: 'Competitors', icon: <Users className="w-4 h-4" /> },
   { id: 'usage', label: 'Usage', icon: <BarChart2 className="w-4 h-4" /> },
   { id: 'upgrade', label: 'Upgrade', icon: <Zap className="w-4 h-4" />, highlight: true },
