@@ -27,6 +27,16 @@
   --line: rgba(255, 255, 255, 0.07);
   --line-strong: rgba(255, 255, 255, 0.14);
 
+  /* Three radii and a pill. */
+  --r-sm: 10px;
+  --r-md: 14px;
+  --r-lg: 18px;
+
+  /* The grid cell is half the sidebar, so a ruled line falls exactly on the
+     sidebar's edge instead of near it. Collapsed, the rail is half a cell
+     again, so it lands on a line too. */
+  --grid: 112px;
+
   --brand-rgb: 255, 255, 255;
   --glass-tint-rgb: 255, 255, 255;
   --wash-rgb: 255, 255, 255;
@@ -315,12 +325,12 @@ input, textarea, select {
 .glass-panel {
   background: var(--bg-raised);
   border: 1px solid var(--line);
-  border-radius: 18px;
+  border-radius: var(--r-lg);
 }
 .glass-panel-accent {
   background: var(--bg-raised);
   border: 1px solid var(--line-strong);
-  border-radius: 18px;
+  border-radius: var(--r-lg);
 }
 
 /* Very subtle purple glow — a lighter touch than .glass-panel-accent, for
@@ -328,7 +338,7 @@ input, textarea, select {
 .glass-panel-purple {
   background: var(--bg-raised);
   border: 1px solid var(--line);
-  border-radius: 18px;
+  border-radius: var(--r-lg);
 }
 
 /* ─── Glass system: fields + primary buttons (cohesive with .glass-panel) ───── */
@@ -379,5 +389,5 @@ input, textarea, select {
   background-image:
     linear-gradient(to right, var(--line) 1px, transparent 1px),
     linear-gradient(to bottom, var(--line) 1px, transparent 1px);
-  background-size: 110px 110px;
+  background-size: var(--grid) var(--grid);
 }

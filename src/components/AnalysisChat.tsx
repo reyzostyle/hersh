@@ -313,7 +313,7 @@ function Composer({
   placeholder: string;
 }) {
   return (
-    <div className="rounded-[26px] overflow-hidden" style={{ background: 'var(--bg-raised)', border: '1px solid var(--line)' }}>
+    <div className="overflow-hidden" style={{ background: 'var(--bg-raised)', border: '1px solid var(--line)', borderRadius: 'var(--r-lg)' }}>
       <input ref={fileRef} type="file" accept="video/*" className="hidden"
              onChange={e => { const f = e.target.files?.[0]; if (f) setFile(f); e.currentTarget.value = ''; }} />
 

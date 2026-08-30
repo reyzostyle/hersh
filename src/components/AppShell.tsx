@@ -141,7 +141,7 @@ export function AppShell({ activeTab, onTabChange, children }: AppShellProps) {
       <aside className={`
         fixed inset-y-0 left-0 z-50 flex flex-col w-56 border-r overflow-hidden transition-all duration-200 ease-in-out
         ${mobileOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0
-        ${collapsed ? 'lg:w-16' : 'lg:w-56'}
+        ${collapsed ? 'lg:w-14' : 'lg:w-56'}
       `} style={{ background: 'var(--bg-app)', borderColor: 'var(--line)' }}>
         {/* Brand row: single full-width button to Home, never signs the user out.
             The collapse toggle lives outside the sidebar (see below), Higgsfield-style. */}
