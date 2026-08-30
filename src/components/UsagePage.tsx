@@ -78,7 +78,7 @@ export function UsagePage() {
                 <span className="text-gray-600">·</span>
                 <span className="truncate">{currentPlanDisplay} Plan</span>
                 {currentPlan !== 'free' && (
-                  <span className="text-[11px] px-2 py-0.5 bg-[#0EA4E9]/15 text-[#0EA4E9] rounded-full flex-shrink-0">Active</span>
+                  <span className="text-[11px] px-2 py-0.5 bg-[var(--accent)]/15 text-[var(--accent)] rounded-full flex-shrink-0">Active</span>
                 )}
               </span>
             )}
@@ -102,7 +102,7 @@ export function UsagePage() {
             {isUnlimitedPlan ? (
               <div className="flex items-center justify-between">
                 <p className="text-xs text-gray-600">No visible monthly cap on the Pro plan.</p>
-                <span className="flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full" style={{ background: 'rgba(14,164,233,0.12)', color: '#0EA4E9' }}>
+                <span className="flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full" style={{ background: 'rgba(var(--accent-rgb),0.12)', color: 'var(--accent)' }}>
                   <InfinityIcon className="w-3 h-3" /> Unlimited
                 </span>
               </div>
@@ -114,7 +114,7 @@ export function UsagePage() {
                 </span>
                 <div className="mt-2 w-full h-1.5 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.08)' }}>
                   <div
-                    className={`h-full rounded-full transition-all duration-500 ${percent >= 90 ? 'bg-red-500' : percent >= 70 ? 'bg-amber-500' : 'bg-[#0EA4E9]'}`}
+                    className={`h-full rounded-full transition-all duration-500 ${percent >= 90 ? 'bg-red-500' : percent >= 70 ? 'bg-amber-500' : 'bg-[var(--accent)]'}`}
                     style={{ width: `${percent}%` }}
                   />
                 </div>
@@ -136,7 +136,7 @@ export function UsagePage() {
                   onClick={handleBuyCredits}
                   disabled={buyingCredits}
                   className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold transition-all disabled:opacity-50 flex-shrink-0"
-                  style={{ background: 'rgba(14,164,233,0.15)', border: '1px solid rgba(14,164,233,0.35)', color: '#38bdf8' }}
+                  style={{ background: 'rgba(var(--accent-rgb),0.15)', border: '1px solid rgba(var(--accent-rgb),0.35)', color: 'var(--accent-soft)' }}
                 >
                   {buyingCredits ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Plus className="w-3.5 h-3.5" />}
                   Buy credits

@@ -53,11 +53,11 @@ export function CompetitorIdeaAnalysis({ idea, onUpdated, stickyActions = false 
       {/* Outline. Open by default now that it's the end of the chain rather
           than a step on the way to a script. */}
       {idea.outline && (
-        <div className="rounded-xl overflow-hidden" style={{ border: '1px solid rgba(52,211,153,0.2)' }}>
+        <div className="rounded-xl overflow-hidden" style={{ border: '1px solid rgba(var(--ok-rgb),0.2)' }}>
           <button
             onClick={() => setOutlineOpen(!outlineOpen)}
             className="w-full flex items-center justify-between px-3 py-2.5 text-left hover:bg-emerald-500/5 transition-colors"
-            style={{ background: 'rgba(52,211,153,0.06)' }}
+            style={{ background: 'rgba(var(--ok-rgb),0.06)' }}
           >
             <div className="flex items-center gap-1.5">
               <Sparkles className="w-3.5 h-3.5 text-emerald-400" />
@@ -66,13 +66,13 @@ export function CompetitorIdeaAnalysis({ idea, onUpdated, stickyActions = false 
             {outlineOpen ? <ChevronUp className="w-4 h-4 text-emerald-500" /> : <ChevronDown className="w-4 h-4 text-emerald-500" />}
           </button>
           {outlineOpen && (
-            <div className="px-3 pb-3 pt-2 space-y-2.5" style={{ background: 'rgba(52,211,153,0.03)' }}>
+            <div className="px-3 pb-3 pt-2 space-y-2.5" style={{ background: 'rgba(var(--ok-rgb),0.03)' }}>
               <div>
                 <p className="text-[10px] font-semibold uppercase tracking-widest text-emerald-600 mb-1">Hook (first 3s)</p>
                 <p className="text-emerald-100 text-sm italic">"{idea.outline.hook}"</p>
               </div>
               {idea.outline.sections.map((section, i) => (
-                <div key={i} className="pl-2" style={{ borderLeft: '2px solid rgba(52,211,153,0.3)' }}>
+                <div key={i} className="pl-2" style={{ borderLeft: '2px solid rgba(var(--ok-rgb),0.3)' }}>
                   <div className="flex items-center gap-2 mb-0.5">
                     <p className="text-xs font-semibold text-emerald-400">{section.title}</p>
                     <span className="text-[10px] text-emerald-700 bg-emerald-500/10 px-1.5 py-0.5 rounded-full">{section.duration}</span>
@@ -106,7 +106,7 @@ export function CompetitorIdeaAnalysis({ idea, onUpdated, stickyActions = false 
             onClick={() => generateOutline()}
             disabled={generatingOutline}
             className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold transition-all disabled:opacity-50"
-            style={{ background: 'rgba(52,211,153,0.12)', color: '#6ee7b7', border: '1px solid rgba(52,211,153,0.25)' }}
+            style={{ background: 'rgba(var(--ok-rgb),0.12)', color: '#6ee7b7', border: '1px solid rgba(var(--ok-rgb),0.25)' }}
           >
             {generatingOutline ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
             {generatingOutline ? 'Creating outline...' : 'Create Outline'}

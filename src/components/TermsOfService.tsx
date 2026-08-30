@@ -60,7 +60,7 @@ export function TermsOfService() {
             <p>
               Some features require you to connect your YouTube account via Google OAuth. By connecting, you
               authorize Hershy to access your YouTube data on a read-only basis as described in our{' '}
-              <a href="/privacy" className="text-[#0EA4E9] hover:underline">Privacy Policy</a>. You can
+              <a href="/privacy" className="text-[var(--accent)] hover:underline">Privacy Policy</a>. You can
               disconnect at any time from the app settings or from your Google Account permissions.
             </p>
           </Section>
@@ -141,7 +141,7 @@ export function TermsOfService() {
           <Section title="13. Contact">
             <p>
               Questions about these Terms? Contact us at{' '}
-              <a href="mailto:hershymedia@gmail.com" className="text-[#0EA4E9] hover:underline">
+              <a href="mailto:hershymedia@gmail.com" className="text-[var(--accent)] hover:underline">
                 hershymedia@gmail.com
               </a>
               .

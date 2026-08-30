@@ -75,7 +75,7 @@ export function CompetitorsFeed({
             onClick={() => setChannelFilter(null)}
             className="px-3 py-1.5 rounded-full text-xs font-medium transition-all"
             style={channelFilter === null
-              ? { background: 'rgba(14,164,233,0.15)', color: '#38bdf8', border: '1px solid rgba(14,164,233,0.3)' }
+              ? { background: 'rgba(var(--accent-rgb),0.15)', color: 'var(--accent-soft)', border: '1px solid rgba(var(--accent-rgb),0.3)' }
               : { background: 'rgba(255,255,255,0.04)', color: '#9ca3af', border: '1px solid rgba(255,255,255,0.08)' }}
           >
             All
@@ -90,7 +90,7 @@ export function CompetitorsFeed({
               title={c.channel_name || c.channel_id}
               className="flex items-center gap-1.5 pl-1 pr-2.5 py-1 rounded-full text-xs font-medium transition-all max-w-[180px]"
               style={active
-                ? { background: 'rgba(14,164,233,0.15)', color: '#38bdf8', border: '1px solid rgba(14,164,233,0.3)' }
+                ? { background: 'rgba(var(--accent-rgb),0.15)', color: 'var(--accent-soft)', border: '1px solid rgba(var(--accent-rgb),0.3)' }
                 : { background: 'rgba(255,255,255,0.04)', color: '#9ca3af', border: '1px solid rgba(255,255,255,0.08)' }}
             >
               {c.channel_thumbnail ? (
@@ -138,7 +138,7 @@ export function CompetitorsFeed({
               onClick={() => onFetchIdeas(adaptForProfile)}
               disabled={fetchingIdeas}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-all disabled:opacity-50"
-              style={{ background: 'rgba(14,164,233,0.15)', border: '1px solid rgba(14,164,233,0.35)', color: '#38bdf8' }}
+              style={{ background: 'rgba(var(--accent-rgb),0.15)', border: '1px solid rgba(var(--accent-rgb),0.35)', color: 'var(--accent-soft)' }}
             >
               {fetchingIdeas ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
               {fetchingIdeas ? 'Finding...' : 'Find new ideas'}
@@ -196,7 +196,7 @@ export function CompetitorsFeed({
                   title="Filter by how far the video beat its own channel's pace"
                   className="px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all tabular-nums"
                   style={floor === f.value
-                    ? { background: 'rgba(52,211,153,0.15)', color: '#6ee7b7' }
+                    ? { background: 'rgba(var(--ok-rgb),0.15)', color: '#6ee7b7' }
                     : { color: '#6b7280' }}
                 >
                   {f.label}
@@ -219,7 +219,7 @@ export function CompetitorsFeed({
                 disabled={clearingIdeas}
                 title="Dismiss all unreviewed ideas"
                 className="p-2 rounded-lg transition-all disabled:opacity-50 flex-shrink-0 sm:ml-auto"
-                style={{ background: 'rgba(248,113,113,0.10)', border: '1px solid rgba(248,113,113,0.25)', color: '#f87171' }}
+                style={{ background: 'rgba(var(--danger-rgb),0.10)', border: '1px solid rgba(var(--danger-rgb),0.25)', color: '#f87171' }}
               >
                 {clearingIdeas ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
               </button>

@@ -9,7 +9,7 @@ const ADMIN_EMAIL = 'reyzostyle@gmail.com';
 // ghost bands on sibling repaints; the blue underlay replaces its tint.
 const glassCard: React.CSSProperties = {
   background:
-    'linear-gradient(rgba(255,255,255,0.04), rgba(255,255,255,0.04)), linear-gradient(180deg, rgba(14,80,133,0.05), rgba(14,80,133,0.03))',
+    'linear-gradient(rgba(255,255,255,0.04), rgba(255,255,255,0.04)), linear-gradient(180deg, rgba(var(--glass-tint-rgb),0.05), rgba(var(--glass-tint-rgb),0.03))',
   border: '1px solid rgba(255,255,255,0.08)',
 };
 
@@ -73,7 +73,7 @@ function CopyButton({ text }: { text: string }) {
     setTimeout(() => setCopied(false), 2000);
   };
   return (
-    <button onClick={copy} className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-white rounded-lg hover:opacity-90 transition-opacity" style={{ background: '#0EA4E9' }}>
+    <button onClick={copy} className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-white rounded-lg hover:opacity-90 transition-opacity" style={{ background: 'var(--accent)' }}>
       {copied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
       {copied ? 'Copied!' : 'Copy'}
     </button>
@@ -106,7 +106,7 @@ function PartnerView({ userId }: { userId?: string }) {
     }
   };
 
-  if (loading) return <div className="flex items-center justify-center h-32"><Loader2 className="w-5 h-5 text-[#0EA4E9] animate-spin" /></div>;
+  if (loading) return <div className="flex items-center justify-center h-32"><Loader2 className="w-5 h-5 text-[var(--accent)] animate-spin" /></div>;
 
   if (!stats) return <ClaimLink onClaimed={loadStats} />;
 
@@ -223,7 +223,7 @@ function PayoutSettings({ stats, onSaved }: { stats: PartnerStats; onSaved: () =
           onClick={save}
           disabled={saving}
           className="px-4 py-2.5 text-sm font-medium text-white rounded-lg hover:opacity-90 transition-opacity disabled:opacity-50"
-          style={{ background: '#0EA4E9' }}
+          style={{ background: 'var(--accent)' }}
         >
           {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : saved ? <Check className="w-4 h-4" /> : 'Save'}
         </button>
@@ -234,7 +234,7 @@ function PayoutSettings({ stats, onSaved }: { stats: PartnerStats; onSaved: () =
           type="checkbox"
           checked={inCredits}
           onChange={e => setInCredits(e.target.checked)}
-          className="mt-0.5 accent-[#0EA4E9]"
+          className="mt-0.5 accent-[var(--accent)]"
         />
         <span className="text-xs text-gray-500 text-balance">
           Pay me in credits instead, worth double the cash amount.
@@ -297,7 +297,7 @@ function ClaimLink({ onClaimed }: { onClaimed: () => void }) {
           onClick={claim}
           disabled={busy || !code.trim()}
           className="px-5 py-2.5 text-sm font-medium text-white rounded-lg hover:opacity-90 transition-opacity disabled:opacity-40 whitespace-nowrap"
-          style={{ background: '#0EA4E9' }}
+          style={{ background: 'var(--accent)' }}
         >
           {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Get my link'}
         </button>
@@ -436,7 +436,7 @@ function AdminView() {
             <button onClick={loadAll} disabled={loading} className="p-2 text-gray-400 hover:text-white transition-colors rounded-lg hover:bg-white/5">
               <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
             </button>
-            <button onClick={() => setShowForm(!showForm)} className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-white rounded-lg hover:opacity-90 transition-opacity" style={{ background: '#0EA4E9' }}>
+            <button onClick={() => setShowForm(!showForm)} className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-white rounded-lg hover:opacity-90 transition-opacity" style={{ background: 'var(--accent)' }}>
               <Plus className="w-3.5 h-3.5" />
               New partner
             </button>
@@ -460,7 +460,7 @@ function AdminView() {
               </div>
             </div>
             <div className="flex gap-2">
-              <button onClick={createPartner} disabled={creating || !newCode || !newName} className="px-4 py-2 text-sm font-medium text-white rounded-lg hover:opacity-90 disabled:opacity-50 transition-opacity" style={{ background: '#0EA4E9' }}>
+              <button onClick={createPartner} disabled={creating || !newCode || !newName} className="px-4 py-2 text-sm font-medium text-white rounded-lg hover:opacity-90 disabled:opacity-50 transition-opacity" style={{ background: 'var(--accent)' }}>
                 {creating ? 'Creating...' : 'Create'}
               </button>
               <button onClick={() => setShowForm(false)} className="px-4 py-2 text-sm text-gray-400 hover:text-white transition-colors">Cancel</button>
@@ -518,7 +518,7 @@ function AdminView() {
                 </div>
 
                 {assigningCode === p.code && (
-                  <div className="mt-1 px-4 py-3 rounded-lg space-y-2" style={{ background: 'rgba(14,164,233,0.06)', border: '1px solid rgba(14,164,233,0.15)' }}>
+                  <div className="mt-1 px-4 py-3 rounded-lg space-y-2" style={{ background: 'rgba(var(--accent-rgb),0.06)', border: '1px solid rgba(var(--accent-rgb),0.15)' }}>
                     <input
                       value={assignEmail}
                       onChange={e => setAssignEmail(e.target.value)}
@@ -532,7 +532,7 @@ function AdminView() {
                         onClick={() => assignOwner(p.code)}
                         disabled={assignLoading || !assignEmail}
                         className="flex-1 py-2 text-sm font-medium text-white rounded-lg disabled:opacity-50"
-                        style={{ background: '#0EA4E9' }}
+                        style={{ background: 'var(--accent)' }}
                       >
                         {assignLoading ? 'Linking...' : 'Link account'}
                       </button>

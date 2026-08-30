@@ -87,7 +87,7 @@ export function PrivacyPolicy() {
                 href="https://developers.google.com/terms/api-services-user-data-policy"
                 target="_blank"
                 rel="noreferrer"
-                className="text-[#0EA4E9] hover:underline"
+                className="text-[var(--accent)] hover:underline"
               >
                 Google API Services User Data Policy
               </a>
@@ -134,7 +134,7 @@ export function PrivacyPolicy() {
                 href="https://myaccount.google.com/permissions"
                 target="_blank"
                 rel="noreferrer"
-                className="text-[#0EA4E9] hover:underline"
+                className="text-[var(--accent)] hover:underline"
               >
                 Google Account permissions
               </a>
@@ -166,7 +166,7 @@ export function PrivacyPolicy() {
           <Section title="Contact">
             <p>
               If you have any questions about this Privacy Policy or your data, contact us at{' '}
-              <a href="mailto:hershymedia@gmail.com" className="text-[#0EA4E9] hover:underline">
+              <a href="mailto:hershymedia@gmail.com" className="text-[var(--accent)] hover:underline">
                 hershymedia@gmail.com
               </a>
               .

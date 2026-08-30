@@ -51,7 +51,7 @@ function AnalysisScreenStill({ url }: { url: string }) {
           </div>
           <div
             className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium text-white"
-            style={{ background: '#0EA4E9' }}
+            style={{ background: 'var(--accent)' }}
           >
             <Sparkles className="w-4 h-4" /> Analyze
           </div>

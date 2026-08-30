@@ -120,7 +120,7 @@ export function AnalysisProgressModal({ open, mode, done, speed = 1, onStagesCom
         }}
       >
         {/* Icon */}
-        <div className="w-12 h-12 rounded-2xl flex items-center justify-center" style={{ background: 'linear-gradient(135deg, rgba(139,92,246,0.2), rgba(14,164,233,0.2))', border: '1px solid rgba(139,92,246,0.3)' }}>
+        <div className="w-12 h-12 rounded-2xl flex items-center justify-center" style={{ background: 'linear-gradient(135deg, rgba(139,92,246,0.2), rgba(var(--accent-rgb),0.2))', border: '1px solid rgba(139,92,246,0.3)' }}>
           <Sparkles className="w-5 h-5 text-[#A78BFA]" style={{ animation: 'spin 3s linear infinite' }} />
         </div>
 
@@ -137,7 +137,7 @@ export function AnalysisProgressModal({ open, mode, done, speed = 1, onStagesCom
               className="h-full rounded-full"
               style={{
                 width: `${percent}%`,
-                background: 'linear-gradient(90deg, #8B5CF6, #0EA4E9)',
+                background: 'linear-gradient(90deg, #8B5CF6, var(--accent))',
                 transition: 'width 1.2s cubic-bezier(0.4, 0, 0.2, 1)',
               }}
             />

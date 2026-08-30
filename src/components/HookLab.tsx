@@ -10,7 +10,7 @@ import { SheetGrip, useSheetDismiss } from './SheetGrip';
 // ghost bands on sibling repaints; the blue underlay replaces its tint.
 const glass: React.CSSProperties = {
   background:
-    'linear-gradient(180deg, rgba(255,255,255,0.07), rgba(255,255,255,0.025) 45%, rgba(255,255,255,0.035)), linear-gradient(180deg, rgba(14,80,133,0.05), rgba(14,80,133,0.03))',
+    'linear-gradient(180deg, rgba(255,255,255,0.07), rgba(255,255,255,0.025) 45%, rgba(255,255,255,0.035)), linear-gradient(180deg, rgba(var(--glass-tint-rgb),0.05), rgba(var(--glass-tint-rgb),0.03))',
   border: '1px solid rgba(255,255,255,0.1)',
   boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.11), 0 10px 34px -14px rgba(0,0,0,0.6)',
 };
@@ -151,7 +151,7 @@ export function HookLab() {
       </div>
 
       {error && (
-        <div className="mt-4 rounded-xl px-4 py-3 text-sm text-red-300" style={{ background: 'rgba(248,113,113,0.1)', border: '1px solid rgba(248,113,113,0.25)' }}>
+        <div className="mt-4 rounded-xl px-4 py-3 text-sm text-red-300" style={{ background: 'rgba(var(--danger-rgb),0.1)', border: '1px solid rgba(var(--danger-rgb),0.25)' }}>
           {error}
         </div>
       )}
@@ -160,7 +160,7 @@ export function HookLab() {
       {result && !resultOpen && (
         <button
           onClick={() => setResultOpen(true)}
-          className="mt-4 flex items-center gap-2 text-sm text-[#0EA4E9] hover:opacity-80 transition-opacity"
+          className="mt-4 flex items-center gap-2 text-sm text-[var(--accent)] hover:opacity-80 transition-opacity"
         >
           <Sparkles className="w-4 h-4" /> View analysis
         </button>
@@ -189,7 +189,7 @@ export function HookLab() {
             {/* Icon-only header — a title next to the grip's centered pill
                 collided with it on mobile, see AnalysisPanel for the same fix. */}
             <div className="flex items-center justify-between px-3 sm:px-4 py-1 sm:py-2 flex-shrink-0">
-              <Sparkles className="w-5 h-5 text-[#0EA4E9] ml-1" />
+              <Sparkles className="w-5 h-5 text-[var(--accent)] ml-1" />
               <button
                 onClick={dismiss}
                 className="p-2 text-gray-400 hover:text-white hover:bg-gray-800 rounded-lg transition-colors"

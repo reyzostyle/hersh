@@ -33,7 +33,7 @@ function YouTubeLogo({ className }: { className?: string }) {
 // ghost bands on sibling repaints; the blue underlay replaces its tint.
 const glass: React.CSSProperties = {
   background:
-    'linear-gradient(180deg, rgba(255,255,255,0.07), rgba(255,255,255,0.025) 45%, rgba(255,255,255,0.035)), linear-gradient(180deg, rgba(14,80,133,0.05), rgba(14,80,133,0.03))',
+    'linear-gradient(180deg, rgba(255,255,255,0.07), rgba(255,255,255,0.025) 45%, rgba(255,255,255,0.035)), linear-gradient(180deg, rgba(var(--glass-tint-rgb),0.05), rgba(var(--glass-tint-rgb),0.03))',
   border: '1px solid rgba(255,255,255,0.1)',
   boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.11), 0 10px 34px -14px rgba(0,0,0,0.6)',
 };
@@ -49,8 +49,8 @@ const glassInput: React.CSSProperties = {
 // glass panels used everywhere else.
 const heroInputGlass: React.CSSProperties = {
   background:
-    'linear-gradient(180deg, rgba(14,164,233,0.12), rgba(14,164,233,0.04) 45%, rgba(14,164,233,0.06)), linear-gradient(180deg, rgba(14,80,133,0.08), rgba(14,80,133,0.04))',
-  border: '1px solid rgba(14,164,233,0.4)',
+    'linear-gradient(180deg, rgba(var(--accent-rgb),0.12), rgba(var(--accent-rgb),0.04) 45%, rgba(var(--accent-rgb),0.06)), linear-gradient(180deg, rgba(var(--glass-tint-rgb),0.08), rgba(var(--glass-tint-rgb),0.04))',
+  border: '1px solid rgba(var(--accent-rgb),0.4)',
   boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.12), 0 10px 34px -14px rgba(0,0,0,0.6)',
 };
 
@@ -161,15 +161,15 @@ function AuthModal({ initialMode, onClose, context }: {
             <p className="text-white font-bold text-lg mb-2">Check your email</p>
             <p className="text-gray-400 text-sm mb-1">We sent a confirmation link to</p>
             <p className="text-white font-medium text-sm mb-4">{email}</p>
-            <div className="rounded-xl p-3 mb-5 text-left" style={{ background: 'rgba(14,164,233,0.08)', border: '1px solid rgba(14,164,233,0.2)' }}>
-              <p className="text-[#0EA4E9] text-xs leading-relaxed">
+            <div className="rounded-xl p-3 mb-5 text-left" style={{ background: 'rgba(var(--accent-rgb),0.08)', border: '1px solid rgba(var(--accent-rgb),0.2)' }}>
+              <p className="text-[var(--accent)] text-xs leading-relaxed">
                 ⚠️ Open the link on <strong>this device</strong>. Clicking it on your phone while Hershy is open on PC won't log you in here automatically.
               </p>
             </div>
             <button
               onClick={() => { setEmailSent(false); setMode('login'); setPassword(''); }}
               className="w-full py-2.5 text-white rounded-xl font-semibold text-sm mb-3"
-              style={{ background: '#0EA4E9' }}
+              style={{ background: 'var(--accent)' }}
             >
               I confirmed my email, Sign in
             </button>
@@ -194,18 +194,18 @@ function AuthModal({ initialMode, onClose, context }: {
               <div className="text-emerald-400 text-2xl mb-3">✓</div>
               <p className="text-white font-medium mb-1">Check your email</p>
               <p className="text-gray-400 text-sm mb-5">Reset link sent to <strong>{email}</strong></p>
-              <button onClick={() => { setMode('login'); setResetSent(false); }} className="text-sm" style={{ color: '#0EA4E9' }}>Back to sign in</button>
+              <button onClick={() => { setMode('login'); setResetSent(false); }} className="text-sm" style={{ color: 'var(--accent)' }}>Back to sign in</button>
             </div>
           ) : (
             <form onSubmit={handleForgot} className="space-y-4">
               <input type="email" value={email} onChange={e => setEmail(e.target.value)}
                 placeholder="Email" required className="w-full px-4 py-2.5 rounded-xl text-white text-sm"
                 style={glassInput}
-                onFocus={e => { e.currentTarget.style.borderColor = '#0EA4E9'; }}
+                onFocus={e => { e.currentTarget.style.borderColor = 'var(--accent)'; }}
                 onBlur={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.12)'; }}
               />
               {error && <p className="text-red-400 text-sm bg-red-400/10 border border-red-400/20 rounded-xl p-3">{error}</p>}
-              <button type="submit" disabled={loading} className="w-full py-2.5 text-white rounded-xl font-semibold text-sm disabled:opacity-50" style={{ background: '#0EA4E9' }}>
+              <button type="submit" disabled={loading} className="w-full py-2.5 text-white rounded-xl font-semibold text-sm disabled:opacity-50" style={{ background: 'var(--accent)' }}>
                 {loading ? 'Sending...' : 'Send reset link'}
               </button>
               <div className="text-center">
@@ -219,13 +219,13 @@ function AuthModal({ initialMode, onClose, context }: {
               <input type="email" value={email} onChange={e => setEmail(e.target.value)}
                 placeholder="Email" required className="w-full px-4 py-2.5 rounded-xl text-white text-sm"
                 style={glassInput}
-                onFocus={e => { e.currentTarget.style.borderColor = '#0EA4E9'; }}
+                onFocus={e => { e.currentTarget.style.borderColor = 'var(--accent)'; }}
                 onBlur={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.12)'; }}
               />
               <input type="password" value={password} onChange={e => setPassword(e.target.value)}
                 placeholder="Password" required className="w-full px-4 py-2.5 rounded-xl text-white text-sm"
                 style={glassInput}
-                onFocus={e => { e.currentTarget.style.borderColor = '#0EA4E9'; }}
+                onFocus={e => { e.currentTarget.style.borderColor = 'var(--accent)'; }}
                 onBlur={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.12)'; }}
               />
               {mode === 'login' && (
@@ -236,7 +236,7 @@ function AuthModal({ initialMode, onClose, context }: {
                 </div>
               )}
               {error && <p className="text-red-400 text-sm bg-red-400/10 border border-red-400/20 rounded-xl p-3">{error}</p>}
-              <button type="submit" disabled={loading || googleLoading} className="w-full py-2.5 text-white rounded-xl font-semibold text-sm disabled:opacity-50" style={{ background: '#0EA4E9' }}>
+              <button type="submit" disabled={loading || googleLoading} className="w-full py-2.5 text-white rounded-xl font-semibold text-sm disabled:opacity-50" style={{ background: 'var(--accent)' }}>
                 {loading ? 'Loading...' : mode === 'login' ? 'Sign in' : 'Create account'}
               </button>
             </form>
@@ -366,7 +366,7 @@ function BillingToggle({ interval, onChange, percentOff }: { interval: Interval;
             is a plain 100% of the thumb, with no extra pixels to overshoot. */}
         <div
           className="absolute top-1 bottom-1 rounded-full transition-transform duration-300"
-          style={{ width: 'calc(50% - 4px)', background: '#0EA4E9', transform: interval === 'year' ? 'translateX(100%)' : 'translateX(0)' }}
+          style={{ width: 'calc(50% - 4px)', background: 'var(--accent)', transform: interval === 'year' ? 'translateX(100%)' : 'translateX(0)' }}
         />
         {(['month', 'year'] as const).map(iv => (
           <button
@@ -381,7 +381,7 @@ function BillingToggle({ interval, onChange, percentOff }: { interval: Interval;
       <span
         className="text-xs font-semibold px-2 py-1 rounded-full transition-all duration-300"
         style={{
-          background: 'rgba(52,211,153,0.12)', color: '#6ee7b7',
+          background: 'rgba(var(--ok-rgb),0.12)', color: '#6ee7b7',
           opacity: interval === 'year' ? 1 : 0,
           transform: interval === 'year' ? 'scale(1)' : 'scale(0.85)',
         }}
@@ -402,19 +402,19 @@ function PricingCard({ plan, interval, onSelect }: { plan: Plan; interval: Inter
         // No backdrop-filter: blur over the static app background caused
         // Chromium ghost bands on sibling repaints
         background: plan.highlight
-          ? 'linear-gradient(rgba(14,164,233,0.06), rgba(14,164,233,0.06)), linear-gradient(180deg, rgba(14,80,133,0.05), rgba(14,80,133,0.03))'
-          : 'linear-gradient(rgba(255,255,255,0.04), rgba(255,255,255,0.04)), linear-gradient(180deg, rgba(14,80,133,0.05), rgba(14,80,133,0.03))',
-        border: plan.highlight ? '1px solid rgba(14,164,233,0.4)' : '1px solid rgba(255,255,255,0.08)',
+          ? 'linear-gradient(rgba(var(--accent-rgb),0.06), rgba(var(--accent-rgb),0.06)), linear-gradient(180deg, rgba(var(--glass-tint-rgb),0.05), rgba(var(--glass-tint-rgb),0.03))'
+          : 'linear-gradient(rgba(255,255,255,0.04), rgba(255,255,255,0.04)), linear-gradient(180deg, rgba(var(--glass-tint-rgb),0.05), rgba(var(--glass-tint-rgb),0.03))',
+        border: plan.highlight ? '1px solid rgba(var(--accent-rgb),0.4)' : '1px solid rgba(255,255,255,0.08)',
       }}
     >
       {plan.popular && (
         <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-          <span className="px-3 py-1 text-white text-xs font-semibold rounded-full" style={{ background: '#0EA4E9' }}>Most Popular</span>
+          <span className="px-3 py-1 text-white text-xs font-semibold rounded-full" style={{ background: 'var(--accent)' }}>Most Popular</span>
         </div>
       )}
       <div className="mb-2.5">
         <div className="flex items-center gap-2 mb-2">
-          <Zap className={`w-4 h-4 ${plan.highlight ? 'text-[#0EA4E9]' : 'text-gray-500'}`} />
+          <Zap className={`w-4 h-4 ${plan.highlight ? 'text-[var(--accent)]' : 'text-gray-500'}`} />
           <span className="text-white font-semibold">{plan.name}</span>
         </div>
         <div className="flex items-baseline gap-1 overflow-hidden">
@@ -428,7 +428,7 @@ function PricingCard({ plan, interval, onSelect }: { plan: Plan; interval: Inter
         <div className="mt-2.5 space-y-1.5">
           {plan.quotas.map(q => (
             <p key={q} className="flex items-center gap-2 text-[13px] font-semibold text-white">
-              <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: plan.highlight ? '#0EA4E9' : 'rgba(255,255,255,0.35)' }} />
+              <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: plan.highlight ? 'var(--accent)' : 'rgba(255,255,255,0.35)' }} />
               {q}
             </p>
           ))}
@@ -471,7 +471,7 @@ function PricingCard({ plan, interval, onSelect }: { plan: Plan; interval: Inter
       <ul className={`space-y-2 mb-4 ${plan.features.length > 2 && !open ? 'hidden' : 'block'}`}>
         {plan.features.map(f => (
           <li key={f} className="flex items-center gap-2 text-sm text-gray-400">
-            <Check className="w-3.5 h-3.5 flex-shrink-0" style={{ color: plan.highlight ? '#0EA4E9' : '#4B5563' }} />
+            <Check className="w-3.5 h-3.5 flex-shrink-0" style={{ color: plan.highlight ? 'var(--accent)' : '#4B5563' }} />
             {f}
           </li>
         ))}
@@ -481,7 +481,7 @@ function PricingCard({ plan, interval, onSelect }: { plan: Plan; interval: Inter
         onClick={onSelect}
         className="mt-auto w-full py-2.5 rounded-lg text-sm font-semibold"
         style={plan.highlight
-          ? { background: '#0EA4E9', color: 'white' }
+          ? { background: 'var(--accent)', color: 'white' }
           : { background: 'rgba(255,255,255,0.06)', color: 'white', border: '1px solid rgba(255,255,255,0.1)' }}
       >
         {plan.cta}
@@ -516,7 +516,7 @@ function MiniIdeaCard() {
           <Play className="w-2.5 h-2.5 text-white/70" fill="currentColor" />
         </div>
         <p className="flex-1 min-w-0 text-[10.5px] leading-tight text-gray-200 truncate">3 hooks I stole from MrBeast</p>
-        <span className="flex items-center gap-0.5 text-[10px] font-bold px-1.5 py-0.5 rounded flex-shrink-0 pop-in" style={{ background: 'rgba(52,211,153,0.14)', color: '#6ee7b7' }}>
+        <span className="flex items-center gap-0.5 text-[10px] font-bold px-1.5 py-0.5 rounded flex-shrink-0 pop-in" style={{ background: 'rgba(var(--ok-rgb),0.14)', color: '#6ee7b7' }}>
           <TrendingUp className="w-2.5 h-2.5" />2.4x
         </span>
       </div>
@@ -567,7 +567,7 @@ function MiniRetention() {
           <polyline
             points={retentionPoints(34)}
             fill="none"
-            stroke="#0EA4E9"
+            stroke="var(--accent)"
             strokeWidth="2"
             strokeLinejoin="round"
             strokeLinecap="round"
@@ -586,7 +586,7 @@ function MiniRetention() {
       </div>
       <div className="flex items-center justify-between mt-2">
         <span className="text-[9.5px] text-gray-600">Retention</span>
-        <span className="text-[9.5px] font-bold px-1.5 py-0.5 rounded" style={{ background: 'rgba(248,113,113,0.15)', color: '#F87171' }}>
+        <span className="text-[9.5px] font-bold px-1.5 py-0.5 rounded" style={{ background: 'rgba(var(--danger-rgb),0.15)', color: '#F87171' }}>
           drop at 0:11
         </span>
       </div>
@@ -597,7 +597,7 @@ function MiniRetention() {
 function MiniHookScore() {
   return (
     <div className="rounded-lg p-2.5 h-full flex items-center gap-2.5" style={mockShell}>
-      <div className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 text-xs font-bold pop-in" style={{ background: 'rgba(14,164,233,0.14)', color: '#38bdf8', border: '2px solid rgba(14,164,233,0.35)' }}>91</div>
+      <div className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 text-xs font-bold pop-in" style={{ background: 'rgba(var(--accent-rgb),0.14)', color: 'var(--accent-soft)', border: '2px solid rgba(var(--accent-rgb),0.35)' }}>91</div>
       <div className="min-w-0 flex-1">
         <p className="text-[10.5px] font-semibold text-gray-200 leading-tight">Strong open</p>
         <p className="text-[9.5px] text-gray-600 leading-tight mt-0.5">3 rewrites ready</p>
@@ -608,7 +608,7 @@ function MiniHookScore() {
 
 function MiniScriptBars() {
   const rows = [
-    { label: 'Hook', pct: 92, color: '#38bdf8' },
+    { label: 'Hook', pct: 92, color: 'var(--accent-soft)' },
     { label: 'Middle', pct: 58, color: '#fbbf24' },
     { label: 'CTA', pct: 31, color: '#f87171' },
   ];
@@ -652,7 +652,7 @@ function ToolsGrid() {
           <div className="rounded-xl p-3.5 h-full flex flex-col" style={glass}>
             <div className="h-[78px] mb-3.5">{tool.mock}</div>
             <div className="flex items-center gap-1.5 mb-2">
-              <span style={{ color: '#0EA4E9' }}>{tool.icon}</span>
+              <span style={{ color: 'var(--accent)' }}>{tool.icon}</span>
               <h3 className="text-white font-semibold text-sm">{tool.name}</h3>
             </div>
             <p className="text-gray-500 text-xs leading-relaxed">{tool.desc}</p>
@@ -732,7 +732,7 @@ function MiniPublished() {
           <Play className="w-2.5 h-2.5 text-white/70" fill="currentColor" />
         </div>
         <p className="flex-1 min-w-0 text-[10.5px] leading-tight text-gray-200 truncate">Your new short</p>
-        <span className="flex items-center gap-0.5 text-[10px] font-bold px-1.5 py-0.5 rounded flex-shrink-0 pop-in" style={{ background: 'rgba(52,211,153,0.14)', color: '#6ee7b7' }}>
+        <span className="flex items-center gap-0.5 text-[10px] font-bold px-1.5 py-0.5 rounded flex-shrink-0 pop-in" style={{ background: 'rgba(var(--ok-rgb),0.14)', color: '#6ee7b7' }}>
           <Check className="w-2.5 h-2.5" />Live
         </span>
       </div>
@@ -809,7 +809,7 @@ function SystemSteps() {
             <div className="flex items-center gap-2 mb-1.5">
               <span
                 className="w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 text-[10px] font-bold tabular-nums"
-                style={{ background: 'rgba(14,164,233,0.12)', color: '#38BDF8' }}
+                style={{ background: 'rgba(var(--accent-rgb),0.12)', color: 'var(--accent-soft)' }}
               >
                 {i + 1}
               </span>
@@ -818,7 +818,7 @@ function SystemSteps() {
             <p className="text-gray-500 text-xs leading-relaxed">{step.desc}</p>
             <span
               className="mt-2.5 self-start text-[10px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded"
-              style={{ background: 'rgba(14,164,233,0.10)', color: '#38BDF8' }}
+              style={{ background: 'rgba(var(--accent-rgb),0.10)', color: 'var(--accent-soft)' }}
             >
               {step.tag}
             </span>
@@ -875,7 +875,7 @@ function TestimonialsSection() {
               <span className="text-[13px] font-semibold text-white truncate">{t.name}</span>
               <span
                 className="ml-auto text-[9.5px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded flex-shrink-0"
-                style={{ background: 'rgba(14,164,233,0.10)', color: '#38BDF8' }}
+                style={{ background: 'rgba(var(--accent-rgb),0.10)', color: 'var(--accent-soft)' }}
               >
                 {t.tool}
               </span>
@@ -938,10 +938,10 @@ function FAQSection() {
             className="w-full flex items-center justify-between gap-4 px-4 sm:px-5 py-4 text-left group"
             aria-expanded={open === i}
           >
-            <span className="text-white font-medium text-sm sm:text-[15px] group-hover:text-[#38BDF8] transition-colors">{f.q}</span>
+            <span className="text-white font-medium text-sm sm:text-[15px] group-hover:text-[var(--accent-soft)] transition-colors">{f.q}</span>
             <ChevronDown
               className={`w-4 h-4 flex-shrink-0 transition-transform duration-200 ${open === i ? 'rotate-180' : ''}`}
-              style={{ color: open === i ? '#0EA4E9' : '#4b5563' }}
+              style={{ color: open === i ? 'var(--accent)' : '#4b5563' }}
             />
           </button>
           {open === i && (
@@ -1101,7 +1101,7 @@ export function LandingPage() {
       <svg className="absolute inset-0 w-full h-full pointer-events-none" xmlns="http://www.w3.org/2000/svg" style={{ zIndex: 0 }}>
         <defs>
           <pattern id="lp-dot-grid" x="0" y="0" width="28" height="28" patternUnits="userSpaceOnUse">
-            <circle cx="1" cy="1" r="1" fill="#0EA4E9" fillOpacity="0.12" />
+            <circle cx="1" cy="1" r="1" fill="var(--accent)" fillOpacity="0.12" />
           </pattern>
         </defs>
         <rect width="100%" height="100%" fill="url(#lp-dot-grid)" />
@@ -1116,7 +1116,7 @@ export function LandingPage() {
           className="absolute rounded-full animate-drift-a"
           style={{
             top: '-16%', left: '-10%', width: '58vw', height: '58vw', maxWidth: 760, maxHeight: 760,
-            background: 'radial-gradient(circle, rgba(14,164,233,0.20), rgba(14,164,233,0) 68%)',
+            background: 'radial-gradient(circle, rgba(var(--accent-rgb),0.20), rgba(var(--accent-rgb),0) 68%)',
             filter: 'blur(46px)',
           }}
         />
@@ -1230,7 +1230,7 @@ export function LandingPage() {
               <button
                 onClick={() => setAuthModal('login')}
                 className="flex items-center gap-1 sm:gap-1.5 px-3 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-semibold text-white rounded-lg whitespace-nowrap hover:opacity-90 transition-opacity"
-                style={{ background: '#0EA4E9' }}
+                style={{ background: 'var(--accent)' }}
               >
                 Get started
                 <ChevronRight className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
@@ -1288,7 +1288,7 @@ export function LandingPage() {
                 <button
                   onClick={() => { closeMenu(); setAuthModal('login'); }}
                   className="mt-2 pt-5 py-3 text-left text-[17px] font-medium transition-colors"
-                  style={{ color: '#38BDF8', borderTop: '1px solid rgba(255,255,255,0.08)' }}
+                  style={{ color: 'var(--accent-soft)', borderTop: '1px solid rgba(255,255,255,0.08)' }}
                 >
                   Sign in
                 </button>
@@ -1358,7 +1358,7 @@ export function LandingPage() {
                   <button
                     type="submit"
                     className="flex items-center gap-1.5 px-4 sm:px-6 py-3 text-white font-semibold rounded-xl text-sm sm:text-[15px] whitespace-nowrap hover:opacity-90 flex-shrink-0"
-                    style={{ background: '#0EA4E9' }}
+                    style={{ background: 'var(--accent)' }}
                   >
                     <Sparkles className="w-4 h-4" />
                     Analyze
@@ -1396,7 +1396,7 @@ export function LandingPage() {
         {/* ── 1. Tools: everything that exists, then the flagship up close ───── */}
         <section id="tools" className="pt-8 sm:pt-14 pb-10 sm:pb-16 px-6 max-w-4xl mx-auto scroll-mt-20">
           <RevealSection className="mb-8 sm:mb-12 max-w-2xl">
-            <p className="text-xs font-bold uppercase tracking-[0.2em] mb-3" style={{ color: '#0EA4E9' }}>The tools</p>
+            <p className="text-xs font-bold uppercase tracking-[0.2em] mb-3" style={{ color: 'var(--accent)' }}>The tools</p>
             <h2 className="text-2xl sm:text-3xl font-bold text-white mb-3 text-balance leading-tight">
               Four tools. Shorts and nothing else.
             </h2>
@@ -1417,7 +1417,7 @@ export function LandingPage() {
         {/* ── 2. System: the real-data claim, then the loop it feeds ─────────── */}
         <section id="system" className="pb-10 sm:pb-24 px-6 max-w-4xl mx-auto scroll-mt-20">
           <RevealSection className="mb-8 sm:mb-12 max-w-2xl">
-            <p className="text-xs font-bold uppercase tracking-[0.2em] mb-3" style={{ color: '#0EA4E9' }}>The system</p>
+            <p className="text-xs font-bold uppercase tracking-[0.2em] mb-3" style={{ color: 'var(--accent)' }}>The system</p>
             <h2 className="text-2xl sm:text-3xl font-bold text-white mb-3 text-balance leading-tight">
               It runs on your real numbers.
             </h2>
@@ -1434,7 +1434,7 @@ export function LandingPage() {
               its own. */}
           <RevealSection delay={systemSteps.length * 70}>
             <div className="flex items-center justify-center gap-2 mt-6 sm:mt-8">
-              <Repeat className="w-3.5 h-3.5 flex-shrink-0" style={{ color: '#0EA4E9' }} />
+              <Repeat className="w-3.5 h-3.5 flex-shrink-0" style={{ color: 'var(--accent)' }} />
               <span className="text-xs sm:text-sm text-gray-500">Every upload makes the next one better.</span>
             </div>
           </RevealSection>
@@ -1526,7 +1526,7 @@ export function LandingPage() {
               <button
                 onClick={() => setAuthModal('signup')}
                 className="inline-flex items-center gap-2 px-6 py-3 text-white font-semibold rounded-xl text-sm sm:text-[15px] hover:opacity-90 transition-opacity"
-                style={{ background: '#0EA4E9' }}
+                style={{ background: 'var(--accent)' }}
               >
                 Get started for free
                 <ChevronRight className="w-4 h-4" />

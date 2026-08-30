@@ -159,7 +159,7 @@ export function UpgradePage() {
               >
                 {isPopular && !isCurrent && isHigher && (
                   <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                    <span className="px-3 py-1 bg-[#0EA4E9] text-white text-xs font-semibold rounded-full">
+                    <span className="px-3 py-1 bg-[var(--accent)] text-white text-xs font-semibold rounded-full">
                       Most Popular
                     </span>
                   </div>
@@ -167,7 +167,7 @@ export function UpgradePage() {
 
                 <div className="mb-4">
                   <div className="flex items-center gap-2 mb-2">
-                    <Zap className={`w-4 h-4 ${isPopular ? 'text-[#0EA4E9]' : 'text-[#0EA4E9]/70'}`} />
+                    <Zap className={`w-4 h-4 ${isPopular ? 'text-[var(--accent)]' : 'text-[var(--accent)]/70'}`} />
                     <span className="text-white font-semibold">{plan.name}</span>
                   </div>
                   {(() => {
@@ -198,7 +198,7 @@ export function UpgradePage() {
                   <div className="mt-2.5 space-y-1.5">
                     {plan.quotas.map(q => (
                       <p key={q} className="flex items-center gap-2 text-[13px] font-semibold text-white">
-                        <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: '#0EA4E9' }} />
+                        <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: 'var(--accent)' }} />
                         {q}
                       </p>
                     ))}
@@ -208,7 +208,7 @@ export function UpgradePage() {
                 <ul className="flex-1 space-y-2 mb-5">
                   {plan.features.map(feature => (
                     <li key={feature} className="flex items-start gap-2 text-sm text-gray-400">
-                      <Check className="w-4 h-4 text-[#0EA4E9] flex-shrink-0 mt-0.5" />
+                      <Check className="w-4 h-4 text-[var(--accent)] flex-shrink-0 mt-0.5" />
                       {feature}
                     </li>
                   ))}
@@ -224,8 +224,8 @@ export function UpgradePage() {
                     disabled={checkingOut === plan.id}
                     className={`w-full flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
                       isPopular
-                        ? 'bg-[#0EA4E9] text-white hover:bg-[#0EA4E9]/90'
-                        : 'bg-[#0EA4E9]/60 text-white hover:bg-[#0EA4E9]/70'
+                        ? 'bg-[var(--accent)] text-white hover:bg-[var(--accent)]/90'
+                        : 'bg-[var(--accent)]/60 text-white hover:bg-[var(--accent)]/70'
                     }`}
                   >
                     {checkingOut === plan.id ? (

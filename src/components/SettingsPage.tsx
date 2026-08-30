@@ -301,8 +301,8 @@ export function SettingsPage() {
       {/* ── Channel profile ── */}
       <SettingsCard
         {...cardProps('profile')}
-        icon={<Sparkles className="w-4 h-4 text-[#0EA4E9]" />}
-        iconBg="rgba(14,164,233,0.12)"
+        icon={<Sparkles className="w-4 h-4 text-[var(--accent)]" />}
+        iconBg="rgba(var(--accent-rgb),0.12)"
         title="Channel profile"
       >
         {loading ? (
@@ -316,7 +316,7 @@ export function SettingsPage() {
                 onChange={e => setCreatorLevel(e.target.value)}
                 className="glass-field w-full px-4 py-2.5 rounded-lg text-white text-sm focus:outline-none transition-colors appearance-none cursor-pointer"
                 style={{ ...glassInput, backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 14px center' }}
-                onFocus={e => { e.currentTarget.style.borderColor = '#0EA4E9'; }}
+                onFocus={e => { e.currentTarget.style.borderColor = 'var(--accent)'; }}
                 onBlur={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)'; }}
               >
                 {CREATOR_LEVELS.map(l => (
@@ -335,7 +335,7 @@ export function SettingsPage() {
                 placeholder="e.g. Personal finance for millennials, fitness, tech reviews..."
                 className="glass-field w-full px-4 py-2.5 rounded-lg text-white placeholder-gray-600 text-sm focus:outline-none transition-colors"
                 style={glassInput}
-                onFocus={e => { e.currentTarget.style.borderColor = '#0EA4E9'; }}
+                onFocus={e => { e.currentTarget.style.borderColor = 'var(--accent)'; }}
                 onBlur={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)'; }}
               />
             </div>
@@ -349,7 +349,7 @@ export function SettingsPage() {
                 rows={3}
                 className="glass-field w-full px-4 py-3 rounded-lg text-white placeholder-gray-600 text-sm focus:outline-none resize-none leading-relaxed transition-colors"
                 style={glassInput}
-                onFocus={e => { e.currentTarget.style.borderColor = '#0EA4E9'; }}
+                onFocus={e => { e.currentTarget.style.borderColor = 'var(--accent)'; }}
                 onBlur={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)'; }}
               />
             </div>
@@ -484,7 +484,7 @@ export function SettingsPage() {
                   placeholder="Current password"
                   className="glass-field w-full px-4 py-2.5 pr-10 rounded-lg text-white placeholder-gray-600 text-sm focus:outline-none transition-colors"
                   style={glassInput}
-                  onFocus={e => { e.currentTarget.style.borderColor = '#0EA4E9'; }}
+                  onFocus={e => { e.currentTarget.style.borderColor = 'var(--accent)'; }}
                   onBlur={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)'; }}
                 />
                 <button type="button" onClick={() => setShowCurrent(!showCurrent)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-300">
@@ -499,7 +499,7 @@ export function SettingsPage() {
                   placeholder="New password"
                   className="glass-field w-full px-4 py-2.5 pr-10 rounded-lg text-white placeholder-gray-600 text-sm focus:outline-none transition-colors"
                   style={glassInput}
-                  onFocus={e => { e.currentTarget.style.borderColor = '#0EA4E9'; }}
+                  onFocus={e => { e.currentTarget.style.borderColor = 'var(--accent)'; }}
                   onBlur={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)'; }}
                 />
                 <button type="button" onClick={() => setShowNew(!showNew)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-300">
@@ -524,12 +524,12 @@ export function SettingsPage() {
       {plan && plan !== 'free' && (
         <SettingsCard
           {...cardProps('subscription')}
-          icon={<Zap className="w-4 h-4 text-[#0EA4E9]" />}
-          iconBg="rgba(14,164,233,0.12)"
+          icon={<Zap className="w-4 h-4 text-[var(--accent)]" />}
+          iconBg="rgba(var(--accent-rgb),0.12)"
           title="Subscription"
         >
           {/* Plan summary with an accent badge — distinct from the other cards */}
-          <div className="rounded-xl px-4 py-3.5 flex items-center justify-between gap-3" style={{ background: 'rgba(14,164,233,0.06)', border: '1px solid rgba(14,164,233,0.18)' }}>
+          <div className="rounded-xl px-4 py-3.5 flex items-center justify-between gap-3" style={{ background: 'rgba(var(--accent-rgb),0.06)', border: '1px solid rgba(var(--accent-rgb),0.18)' }}>
             <div className="min-w-0">
               <p className="text-sm text-white font-semibold">
                 {plan === 'pro' ? 'Plus' : plan === 'agency' ? 'Pro' : plan} Plan
@@ -542,7 +542,7 @@ export function SettingsPage() {
               className="text-[11px] font-medium px-2.5 py-1 rounded-full flex-shrink-0"
               style={cancelDone
                 ? { background: 'rgba(148,163,184,0.15)', color: '#94A3B8' }
-                : { background: 'rgba(52,211,153,0.15)', color: '#34D399' }}
+                : { background: 'rgba(var(--ok-rgb),0.15)', color: '#34D399' }}
             >
               {cancelDone ? 'Cancelled' : 'Active'}
             </span>
@@ -620,7 +620,7 @@ export function SettingsPage() {
             placeholder="Enter a code"
             className="glass-field flex-1 px-4 py-2.5 rounded-lg text-white placeholder-gray-600 text-sm focus:outline-none transition-colors"
             style={glassInput}
-            onFocus={e => { e.currentTarget.style.borderColor = '#0EA4E9'; }}
+            onFocus={e => { e.currentTarget.style.borderColor = 'var(--accent)'; }}
             onBlur={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)'; }}
           />
           <button

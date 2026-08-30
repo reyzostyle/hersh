@@ -69,7 +69,7 @@ export function AuthPage() {
       >
         <defs>
           <pattern id="dot-grid" x="0" y="0" width="28" height="28" patternUnits="userSpaceOnUse">
-            <circle cx="1" cy="1" r="1" fill="#0EA4E9" fillOpacity="0.18" />
+            <circle cx="1" cy="1" r="1" fill="var(--accent)" fillOpacity="0.18" />
           </pattern>
         </defs>
         <rect width="100%" height="100%" fill="url(#dot-grid)" />
@@ -92,7 +92,7 @@ export function AuthPage() {
             // No backdrop-filter: blur over the static app background caused
             // Chromium ghost bands on sibling repaints
             background:
-              'linear-gradient(rgba(255,255,255,0.05), rgba(255,255,255,0.05)), linear-gradient(180deg, rgba(14,80,133,0.05), rgba(14,80,133,0.03))',
+              'linear-gradient(rgba(255,255,255,0.05), rgba(255,255,255,0.05)), linear-gradient(180deg, rgba(var(--glass-tint-rgb),0.05), rgba(var(--glass-tint-rgb),0.03))',
             border: '1px solid rgba(255,255,255,0.1)',
           }}
         >
@@ -104,7 +104,7 @@ export function AuthPage() {
                   <div className="text-green-400 text-2xl mb-3">✓</div>
                   <p className="text-white font-medium mb-1">Check your email</p>
                   <p className="text-gray-400 text-sm mb-6">We sent a reset link to <strong>{email}</strong></p>
-                  <button onClick={() => { setIsForgot(false); setResetSent(false); }} className="text-sm" style={{ color: '#0EA4E9' }}>Back to sign in</button>
+                  <button onClick={() => { setIsForgot(false); setResetSent(false); }} className="text-sm" style={{ color: 'var(--accent)' }}>Back to sign in</button>
                 </div>
               ) : (
                 <form onSubmit={handleForgotPassword} className="space-y-5">
@@ -118,13 +118,13 @@ export function AuthPage() {
                       placeholder="Email"
                       className="w-full px-4 py-2.5 rounded-xl text-white focus:outline-none"
                       style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)' }}
-                      onFocus={(e) => { e.currentTarget.style.borderColor = '#0EA4E9'; }}
+                      onFocus={(e) => { e.currentTarget.style.borderColor = 'var(--accent)'; }}
                       onBlur={(e) => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.12)'; }}
                       required
                     />
                   </div>
                   {error && <div className="text-red-400 text-sm bg-red-400/10 border border-red-400/20 rounded-xl p-3">{error}</div>}
-                  <button type="submit" disabled={loading} className="w-full py-3 text-white rounded-xl font-semibold disabled:opacity-50" style={{ background: '#0EA4E9' }}>
+                  <button type="submit" disabled={loading} className="w-full py-3 text-white rounded-xl font-semibold disabled:opacity-50" style={{ background: 'var(--accent)' }}>
                     {loading ? 'Sending...' : 'Send reset link'}
                   </button>
                   <div className="text-center">
@@ -152,7 +152,7 @@ export function AuthPage() {
                   border: '1px solid rgba(255,255,255,0.12)',
                   color: 'white',
                 }}
-                onFocus={(e) => { e.currentTarget.style.borderColor = '#0EA4E9'; }}
+                onFocus={(e) => { e.currentTarget.style.borderColor = 'var(--accent)'; }}
                 onBlur={(e) => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.12)'; }}
                 required
               />
@@ -173,7 +173,7 @@ export function AuthPage() {
                   border: '1px solid rgba(255,255,255,0.12)',
                   color: 'white',
                 }}
-                onFocus={(e) => { e.currentTarget.style.borderColor = '#0EA4E9'; }}
+                onFocus={(e) => { e.currentTarget.style.borderColor = 'var(--accent)'; }}
                 onBlur={(e) => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.12)'; }}
                 required
               />
@@ -182,7 +182,7 @@ export function AuthPage() {
             {isLogin && (
               <div className="text-right -mt-2">
                 <button type="button" onClick={() => { setIsForgot(true); setError(''); }} className="text-xs" style={{ color: '#6B7280' }}
-                  onMouseEnter={(e) => { e.currentTarget.style.color = '#0EA4E9'; }}
+                  onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--accent)'; }}
                   onMouseLeave={(e) => { e.currentTarget.style.color = '#6B7280'; }}>
                   Forgot password?
                 </button>
@@ -199,7 +199,7 @@ export function AuthPage() {
               type="submit"
               disabled={loading || googleLoading}
               className="w-full py-3 text-white rounded-xl font-semibold disabled:opacity-50 disabled:cursor-not-allowed transition-opacity"
-              style={{ background: '#0EA4E9' }}
+              style={{ background: 'var(--accent)' }}
               onMouseEnter={(e) => { e.currentTarget.style.opacity = '0.9'; }}
               onMouseLeave={(e) => { e.currentTarget.style.opacity = '1'; }}
             >
@@ -240,7 +240,7 @@ export function AuthPage() {
                 onClick={() => setIsLogin(!isLogin)}
                 className="text-sm transition-colors"
                 style={{ color: '#6B7280' }}
-                onMouseEnter={(e) => { e.currentTarget.style.color = '#0EA4E9'; }}
+                onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--accent)'; }}
                 onMouseLeave={(e) => { e.currentTarget.style.color = '#6B7280'; }}
               >
                 {isLogin ? "Don't have an account? Sign up" : 'Already have an account? Sign in'}

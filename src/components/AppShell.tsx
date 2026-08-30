@@ -107,7 +107,7 @@ export function AppShell({ activeTab, onTabChange, children }: AppShellProps) {
       title={item.label}
       className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all ${
         activeTab === item.id
-          ? 'bg-[#0EA4E9]/15 text-[#0EA4E9] ring-1 ring-inset ring-[#0EA4E9]/20'
+          ? 'bg-[var(--accent)]/15 text-[var(--accent)] ring-1 ring-inset ring-[var(--accent)]/20'
           : item.highlight
           ? 'text-amber-400 hover:text-amber-300 hover:bg-amber-400/10'
           : 'text-gray-400 hover:text-white hover:bg-white/5'
@@ -116,7 +116,7 @@ export function AppShell({ activeTab, onTabChange, children }: AppShellProps) {
       {item.icon}
       <span className={`flex-1 text-left whitespace-nowrap ${collapsed ? 'lg:hidden' : ''}`}>{item.label}</span>
       {item.badge && (
-        <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full flex-shrink-0 ${collapsed ? 'lg:hidden' : ''}`} style={{ background: 'rgba(14,164,233,0.12)', color: '#0EA4E9' }}>
+        <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full flex-shrink-0 ${collapsed ? 'lg:hidden' : ''}`} style={{ background: 'rgba(var(--accent-rgb),0.12)', color: 'var(--accent)' }}>
           {item.badge}
         </span>
       )}
@@ -132,7 +132,7 @@ export function AppShell({ activeTab, onTabChange, children }: AppShellProps) {
       >
         <defs>
           <pattern id="app-dot-grid" x="0" y="0" width="28" height="28" patternUnits="userSpaceOnUse">
-            <circle cx="1" cy="1" r="1" fill="#0EA4E9" fillOpacity="0.12" />
+            <circle cx="1" cy="1" r="1" fill="var(--accent)" fillOpacity="0.12" />
           </pattern>
         </defs>
         <rect width="100%" height="100%" fill="url(#app-dot-grid)" />
@@ -157,13 +157,13 @@ export function AppShell({ activeTab, onTabChange, children }: AppShellProps) {
             className="w-full flex items-center gap-3 px-3 py-1 rounded-lg font-black uppercase tracking-[0.16em] text-[15px] transition-colors group"
           >
             <HubIcon
-              className={`w-4 h-4 flex-shrink-0 transition-colors ${activeTab === 'home' ? 'text-[#0EA4E9]' : 'text-white group-hover:text-[#0EA4E9]'}`}
+              className={`w-4 h-4 flex-shrink-0 transition-colors ${activeTab === 'home' ? 'text-[var(--accent)]' : 'text-white group-hover:text-[var(--accent)]'}`}
             />
             {/* Icon and wordmark are one button, so hovering either turns both
                 the same blue. The uppercase wordmark sits on a taller line box
                 than the icon, which is what made the two look a pixel out of
                 line; leading-none drops that extra space. */}
-            <span className={`leading-none whitespace-nowrap transition-colors ${activeTab === 'home' ? 'text-[#0EA4E9]' : 'text-white group-hover:text-[#0EA4E9]'} ${collapsed ? 'lg:hidden' : ''}`}>
+            <span className={`leading-none whitespace-nowrap transition-colors ${activeTab === 'home' ? 'text-[var(--accent)]' : 'text-white group-hover:text-[var(--accent)]'} ${collapsed ? 'lg:hidden' : ''}`}>
               Hershy
             </span>
           </button>

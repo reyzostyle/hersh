@@ -43,14 +43,14 @@ export function CompetitorsChannels({
             disabled={addingChannel || channels.length >= 5}
             className="flex-1 px-3 py-2.5 rounded-xl text-white text-sm placeholder-gray-600 focus:outline-none disabled:opacity-50"
             style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.10)' }}
-            onFocus={e => { e.currentTarget.style.borderColor = '#0EA4E9'; }}
+            onFocus={e => { e.currentTarget.style.borderColor = 'var(--accent)'; }}
             onBlur={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.10)'; }}
           />
           <button
             type="submit"
             disabled={addingChannel || !channelUrl.trim() || channels.length >= 5}
             className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-white text-sm font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-            style={{ background: '#0EA4E9' }}
+            style={{ background: 'var(--accent)' }}
           >
             {addingChannel ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
             Add
@@ -102,8 +102,8 @@ export function CompetitorsChannels({
                   <span
                     className="flex items-center gap-1.5 text-[11px] font-medium px-2 py-1 rounded-full flex-shrink-0"
                     style={isSyncing
-                      ? { background: 'rgba(14,164,233,0.12)', color: '#38bdf8' }
-                      : { background: 'rgba(52,211,153,0.10)', color: '#6ee7b7' }
+                      ? { background: 'rgba(var(--accent-rgb),0.12)', color: 'var(--accent-soft)' }
+                      : { background: 'rgba(var(--ok-rgb),0.10)', color: '#6ee7b7' }
                     }
                   >
                     {isSyncing ? <Loader2 className="w-3 h-3 animate-spin" /> : <CheckCircle2 className="w-3 h-3" />}

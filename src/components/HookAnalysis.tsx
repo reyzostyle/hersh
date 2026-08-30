@@ -64,10 +64,10 @@ export function HookAnalysis() {
       <button
         onClick={() => setHistoryPanelOpen(true)}
         className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-opacity"
-        style={{ background: 'rgba(14,164,233,0.2)', border: '1px solid rgba(14,164,233,0.3)' }}
+        style={{ background: 'rgba(var(--accent-rgb),0.2)', border: '1px solid rgba(var(--accent-rgb),0.3)' }}
       >
-        <History className="w-3.5 h-3.5 text-[#0EA4E9]" />
-        <span className="text-[#0EA4E9]">History</span>
+        <History className="w-3.5 h-3.5 text-[var(--accent)]" />
+        <span className="text-[var(--accent)]">History</span>
       </button>
     );
     return () => setRightAction(null);
@@ -343,10 +343,10 @@ export function HookAnalysis() {
           <button
             onClick={() => setHistoryPanelOpen(true)}
             className="flex items-center gap-2 px-3 py-2 hover:opacity-90 rounded-lg text-sm font-medium transition-opacity flex-shrink-0"
-            style={{ background: 'rgba(14,164,233,0.2)', border: '1px solid rgba(14,164,233,0.3)' }}
+            style={{ background: 'rgba(var(--accent-rgb),0.2)', border: '1px solid rgba(var(--accent-rgb),0.3)' }}
           >
-            <History className="w-4 h-4 text-[#0EA4E9]" />
-            <span className="text-[#0EA4E9]">History</span>
+            <History className="w-4 h-4 text-[var(--accent)]" />
+            <span className="text-[var(--accent)]">History</span>
           </button>
         </div>
       </div>
@@ -381,9 +381,9 @@ export function HookAnalysis() {
             />
 
             {uploadFile ? (
-              <div className="m-1.5 rounded-xl px-4 py-3 flex items-center gap-3" style={{ background: 'rgba(14,164,233,0.08)', border: '1px solid rgba(14,164,233,0.2)' }}>
-                <div className="w-10 h-10 rounded-lg bg-[#0EA4E9]/15 flex items-center justify-center flex-shrink-0">
-                  <Film className="w-5 h-5 text-[#0EA4E9]" />
+              <div className="m-1.5 rounded-xl px-4 py-3 flex items-center gap-3" style={{ background: 'rgba(var(--accent-rgb),0.08)', border: '1px solid rgba(var(--accent-rgb),0.2)' }}>
+                <div className="w-10 h-10 rounded-lg bg-[var(--accent)]/15 flex items-center justify-center flex-shrink-0">
+                  <Film className="w-5 h-5 text-[var(--accent)]" />
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-white text-sm font-medium truncate">{uploadFile.name}</p>

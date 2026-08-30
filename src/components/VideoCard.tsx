@@ -26,15 +26,15 @@ export function VideoCard({ video, isSelected = false, onSelect }: VideoCardProp
     <div
       className={`rounded-lg overflow-hidden transition-all cursor-pointer relative select-none ${
         isSelected
-          ? 'ring-2 ring-[#0EA4E9]/40'
+          ? 'ring-2 ring-[var(--accent)]/40'
           : ''
       }`}
       style={{
         // No backdrop-filter: blur over the static app background caused
         // Chromium ghost bands on sibling repaints
         background:
-          'linear-gradient(rgba(255,255,255,0.04), rgba(255,255,255,0.04)), linear-gradient(180deg, rgba(14,80,133,0.05), rgba(14,80,133,0.03))',
-        border: isSelected ? '1px solid #0EA4E9' : '1px solid rgba(255,255,255,0.08)',
+          'linear-gradient(rgba(255,255,255,0.04), rgba(255,255,255,0.04)), linear-gradient(180deg, rgba(var(--glass-tint-rgb),0.05), rgba(var(--glass-tint-rgb),0.03))',
+        border: isSelected ? '1px solid var(--accent)' : '1px solid rgba(255,255,255,0.08)',
       }}
       onClick={() => onSelect?.(video.video_id)}
     >
@@ -53,8 +53,8 @@ export function VideoCard({ video, isSelected = false, onSelect }: VideoCardProp
         )}
 
         {isSelected && (
-          <div className="absolute inset-0 bg-[#0EA4E9]/20 flex items-center justify-center">
-            <div className="bg-[#0EA4E9] rounded-full p-1.5 shadow-lg">
+          <div className="absolute inset-0 bg-[var(--accent)]/20 flex items-center justify-center">
+            <div className="bg-[var(--accent)] rounded-full p-1.5 shadow-lg">
               <Check className="w-4 h-4 text-white" />
             </div>
           </div>

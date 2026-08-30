@@ -14,7 +14,7 @@ export function showToast(message: string, type: 'success' | 'error' = 'success'
     'font-weight:600',
     'color:#fff',
     'max-width:90vw',
-    `background:${type === 'success' ? '#0EA4E9' : '#ef4444'}`,
+    `background:${type === 'success' ? 'var(--accent)' : '#ef4444'}`,
     'box-shadow:0 10px 30px rgba(0,0,0,0.45)',
     'opacity:0',
     'transition:opacity .2s ease, transform .2s ease',

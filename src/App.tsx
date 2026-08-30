@@ -49,7 +49,7 @@ function SetNewPasswordForm() {
               placeholder="New password" required
               className="w-full px-4 py-2.5 rounded-xl text-white focus:outline-none"
               style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)' }}
-              onFocus={e => { e.currentTarget.style.borderColor = '#0EA4E9'; }}
+              onFocus={e => { e.currentTarget.style.borderColor = 'var(--accent)'; }}
               onBlur={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.12)'; }}
             />
             <input
@@ -57,11 +57,11 @@ function SetNewPasswordForm() {
               placeholder="Confirm password" required
               className="w-full px-4 py-2.5 rounded-xl text-white focus:outline-none"
               style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)' }}
-              onFocus={e => { e.currentTarget.style.borderColor = '#0EA4E9'; }}
+              onFocus={e => { e.currentTarget.style.borderColor = 'var(--accent)'; }}
               onBlur={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.12)'; }}
             />
             {error && <p className="text-red-400 text-sm bg-red-400/10 border border-red-400/20 rounded-xl p-3">{error}</p>}
-            <button type="submit" disabled={saving} className="w-full py-3 text-white rounded-xl font-semibold disabled:opacity-50" style={{ background: '#0EA4E9' }}>
+            <button type="submit" disabled={saving} className="w-full py-3 text-white rounded-xl font-semibold disabled:opacity-50" style={{ background: 'var(--accent)' }}>
               {saving ? 'Saving...' : 'Set new password'}
             </button>
           </form>
@@ -174,7 +174,7 @@ function AuthCallbackHandler() {
           <button
             onClick={() => { window.history.replaceState({}, '', '/'); window.location.reload(); }}
             className="w-full py-3 text-white rounded-xl font-semibold text-sm"
-            style={{ background: '#0EA4E9' }}
+            style={{ background: 'var(--accent)' }}
           >
             Open Hershy on this device
           </button>
@@ -185,7 +185,7 @@ function AuthCallbackHandler() {
 
   if (status === 'success') {
     return (
-      <div className="min-h-screen bg-[#212121] flex flex-col items-center justify-center gap-3">
+      <div className="min-h-screen bg-[var(--bg-app)] flex flex-col items-center justify-center gap-3">
         <p className="text-emerald-400 text-sm font-medium">✓ YouTube account connected!</p>
         <p className="text-gray-500 text-xs">Redirecting...</p>
       </div>
@@ -194,7 +194,7 @@ function AuthCallbackHandler() {
 
   if (status === 'error') {
     return (
-      <div className="min-h-screen bg-[#212121] flex flex-col items-center justify-center gap-3">
+      <div className="min-h-screen bg-[var(--bg-app)] flex flex-col items-center justify-center gap-3">
         <p className="text-red-400 text-sm">{errorMsg}</p>
         <p className="text-gray-500 text-xs">Redirecting...</p>
       </div>
@@ -202,8 +202,8 @@ function AuthCallbackHandler() {
   }
 
   return (
-    <div className="min-h-screen bg-[#212121] flex items-center justify-center">
-      <Loader2 className="w-8 h-8 text-[#0EA4E9] animate-spin" />
+    <div className="min-h-screen bg-[var(--bg-app)] flex items-center justify-center">
+      <Loader2 className="w-8 h-8 text-[var(--accent)] animate-spin" />
     </div>
   );
 }
@@ -289,8 +289,8 @@ function AppContent() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#212121] flex items-center justify-center">
-        <Loader2 className="w-8 h-8 text-[#0EA4E9] animate-spin" />
+      <div className="min-h-screen bg-[var(--bg-app)] flex items-center justify-center">
+        <Loader2 className="w-8 h-8 text-[var(--accent)] animate-spin" />
       </div>
     );
   }
@@ -304,8 +304,8 @@ function AppContent() {
   // Logged in — wait for onboarding status, then route accordingly.
   if (needsOnboarding === null) {
     return (
-      <div className="min-h-screen bg-[#212121] flex items-center justify-center">
-        <Loader2 className="w-8 h-8 text-[#0EA4E9] animate-spin" />
+      <div className="min-h-screen bg-[var(--bg-app)] flex items-center justify-center">
+        <Loader2 className="w-8 h-8 text-[var(--accent)] animate-spin" />
       </div>
     );
   }
@@ -319,7 +319,7 @@ function AppContent() {
       <Dashboard />
 
       {onboardingOpen && (
-        <div className="fixed inset-0 z-[60] overflow-auto bg-[#212121]">
+        <div className="fixed inset-0 z-[60] overflow-auto bg-[var(--bg-app)]">
           <Onboarding
             onDone={() => {
               setNeedsOnboarding(false);

@@ -65,17 +65,17 @@ export function HomePage({ onNavigate }: HomePageProps) {
             style={{ animationDelay: `${i * 70}ms` }}
           >
             <div className="flex items-center gap-2.5 mb-2.5">
-              <span className="text-[#0EA4E9] flex-shrink-0">{tool.icon}</span>
+              <span className="text-[var(--accent)] flex-shrink-0">{tool.icon}</span>
               <span className="text-white font-semibold">{tool.label}</span>
               {tool.badge && (
                 <span
                   className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full flex-shrink-0"
-                  style={{ background: 'rgba(14,164,233,0.12)', color: '#0EA4E9' }}
+                  style={{ background: 'rgba(var(--accent-rgb),0.12)', color: 'var(--accent)' }}
                 >
                   {tool.badge}
                 </span>
               )}
-              <ArrowRight className="w-4 h-4 text-gray-600 ml-auto flex-shrink-0 transition-all group-hover:text-[#0EA4E9] group-hover:translate-x-0.5" />
+              <ArrowRight className="w-4 h-4 text-gray-600 ml-auto flex-shrink-0 transition-all group-hover:text-[var(--accent)] group-hover:translate-x-0.5" />
             </div>
             <p className="text-sm text-gray-400 leading-relaxed">{tool.description}</p>
           </button>

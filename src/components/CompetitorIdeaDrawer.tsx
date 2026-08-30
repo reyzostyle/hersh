@@ -48,7 +48,7 @@ export function CompetitorIdeaDrawer({ idea, onClose, onUpdated, onSave }: {
               title={idea.liked === true ? 'Saved — change folder' : 'Save to folder'}
               className="flex items-center gap-1 text-xs font-medium px-2 py-1.5 rounded-lg transition-all"
               style={idea.liked === true
-                ? { background: 'rgba(52,211,153,0.12)', color: '#6ee7b7' }
+                ? { background: 'rgba(var(--ok-rgb),0.12)', color: '#6ee7b7' }
                 : { color: '#6b7280' }}
             >
               {idea.liked === true ? <Check className="w-3.5 h-3.5" /> : <FolderPlus className="w-3.5 h-3.5" />}
@@ -97,7 +97,7 @@ export function CompetitorIdeaDrawer({ idea, onClose, onUpdated, onSave }: {
                 {idea.outlier_score != null && (
                   <span
                     className="flex items-center gap-1 text-xs font-semibold px-1.5 py-0.5 rounded-md"
-                    style={{ background: 'rgba(52,211,153,0.12)', color: '#6ee7b7' }}
+                    style={{ background: 'rgba(var(--ok-rgb),0.12)', color: '#6ee7b7' }}
                     title="Views per day versus this channel's usual pace"
                   >
                     <TrendingUp className="w-3 h-3" />

@@ -90,7 +90,7 @@ export function HistoryPanel({ analyses, videos, open, onClose, onSelect }: Hist
             collided with it on mobile, see AnalysisPanel for the same fix. */}
         <div className="flex items-center justify-between px-3 sm:px-4 py-1 sm:py-2 flex-shrink-0">
           <div className="flex items-center gap-2 ml-1">
-            <History className="w-5 h-5 text-[#0EA4E9]" />
+            <History className="w-5 h-5 text-[var(--accent)]" />
             {analyses.length > 0 && (
               <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-gray-700/60 text-gray-400 border border-gray-600/40">
                 {analyses.length}
@@ -134,7 +134,7 @@ export function HistoryPanel({ analyses, videos, open, onClose, onSelect }: Hist
                         </span>
                       )}
                       {getSource(a) === 'upload' && (
-                        <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded-full flex-shrink-0" style={{ background: 'rgba(52,211,153,0.1)', color: '#6ee7b7', border: '1px solid rgba(52,211,153,0.2)' }}>
+                        <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded-full flex-shrink-0" style={{ background: 'rgba(var(--ok-rgb),0.1)', color: '#6ee7b7', border: '1px solid rgba(var(--ok-rgb),0.2)' }}>
                           <Film className="w-2.5 h-2.5" />File
                         </span>
                       )}

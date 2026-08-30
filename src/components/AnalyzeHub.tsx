@@ -43,7 +43,7 @@ export function AnalyzeHub() {
             onClick={() => select(m.id)}
             className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm font-medium transition-all ${
               mode === m.id
-                ? 'bg-[#0EA4E9]/15 text-[#0EA4E9] ring-1 ring-inset ring-[#0EA4E9]/20'
+                ? 'bg-[var(--accent)]/15 text-[var(--accent)] ring-1 ring-inset ring-[var(--accent)]/20'
                 : 'text-gray-400 hover:text-white hover:bg-white/5'
             }`}
           >
@@ -61,7 +61,7 @@ export function AnalyzeHub() {
               key={m.id}
               onClick={() => select(m.id)}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-all flex-shrink-0 ${
-                mode === m.id ? 'bg-[#0EA4E9]/15 text-[#0EA4E9]' : 'text-gray-500 hover:text-gray-300'
+                mode === m.id ? 'bg-[var(--accent)]/15 text-[var(--accent)]' : 'text-gray-500 hover:text-gray-300'
               }`}
             >
               {m.icon}

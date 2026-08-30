@@ -77,7 +77,7 @@ export function CompetitorsSaved({
               className="w-36 px-2.5 py-1.5 rounded-full text-white text-xs placeholder-gray-600 focus:outline-none"
               style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)' }}
             />
-            <button type="submit" disabled={busy || !newName.trim()} className="px-2.5 py-1.5 rounded-full text-xs font-semibold text-white disabled:opacity-50" style={{ background: '#0EA4E9' }}>
+            <button type="submit" disabled={busy || !newName.trim()} className="px-2.5 py-1.5 rounded-full text-xs font-semibold text-white disabled:opacity-50" style={{ background: 'var(--accent)' }}>
               {busy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : 'Add'}
             </button>
           </form>
@@ -131,7 +131,7 @@ function FolderChip({ label, count, active, onClick, onDelete, deleting }: {
     <span
       className="group flex items-center gap-1.5 pl-2.5 pr-2 py-1.5 rounded-full text-xs font-medium transition-all max-w-[190px]"
       style={active
-        ? { background: 'rgba(14,164,233,0.15)', color: '#38bdf8', border: '1px solid rgba(14,164,233,0.3)' }
+        ? { background: 'rgba(var(--accent-rgb),0.15)', color: 'var(--accent-soft)', border: '1px solid rgba(var(--accent-rgb),0.3)' }
         : { background: 'rgba(255,255,255,0.04)', color: '#9ca3af', border: '1px solid rgba(255,255,255,0.08)' }}
     >
       <button onClick={onClick} className="flex items-center gap-1.5 min-w-0">

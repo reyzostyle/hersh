@@ -243,7 +243,7 @@ export function CompetitorsPage() {
   if (initialLoading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <Loader2 className="w-8 h-8 text-[#0EA4E9] animate-spin" />
+        <Loader2 className="w-8 h-8 text-[var(--accent)] animate-spin" />
       </div>
     );
   }
@@ -256,8 +256,8 @@ export function CompetitorsPage() {
           <p className="text-sm text-gray-500 text-balance">Track competitor channels and generate content ideas</p>
         </div>
         <div className="rounded-2xl p-8 flex flex-col items-center text-center space-y-4 glass-panel-accent">
-          <div className="w-12 h-12 rounded-2xl flex items-center justify-center" style={{ background: 'rgba(14,164,233,0.12)' }}>
-            <Users className="w-6 h-6 text-[#0EA4E9]" />
+          <div className="w-12 h-12 rounded-2xl flex items-center justify-center" style={{ background: 'rgba(var(--accent-rgb),0.12)' }}>
+            <Users className="w-6 h-6 text-[var(--accent)]" />
           </div>
           <div className="space-y-1.5">
             <p className="text-white font-semibold text-base">Competitors is a Plus feature</p>
@@ -266,7 +266,7 @@ export function CompetitorsPage() {
           <button
             onClick={() => window.dispatchEvent(new CustomEvent('hershy:navigate', { detail: 'upgrade' }))}
             className="px-6 py-2.5 rounded-xl text-white text-sm font-semibold transition-all hover:opacity-90"
-            style={{ background: '#0EA4E9' }}
+            style={{ background: 'var(--accent)' }}
           >
             Upgrade to Plus
           </button>
@@ -296,7 +296,7 @@ export function CompetitorsPage() {
             onClick={() => select(m.id)}
             className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm font-medium transition-all ${
               mode === m.id
-                ? 'bg-[#0EA4E9]/15 text-[#0EA4E9] ring-1 ring-inset ring-[#0EA4E9]/20'
+                ? 'bg-[var(--accent)]/15 text-[var(--accent)] ring-1 ring-inset ring-[var(--accent)]/20'
                 : 'text-gray-400 hover:text-white hover:bg-white/5'
             }`}
           >
@@ -305,7 +305,7 @@ export function CompetitorsPage() {
             {m.badge > 0 && (
               <span
                 className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full tabular-nums"
-                style={mode === m.id ? { background: 'rgba(14,164,233,0.22)', color: '#38bdf8' } : { background: 'rgba(255,255,255,0.08)', color: '#9ca3af' }}
+                style={mode === m.id ? { background: 'rgba(var(--accent-rgb),0.22)', color: 'var(--accent-soft)' } : { background: 'rgba(255,255,255,0.08)', color: '#9ca3af' }}
               >
                 {m.badge}
               </span>
@@ -322,7 +322,7 @@ export function CompetitorsPage() {
               key={m.id}
               onClick={() => select(m.id)}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-all flex-shrink-0 ${
-                mode === m.id ? 'bg-[#0EA4E9]/15 text-[#0EA4E9]' : 'text-gray-500 hover:text-gray-300'
+                mode === m.id ? 'bg-[var(--accent)]/15 text-[var(--accent)]' : 'text-gray-500 hover:text-gray-300'
               }`}
             >
               {m.icon}

@@ -8,7 +8,7 @@ import {
 
 const glassCard: React.CSSProperties = {
   background:
-    'linear-gradient(rgba(255,255,255,0.04), rgba(255,255,255,0.04)), linear-gradient(180deg, rgba(14,80,133,0.05), rgba(14,80,133,0.03))',
+    'linear-gradient(rgba(255,255,255,0.04), rgba(255,255,255,0.04)), linear-gradient(180deg, rgba(var(--glass-tint-rgb),0.05), rgba(var(--glass-tint-rgb),0.03))',
   border: '1px solid rgba(255,255,255,0.08)',
 };
 
@@ -104,7 +104,7 @@ export function CommentGenerator() {
             className={`px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-colors ${
               platform === p.id ? 'text-white' : 'text-gray-400 hover:text-gray-200'
             }`}
-            style={platform === p.id ? { background: '#0EA4E9' } : field}
+            style={platform === p.id ? { background: 'var(--accent)' } : field}
           >
             {p.label}
           </button>
@@ -170,7 +170,7 @@ export function CommentGenerator() {
                         key={b.id}
                         onClick={() => setBadges(on ? badges.filter(x => x !== b.id) : [...badges, b.id])}
                         className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${on ? 'text-white' : 'text-gray-400'}`}
-                        style={on ? { background: '#0EA4E9' } : field}
+                        style={on ? { background: 'var(--accent)' } : field}
                       >
                         {b.label}
                       </button>
@@ -230,28 +230,28 @@ export function CommentGenerator() {
               step={10}
               value={width}
               onChange={e => setWidth(Number(e.target.value))}
-              className="w-full accent-[#0EA4E9]"
+              className="w-full accent-[var(--accent)]"
             />
           </div>
 
           <div className="flex flex-wrap gap-x-5 gap-y-2 pt-1">
             {!isTwitch && (
               <label className="flex items-center gap-2 cursor-pointer">
-                <input type="checkbox" checked={verified} onChange={e => setVerified(e.target.checked)} className="accent-[#0EA4E9]" />
+                <input type="checkbox" checked={verified} onChange={e => setVerified(e.target.checked)} className="accent-[var(--accent)]" />
                 <span className="text-xs text-gray-400">Verified badge</span>
               </label>
             )}
             <label className="flex items-center gap-2 cursor-pointer">
-              <input type="checkbox" checked={replySticker} onChange={e => setReplySticker(e.target.checked)} className="accent-[#0EA4E9]" />
+              <input type="checkbox" checked={replySticker} onChange={e => setReplySticker(e.target.checked)} className="accent-[var(--accent)]" />
               <span className="text-xs text-gray-400">"Replying to" sticker</span>
             </label>
             <label className="flex items-center gap-2 cursor-pointer">
-              <input type="checkbox" checked={dark} onChange={e => setDark(e.target.checked)} className="accent-[#0EA4E9]" />
+              <input type="checkbox" checked={dark} onChange={e => setDark(e.target.checked)} className="accent-[var(--accent)]" />
               <span className="text-xs text-gray-400">Dark mode</span>
             </label>
             {!replySticker && (
               <label className="flex items-center gap-2 cursor-pointer">
-                <input type="checkbox" checked={rounded} onChange={e => setRounded(e.target.checked)} className="accent-[#0EA4E9]" />
+                <input type="checkbox" checked={rounded} onChange={e => setRounded(e.target.checked)} className="accent-[var(--accent)]" />
                 <span className="text-xs text-gray-400">Rounded corners</span>
               </label>
             )}
@@ -280,7 +280,7 @@ export function CommentGenerator() {
             <button
               onClick={() => canvasRef.current && downloadCanvas(canvasRef.current, `${platform}-comment.png`)}
               className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-medium text-white rounded-lg hover:opacity-90 transition-opacity"
-              style={{ background: '#0EA4E9' }}
+              style={{ background: 'var(--accent)' }}
             >
               <Download className="w-4 h-4" /> Download PNG
             </button>

@@ -41,12 +41,12 @@ const NICHE_PRESETS = [
 // content steps (welcome is index 0, not counted in the progress bar)
 const TOTAL_STEPS = 5;
 
-const accent = '#0EA4E9';
+const accent = 'var(--accent)';
 // No backdrop-filter: blur over the static app background caused Chromium
 // ghost bands on sibling repaints; the blue underlay replaces its tint.
 const cardBase: React.CSSProperties = {
   background:
-    'linear-gradient(rgba(255,255,255,0.04), rgba(255,255,255,0.04)), linear-gradient(180deg, rgba(14,80,133,0.05), rgba(14,80,133,0.03))',
+    'linear-gradient(rgba(255,255,255,0.04), rgba(255,255,255,0.04)), linear-gradient(180deg, rgba(var(--glass-tint-rgb),0.05), rgba(var(--glass-tint-rgb),0.03))',
   border: '1px solid rgba(255,255,255,0.08)',
 };
 
@@ -202,7 +202,7 @@ export function Onboarding({ onDone }: { onDone: () => void }) {
                 const active = answers.level === l.id;
                 return (
                   <button key={l.id} onClick={() => set({ level: l.id })} className="w-full flex items-center gap-4 p-4 rounded-2xl text-left transition-all"
-                    style={{ ...cardBase, borderColor: active ? accent : 'rgba(255,255,255,0.08)', background: active ? 'rgba(14,164,233,0.08)' : cardBase.background }}>
+                    style={{ ...cardBase, borderColor: active ? accent : 'rgba(255,255,255,0.08)', background: active ? 'rgba(var(--accent-rgb),0.08)' : cardBase.background }}>
                     <Icon className="w-5 h-5 flex-shrink-0" style={{ color: active ? accent : '#94a3b8' }} />
                     <div className="min-w-0">
                       <p className="text-white font-medium text-sm">{l.label}</p>
@@ -237,7 +237,7 @@ export function Onboarding({ onDone }: { onDone: () => void }) {
                   const dimmed = !active && atCap;
                   return (
                     <button key={n} onClick={() => toggle(n)} className="w-full px-2 py-1.5 rounded-full text-sm text-center whitespace-nowrap transition-all"
-                      style={{ ...cardBase, borderColor: active ? accent : 'rgba(255,255,255,0.08)', background: active ? 'rgba(14,164,233,0.12)' : cardBase.background, color: active ? '#fff' : '#cbd5e1', opacity: dimmed ? 0.4 : 1, cursor: dimmed ? 'default' : 'pointer' }}>
+                      style={{ ...cardBase, borderColor: active ? accent : 'rgba(255,255,255,0.08)', background: active ? 'rgba(var(--accent-rgb),0.12)' : cardBase.background, color: active ? '#fff' : '#cbd5e1', opacity: dimmed ? 0.4 : 1, cursor: dimmed ? 'default' : 'pointer' }}>
                       {n}
                     </button>
                   );
@@ -265,7 +265,7 @@ export function Onboarding({ onDone }: { onDone: () => void }) {
                 const active = answers.goal === g.id;
                 return (
                   <button key={g.id} onClick={() => set({ goal: g.id })} className="flex flex-col items-start gap-3 p-4 rounded-2xl text-left transition-all"
-                    style={{ ...cardBase, borderColor: active ? accent : 'rgba(255,255,255,0.08)', background: active ? 'rgba(14,164,233,0.08)' : cardBase.background }}>
+                    style={{ ...cardBase, borderColor: active ? accent : 'rgba(255,255,255,0.08)', background: active ? 'rgba(var(--accent-rgb),0.08)' : cardBase.background }}>
                     <Icon className="w-5 h-5" style={{ color: active ? accent : '#94a3b8' }} />
                     <span className="text-white font-medium text-sm text-balance">{g.label}</span>
                   </button>
@@ -316,7 +316,7 @@ export function Onboarding({ onDone }: { onDone: () => void }) {
         {step === 5 && (
           <StepShell title="Connect your YouTube" subtitle="Unlocks channel-aware analysis. You can skip this.">
             {ytConnected ? (
-              <div className="flex items-center gap-3 p-4 rounded-2xl" style={{ ...cardBase, borderColor: 'rgba(52,211,153,0.3)', background: 'rgba(52,211,153,0.08)' }}>
+              <div className="flex items-center gap-3 p-4 rounded-2xl" style={{ ...cardBase, borderColor: 'rgba(var(--ok-rgb),0.3)', background: 'rgba(var(--ok-rgb),0.08)' }}>
                 <Check className="w-5 h-5 text-emerald-400" />
                 <div>
                   <p className="text-white text-sm font-medium">Connected</p>

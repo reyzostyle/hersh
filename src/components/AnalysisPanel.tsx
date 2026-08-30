@@ -119,7 +119,7 @@ function FeedbackSection({ analysisId }: { analysisId: string }) {
             rows={2}
             className="w-full rounded-lg px-3 py-2 text-sm text-gray-200 placeholder-gray-600 focus:outline-none resize-none"
             style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)' }}
-            onFocus={e => { e.currentTarget.style.borderColor = 'rgba(248,113,113,0.4)'; }}
+            onFocus={e => { e.currentTarget.style.borderColor = 'rgba(var(--danger-rgb),0.4)'; }}
             onBlur={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)'; }}
           />
           <button
@@ -216,7 +216,7 @@ export function AnalysisPanel({ analysis, open, onClose, onBack }: AnalysisPanel
                             </span>
                           )}
                           {analysis.hook_analysis?.video_format && (
-                            <span className="text-[11px] px-2 py-0.5 rounded-full font-medium" style={{ background: 'rgba(14,164,233,0.1)', color: '#38BDF8', border: '1px solid rgba(14,164,233,0.2)' }}>
+                            <span className="text-[11px] px-2 py-0.5 rounded-full font-medium" style={{ background: 'rgba(var(--accent-rgb),0.1)', color: 'var(--accent-soft)', border: '1px solid rgba(var(--accent-rgb),0.2)' }}>
                               {analysis.hook_analysis.video_format}
                             </span>
                           )}

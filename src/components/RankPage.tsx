@@ -10,7 +10,7 @@ const TIER_COLORS: Record<string, string> = {
   Silver: '#C0C4CE',
   Gold: '#F59E0B',
   Platinum: '#67E8F9',
-  Diamond: '#38BDF8',
+  Diamond: 'var(--accent-soft)',
   Master: '#A78BFA',
   Viral: '#F43F5E',
 };
@@ -43,12 +43,12 @@ function Radar({ values, labels }: { values: number[]; labels: string[] }) {
       ))}
       <polygon
         points={values.map((v, i) => pt(Math.max(0.02, v / 100), i)).join(' ')}
-        fill="rgba(14,164,233,0.22)"
-        stroke="#0EA4E9"
+        fill="rgba(var(--accent-rgb),0.22)"
+        stroke="var(--accent)"
         strokeWidth="1.5"
       />
       {values.map((v, i) => (
-        <circle key={i} cx={px(Math.max(0.02, v / 100), i)} cy={py(Math.max(0.02, v / 100), i)} r="2.5" fill="#0EA4E9" />
+        <circle key={i} cx={px(Math.max(0.02, v / 100), i)} cy={py(Math.max(0.02, v / 100), i)} r="2.5" fill="var(--accent)" />
       ))}
       {labels.map((l, i) => (
         <text key={l} x={labelProps[i].x} y={labelProps[i].y} textAnchor={labelProps[i].anchor} fontSize="10.5" fill="#6B7280">
@@ -69,7 +69,7 @@ function SourceRow({ label, value, max, sub }: { label: string; value: number; m
         </span>
       </div>
       <div className="mt-1.5 h-1.5 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.06)' }}>
-        <div className="h-full rounded-full" style={{ width: `${Math.min(100, (value / max) * 100)}%`, background: '#0EA4E9' }} />
+        <div className="h-full rounded-full" style={{ width: `${Math.min(100, (value / max) * 100)}%`, background: 'var(--accent)' }} />
       </div>
       {sub && <p className="mt-1 text-xs text-gray-600">{sub}</p>}
     </div>
@@ -117,7 +117,7 @@ export function RankPage() {
   if (!data) {
     return (
       <div className="h-full flex items-center justify-center">
-        <Loader2 className="w-7 h-7 text-[#0EA4E9] animate-spin" />
+        <Loader2 className="w-7 h-7 text-[var(--accent)] animate-spin" />
       </div>
     );
   }
@@ -179,7 +179,7 @@ export function RankPage() {
             </span>
           )}
           {data.calibrationUsed < 3 && (
-            <span className="text-[11px] font-medium px-2.5 py-1 rounded-full" style={{ background: 'rgba(14,164,233,0.1)', color: '#38BDF8', border: '1px solid rgba(14,164,233,0.2)' }}>
+            <span className="text-[11px] font-medium px-2.5 py-1 rounded-full" style={{ background: 'rgba(var(--accent-rgb),0.1)', color: 'var(--accent-soft)', border: '1px solid rgba(var(--accent-rgb),0.2)' }}>
               Calibration: {data.calibrationUsed}/3 videos · ×1.5 RP
             </span>
           )}

@@ -79,7 +79,7 @@ export function SaveToFolderModal({ folders, currentFolderId, isSaved, onPick, o
               type="submit"
               disabled={busy || !newName.trim()}
               className="px-3 py-2 rounded-xl text-white text-sm font-semibold disabled:opacity-50"
-              style={{ background: '#0EA4E9' }}
+              style={{ background: 'var(--accent)' }}
             >
               {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Add'}
             </button>
@@ -115,7 +115,7 @@ function FolderRow({ label, active, onClick }: { label: string; active: boolean;
       onClick={onClick}
       className="w-full flex items-center gap-2 px-3 py-2 rounded-xl text-sm transition-colors"
       style={active
-        ? { background: 'rgba(14,164,233,0.12)', color: '#38bdf8' }
+        ? { background: 'rgba(var(--accent-rgb),0.12)', color: 'var(--accent-soft)' }
         : { color: '#d1d5db' }}
     >
       <Folder className="w-4 h-4 flex-shrink-0" />

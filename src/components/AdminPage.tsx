@@ -104,7 +104,7 @@ export function AdminPage() {
   if (!stats) {
     return (
       <div className="h-full flex items-center justify-center">
-        <Loader2 className="w-7 h-7 text-[#0EA4E9] animate-spin" />
+        <Loader2 className="w-7 h-7 text-[var(--accent)] animate-spin" />
       </div>
     );
   }
@@ -150,7 +150,7 @@ export function AdminPage() {
         label="New signups"
         value={String(stats.new_users_28d)}
         sub={`${stats.new_users_today} today · Last 28 days`}
-        color="#38BDF8"
+        color="var(--accent-soft)"
         spark={stats.daily_signups}
       />
       <StatCard
@@ -158,7 +158,7 @@ export function AdminPage() {
         label="Active users"
         value={String(stats.active_users_28d)}
         sub="Signed in within the last 28 days"
-        color="#38BDF8"
+        color="var(--accent-soft)"
       />
       <StatCard
         icon="🌍"

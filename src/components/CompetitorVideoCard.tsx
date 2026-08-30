@@ -25,7 +25,7 @@ export function CompetitorVideoCard({ idea, onOpen, onLike, onUpdated, onSave }:
 
   return (
     <div
-      className="group rounded-xl p-3 flex flex-col gap-2 transition-all cursor-pointer glass-panel hover:ring-1 hover:ring-[#0EA4E9]/40"
+      className="group rounded-xl p-3 flex flex-col gap-2 transition-all cursor-pointer glass-panel hover:ring-1 hover:ring-[var(--accent)]/40"
       style={{ opacity: idea.liked === false ? 0.45 : 1 }}
       onClick={onOpen}
       role="button"
@@ -37,7 +37,7 @@ export function CompetitorVideoCard({ idea, onOpen, onLike, onUpdated, onSave }:
         {idea.outlier_score != null && (
           <span
             className="flex items-center gap-1 text-[11px] font-bold px-1.5 py-0.5 rounded-md flex-shrink-0"
-            style={{ background: 'rgba(52,211,153,0.14)', color: '#6ee7b7' }}
+            style={{ background: 'rgba(var(--ok-rgb),0.14)', color: '#6ee7b7' }}
             title="Views per day versus this channel's usual pace"
           >
             <TrendingUp className="w-3 h-3" />
@@ -71,7 +71,7 @@ export function CompetitorVideoCard({ idea, onOpen, onLike, onUpdated, onSave }:
           title={idea.liked === true ? 'Saved — change folder' : 'Save to folder'}
           className="flex items-center gap-1 text-[11px] font-medium px-2 py-1 rounded-lg transition-colors"
           style={idea.liked === true
-            ? { background: 'rgba(52,211,153,0.12)', color: '#6ee7b7' }
+            ? { background: 'rgba(var(--ok-rgb),0.12)', color: '#6ee7b7' }
             : { color: '#6b7280' }}
         >
           {idea.liked === true ? <Check className="w-3 h-3" /> : <FolderPlus className="w-3 h-3" />}
@@ -101,7 +101,7 @@ export function CompetitorVideoCard({ idea, onOpen, onLike, onUpdated, onSave }:
           onClick={handleAction}
           disabled={generatingOutline}
           className="ml-auto flex items-center gap-1 text-[11px] font-semibold px-2 py-1 rounded-lg transition-colors disabled:opacity-60"
-          style={{ color: '#38bdf8', background: 'rgba(14,164,233,0.10)' }}
+          style={{ color: 'var(--accent-soft)', background: 'rgba(var(--accent-rgb),0.10)' }}
         >
           {generatingOutline ? <Loader2 className="w-3 h-3 animate-spin" /> : <Sparkles className="w-3 h-3" />}
           {generatingOutline ? 'Creating...' : hasOutline ? 'View outline' : 'Create outline'}

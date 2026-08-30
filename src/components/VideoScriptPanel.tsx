@@ -150,7 +150,7 @@ export function VideoScriptPanel({ video, open, onClose, onAnalyze, analyzing }:
                 onClick={handleAnalyze}
                 disabled={analyzing}
                 className="w-full flex items-center justify-center gap-2 px-4 py-3 text-white rounded-lg text-sm font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                style={{ background: analyzing ? 'rgba(139,92,246,0.5)' : 'linear-gradient(135deg, #8B5CF6, #0EA4E9)' }}
+                style={{ background: analyzing ? 'rgba(139,92,246,0.5)' : 'linear-gradient(135deg, #8B5CF6, var(--accent))' }}
               >
                 {analyzing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
                 {analyzing ? 'Analyzing...' : 'Analyze'}

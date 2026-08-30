@@ -24,7 +24,7 @@ export function OnboardingOffer({ onAccept, onDismiss }: { onAccept: () => void;
         </button>
 
         <div className="flex items-center gap-2.5 mb-2">
-          <span className="text-[#0EA4E9] flex-shrink-0">
+          <span className="text-[var(--accent)] flex-shrink-0">
             <Sparkles className="w-4 h-4" />
           </span>
           <span className="text-white font-semibold text-sm">That was a cold read</span>
@@ -39,7 +39,7 @@ export function OnboardingOffer({ onAccept, onDismiss }: { onAccept: () => void;
           <button
             onClick={onAccept}
             className="px-3.5 py-2 rounded-lg text-xs font-semibold text-white transition-opacity hover:opacity-90"
-            style={{ background: '#0EA4E9' }}
+            style={{ background: 'var(--accent)' }}
           >
             Takes a minute
           </button>
