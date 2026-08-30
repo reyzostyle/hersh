@@ -46,9 +46,14 @@ interface Props {
   open: boolean;
   mode: 'url' | 'upload' | 'hook' | 'script';
   done: boolean;
+  /** Divides every stage duration. The signed-out hero flow runs the same
+   *  stages faster, because nothing is actually being analysed there yet. */
+  speed?: number;
+  /** Fires when the last stage has landed and the bar has stopped climbing. */
+  onStagesComplete?: () => void;
 }
 
-export function AnalysisProgressModal({ open, mode, done }: Props) {
+export function AnalysisProgressModal({ open, mode, done, speed = 1, onStagesComplete }: Props) {
   const [percent, setPercent] = useState(0);
   const [label, setLabel] = useState('');
   const timersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
@@ -65,24 +70,28 @@ export function AnalysisProgressModal({ open, mode, done }: Props) {
     const stages = mode === 'upload' ? UPLOAD_STAGES : mode === 'hook' ? HOOK_STAGES : mode === 'script' ? SCRIPT_STAGES : URL_STAGES;
     let elapsed = 0;
 
-    stages.forEach((stage, i) => {
+    stages.forEach((stage) => {
       const t1 = setTimeout(() => {
         setLabel(stage.label);
       }, elapsed);
 
       const t2 = setTimeout(() => {
         setPercent(stage.target);
-      }, elapsed + 200);
+      }, elapsed + 200 / speed);
 
       timersRef.current.push(t1, t2);
-      elapsed += stage.duration;
+      elapsed += stage.duration / speed;
     });
+
+    if (onStagesComplete) {
+      timersRef.current.push(setTimeout(onStagesComplete, elapsed));
+    }
 
     return () => {
       timersRef.current.forEach(clearTimeout);
       timersRef.current = [];
     };
-  }, [open, mode]);
+  }, [open, mode, speed]);
 
   useEffect(() => {
     if (done && open) {
