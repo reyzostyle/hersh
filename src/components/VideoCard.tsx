@@ -1,5 +1,5 @@
 import { Video } from '../lib/supabase';
-import { Eye, ThumbsUp, MessageSquare, Check, FileText } from 'lucide-react';
+import { Eye, ThumbsUp, ChatText as MessageSquare, Check, FileText } from '@phosphor-icons/react';
 
 interface VideoCardProps {
   video: Video;

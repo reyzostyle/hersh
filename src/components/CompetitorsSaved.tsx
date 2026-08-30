@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Folder, FolderPlus, Loader2, X, Bookmark } from 'lucide-react';
+import { Folder, FolderPlus, CircleNotch as Loader2, X, BookmarkSimple as Bookmark } from '@phosphor-icons/react';
 import { type CompetitorIdea, type IdeaFolder } from '../lib/competitors';
 import { CompetitorVideoCard } from './CompetitorVideoCard';
 

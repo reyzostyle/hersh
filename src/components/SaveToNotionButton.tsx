@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { getSessionToken, fetchWithRetry } from '../lib/supabase';
 import { showToast } from '../lib/toast';
-import { Check, Loader2 } from 'lucide-react';
+import { Check, CircleNotch as Loader2 } from '@phosphor-icons/react';
 
 function NotionGlyph({ className }: { className?: string }) {
   return (

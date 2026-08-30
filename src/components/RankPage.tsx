@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Loader2, Trophy, Flame, Link } from 'lucide-react';
+import { CircleNotch as Loader2, Trophy, Fire as Flame, LinkSimple as Link } from '@phosphor-icons/react';
 import { useAuth } from '../contexts/AuthContext';
 import { fetchRank, syncYouTubeIfStale, RankData, TIERS } from '../lib/rank';
 import { ErrorNotice } from './ErrorNotice';
@@ -9,7 +9,7 @@ const TIER_COLORS: Record<string, string> = {
   Bronze: '#CD7F32',
   Silver: '#C0C4CE',
   Gold: '#F59E0B',
-  Platinum: '#67E8F9',
+  Platinum: 'rgb(var(--wash-rgb))',
   Diamond: 'var(--accent-soft)',
   Master: 'rgb(var(--wash-rgb))',
   Viral: '#F43F5E',

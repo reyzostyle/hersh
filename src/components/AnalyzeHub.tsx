@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Video as VideoIcon, Wand2, FileText } from 'lucide-react';
+import { VideoCamera as VideoIcon, MagicWand as Wand2, FileText } from '@phosphor-icons/react';
 import { HookAnalysis } from './HookAnalysis';
 import { HookLab } from './HookLab';
 import { ScriptLab } from './ScriptLab';

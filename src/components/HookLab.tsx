@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { getSessionToken, fetchWithRetry } from '../lib/supabase';
-import { Sparkles, Loader2, Copy, Check, AlertTriangle, Wand2, X } from 'lucide-react';
+import { Sparkle as Sparkles, CircleNotch as Loader2, Copy, Check, Warning as AlertTriangle, MagicWand as Wand2, X } from '@phosphor-icons/react';
 import { ScoreCircle, ScoreBreakdown } from './ScoreCircle';
 import { AnalysisProgressModal } from './AnalysisProgressModal';
 import { SheetGrip, useSheetDismiss } from './SheetGrip';

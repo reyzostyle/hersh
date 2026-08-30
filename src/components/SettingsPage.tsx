@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
-import { Loader2, Eye, EyeOff, RefreshCw, Link, ChevronDown, Sparkles, User, Zap, MessageCircle, ExternalLink, Ticket } from 'lucide-react';
+import { CircleNotch as Loader2, Eye, EyeSlash as EyeOff, ArrowsClockwise as RefreshCw, LinkSimple as Link, CaretDown as ChevronDown, Sparkle as Sparkles, User, Lightning as Zap, ChatCircle as MessageCircle, ArrowSquareOut as ExternalLink, Ticket } from '@phosphor-icons/react';
 import { getSessionToken, fetchWithRetry } from '../lib/supabase';
 
 function YouTubeLogo({ className }: { className?: string }) {

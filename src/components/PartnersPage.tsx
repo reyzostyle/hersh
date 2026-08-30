@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { getSessionToken, fetchWithRetry } from '../lib/supabase';
-import { Copy, Check, Users, TrendingUp, DollarSign, Loader2, Plus, RefreshCw, Trash2, Link, Handshake, Clock, Wallet } from 'lucide-react';
+import { Copy, Check, UsersThree as Users, TrendUp as TrendingUp, CurrencyDollar as DollarSign, CircleNotch as Loader2, Plus, ArrowsClockwise as RefreshCw, Trash as Trash2, LinkSimple as Link, Handshake, Clock, Wallet } from '@phosphor-icons/react';
 
 const ADMIN_EMAIL = 'reyzostyle@gmail.com';
 
@@ -489,7 +489,7 @@ function AdminView() {
                       <p className="text-xs text-gray-600">{p.commission_percent}% commission</p>
                     </div>
                     <div className="flex items-center gap-1 flex-shrink-0">
-                      <button onClick={() => { setAssigningCode(assigningCode === p.code ? null : p.code); setAssignEmail(''); }} className="p-1.5 text-gray-500 hover:text-blue-400 transition-colors rounded" title="Link account">
+                      <button onClick={() => { setAssigningCode(assigningCode === p.code ? null : p.code); setAssignEmail(''); }} className="p-1.5 text-gray-500 hover:text-white/70 transition-colors rounded" title="Link account">
                         <Link className="w-3.5 h-3.5" />
                       </button>
                       <button onClick={() => deletePartner(p.code)} className="p-1.5 text-gray-500 hover:text-red-400 transition-colors rounded" title="Delete">

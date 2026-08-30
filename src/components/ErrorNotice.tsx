@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ChevronDown, ChevronUp, MessageCircle, Copy, Check } from 'lucide-react';
+import { CaretDown as ChevronDown, CaretUp as ChevronUp, ChatCircle as MessageCircle, Copy, Check } from '@phosphor-icons/react';
 
 const DISCORD_URL = 'https://discord.com/invite/N8S6C95Ry2';
 

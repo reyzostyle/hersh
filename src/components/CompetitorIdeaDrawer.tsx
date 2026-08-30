@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { X, Eye, Calendar, TrendingUp, ExternalLink, FolderPlus, EyeOff, Check } from 'lucide-react';
+import { X, Eye, Calendar, TrendUp as TrendingUp, ArrowSquareOut as ExternalLink, FolderPlus, EyeSlash as EyeOff, Check } from '@phosphor-icons/react';
 import { formatViews, formatDate, type CompetitorIdea } from '../lib/competitors';
 import { CompetitorIdeaAnalysis } from './CompetitorIdeaAnalysis';
 
@@ -38,7 +38,7 @@ export function CompetitorIdeaDrawer({ idea, onClose, onUpdated, onSave }: {
           a real side panel from tablet up. */}
       <div
         className="relative h-full w-full sm:max-w-md flex flex-col animate-slide-in-right"
-        style={{ background: '#0B121F', borderLeft: '1px solid rgba(255,255,255,0.1)' }}
+        style={{ background: 'var(--bg-raised)', borderLeft: '1px solid rgba(255,255,255,0.1)' }}
       >
         <div className="flex items-center justify-between gap-3 px-4 py-3 flex-shrink-0" style={{ borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
           <p className="text-sm font-semibold text-white truncate">{idea.channel_name || 'Idea'}</p>

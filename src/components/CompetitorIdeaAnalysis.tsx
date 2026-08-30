@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Loader2, Sparkles, ChevronDown, ChevronUp, Lightbulb } from 'lucide-react';
+import { CircleNotch as Loader2, Sparkle as Sparkles, CaretDown as ChevronDown, CaretUp as ChevronUp, Lightbulb } from '@phosphor-icons/react';
 import { type CompetitorIdea } from '../lib/competitors';
 import { useIdeaGeneration } from '../lib/useIdeaGeneration';
 import { ErrorNotice } from './ErrorNotice';
@@ -43,10 +43,10 @@ export function CompetitorIdeaAnalysis({ idea, onUpdated, stickyActions = false 
       {idea.adapted_idea && (
         <div className="rounded-xl p-3 space-y-1" style={{ background: 'rgba(var(--wash-rgb),0.08)', border: '1px solid rgba(var(--wash-rgb),0.2)' }}>
           <div className="flex items-center gap-1.5">
-            <Lightbulb className="w-3.5 h-3.5 text-violet-400" />
-            <p className="text-[10px] font-semibold uppercase tracking-widest text-violet-400">Your angle</p>
+            <Lightbulb className="w-3.5 h-3.5 text-white/70" />
+            <p className="text-[10px] font-semibold uppercase tracking-widest text-white/70">Your angle</p>
           </div>
-          <p className="text-violet-100 text-sm leading-relaxed">{idea.adapted_idea}</p>
+          <p className="text-white/70 text-sm leading-relaxed">{idea.adapted_idea}</p>
         </div>
       )}
 
@@ -99,7 +99,7 @@ export function CompetitorIdeaAnalysis({ idea, onUpdated, stickyActions = false 
         <div
           className={`flex gap-2 flex-wrap ${stickyActions ? 'sticky bottom-0 -mx-4 px-4 py-3' : ''}`}
           style={stickyActions
-            ? { background: 'linear-gradient(180deg, rgba(11,18,31,0) 0%, #0B121F 35%)', borderTop: '1px solid rgba(255,255,255,0.06)' }
+            ? { background: 'linear-gradient(180deg, rgba(11,18,31,0) 0%, var(--bg-raised) 35%)', borderTop: '1px solid rgba(255,255,255,0.06)' }
             : undefined}
         >
           <button

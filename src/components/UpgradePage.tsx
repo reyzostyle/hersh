@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { getSessionToken, fetchWithRetry } from '../lib/supabase';
-import { Zap, Check, Loader2 } from 'lucide-react';
+import { Lightning as Zap, Check, CircleNotch as Loader2 } from '@phosphor-icons/react';
 import { ErrorNotice } from './ErrorNotice';
 import { useUsage } from '../lib/useUsage';
 

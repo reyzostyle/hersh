@@ -1,4 +1,4 @@
-import { Video as VideoIcon, Wand2, FileText, Users, ArrowUpRight } from 'lucide-react';
+import { VideoCamera as VideoIcon, MagicWand as Wand2, FileText, UsersThree as Users, ArrowUpRight } from '@phosphor-icons/react';
 import { useAuth } from '../contexts/AuthContext';
 import { NavTab, HIDDEN_TABS } from './AppShell';
 

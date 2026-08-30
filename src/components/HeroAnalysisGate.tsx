@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { Sparkles, History } from 'lucide-react';
+import { Sparkle as Sparkles, ClockCounterClockwise as History } from '@phosphor-icons/react';
 import { AppShell } from './AppShell';
 import { AnalysisProgressModal } from './AnalysisProgressModal';
 

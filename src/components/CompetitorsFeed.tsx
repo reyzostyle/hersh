@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Lightbulb, Trash2, Loader2, Plus, RefreshCw, ChevronUp, Users, Check } from 'lucide-react';
+import { Lightbulb, Trash as Trash2, CircleNotch as Loader2, Plus, ArrowsClockwise as RefreshCw, CaretUp as ChevronUp, UsersThree as Users, Check } from '@phosphor-icons/react';
 import {
   filterIdeas, sortAndFilterIdeas,
   type CompetitorIdea, type CompetitorChannel, type IdeaFilter, type OutlierFloor, type IdeaSort,
@@ -120,13 +120,13 @@ export function CompetitorsFeed({
               title="Write each angle for your niche, using your channel profile"
               className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-xs font-medium transition-all"
               style={adaptForProfile
-                ? { background: 'rgba(var(--wash-rgb),0.14)', color: '#c4b5fd', border: '1px solid rgba(var(--wash-rgb),0.3)' }
+                ? { background: 'rgba(var(--wash-rgb),0.14)', color: 'rgb(var(--wash-rgb))', border: '1px solid rgba(var(--wash-rgb),0.3)' }
                 : { background: 'rgba(255,255,255,0.04)', color: '#6b7280', border: '1px solid rgba(255,255,255,0.08)' }}
             >
               <span
                 className="w-3.5 h-3.5 rounded flex items-center justify-center flex-shrink-0"
                 style={adaptForProfile
-                  ? { background: '#8b5cf6' }
+                  ? { background: 'rgb(var(--wash-rgb))' }
                   : { border: '1px solid rgba(255,255,255,0.25)' }}
               >
                 {adaptForProfile && <Check className="w-2.5 h-2.5 text-white" />}
@@ -210,7 +210,7 @@ export function CompetitorsFeed({
               className="px-2.5 py-2 rounded-xl text-xs font-medium text-gray-300 focus:outline-none cursor-pointer"
               style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}
             >
-              {SORTS.map(s => <option key={s.value} value={s.value} style={{ background: '#0B121F' }}>{s.label}</option>)}
+              {SORTS.map(s => <option key={s.value} value={s.value} style={{ background: 'var(--bg-raised)' }}>{s.label}</option>)}
             </select>
 
             {filter === 'new' && inboxCount > 0 && (

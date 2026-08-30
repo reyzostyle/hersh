@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Video } from '../lib/supabase';
-import { X, Sparkles, Loader2, Eye, ThumbsUp, MessageSquare } from 'lucide-react';
+import { X, Sparkle as Sparkles, CircleNotch as Loader2, Eye, ThumbsUp, ChatText as MessageSquare } from '@phosphor-icons/react';
 
 interface VideoScriptPanelProps {
   video: Video | null;
@@ -61,7 +61,7 @@ export function VideoScriptPanel({ video, open, onClose, onAnalyze, analyzing }:
       >
         <div className="flex items-center justify-between px-6 py-4 flex-shrink-0" style={{ borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
           <div className="flex items-center gap-2">
-            <Sparkles className="w-4 h-4 text-purple-400" />
+            <Sparkles className="w-4 h-4 text-white/70" />
             <h2 className="text-base font-semibold text-white">Analyze Video</h2>
           </div>
           <button onClick={onClose} className="p-1.5 text-gray-500 hover:text-white hover:bg-gray-800 rounded-lg transition-colors">
@@ -141,7 +141,7 @@ export function VideoScriptPanel({ video, open, onClose, onAnalyze, analyzing }:
                   rows={4}
                   className="w-full rounded-lg px-4 py-3 text-sm text-gray-200 placeholder-gray-600 focus:outline-none resize-none leading-relaxed transition-colors"
                   style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }}
-                  onFocus={(e) => { e.currentTarget.style.borderColor = '#8B5CF6'; }}
+                  onFocus={(e) => { e.currentTarget.style.borderColor = 'rgb(var(--wash-rgb))'; }}
                   onBlur={(e) => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)'; }}
                 />
               </div>
@@ -150,7 +150,7 @@ export function VideoScriptPanel({ video, open, onClose, onAnalyze, analyzing }:
                 onClick={handleAnalyze}
                 disabled={analyzing}
                 className="w-full flex items-center justify-center gap-2 px-4 py-3 text-white rounded-lg text-sm font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                style={{ background: analyzing ? 'rgba(var(--wash-rgb),0.5)' : 'linear-gradient(135deg, #8B5CF6, var(--accent))' }}
+                style={{ background: analyzing ? 'rgba(var(--wash-rgb),0.5)' : 'linear-gradient(135deg, rgb(var(--wash-rgb)), var(--accent))' }}
               >
                 {analyzing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
                 {analyzing ? 'Analyzing...' : 'Analyze'}

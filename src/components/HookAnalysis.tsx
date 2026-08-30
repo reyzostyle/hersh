@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useContext } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase, getSessionToken, fetchWithRetry, Video, Analysis } from '../lib/supabase';
-import { Sparkles, Loader2, History, Film, X, Plus } from 'lucide-react';
+import { Sparkle as Sparkles, CircleNotch as Loader2, ClockCounterClockwise as History, FilmSlate as Film, X, Plus } from '@phosphor-icons/react';
 import { AnalysisPanel } from './AnalysisPanel';
 import { HistoryPanel } from './HistoryPanel';
 import { AnalysisProgressModal } from './AnalysisProgressModal';

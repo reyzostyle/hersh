@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { Sparkles } from 'lucide-react';
+import { Sparkle as Sparkles } from '@phosphor-icons/react';
 
 interface Stage {
   label: string;
@@ -137,7 +137,7 @@ export function AnalysisProgressModal({ open, mode, done, speed = 1, onStagesCom
               className="h-full rounded-full"
               style={{
                 width: `${percent}%`,
-                background: 'linear-gradient(90deg, #8B5CF6, var(--accent))',
+                background: 'linear-gradient(90deg, rgb(var(--wash-rgb)), var(--accent))',
                 transition: 'width 1.2s cubic-bezier(0.4, 0, 0.2, 1)',
               }}
             />

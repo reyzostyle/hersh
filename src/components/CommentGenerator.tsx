@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { Download, Copy, Check, Upload, X } from 'lucide-react';
+import { DownloadSimple as Download, Copy, Check, UploadSimple as Upload, X } from '@phosphor-icons/react';
 import {
   renderComment, downloadCanvas, TWITCH_COLORS,
   WIDTH_MIN, WIDTH_MAX, WIDTH_DEFAULT,

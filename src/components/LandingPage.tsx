@@ -1,11 +1,11 @@
 import { useState, useEffect, useRef } from 'react';
 
-import { X, Check, Loader2, Zap, ChevronRight, ChevronDown, MessageCircle, Twitter, Mail, TrendingUp, FileText, Wand2, Video as VideoIcon, Users, Play, Sparkles, Repeat, Lock } from 'lucide-react';
+import { X, Check, CircleNotch as Loader2, Lightning as Zap, CaretRight as ChevronRight, CaretDown as ChevronDown, ChatCircle as MessageCircle, XLogo as Twitter, Envelope as Mail, TrendUp as TrendingUp, FileText, MagicWand as Wand2, VideoCamera as VideoIcon, UsersThree as Users, Play, Sparkle as Sparkles, Repeat, Lock } from '@phosphor-icons/react';
 import { useAuth } from '../contexts/AuthContext';
 import { HeroAnalysisGate } from './HeroAnalysisGate';
 import { supabase } from '../lib/supabase';
 
-// lucide-react has no brand marks, so the real Discord glyph is inlined here
+// The icon set has no brand marks, so the real Discord glyph is inlined here
 // (official logo path, viewBox 0 0 24 24) rather than standing in with a
 // generic chat-bubble icon.
 function DiscordIcon({ className, style }: { className?: string; style?: React.CSSProperties }) {
@@ -512,7 +512,7 @@ function MiniIdeaCard() {
   return (
     <div className="rounded-lg p-2.5 h-full flex flex-col justify-center" style={mockShell}>
       <div className="flex gap-2 items-center">
-        <div className="w-10 h-[26px] rounded flex-shrink-0 flex items-center justify-center" style={{ background: 'linear-gradient(135deg,#233246,#0f172a)' }}>
+        <div className="w-10 h-[26px] rounded flex-shrink-0 flex items-center justify-center" style={{ background: 'linear-gradient(135deg,var(--bg-raised),var(--bg-raised))' }}>
           <Play className="w-2.5 h-2.5 text-white/70" fill="currentColor" />
         </div>
         <p className="flex-1 min-w-0 text-[10.5px] leading-tight text-gray-200 truncate">3 hooks I stole from MrBeast</p>
@@ -728,7 +728,7 @@ function MiniPublished() {
   return (
     <div className="rounded-lg p-2.5 h-full flex flex-col justify-center gap-2" style={mockShell}>
       <div className="flex items-center gap-2">
-        <div className="w-10 h-[26px] rounded flex-shrink-0 flex items-center justify-center" style={{ background: 'linear-gradient(135deg,#233246,#0f172a)' }}>
+        <div className="w-10 h-[26px] rounded flex-shrink-0 flex items-center justify-center" style={{ background: 'linear-gradient(135deg,var(--bg-raised),var(--bg-raised))' }}>
           <Play className="w-2.5 h-2.5 text-white/70" fill="currentColor" />
         </div>
         <p className="flex-1 min-w-0 text-[10.5px] leading-tight text-gray-200 truncate">Your new short</p>

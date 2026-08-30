@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { BarChart2, Loader2, RefreshCw, Infinity as InfinityIcon, Plus } from 'lucide-react';
+import { ChartBar as BarChart2, CircleNotch as Loader2, ArrowsClockwise as RefreshCw, Infinity as InfinityIcon, Plus } from '@phosphor-icons/react';
 import { ErrorNotice } from './ErrorNotice';
 import { getSessionToken, fetchWithRetry } from '../lib/supabase';
 import { useUsage, PLAN_DISPLAY, CREDIT_COSTS } from '../lib/useUsage';

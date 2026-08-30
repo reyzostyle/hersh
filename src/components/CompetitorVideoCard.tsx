@@ -1,4 +1,4 @@
-import { Eye, EyeOff, TrendingUp, Sparkles, Loader2, FolderPlus, ExternalLink, Check } from 'lucide-react';
+import { Eye, EyeSlash as EyeOff, TrendUp as TrendingUp, Sparkle as Sparkles, CircleNotch as Loader2, FolderPlus, ArrowSquareOut as ExternalLink, Check } from '@phosphor-icons/react';
 import { formatViews, formatDate, type CompetitorIdea } from '../lib/competitors';
 import { useIdeaGeneration } from '../lib/useIdeaGeneration';
 
@@ -58,7 +58,7 @@ export function CompetitorVideoCard({ idea, onOpen, onLike, onUpdated, onSave }:
       </p>
 
       {idea.adapted_idea && (
-        <p className="text-[12px] leading-relaxed line-clamp-2 text-violet-200/70">
+        <p className="text-[12px] leading-relaxed line-clamp-2 text-white/70/70">
           {idea.adapted_idea}
         </p>
       )}

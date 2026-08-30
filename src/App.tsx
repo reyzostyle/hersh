@@ -5,7 +5,7 @@ import { Onboarding } from './components/Onboarding';
 import { OnboardingOffer } from './components/OnboardingOffer';
 import { PrivacyPolicy } from './components/PrivacyPolicy';
 import { TermsOfService } from './components/TermsOfService';
-import { Loader2 } from 'lucide-react';
+import { CircleNotch as Loader2 } from '@phosphor-icons/react';
 import { useEffect, useState } from 'react';
 import { supabase, getSessionToken } from './lib/supabase';
 

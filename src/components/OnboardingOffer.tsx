@@ -1,4 +1,4 @@
-import { Sparkles, X } from 'lucide-react';
+import { Sparkle as Sparkles, X } from '@phosphor-icons/react';
 
 // Shown once, after the first analysis lands, to someone who came in through
 // the landing page's hero and therefore skipped onboarding.

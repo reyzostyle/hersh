@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { createPortal } from 'react-dom';
-import { X, Folder, Plus, Loader2, Check } from 'lucide-react';
+import { X, Folder, Plus, CircleNotch as Loader2, Check } from '@phosphor-icons/react';
 import { type IdeaFolder } from '../lib/competitors';
 
 // Picking where a saved idea goes. Unfiled is a real, first-class choice
@@ -38,7 +38,7 @@ export function SaveToFolderModal({ folders, currentFolderId, isSaved, onPick, o
       <div className="absolute inset-0 animate-fade-in" style={{ background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)' }} />
       <div
         className="relative w-full max-w-sm rounded-2xl p-4 animate-scale-in"
-        style={{ background: '#0B121F', border: '1px solid rgba(255,255,255,0.12)' }}
+        style={{ background: 'var(--bg-raised)', border: '1px solid rgba(255,255,255,0.12)' }}
         onClick={e => e.stopPropagation()}
       >
         <div className="flex items-center justify-between mb-3">

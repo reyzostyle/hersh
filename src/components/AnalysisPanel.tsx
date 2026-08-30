@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Analysis } from '../lib/supabase';
 import { SheetGrip, useSheetDismiss } from './SheetGrip';
-import { AlertCircle, X, ArrowLeft, ThumbsUp, ThumbsDown, Send } from 'lucide-react';
+import { WarningCircle as AlertCircle, X, ArrowLeft, ThumbsUp, ThumbsDown, PaperPlaneTilt as Send } from '@phosphor-icons/react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { ScoreCircle, ScoreBreakdown } from './ScoreCircle';

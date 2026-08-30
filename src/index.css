@@ -22,13 +22,13 @@
   /* Blue is not gone, it moved underneath. The base is a deep blue-black
      rather than neutral, so the product keeps a temperature without spending
      the colour on buttons, and --brand carries it into the active row. */
-  --brand-rgb: 56, 90, 214;
-  --bg-raised: #0C0E13;
+  --brand-rgb: 37, 99, 235;
+  --bg-raised: #0A0D18;
   /* Anything drawn ON the accent. Kept as a token because a white fill with
      white text is the one way this palette can silently break. */
   --on-accent: #0A0A0B;
   --accent-soft: #C9CED9;
-  --bg-app: #07080C;
+  --bg-app: #06080F;
 
   /* The wash under every glass panel. Separate from --accent because it is a
      deep, desaturated version rather than the accent at low opacity, and going
@@ -40,7 +40,7 @@
      decorative purple, which is most of what made the app read as blue even
      where nothing was explicitly the accent colour. Both are neutral now:
      depth comes from value, not from hue. */
-  --surface-rgb: 12, 14, 19;
+  --surface-rgb: 10, 13, 24;
   --wash-rgb: 255, 255, 255;
 
   /* Semantic colours, so "success" and "danger" are not spelled out per file. */
@@ -354,13 +354,15 @@ input, textarea, select {
 }
 /* Primary CTA: subtle top highlight + soft glow so buttons share the glass look */
 .btn-primary {
-  background: linear-gradient(180deg, #22b0ec, #0e9fe4);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.25), 0 6px 18px -8px rgba(var(--accent-rgb), 0.55);
-  transition: filter 0.15s ease, box-shadow 0.15s ease;
+  /* White, flat, no gradient and no glow. Every filled action in the product
+     is this, so a primary button can never quietly be a different blue again. */
+  background: var(--accent);
+  color: var(--on-accent);
+  transition: opacity 0.15s ease;
 }
-.btn-primary:hover { filter: brightness(1.06); }
-.btn-primary:active { filter: brightness(0.97); }
-.btn-primary:disabled { filter: none; box-shadow: none; }
+.btn-primary:hover { opacity: 0.9; }
+.btn-primary:active { opacity: 0.82; }
+.btn-primary:disabled { opacity: 0.35; }
 
 /* ─── Type ────────────────────────────────────────────────────────────────── */
 

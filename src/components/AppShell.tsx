@@ -1,5 +1,5 @@
 import { useState, useEffect, createContext, useContext, useRef } from 'react';
-import { Settings, LogOut, Menu, X, Zap, Users, Handshake, BarChart2, PanelLeftClose, PanelLeftOpen, Video as VideoIcon, Wand2, FileText } from 'lucide-react';
+import { GearSix as Settings, SignOut as LogOut, List as Menu, X, Lightning as Zap, UsersThree as Users, Handshake, ChartBar as BarChart2, SidebarSimple as PanelLeftClose, Sidebar as PanelLeftOpen, VideoCamera as VideoIcon, MagicWand as Wand2, FileText } from '@phosphor-icons/react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
 

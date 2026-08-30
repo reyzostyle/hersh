@@ -1,10 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
-import {
-  Loader2, Youtube, Check, ArrowRight, ArrowLeft,
-  TrendingUp, DollarSign, Flame, ShoppingBag, Sprout, Rocket, Trophy,
-} from 'lucide-react';
+import { CircleNotch as Loader2, ArrowLeft, ArrowRight, Check, CurrencyDollar as DollarSign, Fire as Flame, TrendUp as TrendingUp, Trophy, YoutubeLogo as Youtube, Plant as Sprout, RocketLaunch as Rocket, ShoppingBag } from '@phosphor-icons/react';
 
 const STORAGE_KEY = 'hershy_onboarding';
 

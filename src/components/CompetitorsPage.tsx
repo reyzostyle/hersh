@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Loader2, ListChecks, Bookmark, Users } from 'lucide-react';
+import { CircleNotch as Loader2, ListChecks, BookmarkSimple as Bookmark, UsersThree as Users } from '@phosphor-icons/react';
 import { supabase, getSessionToken } from '../lib/supabase';
 import { callFunction, filterIdeas, type CompetitorChannel, type CompetitorIdea, type IdeaFilter, type IdeaFolder } from '../lib/competitors';
 import { CompetitorsFeed } from './CompetitorsFeed';
