@@ -41,7 +41,7 @@ export function CompetitorIdeaAnalysis({ idea, onUpdated, stickyActions = false 
 
       {/* Your angle */}
       {idea.adapted_idea && (
-        <div className="rounded-xl p-3 space-y-1" style={{ background: 'rgba(139,92,246,0.08)', border: '1px solid rgba(139,92,246,0.2)' }}>
+        <div className="rounded-xl p-3 space-y-1" style={{ background: 'rgba(var(--wash-rgb),0.08)', border: '1px solid rgba(var(--wash-rgb),0.2)' }}>
           <div className="flex items-center gap-1.5">
             <Lightbulb className="w-3.5 h-3.5 text-violet-400" />
             <p className="text-[10px] font-semibold uppercase tracking-widest text-violet-400">Your angle</p>

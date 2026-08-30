@@ -11,7 +11,7 @@ const TIER_COLORS: Record<string, string> = {
   Gold: '#F59E0B',
   Platinum: '#67E8F9',
   Diamond: 'var(--accent-soft)',
-  Master: '#A78BFA',
+  Master: 'rgb(var(--wash-rgb))',
   Viral: '#F43F5E',
 };
 
@@ -69,7 +69,7 @@ function SourceRow({ label, value, max, sub }: { label: string; value: number; m
         </span>
       </div>
       <div className="mt-1.5 h-1.5 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.06)' }}>
-        <div className="h-full rounded-full" style={{ width: `${Math.min(100, (value / max) * 100)}%`, background: 'var(--accent)' }} />
+        <div className="h-full rounded-full" style={{ width: `${Math.min(100, (value / max) * 100)}%`, background: 'var(--accent)', color: 'var(--on-accent)' }} />
       </div>
       {sub && <p className="mt-1 text-xs text-gray-600">{sub}</p>}
     </div>

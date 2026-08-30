@@ -120,7 +120,7 @@ export function CompetitorsFeed({
               title="Write each angle for your niche, using your channel profile"
               className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-xs font-medium transition-all"
               style={adaptForProfile
-                ? { background: 'rgba(139,92,246,0.14)', color: '#c4b5fd', border: '1px solid rgba(139,92,246,0.3)' }
+                ? { background: 'rgba(var(--wash-rgb),0.14)', color: '#c4b5fd', border: '1px solid rgba(var(--wash-rgb),0.3)' }
                 : { background: 'rgba(255,255,255,0.04)', color: '#6b7280', border: '1px solid rgba(255,255,255,0.08)' }}
             >
               <span

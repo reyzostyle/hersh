@@ -13,7 +13,7 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 
 export function TermsOfService() {
   return (
-    <div className="min-h-screen" style={{ background: 'linear-gradient(160deg, #0A0F1A 0%, #0D1B2A 100%)' }}>
+    <div className="min-h-screen" style={{ background: 'linear-gradient(160deg, rgb(var(--surface-rgb)) 0%, rgb(var(--surface-rgb)) 100%)' }}>
       <div className="max-w-3xl mx-auto px-6 py-12">
         <a
           href="/"

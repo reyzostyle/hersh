@@ -159,7 +159,7 @@ export function UpgradePage() {
               >
                 {isPopular && !isCurrent && isHigher && (
                   <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                    <span className="px-3 py-1 bg-[var(--accent)] text-white text-xs font-semibold rounded-full">
+                    <span className="px-3 py-1 bg-[var(--accent)] text-[var(--on-accent)] text-xs font-semibold rounded-full">
                       Most Popular
                     </span>
                   </div>
@@ -198,7 +198,7 @@ export function UpgradePage() {
                   <div className="mt-2.5 space-y-1.5">
                     {plan.quotas.map(q => (
                       <p key={q} className="flex items-center gap-2 text-[13px] font-semibold text-white">
-                        <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: 'var(--accent)' }} />
+                        <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: 'var(--accent)', color: 'var(--on-accent)' }} />
                         {q}
                       </p>
                     ))}
@@ -224,8 +224,8 @@ export function UpgradePage() {
                     disabled={checkingOut === plan.id}
                     className={`w-full flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
                       isPopular
-                        ? 'bg-[var(--accent)] text-white hover:bg-[var(--accent)]/90'
-                        : 'bg-[var(--accent)]/60 text-white hover:bg-[var(--accent)]/70'
+                        ? 'bg-[var(--accent)] text-[var(--on-accent)] hover:bg-[var(--accent)]/90'
+                        : 'bg-[var(--accent)]/60 text-[var(--on-accent)] hover:bg-[var(--accent)]/70'
                     }`}
                   >
                     {checkingOut === plan.id ? (

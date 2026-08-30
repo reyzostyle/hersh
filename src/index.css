@@ -7,16 +7,30 @@
    the accent at low opacity (tinted chips, focus rings, glass underlays), and
    rgba() needs the numbers, not the hex. */
 :root {
-  --accent: #0EA4E9;
-  --accent-rgb: 14, 164, 233;
-  --accent-soft: #38bdf8;
-  --bg-app: #212121;
+  /* White is the accent. A filled button is white on near-black, and colour is
+     reserved for state - progress, success, the active row - rather than being
+     what sells the action. It is the pattern the references have in common,
+     and the furthest thing from a coloured primary button on every screen. */
+  --accent: #FFFFFF;
+  --accent-rgb: 255, 255, 255;
+  /* Anything drawn ON the accent. Kept as a token because a white fill with
+     white text is the one way this palette can silently break. */
+  --on-accent: #0A0A0B;
+  --accent-soft: #D4D4D8;
+  --bg-app: #0A0A0B;
 
   /* The wash under every glass panel. Separate from --accent because it is a
      deep, desaturated version rather than the accent at low opacity, and going
      monochrome means neutralising this as well as the accent - a panel tinted
      blue reads blue however grey the buttons get. */
-  --glass-tint-rgb: 14, 80, 133;
+  --glass-tint-rgb: 255, 255, 255;
+
+  /* Panels, modals and the ambient washes. These were a dark navy and a
+     decorative purple, which is most of what made the app read as blue even
+     where nothing was explicitly the accent colour. Both are neutral now:
+     depth comes from value, not from hue. */
+  --surface-rgb: 10, 10, 11;
+  --wash-rgb: 255, 255, 255;
 
   /* Semantic colours, so "success" and "danger" are not spelled out per file. */
   --ok-rgb: 52, 211, 153;
@@ -27,8 +41,8 @@
 @tailwind components;
 @tailwind utilities;
 
-html { overflow-x: clip; background-color: #0A0F1A; }
-body { overflow-x: clip; max-width: 100vw; background-color: #0A0F1A; overscroll-behavior: none; }
+html { overflow-x: clip; background-color: rgb(var(--surface-rgb)); }
+body { overflow-x: clip; max-width: 100vw; background-color: rgb(var(--surface-rgb)); overscroll-behavior: none; }
 
 /* ─── Keyframes ─────────────────────────────────────────────────────────────── */
 
@@ -321,10 +335,10 @@ input, textarea, select {
    surfacing one card among peers without shouting "most popular" at it. */
 .glass-panel-purple {
   background:
-    linear-gradient(180deg, rgba(139, 92, 246, 0.07), rgba(139, 92, 246, 0.02)),
+    linear-gradient(180deg, rgba(var(--wash-rgb), 0.07), rgba(var(--wash-rgb), 0.02)),
     linear-gradient(180deg, rgba(var(--glass-tint-rgb), 0.05), rgba(var(--glass-tint-rgb), 0.03));
-  border: 1px solid rgba(139, 92, 246, 0.18);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1), 0 10px 30px -16px rgba(139, 92, 246, 0.16);
+  border: 1px solid rgba(var(--wash-rgb), 0.18);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1), 0 10px 30px -16px rgba(var(--wash-rgb), 0.16);
 }
 
 /* ─── Glass system: fields + primary buttons (cohesive with .glass-panel) ───── */

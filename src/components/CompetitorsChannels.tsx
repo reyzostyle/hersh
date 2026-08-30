@@ -50,7 +50,7 @@ export function CompetitorsChannels({
             type="submit"
             disabled={addingChannel || !channelUrl.trim() || channels.length >= 5}
             className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-white text-sm font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-            style={{ background: 'var(--accent)' }}
+            style={{ background: 'var(--accent)', color: 'var(--on-accent)' }}
           >
             {addingChannel ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
             Add

@@ -320,7 +320,7 @@ export function SettingsPage() {
                 onBlur={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)'; }}
               >
                 {CREATOR_LEVELS.map(l => (
-                  <option key={l.value} value={l.value} style={{ background: '#0D1B2A' }}>{l.label}</option>
+                  <option key={l.value} value={l.value} style={{ background: 'rgb(var(--surface-rgb))' }}>{l.label}</option>
                 ))}
               </select>
               <p className="mt-1.5 text-xs text-gray-600">{CREATOR_LEVELS.find(l => l.value === creatorLevel)?.hint}</p>

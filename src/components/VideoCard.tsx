@@ -55,7 +55,7 @@ export function VideoCard({ video, isSelected = false, onSelect }: VideoCardProp
         {isSelected && (
           <div className="absolute inset-0 bg-[var(--accent)]/20 flex items-center justify-center">
             <div className="bg-[var(--accent)] rounded-full p-1.5 shadow-lg">
-              <Check className="w-4 h-4 text-white" />
+              <Check className="w-4 h-4 text-[var(--on-accent)]" />
             </div>
           </div>
         )}

@@ -137,7 +137,7 @@ function AuthModal({ initialMode, onClose, context }: {
     >
       <div
         className="relative w-full max-w-md rounded-2xl p-8 animate-scale-in"
-        style={{ background: 'rgba(10,15,26,0.98)', border: '1px solid rgba(255,255,255,0.12)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)' }}
+        style={{ background: 'rgba(var(--surface-rgb),0.98)', border: '1px solid rgba(255,255,255,0.12)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)' }}
         onClick={e => e.stopPropagation()}
       >
         <button onClick={onClose} className="absolute top-4 right-4 p-1.5 text-gray-500 hover:text-white rounded-lg">
@@ -169,7 +169,7 @@ function AuthModal({ initialMode, onClose, context }: {
             <button
               onClick={() => { setEmailSent(false); setMode('login'); setPassword(''); }}
               className="w-full py-2.5 text-white rounded-xl font-semibold text-sm mb-3"
-              style={{ background: 'var(--accent)' }}
+              style={{ background: 'var(--accent)', color: 'var(--on-accent)' }}
             >
               I confirmed my email, Sign in
             </button>
@@ -205,7 +205,7 @@ function AuthModal({ initialMode, onClose, context }: {
                 onBlur={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.12)'; }}
               />
               {error && <p className="text-red-400 text-sm bg-red-400/10 border border-red-400/20 rounded-xl p-3">{error}</p>}
-              <button type="submit" disabled={loading} className="w-full py-2.5 text-white rounded-xl font-semibold text-sm disabled:opacity-50" style={{ background: 'var(--accent)' }}>
+              <button type="submit" disabled={loading} className="w-full py-2.5 text-white rounded-xl font-semibold text-sm disabled:opacity-50" style={{ background: 'var(--accent)', color: 'var(--on-accent)' }}>
                 {loading ? 'Sending...' : 'Send reset link'}
               </button>
               <div className="text-center">
@@ -236,7 +236,7 @@ function AuthModal({ initialMode, onClose, context }: {
                 </div>
               )}
               {error && <p className="text-red-400 text-sm bg-red-400/10 border border-red-400/20 rounded-xl p-3">{error}</p>}
-              <button type="submit" disabled={loading || googleLoading} className="w-full py-2.5 text-white rounded-xl font-semibold text-sm disabled:opacity-50" style={{ background: 'var(--accent)' }}>
+              <button type="submit" disabled={loading || googleLoading} className="w-full py-2.5 text-white rounded-xl font-semibold text-sm disabled:opacity-50" style={{ background: 'var(--accent)', color: 'var(--on-accent)' }}>
                 {loading ? 'Loading...' : mode === 'login' ? 'Sign in' : 'Create account'}
               </button>
             </form>
@@ -366,7 +366,7 @@ function BillingToggle({ interval, onChange, percentOff }: { interval: Interval;
             is a plain 100% of the thumb, with no extra pixels to overshoot. */}
         <div
           className="absolute top-1 bottom-1 rounded-full transition-transform duration-300"
-          style={{ width: 'calc(50% - 4px)', background: 'var(--accent)', transform: interval === 'year' ? 'translateX(100%)' : 'translateX(0)' }}
+          style={{ width: 'calc(50% - 4px)', background: 'var(--accent)', color: 'var(--on-accent)', transform: interval === 'year' ? 'translateX(100%)' : 'translateX(0)' }}
         />
         {(['month', 'year'] as const).map(iv => (
           <button
@@ -409,7 +409,7 @@ function PricingCard({ plan, interval, onSelect }: { plan: Plan; interval: Inter
     >
       {plan.popular && (
         <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-          <span className="px-3 py-1 text-white text-xs font-semibold rounded-full" style={{ background: 'var(--accent)' }}>Most Popular</span>
+          <span className="px-3 py-1 text-white text-xs font-semibold rounded-full" style={{ background: 'var(--accent)', color: 'var(--on-accent)' }}>Most Popular</span>
         </div>
       )}
       <div className="mb-2.5">
@@ -1096,7 +1096,7 @@ export function LandingPage() {
   };
 
   return (
-    <div className="relative overflow-hidden" style={{ background: 'linear-gradient(160deg, #0A0F1A 0%, #0D1B2A 100%)', color: 'white', height: '100dvh' }}>
+    <div className="relative overflow-hidden" style={{ background: 'linear-gradient(160deg, rgb(var(--surface-rgb)) 0%, rgb(var(--surface-rgb)) 100%)', color: 'white', height: '100dvh' }}>
       {/* Dot grid — anchored to the non-scrolling outer container, so it never moves */}
       <svg className="absolute inset-0 w-full h-full pointer-events-none" xmlns="http://www.w3.org/2000/svg" style={{ zIndex: 0 }}>
         <defs>
@@ -1124,7 +1124,7 @@ export function LandingPage() {
           className="absolute rounded-full animate-drift-b"
           style={{
             top: '-8%', right: '-14%', width: '52vw', height: '52vw', maxWidth: 680, maxHeight: 680,
-            background: 'radial-gradient(circle, rgba(139,92,246,0.18), rgba(139,92,246,0) 68%)',
+            background: 'radial-gradient(circle, rgba(var(--wash-rgb),0.18), rgba(var(--wash-rgb),0) 68%)',
             filter: 'blur(52px)',
           }}
         />
@@ -1132,7 +1132,7 @@ export function LandingPage() {
           className="absolute rounded-full animate-drift-c"
           style={{
             top: '22%', left: '28%', width: '46vw', height: '46vw', maxWidth: 600, maxHeight: 600,
-            background: 'radial-gradient(circle, rgba(56,189,248,0.13), rgba(56,189,248,0) 70%)',
+            background: 'radial-gradient(circle, rgba(var(--accent-rgb),0.13), rgba(var(--accent-rgb),0) 70%)',
             filter: 'blur(58px)',
           }}
         />
@@ -1161,7 +1161,7 @@ export function LandingPage() {
             scrolls in this div rather than the body. */}
         <nav
           className="sticky top-0 z-40 w-full flex-shrink-0 animate-fade-in"
-          style={{ background: 'rgba(10,15,26,0.72)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)', borderBottom: '1px solid rgba(255,255,255,0.06)' }}
+          style={{ background: 'rgba(var(--surface-rgb),0.72)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)', borderBottom: '1px solid rgba(255,255,255,0.06)' }}
         >
           {/* Three equal columns rather than justify-between: the brand and the
               CTA are different widths, so a flex row pushed the link group
@@ -1230,7 +1230,7 @@ export function LandingPage() {
               <button
                 onClick={() => setAuthModal('login')}
                 className="flex items-center gap-1 sm:gap-1.5 px-3 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-semibold text-white rounded-lg whitespace-nowrap hover:opacity-90 transition-opacity"
-                style={{ background: 'var(--accent)' }}
+                style={{ background: 'var(--accent)', color: 'var(--on-accent)' }}
               >
                 Get started
                 <ChevronRight className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
@@ -1358,7 +1358,7 @@ export function LandingPage() {
                   <button
                     type="submit"
                     className="flex items-center gap-1.5 px-4 sm:px-6 py-3 text-white font-semibold rounded-xl text-sm sm:text-[15px] whitespace-nowrap hover:opacity-90 flex-shrink-0"
-                    style={{ background: 'var(--accent)' }}
+                    style={{ background: 'var(--accent)', color: 'var(--on-accent)' }}
                   >
                     <Sparkles className="w-4 h-4" />
                     Analyze
@@ -1526,7 +1526,7 @@ export function LandingPage() {
               <button
                 onClick={() => setAuthModal('signup')}
                 className="inline-flex items-center gap-2 px-6 py-3 text-white font-semibold rounded-xl text-sm sm:text-[15px] hover:opacity-90 transition-opacity"
-                style={{ background: 'var(--accent)' }}
+                style={{ background: 'var(--accent)', color: 'var(--on-accent)' }}
               >
                 Get started for free
                 <ChevronRight className="w-4 h-4" />

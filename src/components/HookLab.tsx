@@ -180,7 +180,7 @@ export function HookLab() {
             ref={panelRef}
             className="relative w-full max-w-2xl flex flex-col rounded-t-2xl sm:rounded-2xl animate-scale-in max-h-[88dvh] sm:max-h-[90vh]"
             style={{
-              background: 'rgba(10,15,26,0.98)',
+              background: 'rgba(var(--surface-rgb),0.98)',
               border: '1px solid rgba(255,255,255,0.1)',
               willChange: 'transform',
             }}

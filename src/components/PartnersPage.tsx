@@ -73,7 +73,7 @@ function CopyButton({ text }: { text: string }) {
     setTimeout(() => setCopied(false), 2000);
   };
   return (
-    <button onClick={copy} className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-white rounded-lg hover:opacity-90 transition-opacity" style={{ background: 'var(--accent)' }}>
+    <button onClick={copy} className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-white rounded-lg hover:opacity-90 transition-opacity" style={{ background: 'var(--accent)', color: 'var(--on-accent)' }}>
       {copied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
       {copied ? 'Copied!' : 'Copy'}
     </button>
@@ -223,7 +223,7 @@ function PayoutSettings({ stats, onSaved }: { stats: PartnerStats; onSaved: () =
           onClick={save}
           disabled={saving}
           className="px-4 py-2.5 text-sm font-medium text-white rounded-lg hover:opacity-90 transition-opacity disabled:opacity-50"
-          style={{ background: 'var(--accent)' }}
+          style={{ background: 'var(--accent)', color: 'var(--on-accent)' }}
         >
           {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : saved ? <Check className="w-4 h-4" /> : 'Save'}
         </button>
@@ -297,7 +297,7 @@ function ClaimLink({ onClaimed }: { onClaimed: () => void }) {
           onClick={claim}
           disabled={busy || !code.trim()}
           className="px-5 py-2.5 text-sm font-medium text-white rounded-lg hover:opacity-90 transition-opacity disabled:opacity-40 whitespace-nowrap"
-          style={{ background: 'var(--accent)' }}
+          style={{ background: 'var(--accent)', color: 'var(--on-accent)' }}
         >
           {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Get my link'}
         </button>
@@ -436,7 +436,7 @@ function AdminView() {
             <button onClick={loadAll} disabled={loading} className="p-2 text-gray-400 hover:text-white transition-colors rounded-lg hover:bg-white/5">
               <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
             </button>
-            <button onClick={() => setShowForm(!showForm)} className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-white rounded-lg hover:opacity-90 transition-opacity" style={{ background: 'var(--accent)' }}>
+            <button onClick={() => setShowForm(!showForm)} className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-white rounded-lg hover:opacity-90 transition-opacity" style={{ background: 'var(--accent)', color: 'var(--on-accent)' }}>
               <Plus className="w-3.5 h-3.5" />
               New partner
             </button>
@@ -460,7 +460,7 @@ function AdminView() {
               </div>
             </div>
             <div className="flex gap-2">
-              <button onClick={createPartner} disabled={creating || !newCode || !newName} className="px-4 py-2 text-sm font-medium text-white rounded-lg hover:opacity-90 disabled:opacity-50 transition-opacity" style={{ background: 'var(--accent)' }}>
+              <button onClick={createPartner} disabled={creating || !newCode || !newName} className="px-4 py-2 text-sm font-medium text-white rounded-lg hover:opacity-90 disabled:opacity-50 transition-opacity" style={{ background: 'var(--accent)', color: 'var(--on-accent)' }}>
                 {creating ? 'Creating...' : 'Create'}
               </button>
               <button onClick={() => setShowForm(false)} className="px-4 py-2 text-sm text-gray-400 hover:text-white transition-colors">Cancel</button>
@@ -532,7 +532,7 @@ function AdminView() {
                         onClick={() => assignOwner(p.code)}
                         disabled={assignLoading || !assignEmail}
                         className="flex-1 py-2 text-sm font-medium text-white rounded-lg disabled:opacity-50"
-                        style={{ background: 'var(--accent)' }}
+                        style={{ background: 'var(--accent)', color: 'var(--on-accent)' }}
                       >
                         {assignLoading ? 'Linking...' : 'Link account'}
                       </button>

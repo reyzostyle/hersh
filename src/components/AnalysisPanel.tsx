@@ -165,7 +165,7 @@ export function AnalysisPanel({ analysis, open, onClose, onBack }: AnalysisPanel
         style={{
           // No backdrop blur: at 0.98 bg opacity it's invisible, but it forces
           // per-frame backdrop resampling that tanks the slide animation FPS.
-          background: 'rgba(10,15,26,0.98)',
+          background: 'rgba(var(--surface-rgb),0.98)',
           border: '1px solid rgba(255,255,255,0.1)',
           willChange: 'transform',
         }}
@@ -211,7 +211,7 @@ export function AnalysisPanel({ analysis, open, onClose, onBack }: AnalysisPanel
                       {(analysis.hook_analysis?.hook_type || analysis.hook_analysis?.video_format) && (
                         <div className="flex flex-wrap gap-1.5 justify-end">
                           {analysis.hook_analysis?.hook_type && (
-                            <span className="text-[11px] px-2 py-0.5 rounded-full font-medium" style={{ background: 'rgba(139,92,246,0.12)', color: '#A78BFA', border: '1px solid rgba(139,92,246,0.25)' }}>
+                            <span className="text-[11px] px-2 py-0.5 rounded-full font-medium" style={{ background: 'rgba(var(--wash-rgb),0.12)', color: 'rgb(var(--wash-rgb))', border: '1px solid rgba(var(--wash-rgb),0.25)' }}>
                               {analysis.hook_analysis.hook_type}
                             </span>
                           )}

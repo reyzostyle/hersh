@@ -104,7 +104,7 @@ export function CommentGenerator() {
             className={`px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-colors ${
               platform === p.id ? 'text-white' : 'text-gray-400 hover:text-gray-200'
             }`}
-            style={platform === p.id ? { background: 'var(--accent)' } : field}
+            style={platform === p.id ? { background: 'var(--accent)', color: 'var(--on-accent)' } : field}
           >
             {p.label}
           </button>
@@ -170,7 +170,7 @@ export function CommentGenerator() {
                         key={b.id}
                         onClick={() => setBadges(on ? badges.filter(x => x !== b.id) : [...badges, b.id])}
                         className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${on ? 'text-white' : 'text-gray-400'}`}
-                        style={on ? { background: 'var(--accent)' } : field}
+                        style={on ? { background: 'var(--accent)', color: 'var(--on-accent)' } : field}
                       >
                         {b.label}
                       </button>
@@ -280,7 +280,7 @@ export function CommentGenerator() {
             <button
               onClick={() => canvasRef.current && downloadCanvas(canvasRef.current, `${platform}-comment.png`)}
               className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-medium text-white rounded-lg hover:opacity-90 transition-opacity"
-              style={{ background: 'var(--accent)' }}
+              style={{ background: 'var(--accent)', color: 'var(--on-accent)' }}
             >
               <Download className="w-4 h-4" /> Download PNG
             </button>

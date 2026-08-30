@@ -39,7 +39,7 @@ export function OnboardingOffer({ onAccept, onDismiss }: { onAccept: () => void;
           <button
             onClick={onAccept}
             className="px-3.5 py-2 rounded-lg text-xs font-semibold text-white transition-opacity hover:opacity-90"
-            style={{ background: 'var(--accent)' }}
+            style={{ background: 'var(--accent)', color: 'var(--on-accent)' }}
           >
             Takes a minute
           </button>

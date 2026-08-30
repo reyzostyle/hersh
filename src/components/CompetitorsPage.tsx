@@ -266,7 +266,7 @@ export function CompetitorsPage() {
           <button
             onClick={() => window.dispatchEvent(new CustomEvent('hershy:navigate', { detail: 'upgrade' }))}
             className="px-6 py-2.5 rounded-xl text-white text-sm font-semibold transition-all hover:opacity-90"
-            style={{ background: 'var(--accent)' }}
+            style={{ background: 'var(--accent)', color: 'var(--on-accent)' }}
           >
             Upgrade to Plus
           </button>

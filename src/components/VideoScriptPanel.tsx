@@ -53,7 +53,7 @@ export function VideoScriptPanel({ video, open, onClose, onAnalyze, analyzing }:
       <div
         className="relative w-full max-w-lg flex flex-col rounded-2xl animate-scale-in"
         style={{
-          background: 'rgba(10,15,26,0.98)',
+          background: 'rgba(var(--surface-rgb),0.98)',
           border: '1px solid rgba(255,255,255,0.1)',
           willChange: 'transform',
           maxHeight: '90vh',
@@ -93,7 +93,7 @@ export function VideoScriptPanel({ video, open, onClose, onAnalyze, analyzing }:
                     </>
                   ) : (video as any).is_external ? (
                     <>
-                      <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium mb-2" style={{ background: 'rgba(139,92,246,0.15)', color: '#A78BFA' }}>
+                      <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium mb-2" style={{ background: 'rgba(var(--wash-rgb),0.15)', color: 'rgb(var(--wash-rgb))' }}>
                         External video
                       </div>
                       <p className="text-gray-400 text-xs font-mono truncate">
@@ -150,7 +150,7 @@ export function VideoScriptPanel({ video, open, onClose, onAnalyze, analyzing }:
                 onClick={handleAnalyze}
                 disabled={analyzing}
                 className="w-full flex items-center justify-center gap-2 px-4 py-3 text-white rounded-lg text-sm font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                style={{ background: analyzing ? 'rgba(139,92,246,0.5)' : 'linear-gradient(135deg, #8B5CF6, var(--accent))' }}
+                style={{ background: analyzing ? 'rgba(var(--wash-rgb),0.5)' : 'linear-gradient(135deg, #8B5CF6, var(--accent))' }}
               >
                 {analyzing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
                 {analyzing ? 'Analyzing...' : 'Analyze'}

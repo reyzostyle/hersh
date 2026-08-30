@@ -30,7 +30,7 @@ function SetNewPasswordForm() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4" style={{ background: 'linear-gradient(160deg, #0A0F1A 0%, #0D1B2A 100%)' }}>
+    <div className="min-h-screen flex items-center justify-center px-4" style={{ background: 'linear-gradient(160deg, rgb(var(--surface-rgb)) 0%, rgb(var(--surface-rgb)) 100%)' }}>
       <div className="w-full max-w-md rounded-2xl p-8" style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)' }}>
         {done ? (
           <div className="text-center">
@@ -61,7 +61,7 @@ function SetNewPasswordForm() {
               onBlur={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.12)'; }}
             />
             {error && <p className="text-red-400 text-sm bg-red-400/10 border border-red-400/20 rounded-xl p-3">{error}</p>}
-            <button type="submit" disabled={saving} className="w-full py-3 text-white rounded-xl font-semibold disabled:opacity-50" style={{ background: 'var(--accent)' }}>
+            <button type="submit" disabled={saving} className="w-full py-3 text-white rounded-xl font-semibold disabled:opacity-50" style={{ background: 'var(--accent)', color: 'var(--on-accent)' }}>
               {saving ? 'Saving...' : 'Set new password'}
             </button>
           </form>
@@ -162,7 +162,7 @@ function AuthCallbackHandler() {
 
   if (status === 'confirmed') {
     return (
-      <div className="min-h-screen flex items-center justify-center px-4" style={{ background: 'linear-gradient(160deg, #0A0F1A 0%, #0D1B2A 100%)' }}>
+      <div className="min-h-screen flex items-center justify-center px-4" style={{ background: 'linear-gradient(160deg, rgb(var(--surface-rgb)) 0%, rgb(var(--surface-rgb)) 100%)' }}>
         <div className="w-full max-w-sm text-center">
           <div className="w-14 h-14 rounded-full bg-emerald-500/15 flex items-center justify-center mx-auto mb-5">
             <span className="text-emerald-400 text-3xl">✓</span>
@@ -174,7 +174,7 @@ function AuthCallbackHandler() {
           <button
             onClick={() => { window.history.replaceState({}, '', '/'); window.location.reload(); }}
             className="w-full py-3 text-white rounded-xl font-semibold text-sm"
-            style={{ background: 'var(--accent)' }}
+            style={{ background: 'var(--accent)', color: 'var(--on-accent)' }}
           >
             Open Hershy on this device
           </button>

@@ -156,7 +156,7 @@ export function Onboarding({ onDone }: { onDone: () => void }) {
   return (
     <div
       className="min-h-screen flex flex-col items-center justify-center px-4 py-10"
-      style={{ background: 'linear-gradient(160deg, #0A0F1A 0%, #0D1B2A 100%)' }}
+      style={{ background: 'linear-gradient(160deg, rgb(var(--surface-rgb)) 0%, rgb(var(--surface-rgb)) 100%)' }}
     >
       <div className="w-full max-w-lg">
         {/* progress */}

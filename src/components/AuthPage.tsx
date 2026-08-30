@@ -60,7 +60,7 @@ export function AuthPage() {
     <div
       className="min-h-screen flex items-center justify-center px-4 relative overflow-hidden"
       style={{
-        background: 'linear-gradient(160deg, #0A0F1A 0%, #0D1B2A 100%)',
+        background: 'linear-gradient(160deg, rgb(var(--surface-rgb)) 0%, rgb(var(--surface-rgb)) 100%)',
       }}
     >
       <svg
@@ -124,7 +124,7 @@ export function AuthPage() {
                     />
                   </div>
                   {error && <div className="text-red-400 text-sm bg-red-400/10 border border-red-400/20 rounded-xl p-3">{error}</div>}
-                  <button type="submit" disabled={loading} className="w-full py-3 text-white rounded-xl font-semibold disabled:opacity-50" style={{ background: 'var(--accent)' }}>
+                  <button type="submit" disabled={loading} className="w-full py-3 text-white rounded-xl font-semibold disabled:opacity-50" style={{ background: 'var(--accent)', color: 'var(--on-accent)' }}>
                     {loading ? 'Sending...' : 'Send reset link'}
                   </button>
                   <div className="text-center">
@@ -199,7 +199,7 @@ export function AuthPage() {
               type="submit"
               disabled={loading || googleLoading}
               className="w-full py-3 text-white rounded-xl font-semibold disabled:opacity-50 disabled:cursor-not-allowed transition-opacity"
-              style={{ background: 'var(--accent)' }}
+              style={{ background: 'var(--accent)', color: 'var(--on-accent)' }}
               onMouseEnter={(e) => { e.currentTarget.style.opacity = '0.9'; }}
               onMouseLeave={(e) => { e.currentTarget.style.opacity = '1'; }}
             >

@@ -79,7 +79,7 @@ export function SaveToFolderModal({ folders, currentFolderId, isSaved, onPick, o
               type="submit"
               disabled={busy || !newName.trim()}
               className="px-3 py-2 rounded-xl text-white text-sm font-semibold disabled:opacity-50"
-              style={{ background: 'var(--accent)' }}
+              style={{ background: 'var(--accent)', color: 'var(--on-accent)' }}
             >
               {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Add'}
             </button>

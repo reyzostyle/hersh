@@ -188,7 +188,7 @@ export function ScriptLab() {
             ref={panelRef}
             className="relative w-full max-w-2xl flex flex-col rounded-t-2xl sm:rounded-2xl animate-scale-in max-h-[88dvh] sm:max-h-[90vh]"
             style={{
-              background: 'rgba(10,15,26,0.98)',
+              background: 'rgba(var(--surface-rgb),0.98)',
               border: '1px solid rgba(255,255,255,0.1)',
               willChange: 'transform',
             }}
@@ -214,7 +214,7 @@ export function ScriptLab() {
                     {(result.hook_type || result.video_format) && (
                       <div className="flex flex-wrap gap-1.5 mb-3">
                         {result.hook_type && (
-                          <span className="text-[11px] px-2 py-0.5 rounded-full font-medium" style={{ background: 'rgba(139,92,246,0.12)', color: '#A78BFA', border: '1px solid rgba(139,92,246,0.25)' }}>
+                          <span className="text-[11px] px-2 py-0.5 rounded-full font-medium" style={{ background: 'rgba(var(--wash-rgb),0.12)', color: 'rgb(var(--wash-rgb))', border: '1px solid rgba(var(--wash-rgb),0.25)' }}>
                             {result.hook_type}
                           </span>
                         )}
