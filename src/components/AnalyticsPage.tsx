@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { RefreshOutlineIcon as Loader2 } from '@solar-icons/react';
 import { Youtube } from './BrandIcons';
 import { supabase, getSessionToken, fetchWithRetry } from '../lib/supabase';
+import { ErrorNotice } from './ErrorNotice';
 
 const FN = 'https://ezlousklksipvwuinpzq.supabase.co/functions/v1';
 const REFRESH_MS = 60_000;
@@ -79,13 +80,16 @@ export function AnalyticsPage() {
   const [stats, setStats] = useState<Stats | null>(null);
   const [radar, setRadar] = useState<number[]>([0, 0, 0, 0, 0]);
   const [loading, setLoading] = useState(true);
+  const [failed, setFailed] = useState(false);
 
   const load = useCallback(async () => {
     try {
       const token = await getSessionToken();
       if (!token) return;
       const res = await fetchWithRetry(`${FN}/channel-stats`, { headers: { Authorization: `Bearer ${token}` } });
-      if (res.ok) setStats(await res.json());
+      if (!res.ok) throw new Error('channel-stats unavailable');
+      setStats(await res.json());
+      setFailed(false);
 
       // The four score components, averaged over the analyses that carry them.
       const { data: { user } } = await supabase.auth.getUser();
@@ -104,6 +108,11 @@ export function AnalyticsPage() {
         const reach = scores.length ? Math.round(scores.reduce((a: number, b: number) => a + b, 0) / scores.length) : 0;
         setRadar([avg('hook', 30), avg('retention', 25), avg('payoff', 25), avg('delivery', 20), reach]);
       }
+    } catch {
+      // A refresh that cannot reach the server should say so, not sit on a
+      // spinner or quietly render a page of zeros as though the channel were
+      // empty.
+      setFailed(true);
     } finally {
       setLoading(false);
     }
@@ -121,6 +130,14 @@ export function AnalyticsPage() {
     return (
       <div className="flex justify-center pt-24">
         <Loader2 className="w-5 h-5 animate-spin" style={{ color: 'var(--text-faint)' }} />
+      </div>
+    );
+  }
+
+  if (failed && !stats) {
+    return (
+      <div className="max-w-2xl mx-auto px-5 sm:px-8 pt-16">
+        <ErrorNotice message="Could not reach the analytics service." />
       </div>
     );
   }
