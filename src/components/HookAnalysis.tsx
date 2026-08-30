@@ -401,6 +401,10 @@ export function HookAnalysis() {
                   onChange={e => { setUrlInput(e.target.value); setUrlError(''); }}
                   onKeyDown={e => e.key === 'Enter' && urlInput.trim() && !geminiAnalyzing && handleUrlSubmit()}
                   placeholder="Paste link"
+                  autoComplete="off"
+                  spellCheck={false}
+                  autoCorrect="off"
+                  autoCapitalize="off"
                   className="flex-1 min-w-0 px-2 py-5 sm:py-6 bg-transparent text-white text-[15px] focus:outline-none placeholder:text-gray-600"
                 />
                 <button

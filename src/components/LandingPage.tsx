@@ -1338,6 +1338,7 @@ export function LandingPage() {
                 <div aria-hidden="true" className="absolute inset-0 rounded-2xl pointer-events-none animate-glow-pulse" />
                 <form
                   onSubmit={handleHeroAnalyze}
+                  autoComplete="off"
                   className="relative w-full flex items-center gap-2 rounded-2xl p-2.5"
                   style={heroInputGlass}
                 >
@@ -1348,6 +1349,10 @@ export function LandingPage() {
                     onChange={e => { setHeroUrl(e.target.value); if (heroError) setHeroError(''); }}
                     placeholder={wideField ? 'Paste a YouTube Shorts link (e.g. youtube.com/shorts/...)' : 'Paste a Shorts link'}
                     aria-invalid={!!heroError}
+                    autoComplete="off"
+                    spellCheck={false}
+                    autoCorrect="off"
+                    autoCapitalize="off"
                     className="flex-1 min-w-0 bg-transparent px-3.5 py-3 text-sm sm:text-base text-white placeholder-gray-500 outline-none scroll-mt-20"
                   />
                   <button
