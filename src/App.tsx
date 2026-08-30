@@ -246,7 +246,7 @@ function AppContent() {
   // so it's safe to attempt on every login — only the first ever insert sticks.
   useEffect(() => {
     if (!user) return;
-    const refCode = localStorage.getItem('hersh_ref');
+    const refCode = readStoredRef();
     if (!refCode) return;
 
     supabase
@@ -302,10 +302,36 @@ function AppContent() {
   return <Dashboard />;
 }
 
-// Capture ?ref=code on landing and save to localStorage
-const urlRef = new URLSearchParams(window.location.search).get('ref');
+// How long a click stays attributed to the partner who sent it.
+const REF_TTL_DAYS = 60;
+
+// Reads the stored affiliate code, dropping it once it is past its window.
+// Tolerates the bare string that older visitors already have in localStorage.
+function readStoredRef(): string | null {
+  const raw = localStorage.getItem('hersh_ref');
+  if (!raw) return null;
+  try {
+    const parsed = JSON.parse(raw);
+    if (!parsed?.code) return null;
+    const ageDays = (Date.now() - (parsed.at ?? 0)) / 86400000;
+    if (ageDays > REF_TTL_DAYS) {
+      localStorage.removeItem('hersh_ref');
+      return null;
+    }
+    return parsed.code;
+  } catch {
+    return raw; // pre-timestamp value, honour it once
+  }
+}
+
+// Capture the affiliate code on landing. Both spellings are accepted because
+// partners paste links from habit and ?via= is the common one elsewhere.
+// Stored with the click time so attribution can expire (see REF_TTL_DAYS).
+const urlRef =
+  new URLSearchParams(window.location.search).get('ref') ||
+  new URLSearchParams(window.location.search).get('via');
 if (urlRef) {
-  localStorage.setItem('hersh_ref', urlRef);
+  localStorage.setItem('hersh_ref', JSON.stringify({ code: urlRef, at: Date.now() }));
 }
 
 function App() {

@@ -2,11 +2,22 @@ import { createClient } from 'npm:@supabase/supabase-js@2.57.4';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'GET, POST, PATCH, DELETE, OPTIONS',
+  'Access-Control-Allow-Methods': 'GET, POST, PUT, PATCH, DELETE, OPTIONS',
   'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Client-Info, Apikey',
 };
 
 const ADMIN_EMAIL = 'reyzostyle@gmail.com';
+
+// Earnings are payable once past their hold and once the balance clears this.
+// Low on purpose: a partner who earned a little should still be able to take
+// it out rather than watch it sit there.
+const MIN_PAYOUT_CENTS = 1000;
+
+// Codes that would be confusing or impersonating in a link.
+const RESERVED_CODES = new Set([
+  'admin', 'api', 'app', 'auth', 'billing', 'support', 'help', 'team',
+  'hershy', 'hershymedia', 'official', 'staff', 'login', 'signup', 'www',
+]);
 
 Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') return new Response(null, { status: 200, headers: corsHeaders });
@@ -37,8 +48,47 @@ Deno.serve(async (req: Request) => {
 
   // ── POST: create new partner (admin only) ──────────────────────────────
   if (req.method === 'POST') {
-    if (!isAdmin) return new Response(JSON.stringify({ error: 'Forbidden' }), { status: 403, headers: corsHeaders });
-    const { code, partner_name, owner_email } = await req.json();
+    const body = await req.json();
+
+    // ── Self-serve: any signed-in user claims their own affiliate link ──
+    if (!isAdmin || body.self_serve) {
+      const raw = String(body.code ?? '').trim().toLowerCase();
+      if (!/^[a-z0-9][a-z0-9_-]{2,23}$/.test(raw)) {
+        return new Response(
+          JSON.stringify({ error: 'Use 3-24 characters: letters, numbers, dashes or underscores.' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+        );
+      }
+      if (RESERVED_CODES.has(raw)) {
+        return new Response(
+          JSON.stringify({ error: 'That one is taken. Try another.' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+        );
+      }
+
+      const { data: existing } = await supabase
+        .from('referral_codes').select('code').eq('owner_user_id', authUser.id).maybeSingle();
+      if (existing) {
+        return new Response(
+          JSON.stringify({ error: `You already have a link: ${existing.code}` }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+        );
+      }
+
+      const { error } = await supabase.from('referral_codes').insert({
+        code: raw,
+        partner_name: authUser.email || raw,
+        owner_user_id: authUser.id,
+      });
+      if (error) {
+        // 23505 is the unique violation on either the code or the one-per-owner index
+        const msg = error.code === '23505' ? 'That one is taken. Try another.' : error.message;
+        return new Response(JSON.stringify({ error: msg }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      }
+      return new Response(JSON.stringify({ ok: true, code: raw }), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    }
+
+    const { code, partner_name, owner_email } = body;
     if (!code || !partner_name) return new Response(JSON.stringify({ error: 'code and partner_name required' }), { status: 400, headers: corsHeaders });
 
     let owner_user_id: string | null = null;
@@ -55,6 +105,24 @@ Deno.serve(async (req: Request) => {
       commission_percent: 50,
       owner_user_id,
     });
+    if (error) return new Response(JSON.stringify({ error: error.message }), { status: 400, headers: corsHeaders });
+    return new Response(JSON.stringify({ ok: true }), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+  }
+
+  // ── PUT: partner saves their own payout details ────────────────────────
+  if (req.method === 'PUT') {
+    const { payout_method, payout_details, payout_in_credits } = await req.json();
+    if (payout_method && !['paypal', 'wise'].includes(payout_method)) {
+      return new Response(JSON.stringify({ error: 'Unknown payout method' }), { status: 400, headers: corsHeaders });
+    }
+    const { error } = await supabase
+      .from('referral_codes')
+      .update({
+        payout_method: payout_method ?? null,
+        payout_details: payout_details ? String(payout_details).slice(0, 200) : null,
+        payout_in_credits: !!payout_in_credits,
+      })
+      .eq('owner_user_id', authUser.id);
     if (error) return new Response(JSON.stringify({ error: error.message }), { status: 400, headers: corsHeaders });
     return new Response(JSON.stringify({ ok: true }), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
   }
@@ -90,11 +158,31 @@ Deno.serve(async (req: Request) => {
     return await Promise.all(codes.map(async (rc) => {
       const [{ count: signups }, { data: convRows }] = await Promise.all([
         supabase.from('referral_signups').select('*', { count: 'exact', head: true }).eq('referral_code', rc.code),
-        supabase.from('referral_conversions').select('commission_cents').eq('referral_code', rc.code),
+        supabase.from('referral_conversions')
+          .select('commission_cents, hold_until, paid_out, kind').eq('referral_code', rc.code),
       ]);
-      const conversions = convRows?.length ?? 0;
-      const total_commission_cents = convRows?.reduce((s: number, r: any) => s + (r.commission_cents ?? 0), 0) ?? 0;
-      return { ...rc, signups: signups ?? 0, conversions, total_commission_cents };
+      const rows = convRows ?? [];
+      const now = Date.now();
+      const sum = (rs: any[]) => rs.reduce((s: number, r: any) => s + (r.commission_cents ?? 0), 0);
+
+      // An earning is available once it is past its hold and not yet paid.
+      // Rows predating the hold column have no hold to wait out.
+      const unpaid = rows.filter((r: any) => !r.paid_out);
+      const pending = unpaid.filter((r: any) => r.hold_until && new Date(r.hold_until).getTime() > now);
+      const available = unpaid.filter((r: any) => !r.hold_until || new Date(r.hold_until).getTime() <= now);
+
+      const available_cents = sum(available);
+      return {
+        ...rc,
+        signups: signups ?? 0,
+        conversions: rows.length,
+        total_commission_cents: sum(rows),
+        pending_cents: sum(pending),
+        available_cents,
+        paid_out_cents: sum(rows.filter((r: any) => r.paid_out)),
+        can_withdraw: available_cents >= MIN_PAYOUT_CENTS,
+        min_payout_cents: MIN_PAYOUT_CENTS,
+      };
     }));
   }
 

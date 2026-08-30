@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { getSessionToken, fetchWithRetry } from '../lib/supabase';
-import { Copy, Check, Users, TrendingUp, DollarSign, Loader2, Plus, RefreshCw, Trash2, Link, Handshake } from 'lucide-react';
+import { Copy, Check, Users, TrendingUp, DollarSign, Loader2, Plus, RefreshCw, Trash2, Link, Handshake, Clock, Wallet } from 'lucide-react';
 
 const ADMIN_EMAIL = 'reyzostyle@gmail.com';
 
@@ -24,7 +24,17 @@ interface PartnerStats {
   conversions: number;
   total_commission_cents: number;
   owner_user_id?: string;
+  pending_cents?: number;
+  available_cents?: number;
+  paid_out_cents?: number;
+  can_withdraw?: boolean;
+  min_payout_cents?: number;
+  payout_method?: string | null;
+  payout_details?: string | null;
+  payout_in_credits?: boolean;
 }
+
+const FN_BASE = 'https://ezlousklksipvwuinpzq.supabase.co/functions/v1';
 
 export function PartnersPage() {
   const { user } = useAuth();
@@ -85,7 +95,7 @@ function PartnerView({ userId }: { userId?: string }) {
     try {
       const token = await getSessionToken();
       if (!token) return;
-      const res = await fetchWithRetry(`https://ezlousklksipvwuinpzq.supabase.co/functions/v1/referral-stats`, {
+      const res = await fetchWithRetry(`${FN_BASE}/referral-stats`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (!res.ok) { setStats(null); return; }
@@ -98,39 +108,217 @@ function PartnerView({ userId }: { userId?: string }) {
 
   if (loading) return <div className="flex items-center justify-center h-32"><Loader2 className="w-5 h-5 text-[#0EA4E9] animate-spin" /></div>;
 
-  if (!stats) {
-    return (
-      <div className="rounded-xl p-8 text-center" style={glassCard}>
-        <Users className="w-10 h-10 text-gray-600 mx-auto mb-3" />
-        <h2 className="text-white font-semibold mb-2">You're not a partner yet</h2>
-        <p className="text-sm text-gray-500 max-w-sm mx-auto">
-          Reach out to us on Discord or email to join the partner program and get your referral link.
-        </p>
-      </div>
-    );
-  }
+  if (!stats) return <ClaimLink onClaimed={loadStats} />;
 
-  const refLink = `https://hershymedia.com?ref=${stats.code}`;
-  const earned = (stats.total_commission_cents / 100).toFixed(2);
+  // Built from the current origin so the link keeps working after a domain move.
+  const refLink = `${window.location.origin}?ref=${stats.code}`;
+  const money = (cents?: number) => `$${((cents ?? 0) / 100).toFixed(2)}`;
 
   return (
     <div className="space-y-6">
       <div className="rounded-xl p-5" style={glassCard}>
         <h2 className="text-sm font-medium text-gray-400 mb-3 uppercase tracking-wide">Your referral link</h2>
         <div className="flex items-center gap-3">
-          <div className="flex-1 px-4 py-2.5 rounded-lg text-sm text-gray-300 font-mono" style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }}>
+          <div className="flex-1 px-4 py-2.5 rounded-lg text-sm text-gray-300 font-mono truncate" style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }}>
             {refLink}
           </div>
           <CopyButton text={refLink} />
         </div>
-        <p className="mt-2 text-xs text-gray-600">{stats.commission_percent}% commission on every paid conversion</p>
+        <p className="mt-2 text-xs text-gray-600">
+          {stats.commission_percent}% of what your referrals pay, every month, for their first 12 months.
+        </p>
       </div>
 
       <div className="grid grid-cols-3 gap-2 sm:gap-4">
         <StatCard icon={<Users className="w-4 h-4" />} label="Signups" value={String(stats.signups)} />
         <StatCard icon={<TrendingUp className="w-4 h-4" />} label="Conversions" value={String(stats.conversions)} />
-        <StatCard icon={<DollarSign className="w-4 h-4" />} label="Earned" value={`$${earned}`} />
+        <StatCard icon={<DollarSign className="w-4 h-4" />} label="Earned" value={money(stats.total_commission_cents)} />
       </div>
+
+      <Balance stats={stats} money={money} />
+      <PayoutSettings stats={stats} onSaved={loadStats} />
+    </div>
+  );
+}
+
+// Splits earnings into what can be withdrawn now and what is still settling,
+// so the number on screen is one a partner can act on.
+function Balance({ stats, money }: { stats: PartnerStats; money: (c?: number) => string }) {
+  const min = money(stats.min_payout_cents ?? 1000);
+  return (
+    <div className="rounded-xl p-5" style={glassCard}>
+      <h2 className="text-sm font-medium text-gray-400 mb-4 uppercase tracking-wide">Balance</h2>
+      <div className="flex flex-wrap gap-6">
+        <div>
+          <div className="flex items-center gap-1.5 mb-1">
+            <Wallet className="w-3.5 h-3.5 text-emerald-400" />
+            <p className="text-[10px] font-medium uppercase tracking-wide text-gray-500">Available</p>
+          </div>
+          <p className="text-2xl font-bold text-emerald-400">{money(stats.available_cents)}</p>
+        </div>
+        <div>
+          <div className="flex items-center gap-1.5 mb-1">
+            <Clock className="w-3.5 h-3.5 text-gray-500" />
+            <p className="text-[10px] font-medium uppercase tracking-wide text-gray-500">Settling</p>
+          </div>
+          <p className="text-2xl font-bold text-gray-400">{money(stats.pending_cents)}</p>
+        </div>
+        {(stats.paid_out_cents ?? 0) > 0 && (
+          <div>
+            <p className="text-[10px] font-medium uppercase tracking-wide text-gray-500 mb-1 mt-[18px]">Paid out</p>
+            <p className="text-2xl font-bold text-gray-400">{money(stats.paid_out_cents)}</p>
+          </div>
+        )}
+      </div>
+      <p className="mt-4 text-xs text-gray-600 text-balance">
+        Earnings settle 30 days after the payment they came from, which covers refunds. Once settled you can withdraw from {min}.
+      </p>
+    </div>
+  );
+}
+
+// Where the money goes, plus the credits option: taking it in credits is worth
+// double, which suits partners who use the product themselves.
+function PayoutSettings({ stats, onSaved }: { stats: PartnerStats; onSaved: () => void }) {
+  const [method, setMethod] = useState(stats.payout_method || 'paypal');
+  const [details, setDetails] = useState(stats.payout_details || '');
+  const [inCredits, setInCredits] = useState(!!stats.payout_in_credits);
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+  const [error, setError] = useState('');
+
+  const save = async () => {
+    setSaving(true);
+    setError('');
+    try {
+      const token = await getSessionToken();
+      if (!token) return;
+      const res = await fetchWithRetry(`${FN_BASE}/referral-stats`, {
+        method: 'PUT',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ payout_method: method, payout_details: details, payout_in_credits: inCredits }),
+      });
+      const data = await res.json();
+      if (!res.ok) { setError(data.error || 'Could not save that'); return; }
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2000);
+      onSaved();
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="rounded-xl p-5" style={glassCard}>
+      <h2 className="text-sm font-medium text-gray-400 mb-4 uppercase tracking-wide">Getting paid</h2>
+
+      <div className="flex flex-col sm:flex-row gap-3">
+        <select
+          value={method}
+          onChange={e => setMethod(e.target.value)}
+          className="px-3 py-2.5 rounded-lg text-sm text-gray-200 sm:w-32"
+          style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }}
+        >
+          <option value="paypal">PayPal</option>
+          <option value="wise">Wise</option>
+        </select>
+        <input
+          value={details}
+          onChange={e => setDetails(e.target.value)}
+          placeholder="Email on your PayPal or Wise account"
+          className="flex-1 px-4 py-2.5 rounded-lg text-sm text-gray-200 placeholder:text-gray-600"
+          style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }}
+        />
+        <button
+          onClick={save}
+          disabled={saving}
+          className="px-4 py-2.5 text-sm font-medium text-white rounded-lg hover:opacity-90 transition-opacity disabled:opacity-50"
+          style={{ background: '#0EA4E9' }}
+        >
+          {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : saved ? <Check className="w-4 h-4" /> : 'Save'}
+        </button>
+      </div>
+
+      <label className="flex items-start gap-2.5 mt-4 cursor-pointer">
+        <input
+          type="checkbox"
+          checked={inCredits}
+          onChange={e => setInCredits(e.target.checked)}
+          className="mt-0.5 accent-[#0EA4E9]"
+        />
+        <span className="text-xs text-gray-500 text-balance">
+          Pay me in credits instead, worth double the cash amount.
+        </span>
+      </label>
+
+      {error && <p className="mt-3 text-xs text-red-400">{error}</p>}
+    </div>
+  );
+}
+
+// Anyone signed in can take a link, so the program is self-serve rather than
+// something you have to ask us for.
+function ClaimLink({ onClaimed }: { onClaimed: () => void }) {
+  const [code, setCode] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+
+  const claim = async () => {
+    if (!code.trim()) return;
+    setBusy(true);
+    setError('');
+    try {
+      const token = await getSessionToken();
+      if (!token) return;
+      const res = await fetchWithRetry(`${FN_BASE}/referral-stats`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code: code.trim(), self_serve: true }),
+      });
+      const data = await res.json();
+      if (!res.ok) { setError(data.error || 'Could not create that link'); return; }
+      onClaimed();
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div className="rounded-xl p-6 sm:p-8" style={glassCard}>
+      <Handshake className="w-9 h-9 text-gray-600 mb-4" />
+      <h2 className="text-white font-semibold text-lg mb-2">Earn 30% of every subscriber you send</h2>
+      <p className="text-sm text-gray-500 max-w-lg text-balance">
+        Share your link with your audience. When someone subscribes through it, you earn 30% of
+        everything they pay for their first 12 months. Pick the name you want in the link.
+      </p>
+
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 mt-5">
+        <div className="flex items-center flex-1 rounded-lg overflow-hidden" style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }}>
+          <span className="pl-3 pr-1 text-sm text-gray-600 font-mono whitespace-nowrap">?ref=</span>
+          <input
+            value={code}
+            onChange={e => setCode(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && claim()}
+            placeholder="yourname"
+            className="flex-1 bg-transparent py-2.5 pr-4 text-sm text-gray-200 font-mono placeholder:text-gray-600 outline-none min-w-0"
+          />
+        </div>
+        <button
+          onClick={claim}
+          disabled={busy || !code.trim()}
+          className="px-5 py-2.5 text-sm font-medium text-white rounded-lg hover:opacity-90 transition-opacity disabled:opacity-40 whitespace-nowrap"
+          style={{ background: '#0EA4E9' }}
+        >
+          {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Get my link'}
+        </button>
+      </div>
+
+      {error && <p className="mt-3 text-xs text-red-400">{error}</p>}
+
+      <p className="mt-4 text-xs text-gray-600 text-balance">
+        Earnings settle 30 days after each payment and you can withdraw from $10. Self-referrals and
+        ads on our brand terms are not eligible.
+      </p>
     </div>
   );
 }

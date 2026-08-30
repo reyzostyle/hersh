@@ -12,6 +12,73 @@ const PRICE_TO_PLAN: Record<string, string> = {
   [Deno.env.get('STRIPE_AGENCY_PRICE_ID') || '']: 'agency',
 };
 
+// How long an affiliate keeps earning from one subscriber, and how long an
+// earning sits before it can be paid out (a refund or chargeback lands first).
+const COMMISSION_MONTHS = 12;
+const HOLD_DAYS = 30;
+
+// Records one affiliate earning for a paid invoice, if the payer signed up
+// through someone's link and is still inside the 12-month window.
+async function recordReferralConversion(
+  supabase: any,
+  userId: string,
+  amountCents: number,
+  plan: string,
+  subscriptionId: string | null,
+  kind: 'initial' | 'renewal',
+) {
+  if (amountCents <= 0) return;
+
+  const { data: refSignup } = await supabase
+    .from('referral_signups')
+    .select('referral_code')
+    .eq('user_id', userId)
+    .maybeSingle();
+  if (!refSignup?.referral_code) return;
+
+  const { data: refCode } = await supabase
+    .from('referral_codes')
+    .select('commission_percent, active')
+    .eq('code', refSignup.referral_code)
+    .maybeSingle();
+  if (!refCode || refCode.active === false) return;
+
+  // The window opens at the subscriber's first paid conversion, so a renewal
+  // 13 months later earns nothing even though the link is still attributed.
+  if (kind === 'renewal') {
+    const { data: first } = await supabase
+      .from('referral_conversions')
+      .select('created_at')
+      .eq('referred_user_id', userId)
+      .order('created_at', { ascending: true })
+      .limit(1)
+      .maybeSingle();
+    if (!first) return; // no initial payment on record, nothing to extend
+    const windowEnds = new Date(first.created_at);
+    windowEnds.setMonth(windowEnds.getMonth() + COMMISSION_MONTHS);
+    if (new Date() > windowEnds) {
+      console.log(`[stripe-webhook] Referral window closed for user ${userId}`);
+      return;
+    }
+  }
+
+  const holdUntil = new Date();
+  holdUntil.setDate(holdUntil.getDate() + HOLD_DAYS);
+
+  const commissionCents = Math.round(amountCents * refCode.commission_percent / 100);
+  await supabase.from('referral_conversions').insert({
+    referral_code: refSignup.referral_code,
+    referred_user_id: userId,
+    plan,
+    amount_cents: amountCents,
+    commission_cents: commissionCents,
+    stripe_subscription_id: subscriptionId,
+    kind,
+    hold_until: holdUntil.toISOString(),
+  });
+  console.log(`[stripe-webhook] Referral ${kind}: code=${refSignup.referral_code} commission=$${commissionCents / 100}`);
+}
+
 Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { status: 200, headers: corsHeaders });
@@ -109,35 +176,8 @@ Deno.serve(async (req: Request) => {
         amount_cents: amountCents,
       });
 
-      // Record referral conversion if user came via a ref link
-      if (amountCents > 0) {
-        const { data: refSignup } = await supabase
-          .from('referral_signups')
-          .select('referral_code')
-          .eq('user_id', userId)
-          .maybeSingle();
-
-        if (refSignup?.referral_code) {
-          const { data: refCode } = await supabase
-            .from('referral_codes')
-            .select('commission_percent')
-            .eq('code', refSignup.referral_code)
-            .maybeSingle();
-
-          if (refCode) {
-            const commissionCents = Math.round(amountCents * refCode.commission_percent / 100);
-            await supabase.from('referral_conversions').insert({
-              referral_code: refSignup.referral_code,
-              referred_user_id: userId,
-              plan,
-              amount_cents: amountCents,
-              commission_cents: commissionCents,
-              stripe_subscription_id: subscriptionId || null,
-            });
-            console.log(`[stripe-webhook] Referral conversion: code=${refSignup.referral_code} commission=$${commissionCents / 100}`);
-          }
-        }
-      }
+      // Record the affiliate earning if this user came via someone's link
+      await recordReferralConversion(supabase, userId, amountCents, plan, subscriptionId || null, 'initial');
     }
 
     if (event.type === 'customer.subscription.deleted') {
@@ -202,6 +242,15 @@ Deno.serve(async (req: Request) => {
           .eq('user_id', tokenRow.user_id);
 
         console.log(`[stripe-webhook] Reset usage for user ${tokenRow.user_id}, plan=${plan}`);
+
+        // Every renewal earns too, for 12 months. Stripe also fires this event
+        // for the invoice that creates a subscription, which the checkout
+        // handler has already recorded - billing_reason separates the two.
+        if (invoice.billing_reason === 'subscription_cycle') {
+          await recordReferralConversion(
+            supabase, tokenRow.user_id, invoice.amount_paid ?? 0, plan, subscriptionId, 'renewal',
+          );
+        }
       }
     }
 
