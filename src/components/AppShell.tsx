@@ -1,5 +1,5 @@
 import { useState, useEffect, createContext, useContext, useRef } from 'react';
-import { Sparkles, Settings, LogOut, Menu, X, Zap, Users, Handshake, Trophy, BarChart2, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
+import { Settings, LogOut, Menu, X, Zap, Users, Handshake, BarChart2, PanelLeftClose, PanelLeftOpen, Video as VideoIcon, Wand2, FileText } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
 
@@ -17,7 +17,7 @@ export const MobileHeaderContext = createContext<{
   setRightAction: (node: React.ReactNode) => void;
 }>({ setRightAction: () => {} });
 
-export type NavTab = 'home' | 'hooks' | 'rank' | 'usage' | 'upgrade' | 'settings' | 'partners' | 'competitors' | 'admin';
+export type NavTab = 'home' | 'video' | 'hook' | 'script' | 'hooks' | 'rank' | 'usage' | 'upgrade' | 'settings' | 'partners' | 'competitors' | 'admin';
 
 // Feature flags: tabs hidden from ALL users (incl. admin). Kept in code so they
 // can be re-enabled instantly by removing them from this list.
@@ -39,9 +39,13 @@ interface AppShellProps {
   children: React.ReactNode;
 }
 
+// One flat list. The Analyze sub-panel used to hold Video/Hook/Script in a
+// second column, which cost a whole column on desktop and had nowhere sensible
+// to live on a phone. They are tabs like everything else now.
 const baseNavItems: NavItem[] = [
-  { id: 'hooks', label: 'Analyze', icon: <Sparkles className="w-4 h-4" /> },
-  { id: 'rank', label: 'Rank', icon: <Trophy className="w-4 h-4" /> },
+  { id: 'video', label: 'Video', icon: <VideoIcon className="w-4 h-4" /> },
+  { id: 'hook', label: 'Hook', icon: <Wand2 className="w-4 h-4" /> },
+  { id: 'script', label: 'Script', icon: <FileText className="w-4 h-4" /> },
   { id: 'competitors', label: 'Competitors', icon: <Users className="w-4 h-4" /> },
   { id: 'usage', label: 'Usage', icon: <BarChart2 className="w-4 h-4" /> },
   { id: 'upgrade', label: 'Upgrade', icon: <Zap className="w-4 h-4" />, highlight: true },
@@ -105,14 +109,16 @@ export function AppShell({ activeTab, onTabChange, children }: AppShellProps) {
       key={item.id}
       onClick={() => { onTabChange(item.id); setMobileOpen(false); }}
       title={item.label}
-      className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all ${
+      className={`relative w-full flex items-center gap-3 px-3 py-2 rounded-md text-[13px] font-medium transition-colors ${
         activeTab === item.id
-          ? 'bg-[var(--accent)]/15 text-[var(--accent)] ring-1 ring-inset ring-[var(--accent)]/20'
-          : item.highlight
-          ? 'text-amber-400 hover:text-amber-300 hover:bg-amber-400/10'
-          : 'text-gray-400 hover:text-white hover:bg-white/5'
+          ? 'text-white'
+          : 'text-white/45 hover:text-white/80'
       }`}
+      style={activeTab === item.id ? { background: 'rgba(var(--brand-rgb),0.22)' } : undefined}
     >
+      {activeTab === item.id && (
+        <span className="absolute left-0 top-1.5 bottom-1.5 w-[2px] rounded-full" style={{ background: 'rgb(var(--brand-rgb))' }} />
+      )}
       {item.icon}
       <span className={`flex-1 text-left whitespace-nowrap ${collapsed ? 'lg:hidden' : ''}`}>{item.label}</span>
       {item.badge && (
@@ -124,19 +130,10 @@ export function AppShell({ activeTab, onTabChange, children }: AppShellProps) {
   );
 
   return (
-    <div className="flex overflow-hidden relative" style={{ background: 'linear-gradient(160deg, rgb(var(--surface-rgb)) 0%, rgb(var(--surface-rgb)) 100%)', maxWidth: '100vw', height: '100dvh' }}>
-      <svg
-        className="absolute inset-0 w-full h-full pointer-events-none"
-        xmlns="http://www.w3.org/2000/svg"
-        style={{ zIndex: 0 }}
-      >
-        <defs>
-          <pattern id="app-dot-grid" x="0" y="0" width="28" height="28" patternUnits="userSpaceOnUse">
-            <circle cx="1" cy="1" r="1" fill="var(--accent)" fillOpacity="0.12" />
-          </pattern>
-        </defs>
-        <rect width="100%" height="100%" fill="url(#app-dot-grid)" />
-      </svg>
+    <div className="flex overflow-hidden relative" style={{ background: 'var(--bg-app)', maxWidth: '100vw', height: '100dvh' }}>
+      {/* Ruled rather than dotted, and static: the drifting glows and the dot
+          field were decoration that every generated dashboard also has. */}
+      <div className="absolute inset-0 pointer-events-none grid-surface" style={{ zIndex: 0, opacity: 0.6 }} />
 
       {/* Collapsing narrows the sidebar to an icon rail rather than hiding it, so
           every tab stays one click away. On phones this is always the full-width
@@ -147,14 +144,14 @@ export function AppShell({ activeTab, onTabChange, children }: AppShellProps) {
         fixed inset-y-0 left-0 z-50 flex flex-col w-56 border-r overflow-hidden transition-all duration-200 ease-in-out
         ${mobileOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0
         ${collapsed ? 'lg:w-16' : 'lg:w-56'}
-      `} style={{ background: 'rgba(var(--surface-rgb),0.8)', borderColor: 'rgba(255,255,255,0.08)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)' }}>
+      `} style={{ background: 'var(--bg-app)', borderColor: 'var(--line)' }}>
         {/* Brand row: single full-width button to Home, never signs the user out.
             The collapse toggle lives outside the sidebar (see below), Higgsfield-style. */}
-        <div className="px-3 py-3.5 flex-shrink-0" style={{ borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+        <div className="px-3 py-3.5 flex-shrink-0" style={{ borderBottom: '1px solid var(--line)' }}>
           <button
             onClick={() => { onTabChange('home'); setMobileOpen(false); }}
             title="Hershy"
-            className="w-full flex items-center gap-3 px-3 py-1 rounded-lg font-black uppercase tracking-[0.16em] text-[15px] transition-colors group"
+            className="w-full flex items-center gap-3 px-3 py-1 rounded-lg font-semibold tracking-tight text-[15px] transition-colors group"
           >
             <HubIcon
               className={`w-4 h-4 flex-shrink-0 transition-colors ${activeTab === 'home' ? 'text-[var(--accent)]' : 'text-white group-hover:text-[var(--accent)]'}`}

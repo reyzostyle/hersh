@@ -81,7 +81,7 @@ Deno.serve(async (req: Request) => {
         ]
     ).filter(Boolean).join('\n');
 
-    const prompt = `You are a ruthless short-form hook critic. Score the HOOK below - the opening line(s) of a YouTube Short / TikTok / Reel - on how well it stops the scroll in the first 2 seconds.
+    const prompt = `You are a viral short-form copywriter - you rewrite weak hooks into ones that stop the scroll, you don't just critique them. Score the HOOK below - the opening line(s) of a YouTube Short / TikTok / Reel - on how well it stops the scroll in the first 2 seconds, then hand back copy-paste-ready fixes.
 
 ${profile ? `CREATOR CONTEXT:\n${profile}\n\n` : ''}HOOK TO ANALYZE:
 """${hook.trim()}"""
@@ -94,9 +94,12 @@ SCORING (score: integer 1-100). Build it from FOUR components, then SUM - do NOT
 score = scrollstop + curiosity + clarity + specificity. Output the EXACT sum, avoid magnet numbers (50, 70, 75, 80).
 Bands (sanity-check only): 85-100 exceptional (rare), 70-84 strong, 55-69 decent, 40-54 mediocre, 25-39 weak, 1-24 broken.
 A genuinely strong hook earns 80+; a generic or scrollable one MUST land below 60. Never inflate to be nice.
-- Be specific and concrete. No generic praise. Banned phrases: "engaging", "great hook", "good", "consider", "you could try", "make sure".
-- issues: 1-3 concrete reasons it loses the viewer (or why it works). Be blunt.
-- rewrites: EXACTLY 3 different DIRECTIONS to inspire the creator, not final copy. Each is a distinct angle they can adapt in their own voice (curiosity gap, bold claim, pattern interrupt, specific number, stakes). In "why", name the angle and what makes it pull. Variety matters more than polish - give 3 genuinely different starting points.
+- issues: 1-3 concrete, fixable problems - never abstract criticism like "lacks curiosity" on its own. Where the fix is a word swap, give it directly: 'Replace "make money" with "print cash"' - not "use stronger words". Be blunt.
+- rewrites: EXACTLY 3 hooks, each finished and copy-paste-ready as-is (not a direction to adapt), one per angle below, in this order:
+  1. Negative/Risk: leads with a cost of inaction or a mistake to avoid (e.g. "Stop doing X if you want Y").
+  2. Curiosity Gap / Shock Stat: an open loop or surprising number that forces the watch (e.g. "How X made $100k using this 1 secret").
+  3. Contrarian / Pattern Interrupt: challenges what the audience already believes (e.g. "Everything you know about X is wrong").
+  Each rewrite must use the actual topic/specifics of the hook above, not a generic template with blanks filled in. In "why", name the angle and the one thing that makes THIS version pull harder than the original.
 - PUNCTUATION: never use em-dash (—) or en-dash (–) anywhere, only the regular hyphen (-).
 
 Return ONLY valid JSON, no markdown:
@@ -106,9 +109,9 @@ Return ONLY valid JSON, no markdown:
   "verdict": "one punchy sentence on the hook overall",
   "issues": ["...", "..."],
   "rewrites": [
-    {"hook": "exact rewrite ready to use", "why": "one sentence why it's stronger"},
-    {"hook": "...", "why": "..."},
-    {"hook": "...", "why": "..."}
+    {"hook": "finished Negative/Risk hook, ready to use as-is", "why": "one sentence: the angle + why it pulls harder"},
+    {"hook": "finished Curiosity Gap / Shock Stat hook, ready to use as-is", "why": "..."},
+    {"hook": "finished Contrarian / Pattern Interrupt hook, ready to use as-is", "why": "..."}
   ]
 }`;
 

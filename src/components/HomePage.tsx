@@ -1,4 +1,4 @@
-import { Sparkles, Trophy, Users, Settings, ArrowRight } from 'lucide-react';
+import { Video as VideoIcon, Wand2, FileText, Users, ArrowUpRight } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { NavTab, HIDDEN_TABS } from './AppShell';
 
@@ -8,37 +8,42 @@ interface HomePageProps {
 
 interface Tool {
   id: NavTab;
+  index: string;
   label: string;
   description: string;
   icon: React.ReactNode;
-  badge?: string;
-  accent?: 'purple';
 }
 
+// Numbered like a contents page. It gives the grid an order to read in, and the
+// mono numerals are the same voice used for scores and timestamps elsewhere.
 const tools: Tool[] = [
   {
-    id: 'hooks',
-    label: 'Analyze',
-    description: 'Score a video, hook, or script and see exactly where it loses people.',
-    icon: <Sparkles className="w-5 h-5" />,
+    id: 'video',
+    index: '01',
+    label: 'Video',
+    description: 'Watches the cut and returns timestamped fixes, against your real retention curve.',
+    icon: <VideoIcon className="w-[18px] h-[18px]" />,
   },
   {
-    id: 'rank',
-    label: 'Rank',
-    description: 'Track how your channel actually moves from season to season.',
-    icon: <Trophy className="w-5 h-5" />,
+    id: 'hook',
+    index: '02',
+    label: 'Hook',
+    description: 'Scores an opening line and hands back three finished rewrites.',
+    icon: <Wand2 className="w-[18px] h-[18px]" />,
+  },
+  {
+    id: 'script',
+    index: '03',
+    label: 'Script',
+    description: 'Breaks a script down before you film, with the lines to paste.',
+    icon: <FileText className="w-[18px] h-[18px]" />,
   },
   {
     id: 'competitors',
+    index: '04',
     label: 'Competitors',
-    description: 'See what is working for the channels you are up against.',
-    icon: <Users className="w-5 h-5" />,
-  },
-  {
-    id: 'settings',
-    label: 'Settings',
-    description: 'Channel profile, connected accounts, and plan.',
-    icon: <Settings className="w-5 h-5" />,
+    description: 'Surfaces only the shorts beating a channel’s own median, rebuilt for yours.',
+    icon: <Users className="w-[18px] h-[18px]" />,
   },
 ];
 
@@ -48,36 +53,39 @@ export function HomePage({ onNavigate }: HomePageProps) {
   const visibleTools = tools.filter(t => !HIDDEN_TABS.includes(t.id));
 
   return (
-    <div className="max-w-4xl mx-auto px-4 sm:px-6 pt-6 sm:pt-10 pb-12 animate-fade-in-up">
-      <div className="mb-7 sm:mb-9">
-        <h1 className="text-2xl sm:text-3xl font-bold text-white mb-1.5 tracking-tight">
-          Welcome back{name ? `, ${name}` : ''}
-        </h1>
-        <p className="text-sm text-gray-500">Pick a tool and get to work.</p>
-      </div>
+    <div className="max-w-3xl mx-auto px-5 sm:px-8 pt-12 sm:pt-20 pb-16">
+      <p className="label-mono mb-4">Workspace</p>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-        {visibleTools.map((tool, i) => (
+      <h1 className="display text-white mb-3">
+        {name ? `Welcome back, ${name}` : 'Welcome back'}
+      </h1>
+      <p className="text-[15px] text-white/40 mb-12 max-w-md">
+        Pick a tool and get to work.
+      </p>
+
+      {/* A single column, not a grid of small cards. Fewer, larger rows read as
+          deliberate; four tiles of the same weight read as a template. */}
+      <div style={{ borderTop: '1px solid var(--line)' }}>
+        {visibleTools.map(tool => (
           <button
             key={tool.id}
             onClick={() => onNavigate(tool.id)}
-            className={`group text-left p-5 rounded-xl motion-card animate-fade-in-up ${tool.accent === 'purple' ? 'glass-panel-purple' : 'glass-panel'}`}
-            style={{ animationDelay: `${i * 70}ms` }}
+            className="group w-full text-left flex items-start gap-5 py-5 transition-colors"
+            style={{ borderBottom: '1px solid var(--line)' }}
           >
-            <div className="flex items-center gap-2.5 mb-2.5">
-              <span className="text-[var(--accent)] flex-shrink-0">{tool.icon}</span>
-              <span className="text-white font-semibold">{tool.label}</span>
-              {tool.badge && (
-                <span
-                  className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full flex-shrink-0"
-                  style={{ background: 'rgba(var(--accent-rgb),0.12)', color: 'var(--accent)' }}
-                >
-                  {tool.badge}
-                </span>
-              )}
-              <ArrowRight className="w-4 h-4 text-gray-600 ml-auto flex-shrink-0 transition-all group-hover:text-[var(--accent)] group-hover:translate-x-0.5" />
-            </div>
-            <p className="text-sm text-gray-400 leading-relaxed">{tool.description}</p>
+            <span className="font-mono text-[11px] text-white/25 pt-1 w-6 flex-shrink-0 tabular-nums">
+              {tool.index}
+            </span>
+            <span className="text-white/40 pt-0.5 flex-shrink-0 transition-colors group-hover:text-white">
+              {tool.icon}
+            </span>
+            <span className="flex-1 min-w-0">
+              <span className="block text-[15px] font-medium text-white mb-1">{tool.label}</span>
+              <span className="block text-[13px] leading-relaxed text-white/40 text-balance">
+                {tool.description}
+              </span>
+            </span>
+            <ArrowUpRight className="w-4 h-4 text-white/15 flex-shrink-0 mt-1 transition-colors group-hover:text-white" />
           </button>
         ))}
       </div>

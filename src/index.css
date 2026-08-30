@@ -13,11 +13,22 @@
      and the furthest thing from a coloured primary button on every screen. */
   --accent: #FFFFFF;
   --accent-rgb: 255, 255, 255;
+
+  /* Hairlines do the work borders used to. One weight for structure, a
+     brighter one for the element you are on. */
+  --line: rgba(255, 255, 255, 0.07);
+  --line-strong: rgba(255, 255, 255, 0.16);
+
+  /* Blue is not gone, it moved underneath. The base is a deep blue-black
+     rather than neutral, so the product keeps a temperature without spending
+     the colour on buttons, and --brand carries it into the active row. */
+  --brand-rgb: 56, 90, 214;
+  --bg-raised: #0C0E13;
   /* Anything drawn ON the accent. Kept as a token because a white fill with
      white text is the one way this palette can silently break. */
   --on-accent: #0A0A0B;
-  --accent-soft: #D4D4D8;
-  --bg-app: #0A0A0B;
+  --accent-soft: #C9CED9;
+  --bg-app: #07080C;
 
   /* The wash under every glass panel. Separate from --accent because it is a
      deep, desaturated version rather than the accent at low opacity, and going
@@ -29,7 +40,7 @@
      decorative purple, which is most of what made the app read as blue even
      where nothing was explicitly the accent colour. Both are neutral now:
      depth comes from value, not from hue. */
-  --surface-rgb: 10, 10, 11;
+  --surface-rgb: 12, 14, 19;
   --wash-rgb: 255, 255, 255;
 
   /* Semantic colours, so "success" and "danger" are not spelled out per file. */
@@ -261,8 +272,9 @@ input, textarea, select {
   will-change: transform;
 }
 .motion-card:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 12px 40px rgba(0,0,0,0.3), 0 0 0 1px rgba(var(--accent-rgb),0.12);
+  /* A card that jumps under the cursor reads as a toy. The border brightening
+     is enough to say it is interactive. */
+  border-color: var(--line-strong);
 }
 
 /* ─── Scroll-reveal base ─────────────────────────────────────────────────────── */
@@ -316,29 +328,23 @@ input, textarea, select {
    bands in Chromium when a sibling repainted (accordion toggle, hover). The
    second gradient layer stands in for the old blur(22px) saturate(150%). */
 .glass-panel {
-  /* Vertical sheen so the glass reads even over a flat dark background */
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0.025) 45%, rgba(255, 255, 255, 0.035)),
-    linear-gradient(180deg, rgba(var(--glass-tint-rgb), 0.05), rgba(var(--glass-tint-rgb), 0.03));
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.11), 0 10px 34px -14px rgba(0, 0, 0, 0.6);
+  /* Flat. The gradient sheen, the white inset highlight and the drop shadow
+     that used to be here are the signature of a generated interface; depth
+     now comes from the surface being a step lighter than the page, and from
+     a single hairline. */
+  background: var(--bg-raised);
+  border: 1px solid var(--line);
 }
 .glass-panel-accent {
-  background:
-    linear-gradient(180deg, rgba(var(--accent-rgb), 0.13), rgba(var(--accent-rgb), 0.05)),
-    linear-gradient(180deg, rgba(var(--glass-tint-rgb), 0.05), rgba(var(--glass-tint-rgb), 0.03));
-  border: 1px solid rgba(var(--accent-rgb), 0.4);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12), 0 10px 34px -14px rgba(var(--accent-rgb), 0.22);
+  background: var(--bg-raised);
+  border: 1px solid var(--line-strong);
 }
 
 /* Very subtle purple glow — a lighter touch than .glass-panel-accent, for
    surfacing one card among peers without shouting "most popular" at it. */
 .glass-panel-purple {
-  background:
-    linear-gradient(180deg, rgba(var(--wash-rgb), 0.07), rgba(var(--wash-rgb), 0.02)),
-    linear-gradient(180deg, rgba(var(--glass-tint-rgb), 0.05), rgba(var(--glass-tint-rgb), 0.03));
-  border: 1px solid rgba(var(--wash-rgb), 0.18);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1), 0 10px 30px -16px rgba(var(--wash-rgb), 0.16);
+  background: var(--bg-raised);
+  border: 1px solid var(--line);
 }
 
 /* ─── Glass system: fields + primary buttons (cohesive with .glass-panel) ───── */
@@ -355,3 +361,36 @@ input, textarea, select {
 .btn-primary:hover { filter: brightness(1.06); }
 .btn-primary:active { filter: brightness(0.97); }
 .btn-primary:disabled { filter: none; box-shadow: none; }
+
+/* ─── Type ────────────────────────────────────────────────────────────────── */
+
+/* One display class rather than a size guessed per screen. The gap between a
+   heading and its body text is what makes an interface feel deliberate, and
+   everything here used to sit within a few pixels of everything else. */
+.display {
+  font-size: clamp(1.75rem, 1.2rem + 2.2vw, 2.75rem);
+  font-weight: 600;
+  letter-spacing: -0.035em;
+  line-height: 1.05;
+}
+
+/* Small mono labels, the voice the Geist site uses for anything measured. */
+.label-mono {
+  font-family: 'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.38);
+}
+
+/* ─── Grid ────────────────────────────────────────────────────────────────── */
+
+/* Replaces the drifting glows. A ruled surface reads as precision instead of
+   decoration, and it is one gradient rather than three animated blobs. */
+.grid-surface {
+  background-image:
+    linear-gradient(to right, var(--line) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--line) 1px, transparent 1px);
+  background-size: 96px 96px;
+}

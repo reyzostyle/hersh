@@ -80,7 +80,7 @@ export function HeroAnalysisGate({
 
   return (
     <div className="fixed inset-0 z-40">
-      <AppShell activeTab="hooks" onTabChange={() => {}}>
+      <AppShell activeTab="video" onTabChange={() => {}}>
         <AnalysisScreenStill url={url} />
       </AppShell>
 
