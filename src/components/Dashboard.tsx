@@ -7,6 +7,7 @@ import { UsagePage } from './UsagePage';
 import { SettingsPage } from './SettingsPage';
 import { PartnersPage } from './PartnersPage';
 import { CompetitorsPage } from './CompetitorsPage';
+import { CommentGenerator } from './CommentGenerator';
 import { RankPage } from './RankPage';
 import { AdminPage } from './AdminPage';
 
@@ -14,7 +15,7 @@ import { AdminPage } from './AdminPage';
 // only reached by entering the admin code in Settings. AdminPage itself
 // re-checks the caller's email before rendering anything or fetching data.
 // 'home' also has no nav entry: it's reached from the brand row in the sidebar.
-const VALID_TABS: NavTab[] = ['home', 'hooks', 'rank', 'competitors', 'usage', 'upgrade', 'partners', 'settings', 'admin'];
+const VALID_TABS: NavTab[] = ['home', 'hooks', 'rank', 'competitors', 'comments', 'usage', 'upgrade', 'partners', 'settings', 'admin'];
 
 // A tab is reachable only if it's known and not feature-flagged off.
 const isTabReachable = (t: string): t is NavTab =>
@@ -58,6 +59,7 @@ export function Dashboard() {
       {activeTab === 'hooks' && <AnalyzeHub />}
       {activeTab === 'rank' && <RankPage />}
       {activeTab === 'competitors' && <CompetitorsPage />}
+      {activeTab === 'comments' && <CommentGenerator />}
       {activeTab === 'usage' && <UsagePage />}
       {activeTab === 'upgrade' && <UpgradePage />}
       {activeTab === 'partners' && <PartnersPage />}

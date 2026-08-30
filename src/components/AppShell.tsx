@@ -1,5 +1,5 @@
 import { useState, useEffect, createContext, useContext, useRef } from 'react';
-import { Sparkles, Settings, LogOut, Menu, X, Zap, Users, Handshake, Trophy, BarChart2, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
+import { Sparkles, Settings, LogOut, Menu, X, Zap, Users, Handshake, Trophy, BarChart2, PanelLeftClose, PanelLeftOpen, MessageSquare } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
 
@@ -17,7 +17,7 @@ export const MobileHeaderContext = createContext<{
   setRightAction: (node: React.ReactNode) => void;
 }>({ setRightAction: () => {} });
 
-export type NavTab = 'home' | 'hooks' | 'rank' | 'usage' | 'upgrade' | 'settings' | 'partners' | 'competitors' | 'admin';
+export type NavTab = 'home' | 'hooks' | 'rank' | 'usage' | 'upgrade' | 'settings' | 'partners' | 'competitors' | 'comments' | 'admin';
 
 // Feature flags: tabs hidden from ALL users (incl. admin). Kept in code so they
 // can be re-enabled instantly by removing them from this list.
@@ -43,6 +43,7 @@ const baseNavItems: NavItem[] = [
   { id: 'hooks', label: 'Analyze', icon: <Sparkles className="w-4 h-4" /> },
   { id: 'rank', label: 'Rank', icon: <Trophy className="w-4 h-4" /> },
   { id: 'competitors', label: 'Competitors', icon: <Users className="w-4 h-4" /> },
+  { id: 'comments', label: 'Comments', icon: <MessageSquare className="w-4 h-4" />, badge: 'FREE' },
   { id: 'usage', label: 'Usage', icon: <BarChart2 className="w-4 h-4" /> },
   { id: 'upgrade', label: 'Upgrade', icon: <Zap className="w-4 h-4" />, highlight: true },
   { id: 'settings', label: 'Settings', icon: <Settings className="w-4 h-4" /> },
