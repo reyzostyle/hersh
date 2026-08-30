@@ -40,7 +40,6 @@ export function CommentGenerator() {
   const [likes, setLikes] = useState('1.2K');
   const [time, setTime] = useState('');
   const [dark, setDark] = useState(false);
-  const [transparent, setTransparent] = useState(false);
   const [usernameColor, setUsernameColor] = useState(TWITCH_COLORS[13]);
   const [badges, setBadges] = useState<TwitchBadge[]>(['subscriber']);
   const [replySticker, setReplySticker] = useState(false);
@@ -55,12 +54,12 @@ export function CommentGenerator() {
 
   const spec: CommentSpec = {
     platform, username, text, verified, avatar, likes, time,
-    dark, transparent, usernameColor, badges, replySticker, width, rounded,
+    dark, usernameColor, badges, replySticker, width, rounded,
   };
 
   const draw = useCallback(() => {
     if (canvasRef.current) renderComment(canvasRef.current, spec);
-  }, [platform, username, text, verified, avatar, likes, time, dark, transparent, usernameColor, badges, replySticker, width, rounded]);
+  }, [platform, username, text, verified, avatar, likes, time, dark, usernameColor, badges, replySticker, width, rounded]);
 
   useEffect(() => { draw(); }, [draw]);
 
@@ -93,7 +92,7 @@ export function CommentGenerator() {
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-white mb-1">Comment Generator</h1>
         <p className="text-sm text-gray-500 text-balance">
-          Build a comment for your video, download it as a transparent PNG, drop it over your footage. Free, no credits.
+          Build a comment for your video, download the PNG, drop it over your footage. Free, no credits.
         </p>
       </div>
 
@@ -246,19 +245,11 @@ export function CommentGenerator() {
               <input type="checkbox" checked={replySticker} onChange={e => setReplySticker(e.target.checked)} className="accent-[#0EA4E9]" />
               <span className="text-xs text-gray-400">"Replying to" sticker</span>
             </label>
-            {!isTwitch && !replySticker && (
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input type="checkbox" checked={dark} onChange={e => setDark(e.target.checked)} className="accent-[#0EA4E9]" />
-                <span className="text-xs text-gray-400">Dark mode</span>
-              </label>
-            )}
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input type="checkbox" checked={dark} onChange={e => setDark(e.target.checked)} className="accent-[#0EA4E9]" />
+              <span className="text-xs text-gray-400">Dark mode</span>
+            </label>
             {!replySticker && (
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input type="checkbox" checked={transparent} onChange={e => setTransparent(e.target.checked)} className="accent-[#0EA4E9]" />
-                <span className="text-xs text-gray-400">Transparent background</span>
-              </label>
-            )}
-            {!replySticker && !transparent && (
               <label className="flex items-center gap-2 cursor-pointer">
                 <input type="checkbox" checked={rounded} onChange={e => setRounded(e.target.checked)} className="accent-[#0EA4E9]" />
                 <span className="text-xs text-gray-400">Rounded corners</span>

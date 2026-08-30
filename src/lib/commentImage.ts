@@ -18,7 +18,6 @@ export interface CommentSpec {
   likes: string;
   time: string;
   dark: boolean;
-  transparent: boolean;
   usernameColor: string;
   badges: TwitchBadge[];
   /** The white "Replying to" card used as a video hook, on any platform. */
@@ -48,7 +47,11 @@ const font = (weight: number, size: number) => `${weight} ${size}px ${FONT}`;
 
 // Palette per platform, so a renderer never hardcodes a colour twice.
 function palette(p: Platform, dark: boolean) {
-  if (p === 'twitch') return { bg: '#18181B', text: '#EFEFF1', muted: '#ADADB8' };
+  if (p === 'twitch') {
+    return dark
+      ? { bg: '#18181B', text: '#EFEFF1', muted: '#ADADB8' }
+      : { bg: '#FFFFFF', text: '#0E0E10', muted: '#53535F' };
+  }
   if (dark) return { bg: '#0F0F0F', text: '#F1F1F1', muted: '#AAAAAA' };
   return { bg: '#FFFFFF', text: '#161823', muted: '#8A8B91' };
 }
@@ -157,9 +160,7 @@ function wrapText(ctx: CanvasRenderingContext2D, text: string, maxWidth: number)
 
 interface Layout { width: number; height: number; draw: (ctx: CanvasRenderingContext2D) => void }
 
-// Transparent skips the fill entirely: there is no background left to round.
 function fillBg(ctx: CanvasRenderingContext2D, spec: CommentSpec, w: number, h: number, color: string) {
-  if (spec.transparent) return;
   ctx.fillStyle = color;
   if (spec.rounded) {
     ctx.beginPath();
@@ -172,7 +173,7 @@ function fillBg(ctx: CanvasRenderingContext2D, spec: CommentSpec, w: number, h: 
 
 // ── "Replying to" card ──────────────────────────────────────────────────────
 // The hook format, shared by every platform so it reads the same wherever it
-// came from. Always white and always rounded - that is the look being copied.
+// came from. Always rounded, since that is the look being copied.
 function replyCard(measure: CanvasRenderingContext2D, spec: CommentSpec): Layout {
   const W = spec.width;
   const PAD = Math.round(W * 0.034) + 10;
@@ -188,7 +189,11 @@ function replyCard(measure: CanvasRenderingContext2D, spec: CommentSpec): Layout
   return {
     width: W, height,
     draw: ctx => {
-      ctx.fillStyle = '#FFFFFF';
+      const card = spec.dark
+        ? { bg: '#1C1C1E', label: '#9A9AA0', body: '#FFFFFF' }
+        : { bg: '#FFFFFF', label: '#6B6B72', body: '#161823' };
+
+      ctx.fillStyle = card.bg;
       ctx.beginPath();
       ctx.roundRect(0, 0, W, height, 18);
       ctx.fill();
@@ -196,7 +201,7 @@ function replyCard(measure: CanvasRenderingContext2D, spec: CommentSpec): Layout
       drawAvatar(ctx, spec, PAD, PAD, AV);
       ctx.textAlign = 'left';
       ctx.textBaseline = 'middle';
-      ctx.fillStyle = '#6B6B72';
+      ctx.fillStyle = card.label;
       ctx.font = font(400, NAME);
       const label = `Replying to ${spec.username || 'user'}'s comment`;
       ctx.fillText(label, PAD + AV + 10, PAD + AV / 2);
@@ -205,7 +210,7 @@ function replyCard(measure: CanvasRenderingContext2D, spec: CommentSpec): Layout
         drawVerified(ctx, PAD + AV + 16 + w, PAD + AV / 2 - NAME * 0.5, NAME, ACCENT[spec.platform]);
       }
 
-      ctx.fillStyle = '#161823';
+      ctx.fillStyle = card.body;
       ctx.font = font(700, BODY);
       ctx.textBaseline = 'top';
       lines.forEach((l, i) => ctx.fillText(l, PAD, PAD + AV + 14 + i * lineH));
@@ -268,7 +273,7 @@ function tiktok(measure: CanvasRenderingContext2D, spec: CommentSpec): Layout {
 
 // ── Twitch ──────────────────────────────────────────────────────────────────
 function twitch(measure: CanvasRenderingContext2D, spec: CommentSpec): Layout {
-  const c = palette('twitch', true);
+  const c = palette('twitch', spec.dark);
   const W = spec.width;
   const PAD = 18, BADGE = 24, SIZE = 24;
 
