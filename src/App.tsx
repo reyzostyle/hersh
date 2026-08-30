@@ -2,6 +2,7 @@ import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { LandingPage } from './components/LandingPage';
 import { Dashboard } from './components/Dashboard';
 import { Onboarding } from './components/Onboarding';
+import { OnboardingOffer } from './components/OnboardingOffer';
 import { PrivacyPolicy } from './components/PrivacyPolicy';
 import { TermsOfService } from './components/TermsOfService';
 import { Loader2 } from 'lucide-react';
@@ -219,11 +220,25 @@ function AppContent() {
   // Read once at mount (not on every render): HookAnalysis clears this same
   // key once it picks the URL up, and re-reading it live would flip Dashboard
   // back to the onboarding screen mid-session the moment that happens.
-  // onboarding_completed is deliberately left unset by this bypass, so it
-  // still surfaces normally on a later, less time-pressured visit.
+  // onboarding_completed is deliberately left unset by this bypass, so the
+  // profile is still missing and still worth asking for - just not here. The
+  // offer below raises it once their first result is on screen.
   const [bypassOnboardingForPendingUrl] = useState(
     () => !!localStorage.getItem('hershy_pending_video_url')
   );
+
+  // Onboarding isn't dropped for those users, it's deferred: the offer goes up
+  // once their first analysis lands, when "this would be sharper if it knew
+  // your channel" is something they can judge for themselves.
+  const [offerOnboarding, setOfferOnboarding] = useState(false);
+  const [onboardingOpen, setOnboardingOpen] = useState(false);
+
+  useEffect(() => {
+    if (!bypassOnboardingForPendingUrl) return;
+    const onDone = () => setOfferOnboarding(true);
+    window.addEventListener('hershy:analysis-done', onDone);
+    return () => window.removeEventListener('hershy:analysis-done', onDone);
+  }, [bypassOnboardingForPendingUrl]);
 
   // Determine whether the logged-in user still needs onboarding.
   useEffect(() => {
@@ -299,7 +314,32 @@ function AppContent() {
     return <Onboarding onDone={() => setNeedsOnboarding(false)} />;
   }
 
-  return <Dashboard />;
+  return (
+    <>
+      <Dashboard />
+
+      {onboardingOpen && (
+        <div className="fixed inset-0 z-[60] overflow-auto bg-[#212121]">
+          <Onboarding
+            onDone={() => {
+              setNeedsOnboarding(false);
+              setOnboardingOpen(false);
+              setOfferOnboarding(false);
+            }}
+          />
+        </div>
+      )}
+
+      {/* Only worth asking while the profile is still empty, and only once: a
+          prompt that comes back after every analysis is nagging, not an offer. */}
+      {offerOnboarding && needsOnboarding && !onboardingOpen && (
+        <OnboardingOffer
+          onAccept={() => setOnboardingOpen(true)}
+          onDismiss={() => setOfferOnboarding(false)}
+        />
+      )}
+    </>
+  );
 }
 
 // How long a click stays attributed to the partner who sent it.

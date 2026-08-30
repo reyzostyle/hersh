@@ -207,6 +207,7 @@ export function HookAnalysis() {
         setProgressDone(false);
         setOpenedFromHistory(false);
         setAnalysisPanelOpen(true);
+        window.dispatchEvent(new CustomEvent('hershy:analysis-done'));
       }, 600);
     } catch (err) {
       setProgressOpen(false);
@@ -301,6 +302,7 @@ export function HookAnalysis() {
         setShowContext(false);
         setOpenedFromHistory(false);
         setAnalysisPanelOpen(true);
+        window.dispatchEvent(new CustomEvent('hershy:analysis-done'));
       }, 600);
     } catch (err) {
       setProgressOpen(false);
