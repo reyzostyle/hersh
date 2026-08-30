@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import {
-  Loader2, Youtube, Check, ArrowRight, ArrowLeft, Sparkles,
+  Loader2, Youtube, Check, ArrowRight, ArrowLeft,
   TrendingUp, DollarSign, Flame, ShoppingBag, Sprout, Rocket, Trophy,
 } from 'lucide-react';
 
@@ -180,9 +180,6 @@ export function Onboarding({ onDone }: { onDone: () => void }) {
         {/* ── Welcome ── */}
         {step === 0 && (
           <div className="text-center">
-            <div className="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-6" style={{ background: 'rgba(14,164,233,0.12)', border: '1px solid rgba(14,164,233,0.25)' }}>
-              <Sparkles className="w-7 h-7" style={{ color: accent }} />
-            </div>
             <h1 className="text-2xl font-bold text-white mb-3 text-balance">Welcome to Hershy</h1>
             <p className="text-gray-400 text-sm leading-relaxed mb-8 text-balance max-w-sm mx-auto">
               Answer a few quick questions so every analysis and idea is tailored to your channel. Takes under a minute.
