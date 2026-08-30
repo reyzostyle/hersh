@@ -1,0 +1,38 @@
+# Everything here is meant to be read, including by answer engines.
+User-agent: *
+Allow: /
+
+# Signed-in surfaces: no content to index, and crawling them just burns budget.
+Disallow: /auth/
+Disallow: /*?ref=
+Disallow: /*?via=
+Disallow: /*?code=
+
+# Named explicitly rather than left to the wildcard, so there is no ambiguity
+# about whether these are welcome. They are: being quoted in an answer is the
+# point.
+User-agent: GPTBot
+Allow: /
+
+User-agent: OAI-SearchBot
+Allow: /
+
+User-agent: ChatGPT-User
+Allow: /
+
+User-agent: ClaudeBot
+Allow: /
+
+User-agent: Claude-SearchBot
+Allow: /
+
+User-agent: PerplexityBot
+Allow: /
+
+User-agent: Google-Extended
+Allow: /
+
+User-agent: Applebot-Extended
+Allow: /
+
+Sitemap: https://hershymedia.com/sitemap.xml

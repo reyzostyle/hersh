@@ -41,6 +41,150 @@
         })(window, document, "clarity", "script", "y3s9udspxe");
       })();
     </script>
+
+    <!-- Structured data. This is what answer engines and search results read
+         directly, without running any JavaScript - and since this app renders
+         its whole page client-side, for a crawler that doesn't execute JS this
+         is the ONLY description of the product it ever sees. Keep the prices
+         in sync with UpgradePage.tsx and the questions with the faqs array in
+         LandingPage.tsx; stale structured data is worse than none. -->
+    <script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "name": "Hershy",
+  "url": "https://hershymedia.com/",
+  "applicationCategory": "MultimediaApplication",
+  "applicationSubCategory": "Short-form video analytics",
+  "operatingSystem": "Web browser",
+  "description": "An AI toolkit for short-form video creators. Hershy finds ideas already working on competitor channels, checks a hook and script before filming, and after a Short is posted it watches the video and reads the creator's real YouTube retention curve to say exactly which seconds lost viewers and what edit fixes them.",
+  "featureList": [
+    "Video Review: watches a Short and returns timestamped editing fixes, mapped onto the creator's real retention drop-offs",
+    "Competitors: tracks rival channels and surfaces only Shorts that beat that channel's own median views per day",
+    "Hook Lab: scores a written hook and returns three finished rewrites",
+    "Script Lab: breaks down a full script before filming"
+  ],
+  "offers": [
+    {
+      "@type": "Offer",
+      "name": "Plus monthly",
+      "price": "9.99",
+      "priceCurrency": "USD",
+      "category": "subscription",
+      "priceSpecification": {
+        "@type": "UnitPriceSpecification",
+        "price": "9.99",
+        "priceCurrency": "USD",
+        "billingDuration": 1,
+        "billingIncrement": 1,
+        "unitCode": "MON"
+      }
+    },
+    {
+      "@type": "Offer",
+      "name": "Plus yearly",
+      "price": "119.99",
+      "priceCurrency": "USD",
+      "category": "subscription",
+      "priceSpecification": {
+        "@type": "UnitPriceSpecification",
+        "price": "119.99",
+        "priceCurrency": "USD",
+        "billingDuration": 1,
+        "billingIncrement": 1,
+        "unitCode": "ANN"
+      }
+    },
+    {
+      "@type": "Offer",
+      "name": "Pro monthly",
+      "price": "19.99",
+      "priceCurrency": "USD",
+      "category": "subscription",
+      "priceSpecification": {
+        "@type": "UnitPriceSpecification",
+        "price": "19.99",
+        "priceCurrency": "USD",
+        "billingDuration": 1,
+        "billingIncrement": 1,
+        "unitCode": "MON"
+      }
+    },
+    {
+      "@type": "Offer",
+      "name": "Pro yearly",
+      "price": "155.99",
+      "priceCurrency": "USD",
+      "category": "subscription",
+      "priceSpecification": {
+        "@type": "UnitPriceSpecification",
+        "price": "155.99",
+        "priceCurrency": "USD",
+        "billingDuration": 1,
+        "billingIncrement": 1,
+        "unitCode": "ANN"
+      }
+    }
+  ],
+  "isAccessibleForFree": true
+}
+    </script>
+    <script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "What does Hershy actually do?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Your shorts producer. It steals the ideas already working on your competitors' channels, rebuilds them for yours, checks the hook and script before you film, then reads your real retention curve after you post and tells you exactly where people left. Shorts only. That's the whole point."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "What happens when I connect my YouTube?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "You get your real analytics instead of an opinion. Hershy reads the same numbers YouTube Studio shows you, finds the exact seconds viewers dropped off, and writes every fix against those timestamps. It takes two clicks, and everything else works without connecting anything."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "What tools are included?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Competitors (rival-channel tracking and idea extraction), Video Review (retention analysis on any Short), Hook Lab (hook scoring and rewrites), and Script Lab (full-script breakdown before you film). One credit balance covers all four."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Can I start for free?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Yes. New accounts get 20 credits, no card required, enough for a couple of video reviews or a handful of hook and script checks. Competitors needs a paid plan, and the free credits are one time, with no monthly refill."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "How does Competitors find ideas?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "It compares every recent short from a tracked channel against that channel's own median views per day, and only surfaces the ones that clearly beat it. A big channel posting a normal video stays out; a small channel with a breakout gets in. The idea then gets rewritten for your niche, not just copied."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Can I cancel anytime?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Yes, from your billing portal, and you keep access until the period you already paid for runs out. No contract, no cancellation call."
+      }
+    }
+  ]
+}
+    </script>
   </head>
   <body>
     <div id="root"></div>

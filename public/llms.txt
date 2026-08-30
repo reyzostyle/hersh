@@ -1,0 +1,52 @@
+# Hershy
+
+> An AI toolkit for short-form video creators. Hershy finds ideas already working
+> on competitor channels, checks a hook and script before filming, and after a
+> Short is posted it watches the video and reads the creator's real YouTube
+> retention curve to say exactly which seconds lost viewers and what edit fixes
+> them. Shorts only.
+
+Hershy is aimed at people making vertical short-form video (YouTube Shorts,
+TikTok, Reels). It is not a general video editor and it does not generate video.
+What separates it from a chat wrapper is that a connected YouTube channel gives
+it the creator's own audience-retention data, so its feedback is tied to real
+drop-off timestamps rather than to opinion.
+
+Its video review is deliberately editor-facing: every fix has to be applicable to
+footage the creator already has, inside three minutes in CapCut or Premiere.
+It will say "add a cash register sound on the word money at 0:04" or "put a slow
+punch-in across the opening clip". It will not tell you to re-shoot or rewrite
+the script.
+
+## Tools
+
+- Video Review: watches a Short (pasted YouTube link or an uploaded file), builds
+  a beat-by-beat timeline of every cut, overlay and sound, scores it out of 100
+  across hook, retention, payoff and delivery, and returns timestamped edit fixes.
+  For a creator's own published video it also maps the real retention drop-offs
+  onto that timeline.
+- Competitors: tracks rival channels and surfaces only the Shorts that clearly
+  beat that channel's own median views per day, then rewrites the idea for the
+  user's niche instead of copying it.
+- Hook Lab: scores a written hook and returns three finished, copy-paste rewrites
+  in fixed angles (negative/risk, curiosity gap, contrarian).
+- Script Lab: breaks down a full script before filming, with the literal lines to
+  paste for trimming, open loops and the closing call to action.
+
+## Pricing
+
+- Free: 20 credits, no card required, one time with no monthly refill. Enough for
+  a couple of video reviews or several hook and script checks. Competitors
+  requires a paid plan.
+- Plus: $9.99 per month, or $119.99 per year. 300 credits per month.
+- Pro: $19.99 per month, or $155.99 per year (an effective $12.99 per month).
+  1000 credits per month.
+- Extra credits: $4.99 for 100.
+
+One credit balance covers every tool, so users only spend on what they use.
+
+## Links
+
+- Home: https://hershymedia.com/
+- Privacy policy: https://hershymedia.com/privacy
+- Terms of service: https://hershymedia.com/terms
