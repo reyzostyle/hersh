@@ -188,6 +188,23 @@
   </head>
   <body>
     <div id="root"></div>
+    <script>
+      // The public routes are prerendered into #root so crawlers can read them
+      // without running JavaScript (see src/prerender.tsx). A signed-in visitor
+      // would otherwise get a flash of the landing page on every open, before
+      // React resolves their session and swaps in the app. If a Supabase
+      // session is on this device, clear the placeholder immediately: they are
+      // going to the dashboard, not the pitch.
+      try {
+        for (var i = 0; i < localStorage.length; i++) {
+          var k = localStorage.key(i);
+          if (k && k.indexOf('sb-') === 0 && k.indexOf('-auth-token') > 0) {
+            document.getElementById('root').innerHTML = '';
+            break;
+          }
+        }
+      } catch (e) { /* private mode, storage blocked: keep the placeholder */ }
+    </script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
