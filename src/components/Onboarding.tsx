@@ -327,8 +327,21 @@ export function Onboarding({ onDone }: { onDone: () => void }) {
                 </div>
               </div>
             ) : (
-              <button onClick={connectYouTube} className="w-full flex items-center justify-center gap-2 py-3.5 rounded-xl font-semibold text-white" style={{ background: '#FF0000' }}>
-                <Youtube className="w-5 h-5" /> Connect YouTube
+              // Tinted rather than solid YouTube red: the same treatment the
+              // Discord link in ErrorNotice uses, so a third-party brand reads
+              // as one action among ours instead of a slab of someone else's
+              // colour. It is also an optional step, and a full-bleed red
+              // button outshouts Finish, which is the primary action here.
+              <button
+                onClick={connectYouTube}
+                className="w-full flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-semibold transition-colors"
+                style={{
+                  background: 'rgba(255,0,0,0.11)',
+                  border: '1px solid rgba(255,0,0,0.28)',
+                  color: '#ff8080',
+                }}
+              >
+                <Youtube className="w-4 h-4" /> Connect YouTube
               </button>
             )}
           </StepShell>

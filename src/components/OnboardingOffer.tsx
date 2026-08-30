@@ -7,51 +7,47 @@ import { Sparkles, X } from 'lucide-react';
 // visitor and the thing they came for. Asking after it is a different question:
 // they have seen what the analysis looks like, so "it would be sharper if it
 // knew your channel" is an offer rather than a toll.
+//
+// Uses .glass-panel-accent, the panel style the app already reserves for
+// surfacing one card above its neighbours, rather than inventing a look that
+// exists nowhere else in the product.
 export function OnboardingOffer({ onAccept, onDismiss }: { onAccept: () => void; onDismiss: () => void }) {
   return (
-    <div className="fixed bottom-4 right-4 left-4 sm:left-auto sm:w-[380px] z-50 animate-fade-in-up">
-      <div
-        className="rounded-xl p-4 shadow-2xl"
-        style={{
-          background: 'linear-gradient(rgba(255,255,255,0.05), rgba(255,255,255,0.05)), #16181D',
-          border: '1px solid rgba(14,164,233,0.25)',
-        }}
-      >
-        <div className="flex items-start gap-3">
-          <div
-            className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0"
-            style={{ background: 'rgba(14,164,233,0.15)' }}
+    <div className="fixed bottom-4 right-4 left-4 sm:left-auto sm:w-[364px] z-50 animate-fade-in-up">
+      <div className="relative rounded-xl p-4 glass-panel-accent">
+        <button
+          onClick={onDismiss}
+          className="absolute top-3 right-3 text-gray-600 hover:text-gray-300 transition-colors"
+          aria-label="Dismiss"
+        >
+          <X className="w-3.5 h-3.5" />
+        </button>
+
+        <div className="flex items-center gap-2.5 mb-2">
+          <span className="text-[#0EA4E9] flex-shrink-0">
+            <Sparkles className="w-4 h-4" />
+          </span>
+          <span className="text-white font-semibold text-sm">That was a cold read</span>
+        </div>
+
+        <p className="text-xs leading-relaxed text-gray-400 text-balance pr-4">
+          It judged the video on its own, knowing nothing about your channel. Tell us your niche and
+          level and the next one is written for you.
+        </p>
+
+        <div className="flex items-center gap-3 mt-3.5">
+          <button
+            onClick={onAccept}
+            className="px-3.5 py-2 rounded-lg text-xs font-semibold text-white transition-opacity hover:opacity-90"
+            style={{ background: '#0EA4E9' }}
           >
-            <Sparkles className="w-3.5 h-3.5 text-[#0EA4E9]" />
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-semibold text-white mb-1">That was a cold read</p>
-            <p className="text-xs text-gray-400 text-balance">
-              It judged the video on its own, knowing nothing about your channel. Tell us your niche
-              and level and the next one is written for you.
-            </p>
-            <div className="flex items-center gap-3 mt-3">
-              <button
-                onClick={onAccept}
-                className="px-3.5 py-2 text-xs font-medium text-white rounded-lg hover:opacity-90 transition-opacity"
-                style={{ background: '#0EA4E9' }}
-              >
-                Takes a minute
-              </button>
-              <button
-                onClick={onDismiss}
-                className="text-xs text-gray-500 hover:text-gray-300 transition-colors"
-              >
-                Not now
-              </button>
-            </div>
-          </div>
+            Takes a minute
+          </button>
           <button
             onClick={onDismiss}
-            className="text-gray-600 hover:text-gray-400 transition-colors flex-shrink-0"
-            aria-label="Dismiss"
+            className="text-xs font-medium text-gray-500 hover:text-gray-300 transition-colors"
           >
-            <X className="w-3.5 h-3.5" />
+            Not now
           </button>
         </div>
       </div>
