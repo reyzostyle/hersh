@@ -112,13 +112,13 @@ Deno.serve(async (req: Request) => {
   // ── PUT: partner saves their own payout details ────────────────────────
   if (req.method === 'PUT') {
     const { payout_method, payout_details, payout_in_credits } = await req.json();
-    if (payout_method && !['paypal', 'wise'].includes(payout_method)) {
-      return new Response(JSON.stringify({ error: 'Unknown payout method' }), { status: 400, headers: corsHeaders });
+    if (payout_method && payout_method !== 'paypal') {
+      return new Response(JSON.stringify({ error: 'Payouts go out by PayPal' }), { status: 400, headers: corsHeaders });
     }
     const { error } = await supabase
       .from('referral_codes')
       .update({
-        payout_method: payout_method ?? null,
+        payout_method: 'paypal',
         payout_details: payout_details ? String(payout_details).slice(0, 200) : null,
         payout_in_credits: !!payout_in_credits,
       })

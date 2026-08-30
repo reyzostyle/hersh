@@ -2,7 +2,6 @@ import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { LandingPage } from './components/LandingPage';
 import { Dashboard } from './components/Dashboard';
 import { Onboarding } from './components/Onboarding';
-import { CommentGenerator } from './components/CommentGenerator';
 import { PrivacyPolicy } from './components/PrivacyPolicy';
 import { TermsOfService } from './components/TermsOfService';
 import { Loader2 } from 'lucide-react';
@@ -272,17 +271,6 @@ function AppContent() {
   // open these while logged out).
   if (window.location.pathname === '/privacy') return <PrivacyPolicy />;
   if (window.location.pathname === '/terms') return <TermsOfService />;
-
-  // Free tools are reachable without an account, signed in or not: they cost
-  // nothing to run and they are the cheapest way in for someone who found us
-  // by searching for one.
-  if (window.location.pathname.startsWith('/tools/comment-generator')) {
-    return (
-      <div className="min-h-screen bg-[#212121]">
-        <CommentGenerator />
-      </div>
-    );
-  }
 
   if (loading) {
     return (

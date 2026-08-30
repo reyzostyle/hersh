@@ -171,7 +171,7 @@ function Balance({ stats, money }: { stats: PartnerStats; money: (c?: number) =>
         )}
       </div>
       <p className="mt-4 text-xs text-gray-600 text-balance">
-        Earnings settle 30 days after the payment they came from, which covers refunds. Once settled you can withdraw from {min}.
+        Earnings settle 30 days after the payment they came from, which covers refunds. Once settled you can withdraw from {min}, by PayPal.
       </p>
     </div>
   );
@@ -180,7 +180,6 @@ function Balance({ stats, money }: { stats: PartnerStats; money: (c?: number) =>
 // Where the money goes, plus the credits option: taking it in credits is worth
 // double, which suits partners who use the product themselves.
 function PayoutSettings({ stats, onSaved }: { stats: PartnerStats; onSaved: () => void }) {
-  const [method, setMethod] = useState(stats.payout_method || 'paypal');
   const [details, setDetails] = useState(stats.payout_details || '');
   const [inCredits, setInCredits] = useState(!!stats.payout_in_credits);
   const [saving, setSaving] = useState(false);
@@ -196,7 +195,7 @@ function PayoutSettings({ stats, onSaved }: { stats: PartnerStats; onSaved: () =
       const res = await fetchWithRetry(`${FN_BASE}/referral-stats`, {
         method: 'PUT',
         headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ payout_method: method, payout_details: details, payout_in_credits: inCredits }),
+        body: JSON.stringify({ payout_method: 'paypal', payout_details: details, payout_in_credits: inCredits }),
       });
       const data = await res.json();
       if (!res.ok) { setError(data.error || 'Could not save that'); return; }
@@ -213,19 +212,10 @@ function PayoutSettings({ stats, onSaved }: { stats: PartnerStats; onSaved: () =
       <h2 className="text-sm font-medium text-gray-400 mb-4 uppercase tracking-wide">Getting paid</h2>
 
       <div className="flex flex-col sm:flex-row gap-3">
-        <select
-          value={method}
-          onChange={e => setMethod(e.target.value)}
-          className="px-3 py-2.5 rounded-lg text-sm text-gray-200 sm:w-32"
-          style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }}
-        >
-          <option value="paypal">PayPal</option>
-          <option value="wise">Wise</option>
-        </select>
         <input
           value={details}
           onChange={e => setDetails(e.target.value)}
-          placeholder="Email on your PayPal or Wise account"
+          placeholder="Your PayPal email"
           className="flex-1 px-4 py-2.5 rounded-lg text-sm text-gray-200 placeholder:text-gray-600"
           style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }}
         />
