@@ -1,5 +1,5 @@
 import { useState, useEffect, createContext, useContext, useRef } from 'react';
-import { FolderOutlineIcon as Folder, SettingsOutlineIcon as Settings, LogoutOutlineIcon as LogOut, HamburgerMenuOutlineIcon as Menu, CloseCircleOutlineIcon as X, BoltOutlineIcon as Zap, UsersGroupRoundedOutlineIcon as Users, HandShakeOutlineIcon as Handshake, ChartSquareOutlineIcon as BarChart2, SidebarMinimalisticOutlineIcon as PanelLeftClose, SidebarMinimalisticOutlineIcon as PanelLeftOpen, VideocameraOutlineIcon as VideoIcon } from '@solar-icons/react';
+import { GraphUpOutlineIcon as GraphUp, FolderOutlineIcon as Folder, SettingsOutlineIcon as Settings, LogoutOutlineIcon as LogOut, HamburgerMenuOutlineIcon as Menu, CloseCircleOutlineIcon as X, BoltOutlineIcon as Zap, UsersGroupRoundedOutlineIcon as Users, HandShakeOutlineIcon as Handshake, ChartSquareOutlineIcon as BarChart2, SidebarMinimalisticOutlineIcon as PanelLeftClose, SidebarMinimalisticOutlineIcon as PanelLeftOpen, VideocameraOutlineIcon as VideoIcon } from '@solar-icons/react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
 
@@ -49,6 +49,7 @@ const baseNavItems: NavItem[] = [
   // product no longer makes.
   { id: 'analyze', label: 'Analyze', icon: <VideoIcon className="w-4 h-4" /> },
   { id: 'projects', label: 'Projects', icon: <Folder className="w-4 h-4" /> },
+  { id: 'analytics', label: 'Analytics', icon: <GraphUp className="w-4 h-4" /> },
   { id: 'competitors', label: 'Competitors', icon: <Users className="w-4 h-4" /> },
   { id: 'usage', label: 'Usage', icon: <BarChart2 className="w-4 h-4" /> },
   { id: 'upgrade', label: 'Upgrade', icon: <Zap className="w-4 h-4" />, highlight: true },
@@ -112,7 +113,7 @@ export function AppShell({ activeTab, onTabChange, children }: AppShellProps) {
       key={item.id}
       onClick={() => { onTabChange(item.id); setMobileOpen(false); }}
       title={item.label}
-      className={`relative w-full flex items-center gap-3 px-3 py-2 rounded-md text-[13px] font-medium transition-colors ${
+      className={`relative w-full flex items-center py-2 rounded-md text-[13px] font-medium transition-colors ${collapsed ? 'lg:justify-center lg:px-0 gap-3 px-3' : 'gap-3 px-3'} ${
         activeTab === item.id
           ? 'text-white'
           : 'text-white/45 hover:text-white/80'
@@ -131,7 +132,6 @@ export function AppShell({ activeTab, onTabChange, children }: AppShellProps) {
 
   return (
     <div className="flex overflow-hidden relative" style={{ background: 'var(--bg-app)', maxWidth: '100vw', height: '100dvh' }}>
-      <div className="absolute inset-0 pointer-events-none grid-surface" style={{ zIndex: 0 }} />
 
       {/* Collapsing narrows the sidebar to an icon rail rather than hiding it, so
           every tab stays one click away. On phones this is always the full-width
@@ -210,7 +210,8 @@ export function AppShell({ activeTab, onTabChange, children }: AppShellProps) {
         {collapsed ? <PanelLeftOpen className="w-4 h-4" /> : <PanelLeftClose className="w-4 h-4" />}
       </button>
 
-      <div className={`flex-1 flex flex-col min-w-0 relative overflow-x-hidden transition-[margin] duration-200 ease-in-out ${collapsed ? 'lg:ml-16' : 'lg:ml-56'}`} style={{ zIndex: 1 }}>
+      <div className={`flex-1 flex flex-col min-w-0 relative overflow-x-hidden transition-[margin] duration-200 ease-in-out ${collapsed ? 'lg:ml-14' : 'lg:ml-56'}`} style={{ zIndex: 1 }}>
+        <div className="absolute inset-0 pointer-events-none grid-surface" style={{ zIndex: 0 }} />
         <header className="lg:hidden sticky top-0 z-30 flex items-center gap-3 px-4 py-3 flex-shrink-0" style={{ borderBottom: '1px solid rgba(255,255,255,0.08)', background: 'rgba(var(--surface-rgb),0.95)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)' }}>
           <button
             onClick={() => setMobileOpen(!mobileOpen)}
