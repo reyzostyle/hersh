@@ -27,8 +27,9 @@ export function Dashboard() {
   // new tools and announcements surface, so it's what should greet you on
   // every entry. (Deliberately not persisted — a reload lands here too.)
   // Exception: a URL pasted into the landing page's hero before signing up
-  // is waiting in localStorage for Video Review to pick it up — go straight
-  // there instead of stranding it on the hub.
+  // is waiting in localStorage for AnalysisChat to pick it up — go straight
+  // there instead of stranding it on the hub. This also carries the link
+  // across onboarding: Dashboard mounts after it, and the key is still set.
   const [activeTab, setActiveTab] = useState<NavTab>(
     () => (localStorage.getItem('hershy_pending_video_url') ? 'analyze' : 'home')
   );

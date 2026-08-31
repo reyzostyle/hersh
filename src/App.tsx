@@ -214,10 +214,10 @@ function AppContent() {
   const [needsOnboarding, setNeedsOnboarding] = useState<boolean | null>(null);
 
   // A link pasted on the landing page before signing up is waiting for
-  // HookAnalysis to run it — that's a stronger signal of what this visit is
+  // AnalysisChat to run it — that's a stronger signal of what this visit is
   // for than the standard first-login flow, so onboarding is skipped this one
   // time rather than making "paste a link" end in five profile questions.
-  // Read once at mount (not on every render): HookAnalysis clears this same
+  // Read once at mount (not on every render): AnalysisChat clears this same
   // key once it picks the URL up, and re-reading it live would flip Dashboard
   // back to the onboarding screen mid-session the moment that happens.
   // onboarding_completed is deliberately left unset by this bypass, so the

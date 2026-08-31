@@ -131,31 +131,56 @@ export function AnalysisChat() {
 
   useEffect(() => { endRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages, busy]);
 
-  // Opening a conversation filed in a project. The tab remounts when it is
-  // switched to, so the request is read once here and cleared.
+  // What this screen opens with, decided once on mount.
+  //
+  // Two things can be waiting, both one-shot handoffs cleared as they are read:
+  // a conversation filed in a project that was just clicked, and a link pasted
+  // on the landing page before signing up. An explicit click wins if somehow
+  // both are set.
+  //
+  // The pending link was HookAnalysis's job, and when Analyze became a
+  // conversation nothing took it over. So the one path the entire hero exists
+  // to drive - paste a link, sign up, see the review - ended on an empty
+  // composer with the link dropped on the floor. It survives onboarding too:
+  // whether the profile questions are skipped or answered, this screen mounts
+  // afterwards and the link is still there to be run.
   useEffect(() => {
     const requested = takeRequestedThread();
-    if (!requested) return;
-    (async () => {
-      setBusy(true);
-      const [rows, thread] = await Promise.all([
-        loadThreadMessages(requested),
-        loadThread(requested),
-      ]);
-      setThreadId(requested);
-      setMessages(rows.map(r => ({
-        id: r.id,
-        role: r.role,
-        content: r.content,
-        analysis: r.analysis ?? null,
-      })));
-      if (thread?.project_id) {
-        const all = await listProjects();
-        setThreadProject(all.find(p => p.id === thread.project_id) ?? null);
-        setProjects(all);
-      }
-      setBusy(false);
-    })();
+    const pending = localStorage.getItem('hershy_pending_video_url');
+    // Cleared before anything awaits, so a double mount cannot spend the
+    // credits twice.
+    if (pending) localStorage.removeItem('hershy_pending_video_url');
+
+    if (requested) {
+      (async () => {
+        setBusy(true);
+        const [rows, thread] = await Promise.all([
+          loadThreadMessages(requested),
+          loadThread(requested),
+        ]);
+        setThreadId(requested);
+        setMessages(rows.map(r => ({
+          id: r.id,
+          role: r.role,
+          content: r.content,
+          analysis: r.analysis ?? null,
+        })));
+        if (thread?.project_id) {
+          const all = await listProjects();
+          setThreadProject(all.find(p => p.id === thread.project_id) ?? null);
+          setProjects(all);
+        }
+        setBusy(false);
+      })();
+      return;
+    }
+
+    if (!pending) return;
+    const videoId = extractVideoId(pending);
+    // A link that does not resolve goes into the composer rather than being
+    // thrown away. They typed it; they should still see it.
+    if (videoId) runAnalysis(videoId, '', pending);
+    else setComposer(pending);
   }, []);
 
   // Grows with the text the way a chat input should, up to a ceiling.
@@ -223,6 +248,11 @@ export function AnalysisChat() {
         await supabase.from('chat_threads').update({ analysis_id: data.analysis?.id }).eq('id', tid);
       }
       reloadUsage();
+      // App defers onboarding for anyone who arrived by pasting a link on the
+      // landing page, and puts the offer up when their first result lands. That
+      // event was dispatched by HookAnalysis and by nothing since.
+      window.dispatchEvent(new CustomEvent('hershy:analysis-done'));
+
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Analysis failed');
     } finally {
@@ -262,6 +292,11 @@ export function AnalysisChat() {
       push({ role: 'assistant', content: `Read that as a ${kind}.`, analysis: a });
       if (tid) await persist(tid, 'assistant', `Read that as a ${kind}.`, a);
       reloadUsage();
+      // App defers onboarding for anyone who arrived by pasting a link on the
+      // landing page, and puts the offer up when their first result lands. That
+      // event was dispatched by HookAnalysis and by nothing since.
+      window.dispatchEvent(new CustomEvent('hershy:analysis-done'));
+
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Analysis failed');
     } finally {
