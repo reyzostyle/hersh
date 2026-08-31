@@ -5,6 +5,21 @@ const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYm
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
+// The signed-in user's id, without a round trip.
+//
+// supabase.auth.getUser() calls GET /auth/v1/user over the network EVERY time,
+// because it re-validates the token against the server. Nine places called it
+// on mount, each one before its own data query, so opening a tab meant waiting
+// out a full request to Supabase before the request you actually wanted had
+// even been sent. getSession() reads the session already in memory or storage.
+//
+// Use getUser() only where the point IS server-side validation. For "which row
+// is mine", the local session is the same id and costs nothing.
+export async function getUserId(): Promise<string | null> {
+  const { data: { session } } = await supabase.auth.getSession();
+  return session?.user?.id ?? null;
+}
+
 export async function getSessionToken(): Promise<string | null> {
   const { data: { session } } = await supabase.auth.getSession();
   if (session?.access_token) return session.access_token;
