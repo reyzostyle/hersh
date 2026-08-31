@@ -1,7 +1,6 @@
 import { useState, useEffect, createContext, useContext, useRef } from 'react';
 import { GraphUpOutlineIcon as GraphUp, FolderOutlineIcon as Folder, SettingsOutlineIcon as Settings, LogoutOutlineIcon as LogOut, HamburgerMenuOutlineIcon as Menu, CloseCircleOutlineIcon as X, BoltOutlineIcon as Zap, UsersGroupRoundedOutlineIcon as Users, HandShakeOutlineIcon as Handshake, ChartSquareOutlineIcon as BarChart2, SidebarMinimalisticOutlineIcon as PanelLeftClose, SidebarMinimalisticOutlineIcon as PanelLeftOpen, VideocameraOutlineIcon as VideoIcon, WidgetOutlineIcon as HubIcon } from '@solar-icons/react';
 import { useAuth } from '../contexts/AuthContext';
-import { supabase } from '../lib/supabase';
 
 export const MobileHeaderContext = createContext<{
   setRightAction: (node: React.ReactNode) => void;
@@ -12,8 +11,6 @@ export type NavTab = 'home' | 'analyze' | 'projects' | 'analytics' | 'competitor
 // Feature flags: tabs hidden from ALL users (incl. admin). Kept in code so they
 // can be re-enabled instantly by removing them from this list.
 export const HIDDEN_TABS: NavTab[] = [];
-
-const ADMIN_EMAIL = 'reyzostyle@gmail.com';
 
 interface NavItem {
   id: NavTab;
@@ -49,6 +46,12 @@ const baseNavItems: NavItem[] = [
 // Label only. The tab id stays 'partners': it is persisted in state, dispatched
 // on the navigate channel and matched against referral_codes, and renaming an
 // identifier to match a caption is how those quietly come apart.
+//
+// Everyone sees it. It used to be gated on `isAdmin || isPartner`, which meant
+// the only people who could reach the affiliate page were the ones who already
+// had a link - the screen behind it is a pitch with a one-click claim, written
+// for exactly the people the gate was hiding it from. A referral programme
+// nobody can find does not recruit anyone.
 const partnersItem: NavItem = { id: 'partners', label: 'Affiliate', icon: <Handshake className="w-4 h-4" /> };
 
 // Labels for tabs with no sidebar entry, used only for the mobile header title.
@@ -60,14 +63,12 @@ export function AppShell({ activeTab, onTabChange, children }: AppShellProps) {
   const { user, signOut } = useAuth();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(() => localStorage.getItem(SIDEBAR_COLLAPSED_KEY) === '1');
-  const [isPartner, setIsPartner] = useState(false);
   const [rightAction, setRightAction] = useState<React.ReactNode>(null);
 
   useEffect(() => {
     localStorage.setItem(SIDEBAR_COLLAPSED_KEY, collapsed ? '1' : '0');
   }, [collapsed]);
 
-  const isAdmin = user?.email === ADMIN_EMAIL;
   const mainRef = useRef<HTMLElement>(null);
 
   useEffect(() => {
@@ -82,19 +83,11 @@ export function AppShell({ activeTab, onTabChange, children }: AppShellProps) {
     return () => el.removeEventListener('touchmove', onTouchMove);
   }, []);
 
-  useEffect(() => {
-    if (!user || isAdmin) return;
-    supabase
-      .from('referral_codes')
-      .select('id')
-      .eq('owner_user_id', user.id)
-      .maybeSingle()
-      .then(({ data }) => setIsPartner(!!data));
-  }, [user?.id]);
-
-  // Partners sits directly above Upgrade, and only for admins/partners.
+  // Affiliate sits directly above Upgrade. This used to cost a referral_codes
+  // query on every mount for every non-admin, purely to decide whether to draw
+  // one row; the row is unconditional now, so the query is gone with it.
   const navItems = baseNavItems
-    .flatMap(item => (item.id === 'upgrade' && (isAdmin || isPartner) ? [partnersItem, item] : [item]))
+    .flatMap(item => (item.id === 'upgrade' ? [partnersItem, item] : [item]))
     .filter(item => !HIDDEN_TABS.includes(item.id));
 
   const BOTTOM_TAB_IDS: NavTab[] = ['partners', 'usage', 'upgrade', 'settings'];
