@@ -375,8 +375,9 @@ input, textarea, select {
    that tab; the chat sheet sits on top of it, so the conversation is still on
    solid ground. Everywhere else is flat.
 
-   (The landing page has its own dot grid at 28px — a different texture for a
-   different job, and unrelated to this one.) */
+   The landing page's hero uses this same class, at this same cell: it used to
+   invent a 28px dot field of its own, which meant the first surface a visitor
+   saw was one the product never shows them. */
 .grid-surface {
   background-image:
     linear-gradient(to right, var(--line) 1px, transparent 1px),

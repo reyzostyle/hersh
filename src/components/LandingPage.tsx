@@ -1,61 +1,84 @@
 import { useState, useEffect, useRef } from 'react';
 
-import { CloseCircleOutlineIcon as X, RefreshOutlineIcon as Loader2, BoltOutlineIcon as Zap, AltArrowRightOutlineIcon as ChevronRight, AltArrowDownOutlineIcon as ChevronDown, ChatRoundOutlineIcon as MessageCircle, LetterOutlineIcon as Mail, GraphUpOutlineIcon as TrendingUp, DocumentTextOutlineIcon as FileText, MagicWandOutlineIcon as Wand2, VideocameraOutlineIcon as VideoIcon, UsersGroupRoundedOutlineIcon as Users, PlayOutlineIcon as Play, Stars2OutlineIcon as Sparkles, RepeatOutlineIcon as Repeat, LockOutlineIcon as Lock } from '@solar-icons/react';
+import {
+  CloseCircleOutlineIcon as X,
+  RefreshOutlineIcon as Loader2,
+  AltArrowRightOutlineIcon as ChevronRight,
+  AltArrowDownOutlineIcon as ChevronDown,
+  ArrowUpOutlineIcon as ArrowUp,
+  ArrowRightUpOutlineIcon as ArrowUpRight,
+  AddOutlineIcon as Plus,
+  LetterOutlineIcon as Mail,
+  VideocameraOutlineIcon as VideoIcon,
+  FolderOutlineIcon as Folder,
+  GraphUpOutlineIcon as GraphUp,
+  UsersGroupRoundedOutlineIcon as Users,
+  HamburgerMenuOutlineIcon as Menu,
+} from '@solar-icons/react';
 import { Twitter, Check } from './BrandIcons';
 import { useAuth } from '../contexts/AuthContext';
 import { HeroAnalysisGate } from './HeroAnalysisGate';
 import { supabase } from '../lib/supabase';
+
+// ─── Surface ─────────────────────────────────────────────────────────────────
+// This page used to run on three bespoke `glass` objects: stacked white
+// gradients, inset highlights, a 34px drop shadow, and a blue-tinted variant
+// for the hero field. None of them exist in the product. A visitor signing up
+// went from a page made of frosted panels to an app made of flat plates with a
+// hairline, which is why the landing read as a different piece of software than
+// the thing it was selling.
+//
+// There is one plate now, and it is the app's: --bg-raised, one --line
+// hairline, one radius token. Same object as Panel in Page.tsx.
+const plate: React.CSSProperties = {
+  background: 'var(--bg-raised)',
+  border: '1px solid var(--line)',
+  borderRadius: 'var(--r-md)',
+};
+
+// The app's composer shell (AnalysisChat.tsx) — larger radius, same plate.
+const composer: React.CSSProperties = {
+  background: 'var(--bg-raised)',
+  border: '1px solid var(--line)',
+  borderRadius: 'var(--r-lg)',
+};
+
+const inputReset: React.CSSProperties = {
+  background: 'transparent',
+  border: 'none',
+  outline: 'none',
+  color: 'var(--text)',
+};
+
+// ONE column, ONE gutter, on every section — the same pair Page.tsx sets for
+// every tab in the app, so the left edge of this page and the left edge of the
+// product land on the same place. Sections used to run at max-w-4xl with px-6
+// while the app ran max-w-5xl with px-5/px-8.
+const SECTION = 'w-full max-w-5xl mx-auto px-5 sm:px-8';
 
 // The icon set has no brand marks, so the real Discord glyph is inlined here
 // (official logo path, viewBox 0 0 24 24) rather than standing in with a
 // generic chat-bubble icon.
 function DiscordIcon({ className, style }: { className?: string; style?: React.CSSProperties }) {
   return (
-    <svg viewBox="0 0 24 24" className={className} style={style} fill="currentColor" xmlns="http://www.w3.org/2000/svg">
-      <path d="M20.317 4.3698a19.7913 19.7913 0 00-4.8851-1.5152.0741.0741 0 00-.0785.0371c-.211.3753-.4447.8648-.6083 1.2495-1.8447-.2762-3.68-.2762-5.4868 0-.1636-.3933-.4058-.8742-.6177-1.2495a.077.077 0 00-.0785-.037 19.7363 19.7363 0 00-4.8852 1.515.0699.0699 0 00-.0321.0277C.5334 9.0458-.319 13.5799.0992 18.0578a.0824.0824 0 00.0312.0561c2.0528 1.5076 4.0413 2.4228 5.9929 3.0294a.0777.0777 0 00.0842-.0276c.4616-.6304.8731-1.2952 1.226-1.9942a.076.076 0 00-.0416-.1057c-.6528-.2476-1.2743-.5495-1.8722-.8923a.077.077 0 01-.0076-.1277c.1258-.0943.2517-.1923.3718-.2914a.0743.0743 0 01.0776-.0105c3.9278 1.7933 8.18 1.7933 12.0614 0a.0739.0739 0 01.0785.0095c.1202.099.246.1981.3728.2924a.077.077 0 01-.0066.1276 12.2986 12.2986 0 01-1.873.8914.0766.0766 0 00-.0407.1067c.3604.698.7719 1.3628 1.225 1.9932a.076.076 0 00.0842.0286c1.961-.6067 3.9495-1.5219 6.0023-3.0294a.077.077 0 00.0313-.0552c.5004-5.177-.8382-9.6739-3.5485-13.6604a.061.061 0 00-.0312-.0286zM8.02 15.3312c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9555-2.4189 2.157-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.9555 2.4189-2.1569 2.4189zm7.9748 0c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9554-2.4189 2.1569-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.946 2.4189-2.1568 2.4189Z" />
+    <svg viewBox="0 0 24 24" fill="currentColor" className={className} style={style} aria-hidden="true">
+      <path d="M20.317 4.369a19.79 19.79 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028c.462-.63.874-1.295 1.226-1.994a.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128c.126-.094.252-.192.372-.291a.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.009c.12.099.246.198.373.292a.077.077 0 0 1-.006.127 12.3 12.3 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03zM8.02 15.331c-1.182 0-2.157-1.085-2.157-2.419 0-1.333.956-2.418 2.157-2.418 1.21 0 2.176 1.094 2.157 2.418 0 1.334-.956 2.419-2.157 2.419zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.418 2.157-2.418 1.21 0 2.176 1.094 2.157 2.418 0 1.334-.946 2.419-2.157 2.419z" />
     </svg>
   );
 }
 
-// Same brand mark and path used in SettingsPage.tsx's real "YouTube account"
-// row, so the mock banner below is a copy of the actual connected state, not
-// an invented one.
-function YouTubeLogo({ className }: { className?: string }) {
+function GoogleMark() {
   return (
-    <svg className={className} viewBox="0 0 24 24" fill="currentColor">
-      <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z" />
+    <svg className="w-4 h-4" viewBox="0 0 24 24" aria-hidden="true">
+      <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
+      <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
+      <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" />
+      <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
     </svg>
   );
 }
 
-// ─── Shared styles ────────────────────────────────────────────────────────────
-
-// No backdrop-filter: blur over the static app background caused Chromium
-// ghost bands on sibling repaints; the blue underlay replaces its tint.
-const glass: React.CSSProperties = {
-  background:
-    'linear-gradient(180deg, rgba(255,255,255,0.07), rgba(255,255,255,0.025) 45%, rgba(255,255,255,0.035)), linear-gradient(180deg, rgba(var(--glass-tint-rgb),0.05), rgba(var(--glass-tint-rgb),0.03))',
-  border: '1px solid rgba(255,255,255,0.1)',
-  boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.11), 0 10px 34px -14px rgba(0,0,0,0.6)',
-};
-
-const glassInput: React.CSSProperties = {
-  background: 'rgba(255,255,255,0.06)',
-  border: '1px solid rgba(255,255,255,0.12)',
-  outline: 'none',
-};
-
-// Blue-tinted variant of `glass`, used only on the hero paste field so it
-// reads as THE action on the page rather than blending into the neutral
-// glass panels used everywhere else.
-const heroInputGlass: React.CSSProperties = {
-  background:
-    'linear-gradient(180deg, rgba(var(--accent-rgb),0.12), rgba(var(--accent-rgb),0.04) 45%, rgba(var(--accent-rgb),0.06)), linear-gradient(180deg, rgba(var(--glass-tint-rgb),0.08), rgba(var(--glass-tint-rgb),0.04))',
-  border: '1px solid rgba(var(--accent-rgb),0.4)',
-  boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.12), 0 10px 34px -14px rgba(0,0,0,0.6)',
-};
-
-// ─── Scroll reveal hook ────────────────────────────────────────────────────────
+// ─── Scroll reveal ────────────────────────────────────────────────────────────
 
 function useReveal(threshold = 0.12) {
   const ref = useRef<HTMLDivElement>(null);
@@ -65,7 +88,7 @@ function useReveal(threshold = 0.12) {
     if (!el) return;
     const observer = new IntersectionObserver(
       ([entry]) => { if (entry.isIntersecting) { setVisible(true); observer.disconnect(); } },
-      { threshold }
+      { threshold, rootMargin: '0px 0px -40px 0px' }
     );
     observer.observe(el);
     return () => observer.disconnect();
@@ -73,7 +96,27 @@ function useReveal(threshold = 0.12) {
   return { ref, visible };
 }
 
-// ─── Auth Modal ───────────────────────────────────────────────────────────────
+// Was 28px of travel over 600ms, which is a slide, and a slide on every block
+// is the tell that a page is animated rather than designed. 10px over 500ms:
+// the section settles, it does not arrive.
+function Reveal({ children, className = '', delay = 0 }: { children: React.ReactNode; className?: string; delay?: number }) {
+  const { ref, visible } = useReveal();
+  return (
+    <div
+      ref={ref}
+      className={className}
+      style={{
+        transition: `opacity 0.5s ease ${delay}ms, transform 0.5s ease ${delay}ms`,
+        opacity: visible ? 1 : 0,
+        transform: visible ? 'translateY(0)' : 'translateY(10px)',
+      }}
+    >
+      {children}
+    </div>
+  );
+}
+
+// ─── Auth modal ───────────────────────────────────────────────────────────────
 
 function AuthModal({ initialMode, onClose, context }: {
   initialMode: 'login' | 'signup';
@@ -130,141 +173,127 @@ function AuthModal({ initialMode, onClose, context }: {
     catch (err) { setError(err instanceof Error ? err.message : 'An error occurred'); setGoogleLoading(false); }
   };
 
+  // One field style for every input in the modal, on the same plate the rest of
+  // the page uses. Focus moves the hairline to --line-strong rather than
+  // painting a white border, which at this accent would be a glowing box.
+  const fieldProps = {
+    className: 'w-full px-4 py-2.5 rounded-[var(--r-sm)] text-sm',
+    style: { background: 'var(--bg-app)', border: '1px solid var(--line)', outline: 'none', color: 'var(--text)' },
+    onFocus: (e: React.FocusEvent<HTMLInputElement>) => { e.currentTarget.style.borderColor = 'var(--line-strong)'; },
+    onBlur: (e: React.FocusEvent<HTMLInputElement>) => { e.currentTarget.style.borderColor = 'var(--line)'; },
+  };
+
+  const primaryBtn = 'w-full py-2.5 rounded-[var(--r-sm)] font-semibold text-sm disabled:opacity-50';
+  const primaryStyle = { background: 'var(--accent)', color: 'var(--on-accent)' };
+
   return (
     <div
       className="fixed inset-0 z-[60] flex items-center justify-center px-4 animate-fade-in"
-      style={{ background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(6px)' }}
+      style={{ background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(6px)' }}
       onClick={onClose}
     >
       <div
-        className="relative w-full max-w-md rounded-2xl p-8 animate-scale-in"
-        style={{ background: 'rgba(var(--surface-rgb),0.98)', border: '1px solid rgba(255,255,255,0.12)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)' }}
+        className="relative w-full max-w-md p-8 animate-scale-in"
+        style={{ background: 'var(--bg-raised)', border: '1px solid var(--line-strong)', borderRadius: 'var(--r-lg)' }}
         onClick={e => e.stopPropagation()}
       >
-        <button onClick={onClose} className="absolute top-4 right-4 p-1.5 text-gray-500 hover:text-white rounded-lg">
+        <button onClick={onClose} className="absolute top-4 right-4 p-1.5 rounded-[var(--r-sm)] transition-colors hover:text-[var(--text)]" style={{ color: 'var(--text-faint)' }}>
           <X className="w-4 h-4" />
         </button>
 
         <div className="mb-6">
-          <p className="text-white font-bold text-xl mb-1">
-            {emailSent ? 'Almost there!' : mode === 'forgot' ? 'Reset password' : mode === 'login' ? 'Welcome back' : (context?.title ?? 'Start for free')}
+          <p className="text-[19px] font-semibold tracking-tight mb-1" style={{ color: 'var(--text)' }}>
+            {emailSent ? 'Almost there' : mode === 'forgot' ? 'Reset password' : mode === 'login' ? 'Welcome back' : (context?.title ?? 'Start for free')}
           </p>
-          <p className="text-gray-500 text-sm">
+          <p className="text-[13px]" style={{ color: 'var(--text-muted)' }}>
             {emailSent ? 'Confirm your email to activate your account.' : mode === 'forgot' ? "We'll send you a reset link." : mode === 'login' ? 'Sign in to your Hershy account.' : (context?.sub ?? 'No credit card required.')}
           </p>
         </div>
 
         {emailSent ? (
-          <div className="text-center py-4 animate-fade-in">
-            <div className="w-12 h-12 rounded-full bg-emerald-500/15 flex items-center justify-center mx-auto mb-4">
-              <span className="text-emerald-400 text-2xl">✓</span>
-            </div>
-            <p className="text-white font-bold text-lg mb-2">Check your email</p>
-            <p className="text-gray-400 text-sm mb-1">We sent a confirmation link to</p>
-            <p className="text-white font-medium text-sm mb-4">{email}</p>
-            <div className="rounded-xl p-3 mb-5 text-left" style={{ background: 'rgba(var(--accent-rgb),0.08)', border: '1px solid rgba(var(--accent-rgb),0.2)' }}>
-              <p className="text-[var(--accent)] text-xs leading-relaxed">
-                ⚠️ Open the link on <strong>this device</strong>. Clicking it on your phone while Hershy is open on PC won't log you in here automatically.
+          <div className="text-center py-2 animate-fade-in">
+            <p className="text-[15px] font-medium mb-2" style={{ color: 'var(--text)' }}>Check your email</p>
+            <p className="text-[13px] mb-1" style={{ color: 'var(--text-muted)' }}>We sent a confirmation link to</p>
+            <p className="text-[13px] font-medium mb-5" style={{ color: 'var(--text)' }}>{email}</p>
+            <div className="p-3 mb-5 text-left" style={plate}>
+              <p className="label-mono mb-1.5">One thing</p>
+              <p className="text-[12px] leading-relaxed" style={{ color: 'var(--text-muted)' }}>
+                Open the link on <strong style={{ color: 'var(--text)' }}>this device</strong>. Clicking it on your phone while Hershy is open on a PC will not sign you in here.
               </p>
             </div>
             <button
               onClick={() => { setEmailSent(false); setMode('login'); setPassword(''); }}
-              className="w-full py-2.5 text-white rounded-xl font-semibold text-sm mb-3"
-              style={{ background: 'var(--accent)', color: 'var(--on-accent)' }}
+              className={`${primaryBtn} mb-3`}
+              style={primaryStyle}
             >
-              I confirmed my email, Sign in
+              I confirmed my email, sign in
             </button>
             <button onClick={handleGoogle} disabled={googleLoading}
-              className="w-full flex items-center justify-center gap-3 px-4 py-2.5 bg-white text-gray-900 rounded-xl font-semibold text-sm hover:bg-gray-100 disabled:opacity-50"
+              className="w-full flex items-center justify-center gap-3 px-4 py-2.5 rounded-[var(--r-sm)] font-medium text-sm transition-colors disabled:opacity-50"
+              style={{ background: 'var(--bg-app)', border: '1px solid var(--line)', color: 'var(--text)' }}
             >
-              {googleLoading ? <Loader2 className="w-4 h-4 animate-spin text-gray-500" /> : (
-                <svg className="w-4 h-4" viewBox="0 0 24 24">
-                  <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
-                  <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
-                  <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" />
-                  <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
-                </svg>
-              )}
+              {googleLoading ? <Loader2 className="w-4 h-4 animate-spin" style={{ color: 'var(--text-faint)' }} /> : <GoogleMark />}
               Or continue with Google
             </button>
-            <p className="text-gray-600 text-xs mt-3">No email? Check spam or <button onClick={() => { setEmailSent(false); setMode('signup'); }} className="text-gray-400 hover:text-white underline">try again</button>.</p>
+            <p className="text-[12px] mt-3" style={{ color: 'var(--text-faint)' }}>
+              No email? Check spam or{' '}
+              <button onClick={() => { setEmailSent(false); setMode('signup'); }} className="underline" style={{ color: 'var(--text-muted)' }}>try again</button>.
+            </p>
           </div>
         ) : mode === 'forgot' ? (
           resetSent ? (
             <div className="text-center py-4 animate-fade-in">
-              <div className="text-emerald-400 text-2xl mb-3">✓</div>
-              <p className="text-white font-medium mb-1">Check your email</p>
-              <p className="text-gray-400 text-sm mb-5">Reset link sent to <strong>{email}</strong></p>
-              <button onClick={() => { setMode('login'); setResetSent(false); }} className="text-sm" style={{ color: 'var(--accent)' }}>Back to sign in</button>
+              <p className="text-[15px] font-medium mb-1" style={{ color: 'var(--text)' }}>Check your email</p>
+              <p className="text-[13px] mb-5" style={{ color: 'var(--text-muted)' }}>Reset link sent to {email}</p>
+              <button onClick={() => { setMode('login'); setResetSent(false); }} className="text-[13px]" style={{ color: 'var(--text)' }}>Back to sign in</button>
             </div>
           ) : (
             <form onSubmit={handleForgot} className="space-y-4">
-              <input type="email" value={email} onChange={e => setEmail(e.target.value)}
-                placeholder="Email" required className="w-full px-4 py-2.5 rounded-xl text-white text-sm"
-                style={glassInput}
-                onFocus={e => { e.currentTarget.style.borderColor = 'var(--accent)'; }}
-                onBlur={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.12)'; }}
-              />
-              {error && <p className="text-red-400 text-sm bg-red-400/10 border border-red-400/20 rounded-xl p-3">{error}</p>}
-              <button type="submit" disabled={loading} className="w-full py-2.5 text-white rounded-xl font-semibold text-sm disabled:opacity-50" style={{ background: 'var(--accent)', color: 'var(--on-accent)' }}>
+              <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="Email" required {...fieldProps} />
+              {error && <p className="text-[13px] rounded-[var(--r-sm)] p-3" style={{ color: 'rgb(var(--danger-rgb))', background: 'rgba(var(--danger-rgb),0.08)', border: '1px solid rgba(var(--danger-rgb),0.2)' }}>{error}</p>}
+              <button type="submit" disabled={loading} className={primaryBtn} style={primaryStyle}>
                 {loading ? 'Sending...' : 'Send reset link'}
               </button>
               <div className="text-center">
-                <button type="button" onClick={() => setMode('login')} className="text-sm text-gray-500 hover:text-gray-300">Back to sign in</button>
+                <button type="button" onClick={() => setMode('login')} className="text-[13px] transition-colors hover:text-[var(--text)]" style={{ color: 'var(--text-muted)' }}>Back to sign in</button>
               </div>
             </form>
           )
         ) : (
           <>
             <form onSubmit={handleSubmit} className="space-y-3 mb-4">
-              <input type="email" value={email} onChange={e => setEmail(e.target.value)}
-                placeholder="Email" required className="w-full px-4 py-2.5 rounded-xl text-white text-sm"
-                style={glassInput}
-                onFocus={e => { e.currentTarget.style.borderColor = 'var(--accent)'; }}
-                onBlur={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.12)'; }}
-              />
-              <input type="password" value={password} onChange={e => setPassword(e.target.value)}
-                placeholder="Password" required className="w-full px-4 py-2.5 rounded-xl text-white text-sm"
-                style={glassInput}
-                onFocus={e => { e.currentTarget.style.borderColor = 'var(--accent)'; }}
-                onBlur={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.12)'; }}
-              />
+              <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="Email" required {...fieldProps} />
+              <input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="Password" required {...fieldProps} />
               {mode === 'login' && (
                 <div className="text-right">
-                  <button type="button" onClick={() => { setMode('forgot'); setError(''); }} className="text-xs text-gray-500 hover:text-gray-300">
+                  <button type="button" onClick={() => { setMode('forgot'); setError(''); }} className="text-[12px] transition-colors hover:text-[var(--text-muted)]" style={{ color: 'var(--text-faint)' }}>
                     Forgot password?
                   </button>
                 </div>
               )}
-              {error && <p className="text-red-400 text-sm bg-red-400/10 border border-red-400/20 rounded-xl p-3">{error}</p>}
-              <button type="submit" disabled={loading || googleLoading} className="w-full py-2.5 text-white rounded-xl font-semibold text-sm disabled:opacity-50" style={{ background: 'var(--accent)', color: 'var(--on-accent)' }}>
+              {error && <p className="text-[13px] rounded-[var(--r-sm)] p-3" style={{ color: 'rgb(var(--danger-rgb))', background: 'rgba(var(--danger-rgb),0.08)', border: '1px solid rgba(var(--danger-rgb),0.2)' }}>{error}</p>}
+              <button type="submit" disabled={loading || googleLoading} className={primaryBtn} style={primaryStyle}>
                 {loading ? 'Loading...' : mode === 'login' ? 'Sign in' : 'Create account'}
               </button>
             </form>
 
             <div className="flex items-center gap-3 mb-4">
-              <div className="flex-1 h-px" style={{ background: 'rgba(255,255,255,0.08)' }} />
-              <span className="text-xs text-gray-600 uppercase tracking-wider">or</span>
-              <div className="flex-1 h-px" style={{ background: 'rgba(255,255,255,0.08)' }} />
+              <div className="flex-1 h-px" style={{ background: 'var(--line)' }} />
+              <span className="label-mono">or</span>
+              <div className="flex-1 h-px" style={{ background: 'var(--line)' }} />
             </div>
 
             <button onClick={handleGoogle} disabled={googleLoading || loading}
-              className="w-full flex items-center justify-center gap-3 px-4 py-2.5 bg-white text-gray-900 rounded-xl font-semibold text-sm hover:bg-gray-100 disabled:opacity-50"
+              className="w-full flex items-center justify-center gap-3 px-4 py-2.5 rounded-[var(--r-sm)] font-medium text-sm disabled:opacity-50"
+              style={{ background: 'var(--bg-app)', border: '1px solid var(--line)', color: 'var(--text)' }}
             >
-              {googleLoading ? <Loader2 className="w-4 h-4 animate-spin text-gray-500" /> : (
-                <svg className="w-4 h-4" viewBox="0 0 24 24">
-                  <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
-                  <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
-                  <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" />
-                  <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
-                </svg>
-              )}
+              {googleLoading ? <Loader2 className="w-4 h-4 animate-spin" style={{ color: 'var(--text-faint)' }} /> : <GoogleMark />}
               {googleLoading ? 'Redirecting...' : 'Continue with Google'}
             </button>
 
             <div className="mt-5 text-center">
               <button onClick={() => { setMode(mode === 'login' ? 'signup' : 'login'); setError(''); }}
-                className="text-sm text-gray-500 hover:text-gray-300">
+                className="text-[13px] transition-colors hover:text-[var(--text)]" style={{ color: 'var(--text-muted)' }}>
                 {mode === 'login' ? "Don't have an account? Sign up" : 'Already have an account? Sign in'}
               </button>
             </div>
@@ -275,28 +304,337 @@ function AuthModal({ initialMode, onClose, context }: {
   );
 }
 
-// ─── Section wrapper with scroll reveal ────────────────────────────────────────
+// ─── Product frames ───────────────────────────────────────────────────────────
+// Not mockups of a product, and not the four invented mini-widgets that used to
+// scroll past on a marquee here. These are the real components rebuilt at a
+// smaller type scale: same plate, same hairline, same label-mono, same score
+// layout as AnalysisChat's AnalysisCard and Competitors' feed. If the app
+// changes shape, these are wrong, and that is the correct amount of coupling
+// for a page whose whole job is to show the app.
 
-function RevealSection({ children, className = '', delay = 0 }: { children: React.ReactNode; className?: string; delay?: number }) {
-  const { ref, visible } = useReveal();
+// The hero shot: the sidebar and a finished thread, exactly as Analyze renders
+// it — conversation on the ruled grid, no sheet under it.
+function AppFrame() {
+  const nav = [
+    { icon: <VideoIcon className="w-3.5 h-3.5" />, label: 'Analyze', on: true },
+    { icon: <Folder className="w-3.5 h-3.5" />, label: 'Projects', on: false },
+    { icon: <GraphUp className="w-3.5 h-3.5" />, label: 'Analytics', on: false },
+    { icon: <Users className="w-3.5 h-3.5" />, label: 'Competitors', on: false },
+  ];
+
   return (
     <div
-      ref={ref}
-      /* `rv`/`rv-in` drive the micro-animations inside the card (see index.css)
-         so they fire when the card arrives, not on page load. */
-      className={`rv ${visible ? 'rv-in' : ''} ${className}`}
-      style={{
-        transition: `opacity 0.6s ease ${delay}ms, transform 0.6s ease ${delay}ms`,
-        opacity: visible ? 1 : 0,
-        transform: visible ? 'translateY(0)' : 'translateY(28px)',
-      }}
+      className="overflow-hidden"
+      style={{ background: 'var(--bg-app)', border: '1px solid var(--line-strong)', borderRadius: 'var(--r-lg)' }}
     >
-      {children}
+      <div className="flex" style={{ height: 'clamp(360px, 46vw, 460px)' }}>
+        {/* Sidebar. Hidden on phones: at that width it would be four icons
+            wide and the thread beside it unreadable, which shows off nothing. */}
+        <div className="hidden sm:flex w-[168px] flex-shrink-0 flex-col py-4 px-3" style={{ borderRight: '1px solid var(--line)' }}>
+          <div className="flex items-center gap-2 px-2 mb-6">
+            <img src="/hersh-mark.png" alt="" className="h-[11px] w-auto" />
+            <span className="font-black uppercase tracking-[0.14em] text-[10px]" style={{ color: 'var(--text)' }}>Hershy</span>
+          </div>
+          <div className="space-y-0.5">
+            {nav.map(n => (
+              <div
+                key={n.label}
+                className="flex items-center gap-2.5 px-2 py-1.5 rounded-[var(--r-sm)] text-[11.5px]"
+                style={n.on
+                  ? { background: 'var(--bg-raised-hover)', color: 'var(--text)' }
+                  : { color: 'var(--text-faint)' }}
+              >
+                {n.icon}
+                {n.label}
+              </div>
+            ))}
+          </div>
+          <div className="mt-auto px-2">
+            <p className="label-mono">Credits</p>
+            <p className="font-mono text-[11px] mt-1" style={{ color: 'var(--text-muted)' }}>284 left</p>
+          </div>
+        </div>
+
+        {/* The conversation, on the grid. */}
+        <div className="relative flex-1 min-w-0">
+          <div className="absolute inset-0 grid-surface" style={{ backgroundSize: '56px 56px' }} aria-hidden="true" />
+          <div className="relative h-full flex flex-col px-4 sm:px-6 pt-5 pb-4">
+            {/* overflow-hidden, not just min-h-0: the frame is a fixed height
+                and on a phone the card is taller than it, so without this the
+                thread spilled over the composer instead of being cropped by
+                the frame's edge. */}
+            <div className="flex-1 min-h-0 overflow-hidden space-y-3">
+              <div className="flex justify-end">
+                <span className="rounded-[14px] px-3 py-1.5 text-[11.5px] font-mono truncate max-w-[80%]" style={{ background: 'var(--bg-raised)', color: 'var(--text)' }}>
+                  youtube.com/shorts/8fLq2Xr
+                </span>
+              </div>
+
+              <p className="label-mono">Watched the whole thing</p>
+
+              <div className="p-3.5 sm:p-4" style={plate}>
+                <div className="flex items-baseline gap-1.5 mb-3">
+                  <span className="text-[26px] leading-none font-semibold tracking-tight tabular-nums" style={{ color: 'var(--text)' }}>62</span>
+                  <span className="font-mono text-[10px]" style={{ color: 'var(--text-faint)' }}>/ 100</span>
+                </div>
+                <p className="text-[11.5px] leading-relaxed mb-3.5" style={{ color: 'var(--text-muted)' }}>
+                  The idea lands, the open does not. You spend 0:00 to 0:03 setting up a payoff the thumbnail already gave away.
+                </p>
+                <p className="label-mono mb-1.5">Fix</p>
+                <ul className="space-y-1">
+                  <li className="text-[11.5px] leading-relaxed" style={{ color: 'var(--text)' }}>Cut the first 1.4s. Open on the reaction at 0:03.</li>
+                  {/* Second fix drops on a phone: at 360px of frame it is the
+                      line that gets cut in half by the crop. */}
+                  <li className="hidden sm:block text-[11.5px] leading-relaxed" style={{ color: 'var(--text)' }}>Retention falls off a cliff at 0:07, where the b-roll repeats.</li>
+                </ul>
+              </div>
+            </div>
+
+            {/* The composer, same shape as the one in the hero above it. */}
+            <div className="flex-shrink-0 mt-3 flex items-center gap-2 px-3 py-2" style={composer}>
+              <Plus className="w-3.5 h-3.5 flex-shrink-0" style={{ color: 'var(--text-faint)' }} />
+              <span className="flex-1 text-[11.5px] truncate" style={{ color: 'var(--text-faint)' }}>Ask about the fixes, or send another link</span>
+              <span className="w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0" style={{ background: 'var(--accent)' }}>
+                <ArrowUp className="w-3 h-3" style={{ color: 'var(--on-accent)' }} />
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
 
-// ─── Pricing card (collapsible features) ──────────────────────────────────────
+// Competitors: the feed only ever shows shorts that beat the channel's own
+// median views per day, so the multiple is the whole card, the same way it is
+// in CompetitorsFeed.
+function CompetitorsFrame() {
+  const rows = [
+    { ch: 'nikocado', title: 'i ate the whole menu in one sitting', mult: '7.4x', vpd: '412k / day' },
+    { ch: 'sidemen clips', title: 'he guessed it in three words', mult: '3.1x', vpd: '96k / day' },
+    { ch: 'mrwhosetheboss', title: 'the phone nobody was allowed to review', mult: '2.2x', vpd: '61k / day' },
+  ];
+  return (
+    <div className="overflow-hidden" style={{ background: 'var(--bg-app)', border: '1px solid var(--line-strong)', borderRadius: 'var(--r-lg)' }}>
+      <div className="flex items-center gap-2 px-4 sm:px-5 py-3" style={{ borderBottom: '1px solid var(--line)' }}>
+        {/* nowrap, and the second chip only appears once there is room for it:
+            "4 channels tracked" beside two pills wrapped onto a second line on
+            a phone and ran into them. */}
+        <p className="label-mono flex-1 whitespace-nowrap truncate">Feed · 4 channels</p>
+        <span className="chip" data-on="true">Outliers</span>
+        <span className="chip hidden md:inline-flex">Saved</span>
+      </div>
+      <div className="px-4 sm:px-5">
+        {rows.map((r, i) => (
+          <div key={r.title} className="flex items-center gap-4 py-3.5" style={i < rows.length - 1 ? { borderBottom: '1px solid var(--line)' } : undefined}>
+            <div className="w-9 h-12 sm:w-10 sm:h-14 rounded-[6px] flex-shrink-0" style={{ background: 'var(--bg-raised-hover)', border: '1px solid var(--line)' }} />
+            <div className="flex-1 min-w-0">
+              <p className="label-mono mb-1">{r.ch}</p>
+              <p className="text-[12.5px] truncate" style={{ color: 'var(--text)' }}>{r.title}</p>
+            </div>
+            <div className="text-right flex-shrink-0">
+              <p className="font-mono text-[13px] tabular-nums" style={{ color: 'var(--process)' }}>{r.mult}</p>
+              <p className="font-mono text-[10px] mt-0.5" style={{ color: 'var(--text-faint)' }}>{r.vpd}</p>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// Analytics: the app's Tile row, then a retention curve with the drop marked.
+//
+// The shape is the one this product exists for: a normal opening slide, then a
+// cliff, then a long flat tail. The marker sits ON the cliff and the label is
+// the timestamp that cliff falls at, worked out from the same duration printed
+// under the axis - an earlier version put "0:07" at the 55% mark of a 31-second
+// video, which is the kind of detail a creator checks first.
+const DURATION_S = 31;
+const CURVE = [
+  100, 96, 90, 85, 82, 79, 77, 75, 73, 71,
+  52, 49, 47, 46, 45, 44, 43, 43, 42, 41,
+  41, 40, 40, 39, 39, 38, 38, 37, 37, 36,
+  36, 35, 35, 34, 34, 33, 33, 32, 32, 31, 30,
+];
+// The first sample after the fall, i.e. the point the marker names.
+const DROP_AT = 10;
+const DROP_LABEL = `0:${String(Math.round((DROP_AT / (CURVE.length - 1)) * DURATION_S)).padStart(2, '0')}`;
+
+function AnalyticsFrame() {
+  // 0..108 rather than 0..150: on the old scale the entire curve sat in the
+  // top third of the box and the cliff read as a scratch.
+  const y = (v: number) => (1 - v / 108) * 100;
+  const points = CURVE.map((v, i) => `${(i / (CURVE.length - 1)) * 100},${y(v)}`).join(' ');
+  const dropX = (DROP_AT / (CURVE.length - 1)) * 100;
+
+  return (
+    <div className="p-4 sm:p-5" style={{ background: 'var(--bg-app)', border: '1px solid var(--line-strong)', borderRadius: 'var(--r-lg)' }}>
+      <div className="grid grid-cols-3 gap-2.5 sm:gap-3 mb-4">
+        {[
+          { label: 'Views, 28d', value: '1.24M', sub: '+18%' },
+          { label: 'Avg. view %', value: '61%', sub: '+4pt' },
+          { label: 'Subs, 28d', value: '3,910', sub: '+22%' },
+        ].map(t => (
+          <div key={t.label} className="p-3 sm:p-4 min-w-0" style={plate}>
+            <p className="label-mono mb-2 truncate">{t.label}</p>
+            <p className="text-[18px] sm:text-[22px] leading-none font-semibold tracking-tight tabular-nums" style={{ color: 'var(--text)' }}>{t.value}</p>
+            <p className="font-mono text-[10px] mt-2" style={{ color: 'var(--process)' }}>{t.sub}</p>
+          </div>
+        ))}
+      </div>
+
+      <div className="p-4" style={plate}>
+        <p className="label-mono mb-3">Retention · last short</p>
+        <div className="relative">
+          <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="w-full h-[86px] sm:h-[110px]" aria-hidden="true">
+            <line x1="0" y1={y(100)} x2="100" y2={y(100)} stroke="var(--line)" strokeWidth="0.4" vectorEffect="non-scaling-stroke" />
+            <line x1="0" y1={y(50)} x2="100" y2={y(50)} stroke="var(--line)" strokeWidth="0.4" vectorEffect="non-scaling-stroke" />
+            <polyline
+              points={points}
+              fill="none"
+              stroke="var(--text)"
+              strokeWidth="1.4"
+              strokeLinejoin="round"
+              vectorEffect="non-scaling-stroke"
+            />
+            <line x1={dropX} y1="0" x2={dropX} y2="100" stroke="var(--line-strong)" strokeWidth="0.8" strokeDasharray="3 3" vectorEffect="non-scaling-stroke" />
+          </svg>
+          {/* The callout is HTML, not SVG text: the viewBox is stretched
+              non-uniformly, which would squash any glyph drawn inside it. */}
+          <div className="absolute top-0 -translate-x-1/2" style={{ left: `${dropX}%` }}>
+            <span className="font-mono text-[10px] whitespace-nowrap px-1.5 py-0.5 rounded" style={{ background: 'var(--bg-raised-hover)', color: 'var(--text)', border: '1px solid var(--line-strong)' }}>
+              {DROP_LABEL}
+            </span>
+          </div>
+        </div>
+        <div className="flex justify-between mt-2">
+          <span className="font-mono text-[10px]" style={{ color: 'var(--text-faint)' }}>0:00</span>
+          <span className="font-mono text-[10px]" style={{ color: 'var(--text-faint)' }}>0:{DURATION_S}</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Content ──────────────────────────────────────────────────────────────────
+
+// The same four rows, in the same order, with the same numbering as the app's
+// hub (HomePage.tsx). Someone who signs up lands on this list again, which is
+// the point: the page is not a brochure for the product, it is the product's
+// first screen with the door still shut.
+const surfaces: { index: string; icon: React.ReactNode; label: string; desc: string }[] = [
+  {
+    index: '01',
+    icon: <VideoIcon className="w-[18px] h-[18px]" />,
+    label: 'Analyze',
+    desc: 'Send a link, a hook or a script and talk it through until you know what to change.',
+  },
+  {
+    index: '02',
+    icon: <Folder className="w-[18px] h-[18px]" />,
+    label: 'Projects',
+    desc: 'Keep the conversation, the reference video and the ideas off it in one place.',
+  },
+  {
+    index: '03',
+    icon: <GraphUp className="w-[18px] h-[18px]" />,
+    label: 'Analytics',
+    desc: 'Your own numbers from YouTube, and the shape your last analysed videos came out at.',
+  },
+  {
+    index: '04',
+    icon: <Users className="w-[18px] h-[18px]" />,
+    label: 'Competitors',
+    desc: "Surfaces only the shorts beating a channel's own median, rebuilt for yours.",
+  },
+];
+
+// Verbatim Discord messages, quoted as such. One per surface, so each lands on
+// a different problem rather than three people praising the same thing.
+const testimonials: { quote: string; name: string; on: string }[] = [
+  {
+    quote: 'added 4 competitors yesterday and the tool literally picked out the exact 2 shorts that blew up on their channels lol',
+    name: 'alexvfx',
+    on: 'Competitors',
+  },
+  {
+    quote: 're-wrote the first 5 seconds based on the prompt, retention actually stayed flat through the intro',
+    name: 'Yonatan',
+    on: 'Analyze',
+  },
+  {
+    quote: 'figured out people were swiping away right when I started doing the sponsor plug... that graph read is insane',
+    name: 'd4wki',
+    on: 'Analytics',
+  },
+];
+
+// Kept in sync with the FAQPage JSON-LD in index.html — an answer engine reads
+// that block, a person reads this one, and the two disagreeing is worse than
+// having neither.
+const faqs: { q: string; a: string }[] = [
+  {
+    q: 'What does Hershy actually do?',
+    a: 'It reads short-form video. Send it a link, a hook or a script and it watches or reads the thing and tells you what to change, then you keep talking to it until you know what to do. Connect your channel and it checks that against your real retention curve instead of guessing. Shorts only. That is the whole point.',
+  },
+  {
+    q: 'What happens when I connect my YouTube?',
+    a: 'You get your own numbers instead of an opinion. Hershy reads what YouTube Studio shows you, finds the exact seconds viewers left, and writes every fix against those timestamps. It takes two clicks, and everything else works without connecting anything.',
+  },
+  {
+    q: 'What is in it?',
+    a: 'Four surfaces. Analyze is the conversation about a video, a hook or a script. Projects keeps each conversation and the ideas off it together. Analytics is your channel and the videos you have run through it. Competitors tracks rival channels and surfaces only their outliers. One credit balance covers all four.',
+  },
+  {
+    q: 'Can I start for free?',
+    a: 'Yes. New accounts get 20 credits, no card, enough for a few videos or a handful of hook and script checks. Competitors needs a paid plan, and the free credits are one time, with no monthly refill.',
+  },
+  {
+    q: 'How does Competitors find ideas?',
+    a: "It compares every recent short from a tracked channel against that channel's own median views per day, and only surfaces the ones that clearly beat it. A big channel posting a normal video stays out; a small channel with a breakout gets in. The idea then gets rebuilt for your niche rather than copied.",
+  },
+  {
+    q: 'Can I cancel anytime?',
+    a: 'Yes, from your billing portal, and you keep access until the period you already paid for runs out. No contract, no cancellation call.',
+  },
+];
+
+function FAQSection() {
+  const [open, setOpen] = useState<number | null>(0);
+  return (
+    <div style={{ borderTop: '1px solid var(--line)' }}>
+      {faqs.map((f, i) => (
+        <div key={f.q} style={{ borderBottom: '1px solid var(--line)' }}>
+          <button
+            onClick={() => setOpen(open === i ? null : i)}
+            className="w-full flex items-start gap-4 py-4 text-left"
+            aria-expanded={open === i}
+          >
+            <span className="flex-1 text-[15px] font-medium" style={{ color: 'var(--text)' }}>{f.q}</span>
+            <ChevronDown
+              className="w-4 h-4 flex-shrink-0 mt-0.5 transition-transform duration-200"
+              style={{ color: 'var(--text-faint)', transform: open === i ? 'rotate(180deg)' : 'none' }}
+            />
+          </button>
+          {/* Grid-rows trick rather than max-height: the answer opens to its
+              real height, so a long one is not clipped and a short one leaves
+              no dead space under it. */}
+          <div
+            className="grid transition-[grid-template-rows] duration-300 ease-out"
+            style={{ gridTemplateRows: open === i ? '1fr' : '0fr' }}
+          >
+            <div className="overflow-hidden">
+              <p className="text-[14px] leading-relaxed pb-4 pr-8 max-w-2xl" style={{ color: 'var(--text-muted)' }}>{f.a}</p>
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ─── Pricing ──────────────────────────────────────────────────────────────────
 
 type Interval = 'month' | 'year';
 
@@ -312,7 +650,6 @@ interface Plan {
   breakdown?: { amount: string; label: string }[];
   features: string[];
   cta: string;
-  popular: boolean;
   highlight: boolean;
 }
 
@@ -327,67 +664,49 @@ const pricingPlans: Plan[] = [
   {
     name: 'Plus', monthlyPrice: 9.99, yearlyMonthlyPrice: 9.99, yearlyTotal: 119.99,
     // Competitors sits in `quotas` rather than `features` on purpose: quotas
-    // render as bold white rows and features as grey ticks, and this is the
+    // render as the bold rows and features as the ticked ones, and this is the
     // one line that separates paid from the free trial (enforced server-side
     // in fetch-competitor-ideas / generate-outline, not just hidden in the UI).
-    quotas: ['300 credits / month', 'Competitors tab unlocked'],
+    quotas: ['300 credits a month', 'Competitors unlocked'],
     breakdown: [
-      { amount: '60', label: 'video reviews' },
-      { amount: '150', label: 'hook checks' },
-      { amount: '100', label: 'script checks' },
-      { amount: '300', label: 'competitor ideas' },
+      { amount: '60', label: 'videos' },
+      { amount: '150', label: 'hooks' },
+      { amount: '100', label: 'scripts' },
+      { amount: '300', label: 'ideas' },
     ],
-    features: ['Hook score & rewrites', 'Weak spot breakdown', 'Channel profile context', 'Retention insights on your videos'],
-    cta: 'Get Plus', popular: false, highlight: false,
+    features: ['Retention read on your own videos', 'Channel context in every answer', 'Projects and saved ideas'],
+    cta: 'Get Plus', highlight: false,
   },
   {
     name: 'Pro', monthlyPrice: 19.99, yearlyMonthlyPrice: 12.99, yearlyTotal: 155.99,
-    quotas: ['Unlimited credits', 'Competitors tab unlocked'],
-    features: ['Everything in Plus', 'Highest monthly limits'],
-    cta: 'Get Pro', popular: true, highlight: true,
+    quotas: ['Unlimited credits', 'Competitors unlocked'],
+    features: ['Everything in Plus', 'Highest fair-use ceiling'],
+    cta: 'Get Pro', highlight: true,
   },
 ];
 
-const proPlanForDiscount = pricingPlans.find(p => p.name === 'Pro')!;
-const proPercentOff = Math.round(
-  ((proPlanForDiscount.monthlyPrice * 12 - proPlanForDiscount.yearlyTotal) / (proPlanForDiscount.monthlyPrice * 12)) * 100
-);
+const proPlan = pricingPlans.find(p => p.name === 'Pro')!;
+// Computed from the same numbers the card displays, so it can never drift out
+// of sync the way a hardcoded "50% off" string did once already in this app.
+const proPercentOff = Math.round(((proPlan.monthlyPrice * 12 - proPlan.yearlyTotal) / (proPlan.monthlyPrice * 12)) * 100);
 
-// Sliding pill with a real percentage, not a copy-pasted claim — computed
-// from the same numbers the card displays, so it can never drift out of
-// sync the way a hardcoded "50% off" string did once already in this app.
-function BillingToggle({ interval, onChange, percentOff }: { interval: Interval; onChange: (v: Interval) => void; percentOff: number }) {
+function BillingToggle({ interval, onChange }: { interval: Interval; onChange: (v: Interval) => void }) {
   return (
-    /* The badge sits under the switch, not beside it: as a sibling it shifted
-       the switch off the section's centre line. */
-    <div className="flex flex-col items-center gap-2.5">
-      <div className="relative flex w-56 p-1 rounded-full" style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.08)' }}>
-        {/* Track content is the full width minus the 4px padding either side,
-            and each half is exactly the thumb's width — so the year position
-            is a plain 100% of the thumb, with no extra pixels to overshoot. */}
-        <div
-          className="absolute top-1 bottom-1 rounded-full transition-transform duration-300"
-          style={{ width: 'calc(50% - 4px)', background: 'var(--accent)', color: 'var(--on-accent)', transform: interval === 'year' ? 'translateX(100%)' : 'translateX(0)' }}
-        />
+    <div className="flex items-center gap-3">
+      {/* The app's segmented control, not a bespoke pill with a sliding thumb.
+          Same .seg class Competitors and Analytics use for their filters. */}
+      <div className="seg">
         {(['month', 'year'] as const).map(iv => (
-          <button
-            key={iv}
-            onClick={() => onChange(iv)}
-            className={`relative z-10 flex-1 py-1.5 rounded-full text-sm font-medium transition-colors duration-300 ${interval === iv ? 'text-white' : 'text-gray-400 hover:text-white'}`}
-          >
+          <button key={iv} onClick={() => onChange(iv)} data-on={interval === iv}>
             {iv === 'month' ? 'Monthly' : 'Yearly'}
           </button>
         ))}
       </div>
       <span
-        className="text-xs font-semibold px-2 py-1 rounded-full transition-all duration-300"
-        style={{
-          background: 'rgba(var(--ok-rgb),0.12)', color: '#6ee7b7',
-          opacity: interval === 'year' ? 1 : 0,
-          transform: interval === 'year' ? 'scale(1)' : 'scale(0.85)',
-        }}
+        className="font-mono text-[11px] transition-opacity duration-200"
+        style={{ color: 'var(--process)', opacity: interval === 'year' ? 1 : 0 }}
       >
-        Save {percentOff}%
+        −{proPercentOff}%
       </span>
     </div>
   );
@@ -395,95 +714,83 @@ function BillingToggle({ interval, onChange, percentOff }: { interval: Interval;
 
 function PricingCard({ plan, interval, onSelect }: { plan: Plan; interval: Interval; onSelect: () => void }) {
   const [open, setOpen] = useState(false);
-  const displayPrice = interval === 'year' ? plan.yearlyMonthlyPrice : plan.monthlyPrice;
+  const price = interval === 'year' ? plan.yearlyMonthlyPrice : plan.monthlyPrice;
   return (
     <div
-      className="relative flex flex-col rounded-xl p-4 sm:p-5 h-full motion-card"
+      className="relative flex flex-col p-5 sm:p-6 h-full"
       style={{
-        // No backdrop-filter: blur over the static app background caused
-        // Chromium ghost bands on sibling repaints
-        background: plan.highlight
-          ? 'linear-gradient(rgba(var(--accent-rgb),0.06), rgba(var(--accent-rgb),0.06)), linear-gradient(180deg, rgba(var(--glass-tint-rgb),0.05), rgba(var(--glass-tint-rgb),0.03))'
-          : 'linear-gradient(rgba(255,255,255,0.04), rgba(255,255,255,0.04)), linear-gradient(180deg, rgba(var(--glass-tint-rgb),0.05), rgba(var(--glass-tint-rgb),0.03))',
-        border: plan.highlight ? '1px solid rgba(var(--accent-rgb),0.4)' : '1px solid rgba(255,255,255,0.08)',
+        background: 'var(--bg-raised)',
+        // The highlight is one hairline going from --line to --line-strong.
+        // It used to be a tinted gradient wash plus a 40%-opacity accent
+        // border, which at a white accent is a glowing rectangle.
+        border: `1px solid ${plan.highlight ? 'var(--line-strong)' : 'var(--line)'}`,
+        borderRadius: 'var(--r-md)',
       }}
     >
-      {plan.popular && (
-        <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-          <span className="px-3 py-1 text-white text-xs font-semibold rounded-full" style={{ background: 'var(--accent)', color: 'var(--on-accent)' }}>Most Popular</span>
-        </div>
-      )}
-      <div className="mb-2.5">
-        <div className="flex items-center gap-2 mb-2">
-          <Zap className={`w-4 h-4 ${plan.highlight ? 'text-[var(--accent)]' : 'text-gray-500'}`} />
-          <span className="text-white font-semibold">{plan.name}</span>
-        </div>
-        <div className="flex items-baseline gap-1 overflow-hidden">
-          <span key={`${plan.name}-${interval}`} className="text-3xl font-bold text-white animate-fade-in-up">${displayPrice.toFixed(2)}</span>
-          <span className="text-sm text-gray-500">/month</span>
-        </div>
-        <p className="text-xs text-gray-600 mt-0.5">
-          {interval === 'year' ? `$${plan.yearlyTotal.toFixed(2)} billed yearly` : 'billed monthly'}
-        </p>
-        {/* Monthly quotas — the numbers people actually compare */}
-        <div className="mt-2.5 space-y-1.5">
-          {plan.quotas.map(q => (
-            <p key={q} className="flex items-center gap-2 text-[13px] font-semibold text-white">
-              <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: plan.highlight ? 'var(--accent)' : 'rgba(255,255,255,0.35)' }} />
-              {q}
-            </p>
-          ))}
-        </div>
-
-        {/* Converts the credit number into what people actually came here to
-            check: how many videos, hooks, scripts that gets them. Each figure
-            is 300 credits spent entirely on that one action, so this is the
-            floor if you split them, not an average. */}
-        {plan.breakdown && (
-          <>
-            <div className="mt-3 grid grid-cols-2 gap-1.5">
-              {plan.breakdown.map(b => (
-                <div key={b.label} className="rounded-lg px-2.5 py-1.5" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
-                  <span className="block text-sm font-bold text-white leading-tight">{b.amount}</span>
-                  <span className="block text-[10.5px] text-gray-500 leading-tight">{b.label}</span>
-                </div>
-              ))}
-            </div>
-            <p className="text-[11px] text-gray-600 mt-2">Mix and match. It's your call where they go.</p>
-          </>
-        )}
+      <div className="flex items-center gap-2.5 mb-4">
+        <span className="text-[15px] font-medium" style={{ color: 'var(--text)' }}>{plan.name}</span>
+        {plan.highlight && <span className="label-mono">Most picked</span>}
       </div>
 
-      {/* Collapsed by default, but only worth a toggle when there's enough
-          under it to hide — Pro's own two features ("Everything in Plus",
-          "Highest monthly limits") fit on screen either way, so an arrow
-          there would be a control that opens onto almost nothing. Plus has
-          a breakdown grid plus 4 features, which is what made the row's
-          height chase it before this collapsed by default. */}
+      <div className="flex items-baseline gap-1.5 mb-1">
+        <span key={`${plan.name}-${interval}`} className="text-[34px] leading-none font-semibold tracking-tight tabular-nums animate-fade-in" style={{ color: 'var(--text)' }}>
+          ${price.toFixed(2)}
+        </span>
+        <span className="font-mono text-[11px]" style={{ color: 'var(--text-faint)' }}>/ mo</span>
+      </div>
+      <p className="font-mono text-[11px] mb-5" style={{ color: 'var(--text-faint)' }}>
+        {interval === 'year' ? `$${plan.yearlyTotal.toFixed(2)} billed yearly` : 'billed monthly'}
+      </p>
+
+      <div className="space-y-2 mb-5">
+        {plan.quotas.map(q => (
+          <p key={q} className="text-[14px] font-medium" style={{ color: 'var(--text)' }}>{q}</p>
+        ))}
+      </div>
+
+      {/* Converts the credit number into what people came here to check: how
+          many videos, hooks, scripts that gets them. Each figure is 300
+          credits spent entirely on that one action, so this is the floor if
+          you split them, not an average. */}
+      {plan.breakdown && (
+        <div className="grid grid-cols-4 gap-px mb-5 overflow-hidden" style={{ background: 'var(--line)', border: '1px solid var(--line)', borderRadius: 'var(--r-sm)' }}>
+          {plan.breakdown.map(b => (
+            <div key={b.label} className="px-2 py-2.5 text-center" style={{ background: 'var(--bg-raised)' }}>
+              <span className="block font-mono text-[13px] tabular-nums" style={{ color: 'var(--text)' }}>{b.amount}</span>
+              <span className="block text-[10px] mt-0.5" style={{ color: 'var(--text-faint)' }}>{b.label}</span>
+            </div>
+          ))}
+        </div>
+      )}
+
       {plan.features.length > 2 && (
         <button
           onClick={() => setOpen(o => !o)}
-          className="self-start inline-flex items-center gap-1 text-xs font-medium text-gray-400 hover:text-white transition-colors mb-3"
+          className="self-start inline-flex items-center gap-1.5 text-[12px] mb-4 transition-colors hover:text-[var(--text)]"
+          style={{ color: 'var(--text-muted)' }}
         >
-          What's included
-          <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${open ? 'rotate-180' : ''}`} />
+          What is included
+          <ChevronDown className="w-3.5 h-3.5 transition-transform duration-200" style={{ transform: open ? 'rotate(180deg)' : 'none' }} />
         </button>
       )}
-      <ul className={`space-y-2 mb-4 ${plan.features.length > 2 && !open ? 'hidden' : 'block'}`}>
+      <ul className={`space-y-2 mb-5 ${plan.features.length > 2 && !open ? 'hidden' : 'block'}`}>
         {plan.features.map(f => (
-          <li key={f} className="flex items-center gap-2 text-sm text-gray-400">
-            <Check className="w-3.5 h-3.5 flex-shrink-0" style={{ color: plan.highlight ? 'var(--accent)' : '#4B5563' }} />
+          <li key={f} className="flex items-start gap-2 text-[13px]" style={{ color: 'var(--text-muted)' }}>
+            <Check className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" style={{ color: 'var(--text-faint)' }} />
             {f}
           </li>
         ))}
       </ul>
 
+      {/* The highlighted plan's button used to be `background: var(--accent)`
+          with `color: white` — which was white on white from the moment the
+          accent became white, i.e. an invisible label on the primary CTA. */}
       <button
         onClick={onSelect}
-        className="mt-auto w-full py-2.5 rounded-lg text-sm font-semibold"
+        className="mt-auto w-full py-2.5 rounded-[var(--r-sm)] text-sm font-semibold transition-opacity hover:opacity-90"
         style={plan.highlight
-          ? { background: 'var(--accent)', color: 'white' }
-          : { background: 'rgba(255,255,255,0.06)', color: 'white', border: '1px solid rgba(255,255,255,0.1)' }}
+          ? { background: 'var(--accent)', color: 'var(--on-accent)' }
+          : { background: 'transparent', color: 'var(--text)', border: '1px solid var(--line-strong)' }}
       >
         {plan.cta}
       </button>
@@ -491,537 +798,26 @@ function PricingCard({ plan, interval, onSelect }: { plan: Plan; interval: Inter
   );
 }
 
-// ─── Main Landing Page ────────────────────────────────────────────────────────
-
-// ─── Tools grid ───────────────────────────────────────────────────────────────
-// Fast overview before the deep dives: what exists, in one scan. Each mini
-// mockup mirrors the real in-app component it represents (same badge shapes,
-// same accent colors) rather than an invented dashboard look, so it reads as
-// "this is a screenshot of the real thing" rather than concept art.
-
-// Every tile shows real words and real numbers. The earlier versions used
-// anonymous grey bars for the text, which read as a half-loaded skeleton
-// rather than a product — the single biggest "this looks unfinished" tell
-// on the page.
-
-const mockShell: React.CSSProperties = {
-  background: 'rgba(255,255,255,0.03)',
-  border: '1px solid rgba(255,255,255,0.07)',
-};
-
-function MiniIdeaCard() {
+// ─── Section head ─────────────────────────────────────────────────────────────
+// PageHead's three notes — mono eyebrow, display line, one sentence — in the
+// same order at the same sizes as every screen in the app.
+function Head({ eyebrow, title, sub }: { eyebrow: string; title: string; sub?: string }) {
   return (
-    <div className="rounded-lg p-2.5 h-full flex flex-col justify-center" style={mockShell}>
-      <div className="flex gap-2 items-center">
-        <div className="w-10 h-[26px] rounded flex-shrink-0 flex items-center justify-center" style={{ background: 'linear-gradient(135deg,var(--bg-raised),var(--bg-raised))' }}>
-          <Play className="w-2.5 h-2.5 text-white/70" fill="currentColor" />
-        </div>
-        <p className="flex-1 min-w-0 text-[10.5px] leading-tight text-gray-200 truncate">3 hooks I stole from MrBeast</p>
-        <span className="flex items-center gap-0.5 text-[10px] font-bold px-1.5 py-0.5 rounded flex-shrink-0 pop-in" style={{ background: 'rgba(var(--ok-rgb),0.14)', color: '#6ee7b7' }}>
-          <TrendingUp className="w-2.5 h-2.5" />2.4x
-        </span>
-      </div>
-      <p className="text-[9.5px] text-gray-600 mt-1.5">@growthlab · 96K views</p>
+    <div className="mb-8 sm:mb-10">
+      <p className="label-mono mb-4">{eyebrow}</p>
+      <h2 className="display max-w-2xl" style={{ color: 'var(--text)' }}>{title}</h2>
+      {sub && <p className="text-[15px] mt-3 max-w-md leading-relaxed text-balance" style={{ color: 'var(--text-muted)' }}>{sub}</p>}
     </div>
   );
 }
 
-// Shared by every retention-chart mock on the page (the tool tile, the hero
-// ticker, and the big System-section chart) so they all read as the same
-// underlying data at different sizes, not three unrelated decorations. 41
-// points, opens above 100% (it's read against similar-length videos, not a
-// flat 0-100 scale). Strictly non-increasing point to point — retention can
-// only ever lose viewers within a video, never gain them back, so an earlier
-// version of this curve that let it tick back up between points was wrong,
-// not just stylistically off. The "jagged, not smooth" look instead comes
-// from varying how MUCH it drops each step (sometimes -1, sometimes -6),
-// never from it going up.
-// x is implicit — index i sits at i*2.5% across the width, so index 22 lands
-// at exactly x=55%, matching the "0:11" drop mark 11 seconds into a 20s clip.
-const retentionCurve = [
-  129, 127, 126, 124, 123, 121, 120, 118, 116, 114, 112, 109, 107, 104, 101, 98, 95, 91, 87, 82, 76,
-  69, 63, 61, 60, 58, 57, 56, 55, 53, 52, 51, 50, 49, 48, 47, 46, 45, 43, 41, 39,
-];
-const RETENTION_DROP_INDEX = 22; // x=55%, value 63 — the vertex the red marker sits on
-const retentionCurveY = (v: number) => (1 - v / 150) * 100; // % of chart height, 150/100/50/0 scale
-const retentionPoints = (viewBoxHeight: number) =>
-  retentionCurve.map((v, i) => `${i * 2.5},${(retentionCurveY(v) / 100 * viewBoxHeight).toFixed(2)}`).join(' ');
-const RETENTION_DROP_X = RETENTION_DROP_INDEX * 2.5;
-const RETENTION_DROP_TOP = retentionCurveY(retentionCurve[RETENTION_DROP_INDEX]);
-
-function MiniRetention() {
-  return (
-    <div className="rounded-lg p-2.5 h-full flex flex-col justify-center" style={mockShell}>
-      {/* Matches the real YouTube Studio "relative retention" chart style
-          (gridlines, no area fill, a curve that opens above 100%) rather than
-          an invented decoration — too small here for the axis numbers, but
-          the RealDataBlock version below carries them. preserveAspectRatio="none"
-          stretches the curve to the tile width, so every stroke carries
-          vector-effect to keep its width honest. The drop marker is an HTML
-          dot rather than an SVG circle for the same reason: a circle would
-          come out as an ellipse under the same stretch. */}
-      <div className="relative">
-        {[0, 33.3, 66.6, 100].map(top => (
-          <div key={top} className="absolute inset-x-0 h-px" style={{ top: `${top}%`, background: 'rgba(255,255,255,0.06)' }} />
-        ))}
-        <svg viewBox="0 0 100 34" className="relative w-full h-[38px] wipe-in" preserveAspectRatio="none">
-          <polyline
-            points={retentionPoints(34)}
-            fill="none"
-            stroke="var(--accent)"
-            strokeWidth="2"
-            strokeLinejoin="round"
-            strokeLinecap="round"
-            vectorEffect="non-scaling-stroke"
-          />
-          <line
-            x1={RETENTION_DROP_X} y1="0" x2={RETENTION_DROP_X} y2="34"
-            stroke="#F87171" strokeWidth="1" strokeDasharray="2 2" opacity="0.55"
-            vectorEffect="non-scaling-stroke"
-          />
-        </svg>
-        <span
-          className="absolute w-[7px] h-[7px] rounded-full animate-dot-pulse"
-          style={{ left: `${RETENTION_DROP_X}%`, top: `${RETENTION_DROP_TOP}%`, marginLeft: -3.5, marginTop: -3.5, background: '#F87171' }}
-        />
-      </div>
-      <div className="flex items-center justify-between mt-2">
-        <span className="text-[9.5px] text-gray-600">Retention</span>
-        <span className="text-[9.5px] font-bold px-1.5 py-0.5 rounded" style={{ background: 'rgba(var(--danger-rgb),0.15)', color: '#F87171' }}>
-          drop at 0:11
-        </span>
-      </div>
-    </div>
-  );
-}
-
-function MiniHookScore() {
-  return (
-    <div className="rounded-lg p-2.5 h-full flex items-center gap-2.5" style={mockShell}>
-      <div className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 text-xs font-bold pop-in" style={{ background: 'rgba(var(--accent-rgb),0.14)', color: 'var(--accent-soft)', border: '2px solid rgba(var(--accent-rgb),0.35)' }}>91</div>
-      <div className="min-w-0 flex-1">
-        <p className="text-[10.5px] font-semibold text-gray-200 leading-tight">Strong open</p>
-        <p className="text-[9.5px] text-gray-600 leading-tight mt-0.5">3 rewrites ready</p>
-      </div>
-    </div>
-  );
-}
-
-function MiniScriptBars() {
-  const rows = [
-    { label: 'Hook', pct: 92, color: 'var(--accent-soft)' },
-    { label: 'Middle', pct: 58, color: '#fbbf24' },
-    { label: 'CTA', pct: 31, color: '#f87171' },
-  ];
-  return (
-    <div className="rounded-lg p-2.5 h-full flex flex-col justify-center gap-[7px]" style={mockShell}>
-      {rows.map((r, i) => (
-        <div key={r.label} className="flex items-center gap-1.5">
-          <span className="text-[9.5px] text-gray-500 w-[30px] flex-shrink-0">{r.label}</span>
-          <span className="flex-1 h-1.5 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.06)' }}>
-            <span
-              className="block h-full rounded-full grow-bar"
-              style={{ width: `${r.pct}%`, background: r.color, animationDelay: `${i * 110}ms` }}
-            />
-          </span>
-        </div>
-      ))}
-    </div>
-  );
-}
-
-const tools: { icon: React.ReactNode; name: string; desc: string; mock: React.ReactNode }[] = [
-  { icon: <Users className="w-4 h-4" />, name: 'Competitors', desc: 'Track your rivals. Only the shorts beating their own average get through.', mock: <MiniIdeaCard /> },
-  { icon: <Wand2 className="w-4 h-4" />, name: 'Hook Lab', desc: 'Score the first line. Get three rewrites that still sound like you.', mock: <MiniHookScore /> },
-  { icon: <FileText className="w-4 h-4" />, name: 'Script Lab', desc: 'Find the weak spots before you shoot a single frame.', mock: <MiniScriptBars /> },
-  { icon: <VideoIcon className="w-4 h-4" />, name: 'Video Review', desc: 'Paste a link. Get the exact seconds people left, and what to do about it.', mock: <MiniRetention /> },
-];
-
-function ToolsGrid() {
-  return (
-    <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3">
-      {tools.map((tool, i) => (
-        <RevealSection key={tool.name} delay={i * 80}>
-          {/* The mock sits in a fixed-height box so the title and body line up
-              across all four cards — the mocks are different heights, which
-              previously left each card's text starting at its own offset.
-              Deliberately NOT clickable: an earlier pass wired these to scroll
-              to the hero paste field, which funnelled the whole page into
-              "analyze a video" when most of these tools have nothing to do
-              with that. No hover-lift either, so nothing invites the click
-              that used to land nowhere. */}
-          <div className="rounded-xl p-3.5 h-full flex flex-col" style={glass}>
-            <div className="h-[78px] mb-3.5">{tool.mock}</div>
-            <div className="flex items-center gap-1.5 mb-2">
-              <span style={{ color: 'var(--accent)' }}>{tool.icon}</span>
-              <h3 className="text-white font-semibold text-sm">{tool.name}</h3>
-            </div>
-            <p className="text-gray-500 text-xs leading-relaxed">{tool.desc}</p>
-          </div>
-        </RevealSection>
-      ))}
-    </div>
-  );
-}
-
-// ─── Hero ticker ──────────────────────────────────────────────────────────────
-// Constant motion under the hero CTA, and it replaces the old decorative
-// thumbnail wall with something that actually says what the product does.
-// Built from the same mini mockups the Tools grid uses — i.e. shapes lifted
-// from real in-app components, not invented stat pills.
-
-const tickerItems: { label: string; mock: React.ReactNode }[] = [
-  { label: 'Outlier found', mock: <MiniIdeaCard /> },
-  { label: 'Retention read', mock: <MiniRetention /> },
-  { label: 'Hook scored', mock: <MiniHookScore /> },
-  { label: 'Script checked', mock: <MiniScriptBars /> },
-];
-
-function HeroTicker() {
-  return (
-    <div className="marquee-mask w-full overflow-hidden py-1" aria-hidden="true">
-      {/* The item list is rendered twice — the CSS loop translates the track by
-          exactly -50%, so the second copy lands where the first began. */}
-      <div className="marquee-track items-center gap-3 min-[2200px]:gap-5">
-        {[0, 1].map(copy =>
-          tickerItems.map((item, i) => (
-            <div key={`${copy}-${i}`} className="w-[186px] min-[2200px]:w-[236px] flex-shrink-0">
-              <div className="h-[78px] min-[2200px]:h-[100px]">{item.mock}</div>
-              <p className="mt-1.5 text-[10px] min-[2200px]:text-[12px] font-medium uppercase tracking-[0.12em] text-gray-600 text-center">
-                {item.label}
-              </p>
-            </div>
-          ))
-        )}
-      </div>
-    </div>
-  );
-}
-
-// ─── YouTube data note ───────────────────────────────────────────────────────
-// What actually happens technically: `analyze-with-gemini` calls the YouTube
-// **Analytics** API for `averageViewPercentage` + an `audienceWatchRatio`
-// curve over `elapsedVideoTimeRatio`, then feeds the biggest drop segments to
-// the model as timestamps. Retention is own-channel only (`ids=channel==MINE`),
-// and YouTube's own data lags a day or two.
-//
-// Copy on this page says "all your analytics" — 2026-08-21, Ivan's explicit
-// call, made twice after Claude pushed back that only retention is actually
-// pulled (impressions/CTR aren't even exposed by YouTube's API to third
-// parties at all, so that specific claim can't literally ever be true).
-// Ivan's reasoning: retention is the only analytics relevant to what this
-// product does, so "all" reads as normal marketing shorthand, not a lie.
-// This REPLACES the earlier no-overclaiming guardrail from 2026-08-17 — if
-// it comes up again, this is current, that one is superseded.
-
-// ─── System steps ────────────────────────────────────────────────────────────
-
-// Every step SHOWS the screen it's talking about instead of describing it —
-// the previous version was a numbered list of paragraphs, which read as filler
-// text rather than as a system. Visuals reuse the same `Mini*` mockups the
-// Tools grid uses, so a step and the tool it belongs to look like the same
-// product. Step 1 is connecting YouTube (the thing competitors don't do — see
-// the copy below), then steps 2-5 are the loop that repeats every upload.
-
-// The one visual not borrowed from the Tools grid: nothing in the app
-// represents "you posted it", so this is the smallest honest stand-in.
-function MiniPublished() {
-  return (
-    <div className="rounded-lg p-2.5 h-full flex flex-col justify-center gap-2" style={mockShell}>
-      <div className="flex items-center gap-2">
-        <div className="w-10 h-[26px] rounded flex-shrink-0 flex items-center justify-center" style={{ background: 'linear-gradient(135deg,var(--bg-raised),var(--bg-raised))' }}>
-          <Play className="w-2.5 h-2.5 text-white/70" fill="currentColor" />
-        </div>
-        <p className="flex-1 min-w-0 text-[10.5px] leading-tight text-gray-200 truncate">Your new short</p>
-        <span className="flex items-center gap-0.5 text-[10px] font-bold px-1.5 py-0.5 rounded flex-shrink-0 pop-in" style={{ background: 'rgba(var(--ok-rgb),0.14)', color: '#6ee7b7' }}>
-          <Check className="w-2.5 h-2.5" />Live
-        </span>
-      </div>
-      <p className="text-[9.5px] text-gray-600">Tracked from the second it goes up</p>
-    </div>
-  );
-}
-
-function MiniYouTubeConnected() {
-  return (
-    <div className="rounded-lg p-2.5 h-full flex items-center gap-2.5" style={mockShell}>
-      <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(255,0,0,0.1)' }}>
-        <YouTubeLogo className="w-3.5 h-3.5 text-red-500" />
-      </div>
-      <div className="min-w-0 flex-1">
-        <p className="flex items-center gap-1.5 text-[10.5px] font-semibold text-gray-200 leading-tight">
-          YouTube account
-          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block flex-shrink-0" />
-        </p>
-        <p className="text-[9.5px] text-gray-600 leading-tight mt-0.5">Connected</p>
-      </div>
-    </div>
-  );
-}
-
-const systemSteps: { tag: string; title: string; desc: string; visual: React.ReactNode }[] = [
-  {
-    tag: 'Connect',
-    title: 'Connect your channel',
-    desc: 'Two clicks. Every step below then runs on your own numbers.',
-    visual: <MiniYouTubeConnected />,
-  },
-  {
-    tag: 'Video Review',
-    title: 'See where the last one lost people',
-    desc: 'Your real curve, pulled straight from your channel. No screenshots to upload.',
-    visual: <MiniRetention />,
-  },
-  {
-    tag: 'Competitors',
-    title: 'Pick what to make next',
-    desc: "Shorts already beating their own channel's average, re-angled for your niche.",
-    visual: <MiniIdeaCard />,
-  },
-  {
-    tag: 'Hook Lab',
-    title: 'Fix the open before you film',
-    desc: 'Score the first line and get three rewrites that still sound like you.',
-    visual: <MiniHookScore />,
-  },
-  {
-    tag: 'Script Lab',
-    title: 'Catch the weak spots',
-    desc: 'The whole script checked while a rewrite still costs you nothing.',
-    visual: <MiniScriptBars />,
-  },
-  {
-    tag: 'Publish',
-    title: 'Post it, then start again',
-    desc: 'The new video feeds step 2, and the loop keeps going.',
-    visual: <MiniPublished />,
-  },
-];
-
-function SystemSteps() {
-  return (
-    <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
-      {systemSteps.map((step, i) => (
-        <RevealSection key={step.title} delay={i * 70}>
-          <div className="rounded-xl p-3.5 h-full flex flex-col" style={glass}>
-            {/* Fixed-height visual box so every card's copy starts on the same
-                line, the same reason the Tools grid uses one. */}
-            <div className="h-[62px] mb-3.5">{step.visual}</div>
-            <div className="flex items-center gap-2 mb-1.5">
-              <span
-                className="w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 text-[10px] font-bold tabular-nums"
-                style={{ background: 'rgba(var(--accent-rgb),0.12)', color: 'var(--accent-soft)' }}
-              >
-                {i + 1}
-              </span>
-              <h3 className="text-white font-semibold text-sm min-w-0">{step.title}</h3>
-            </div>
-            <p className="text-gray-500 text-xs leading-relaxed">{step.desc}</p>
-            <span
-              className="mt-2.5 self-start text-[10px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded"
-              style={{ background: 'rgba(var(--accent-rgb),0.10)', color: 'var(--accent-soft)' }}
-            >
-              {step.tag}
-            </span>
-          </div>
-        </RevealSection>
-      ))}
-    </div>
-  );
-}
-
-// ─── Testimonials ─────────────────────────────────────────────────────────────
-
-// Verbatim Discord messages, quoted as such. One per pillar of the product, so
-// each card lands on a different problem rather than four people praising the
-// same feature. `tool` labels which part the quote is about and `note` is the
-// takeaway for anyone scrolling past without reading the quotes themselves.
-// Three, one line each, one row. The fourth was about competitor script
-// generation, which no longer exists — a real quote praising a removed
-// feature is worse than one fewer card. The remaining lines are the same
-// verbatim Discord messages, just the single strongest line from each
-// instead of the full exchange, so three fit side by side without the
-// cards turning into paragraphs.
-const testimonials: { quote: string; name: string; tool: string }[] = [
-  {
-    quote: 'added 4 competitors yesterday and the tool literally picked out the exact 2 shorts that blew up on their channels lol',
-    name: 'alexvfx',
-    tool: 'Competitors',
-  },
-  {
-    quote: 're-wrote the first 5 seconds based on the prompt, retention actually stayed flat through the intro',
-    name: 'Yonatan',
-    tool: 'Script Lab',
-  },
-  {
-    quote: 'figured out people were swiping away right when I started doing the sponsor plug... that graph read is insane',
-    name: 'd4wki',
-    tool: 'Video Review',
-  },
-];
-
-// Three across on desktop, stacked on phones. The separate takeaway box
-// under each quote is gone: with one quote per card the tool name fits on
-// the header row, and the box was restating the quote in flatter words.
-function TestimonialsSection() {
-  return (
-    <div className="grid sm:grid-cols-3 gap-3 sm:gap-4">
-      {testimonials.map((t, i) => (
-        <RevealSection key={t.name} delay={i * 100}>
-          <div className="rounded-2xl p-4 sm:p-5 h-full flex flex-col motion-card" style={glass}>
-            <div className="flex items-center gap-2 mb-3">
-              <div className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(88,101,242,0.15)', border: '1px solid rgba(88,101,242,0.25)' }}>
-                <DiscordIcon className="w-3.5 h-3.5" style={{ color: '#8ea1ff' }} />
-              </div>
-              <span className="text-[13px] font-semibold text-white truncate">{t.name}</span>
-              <span
-                className="ml-auto text-[9.5px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded flex-shrink-0"
-                style={{ background: 'rgba(var(--accent-rgb),0.10)', color: 'var(--accent-soft)' }}
-              >
-                {t.tool}
-              </span>
-            </div>
-            <p className="text-gray-200 text-[13.5px] leading-relaxed">&ldquo;{t.quote}&rdquo;</p>
-          </div>
-        </RevealSection>
-      ))}
-    </div>
-  );
-}
-
-// ─── FAQ ──────────────────────────────────────────────────────────────────────
-
-const faqs: { q: string; a: string }[] = [
-  {
-    q: 'What does Hershy actually do?',
-    a: 'Your shorts producer. It steals the ideas already working on your competitors\' channels, rebuilds them for yours, checks the hook and script before you film, then reads your real retention curve after you post and tells you exactly where people left. Shorts only. That\'s the whole point.',
-  },
-  {
-    // Second on purpose: connecting the channel is the thing that separates
-    // Hershy from a chat wrapper, so it gets asked before the feature list.
-    // "Your analytics" here is the same 2026-08-21 framing as the System
-    // section (see the note above RealDataBlock) — technically it's the
-    // retention curve via the YouTube Analytics API, own channel only.
-    q: 'What happens when I connect my YouTube?',
-    a: 'You get your real analytics instead of an opinion. Hershy reads the same numbers YouTube Studio shows you, finds the exact seconds viewers dropped off, and writes every fix against those timestamps. It takes two clicks, and everything else works without connecting anything.',
-  },
-  {
-    q: 'What tools are included?',
-    a: 'Competitors (rival-channel tracking and idea extraction), Video Review (retention analysis on any Short), Hook Lab (hook scoring and rewrites), and Script Lab (full-script breakdown before you film). One credit balance covers all four.',
-  },
-  {
-    q: 'Can I start for free?',
-    a: 'Yes. New accounts get 20 credits, no card required - enough for a couple of video reviews or a handful of hook and script checks. Competitors needs a paid plan, and the free credits are one time, with no monthly refill.',
-  },
-  {
-    q: 'How does Competitors find ideas?',
-    a: 'It compares every recent short from a tracked channel against that channel\'s own median views per day, and only surfaces the ones that clearly beat it. A big channel posting a normal video stays out; a small channel with a breakout gets in. The idea then gets rewritten for your niche, not just copied.',
-  },
-  {
-    q: 'Can I cancel anytime?',
-    a: 'Yes, from your billing portal, and you keep access until the period you already paid for runs out. No contract, no cancellation call.',
-  },
-];
-
-function FAQSection() {
-  const [open, setOpen] = useState<number | null>(0);
-
-  return (
-    /* One panel with dividers rather than six bare rows: the rest of the page
-       is built out of glass cards, and a borderless list sat outside that
-       language. Full section width so its edges line up with every other
-       panel — the answers keep their own max-width so the lines stay short. */
-    <div className="rounded-2xl overflow-hidden" style={glass}>
-      {faqs.map((f, i) => (
-        <div key={f.q} style={i > 0 ? { borderTop: '1px solid rgba(255,255,255,0.07)' } : undefined}>
-          <button
-            onClick={() => setOpen(open === i ? null : i)}
-            className="w-full flex items-center justify-between gap-4 px-4 sm:px-5 py-4 text-left group"
-            aria-expanded={open === i}
-          >
-            <span className="text-white font-medium text-sm sm:text-[15px] group-hover:text-[var(--accent-soft)] transition-colors">{f.q}</span>
-            <ChevronDown
-              className={`w-4 h-4 flex-shrink-0 transition-transform duration-200 ${open === i ? 'rotate-180' : ''}`}
-              style={{ color: open === i ? 'var(--accent)' : '#4b5563' }}
-            />
-          </button>
-          {open === i && (
-            <p className="text-gray-500 text-sm leading-relaxed px-4 sm:px-5 pb-4 pr-8 sm:pr-12 max-w-3xl animate-fade-in">{f.a}</p>
-          )}
-        </div>
-      ))}
-    </div>
-  );
-}
-
-// Short forms of the SAME verbatim Discord lines quoted in full further down
-// the page — nothing here is written for the landing page. Rotating them keeps
-// the hero moving without needing more proof than actually exists; when a
-// reviews channel exists, add real lines here rather than inventing filler.
-// `short` is only set on the two lines too long for a phone-width pill, and is
-// a plain prefix cut — no rewording, and desktop always shows the full line.
-const heroQuotes: { text: string; short?: string; name: string }[] = [
-  { text: 'bro i dont even check analytics myself anymore', short: 'i dont even check analytics myself', name: 'astro' },
-  { text: 'feels like cheating tbh', name: 'desire' },
-  { text: 'cut my editing time in half', name: 'c4ctus' },
-  { text: 'saved me like 2 hours of scrolling for inspo', short: 'saved me like 2 hours of scrolling', name: 'abdalla' },
-  { text: 'just followed ai advice', name: '90mh' },
-];
-
-function HeroQuotes() {
-  const [i, setI] = useState(0);
-  const [shown, setShown] = useState(true);
-
-  // Fades the current line fully out, swaps the text while it's invisible,
-  // then fades back in. Crossfading two stacked copies instead left both
-  // half-visible mid-transition, which read as a ghosted double image.
-  useEffect(() => {
-    let swap: ReturnType<typeof setTimeout>;
-    const tick = setInterval(() => {
-      setShown(false);
-      swap = setTimeout(() => {
-        setI(n => (n + 1) % heroQuotes.length);
-        setShown(true);
-      }, 320);
-    }, 3800);
-    return () => { clearInterval(tick); clearTimeout(swap); };
-  }, []);
-
-  const q = heroQuotes[i];
-  return (
-    <div className="animate-fade-in flex justify-center mb-6 px-2">
-      {/* Always the full max width, so swapping to a shorter quote never
-          resizes the pill under the headline. */}
-      <div
-        className="flex items-center gap-2 pl-3 pr-3.5 py-1.5 rounded-full w-full max-w-[330px] sm:max-w-[520px]"
-        style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}
-      >
-        <MessageCircle className="w-3.5 h-3.5 flex-shrink-0" style={{ color: '#8ea1ff' }} />
-        <span
-          className="flex-1 min-w-0 flex items-center justify-center gap-1.5 transition-opacity duration-300"
-          style={{ opacity: shown ? 1 : 0 }}
-        >
-          <span className="text-[12px] sm:text-[13px] text-gray-300 truncate">
-            <span className="sm:hidden">&ldquo;{q.short ?? q.text}&rdquo;</span>
-            <span className="hidden sm:inline">&ldquo;{q.text}&rdquo;</span>
-          </span>
-          <span className="text-[12px] sm:text-[12.5px] text-gray-600 flex-shrink-0">· {q.name}</span>
-        </span>
-      </div>
-    </div>
-  );
-}
-
-const navLinks: { label: string; id?: string; href?: string }[] = [
-  { label: 'Tools', id: 'tools' },
-  { label: 'System', id: 'system' },
-  { label: 'Reviews', id: 'reviews' },
+const navLinks: { label: string; id: string }[] = [
+  { label: 'Product', id: 'product' },
   { label: 'Pricing', id: 'pricing' },
   { label: 'FAQ', id: 'faq' },
-  // Points at the on-page section, not straight out to Discord: the section
-  // says what's actually in there before sending anyone off-site.
-  { label: 'Community', id: 'community' },
 ];
+
+// ─── Page ─────────────────────────────────────────────────────────────────────
 
 export function LandingPage() {
   const [authModal, setAuthModal] = useState<null | 'login' | 'signup'>(null);
@@ -1030,34 +826,9 @@ export function LandingPage() {
   const [heroUrl, setHeroUrl] = useState('');
   const [heroError, setHeroError] = useState('');
   const [mobileMenu, setMobileMenu] = useState(false);
-
-  // The placeholder carries a concrete example, but the full one doesn't fit a
-  // phone-width field, so the example is dropped below sm rather than clipped
-  // mid-URL. Placeholders can't be styled per breakpoint in CSS.
-  const [wideField, setWideField] = useState(
-    () => typeof window !== 'undefined' && window.matchMedia('(min-width: 640px)').matches
-  );
-  useEffect(() => {
-    const mq = window.matchMedia('(min-width: 640px)');
-    const sync = () => setWideField(mq.matches);
-    mq.addEventListener('change', sync);
-    return () => mq.removeEventListener('change', sync);
-  }, []);
-  const [menuClosing, setMenuClosing] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  // Flips the nav icon back to the hamburger as soon as the fold-up starts,
-  // rather than at unmount, so the icon and the panel move together.
-  const menuOpen = mobileMenu && !menuClosing;
-
-  // Keeps the sheet mounted long enough to play its fold-up, so closing is
-  // animated instead of the panel blinking out of existence.
-  const closeMenu = () => {
-    setMenuClosing(true);
-    setTimeout(() => { setMobileMenu(false); setMenuClosing(false); }, 220);
-  };
-
-  // Mirrors extractVideoId in HookAnalysis exactly, so nothing this accepts
+  // Mirrors extractVideoId in AnalysisChat exactly, so nothing this accepts
   // gets rejected on the other side (and vice versa). Screening here means a
   // channel or playlist link is caught before the visitor is asked to sign up,
   // instead of failing after.
@@ -1069,14 +840,14 @@ export function LandingPage() {
 
   // This page only ever renders for guests (App.tsx routes anyone with a
   // session straight to the Dashboard), so there is no logged-in branch to
-  // take here. The link is stashed, signup opens, and HookAnalysis picks the
+  // take here. The link is stashed, signup opens, and AnalysisChat picks the
   // key up on mount and runs the analysis without asking for it again.
   const handleHeroAnalyze = (e: React.FormEvent) => {
     e.preventDefault();
     const trimmed = heroUrl.trim();
     if (!trimmed) return;
     if (!looksLikeVideoLink(trimmed)) {
-      setHeroError('That does not look like a video link. Paste a Short, e.g. youtube.com/shorts/...');
+      setHeroError('That does not look like a video link. Paste a short, e.g. youtube.com/shorts/...');
       return;
     }
     setHeroError('');
@@ -1089,446 +860,340 @@ export function LandingPage() {
   // The page scrolls in a div, not the window, so anchor hrefs would jump the
   // wrong box — scroll the section into view manually instead.
   const scrollTo = (id: string) => {
+    setMobileMenu(false);
     document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
 
   return (
-    <div className="relative overflow-hidden" style={{ background: 'linear-gradient(160deg, rgb(var(--surface-rgb)) 0%, rgb(var(--surface-rgb)) 100%)', color: 'white', height: '100dvh' }}>
-      {/* The ruled grid, the same one the Analyze canvas is drawn on — same
-          112px cell, same hairline. A visitor who signs up should land on a
-          surface they have already seen. It replaces a 28px dot field that was
-          this page's own invention and matched nothing in the product.
+    <div className="relative" style={{ background: 'var(--bg-app)', color: 'var(--text)', height: '100dvh' }}>
+      <div ref={scrollRef} className="relative h-full overflow-y-auto overflow-x-hidden">
 
-          Anchored to the non-scrolling outer container, so it never moves. */}
-      <div className="absolute inset-0 w-full h-full pointer-events-none grid-surface" style={{ zIndex: 0 }} />
-
-      {/* Three drifting blurred blobs and a glow along the bottom edge used to
-          sit here. That look says "an AI made this" before a word is read, and
-          it does not appear anywhere in the product, so the first screen was
-          promising a surface the app never delivers. The grid does the work
-          now: it is the same one the app is drawn on. */}
-
-      <div
-        ref={scrollRef}
-        className="relative z-10 h-full overflow-y-auto overflow-x-hidden"
-      >
-
-        {/* ── Navbar ─────────────────────────────────────────────────────────
-            Sticky inside the scroll container (not the window), since the page
-            scrolls in this div rather than the body. */}
+        {/* ── Nav ─────────────────────────────────────────────────────────── */}
         <nav
-          className="sticky top-0 z-40 w-full flex-shrink-0 animate-fade-in"
-          style={{ background: 'rgba(var(--surface-rgb),0.72)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)', borderBottom: '1px solid rgba(255,255,255,0.06)' }}
+          className="sticky top-0 z-40 w-full"
+          style={{ background: 'rgba(10,10,11,0.78)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)', borderBottom: '1px solid var(--line)' }}
         >
-          {/* Three equal columns rather than justify-between: the brand and the
-              CTA are different widths, so a flex row pushed the link group
-              visibly off-centre. The grid pins the middle column to the true
-              centre of the bar no matter what flanks it. */}
-          <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-4 px-5 sm:px-6 py-3.5 max-w-6xl mx-auto w-full">
+          <div className={`${SECTION} flex items-center gap-4 py-3.5`}>
             <button
               onClick={() => scrollRef.current?.scrollTo({ top: 0, behavior: 'smooth' })}
-              className="flex items-center gap-2 font-black text-white uppercase tracking-[0.14em] text-[15px] sm:text-lg whitespace-nowrap justify-self-start"
+              className="flex items-center gap-2 font-black uppercase tracking-[0.14em] text-[14px] whitespace-nowrap"
+              style={{ color: 'var(--text)' }}
             >
-              <img src="/hersh-mark.png" alt="" className="h-[15px] sm:h-[17px] w-auto flex-shrink-0" />
-              HERSHY
+              <img src="/hersh-mark.png" alt="" className="h-[14px] w-auto flex-shrink-0" />
+              Hershy
             </button>
 
-            <div className="hidden md:flex items-center gap-0.5 justify-self-center">
+            <div className="hidden md:flex items-center gap-1 ml-6">
               {navLinks.map(link => (
-                link.href ? (
-                  <a
-                    key={link.label}
-                    href={link.href}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="px-3 py-1.5 text-[13.5px] font-medium text-gray-400 hover:text-white transition-colors rounded-lg whitespace-nowrap"
-                  >
-                    {link.label}
-                  </a>
-                ) : (
-                  <button
-                    key={link.label}
-                    onClick={() => scrollTo(link.id!)}
-                    className="px-3 py-1.5 text-[13.5px] font-medium text-gray-400 hover:text-white transition-colors rounded-lg whitespace-nowrap"
-                  >
-                    {link.label}
-                  </button>
-                )
+                <button
+                  key={link.label}
+                  onClick={() => scrollTo(link.id)}
+                  className="px-2.5 py-1.5 text-[13px] transition-colors hover:text-[var(--text)]"
+                  style={{ color: 'var(--text-muted)' }}
+                >
+                  {link.label}
+                </button>
               ))}
             </div>
-            {/* Keeps the 3-column grid intact once the links are hidden, so the
-                brand and CTA stay pinned to the same edges on phones. */}
-            <div className="md:hidden" />
 
-            <div className="flex items-center gap-2 justify-self-end">
-              {/* The only thing that changes when the menu opens. Both icons
-                  render inside the same 24x24 box, so the bar's height never
-                  shifts and the brand beside it does not move a pixel — the
-                  menu used to draw its own copy of the logo on top of this
-                  one, which is what made it look like it jumped and faded.
-                  Sits left of Get started on phones now (Ivan asked the CTA
-                  back on mobile, to the burger's right). */}
-              <button
-                onClick={() => (menuOpen ? closeMenu() : setMobileMenu(true))}
-                aria-label={menuOpen ? 'Close menu' : 'Open menu'}
-                aria-expanded={menuOpen}
-                className="md:hidden p-1.5 text-white"
-              >
-                <span className="w-6 h-6 flex items-center justify-center">
-                  {menuOpen ? (
-                    <X className="w-6 h-6" />
-                  ) : (
-                    <svg width="24" height="16" viewBox="0 0 24 16" fill="none" aria-hidden="true">
-                      <path d="M1 1.5h22M1 8h22M1 14.5h22" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" />
-                    </svg>
-                  )}
-                </span>
-              </button>
+            <div className="flex items-center gap-1.5 ml-auto">
               <button
                 onClick={() => setAuthModal('login')}
-                className="flex items-center gap-1 sm:gap-1.5 px-3 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-semibold text-white rounded-lg whitespace-nowrap hover:opacity-90 transition-opacity"
+                className="hidden sm:inline-flex px-3 py-1.5 text-[13px] transition-colors hover:text-[var(--text)]"
+                style={{ color: 'var(--text-muted)' }}
+              >
+                Sign in
+              </button>
+              <button
+                onClick={() => setAuthModal('signup')}
+                className="px-3.5 py-1.5 text-[13px] font-semibold rounded-[var(--r-sm)] whitespace-nowrap transition-opacity hover:opacity-90"
                 style={{ background: 'var(--accent)', color: 'var(--on-accent)' }}
               >
                 Get started
-                <ChevronRight className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+              </button>
+              <button
+                onClick={() => setMobileMenu(o => !o)}
+                aria-label={mobileMenu ? 'Close menu' : 'Open menu'}
+                aria-expanded={mobileMenu}
+                className="md:hidden p-1.5 ml-0.5"
+                style={{ color: 'var(--text-muted)' }}
+              >
+                {mobileMenu ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
               </button>
             </div>
           </div>
-        </nav>
 
-        {/* ── Mobile menu ──────────────────────────────────────────────────────
-            Sits INSIDE the scroll container at z-30 so the sticky nav (z-40)
-            keeps painting over it: the navbar stays put and only its icon
-            swaps. One uniform blurred layer over the whole viewport, with no
-            second tint behind the links, so there's no visible seam where the
-            panel would otherwise end. */}
-        {mobileMenu && (
-          <div className="fixed inset-0 z-30 md:hidden" onClick={closeMenu}>
-            <div
-              className={`absolute inset-0 ${menuClosing ? 'animate-fade-out' : 'animate-fade-in'}`}
-              style={{ background: 'rgba(6,10,18,0.66)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)' }}
-            />
-            {/* Unfolds down from behind the navbar and folds back up on close */}
-            <div
-              className={`absolute inset-x-0 top-0 ${menuClosing ? 'animate-fold-up' : 'animate-unfold-down'}`}
-              onClick={e => e.stopPropagation()}
-            >
-              <div className="flex flex-col px-5 pt-[70px] pb-6">
+          {mobileMenu && (
+            <div className="md:hidden animate-fade-in" style={{ borderTop: '1px solid var(--line)', background: 'var(--bg-app)' }}>
+              <div className={`${SECTION} py-2`}>
                 {navLinks.map(link => (
-                  link.href ? (
-                    <a
-                      key={link.label}
-                      href={link.href}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      onClick={closeMenu}
-                      className="py-3 text-[17px] text-gray-200 active:text-white transition-colors"
-                    >
-                      {link.label}
-                    </a>
-                  ) : (
-                    <button
-                      key={link.label}
-                      /* Scrolls only once the sheet is gone: scrollIntoView while
-                         a full-screen overlay is still up lands on the wrong offset. */
-                      onClick={() => { closeMenu(); setTimeout(() => scrollTo(link.id!), 260); }}
-                      className="py-3 text-left text-[17px] text-gray-200 active:text-white transition-colors"
-                    >
-                      {link.label}
-                    </button>
-                  )
+                  <button
+                    key={link.label}
+                    onClick={() => scrollTo(link.id)}
+                    className="w-full text-left py-3 text-[14px]"
+                    style={{ color: 'var(--text-muted)', borderBottom: '1px solid var(--line)' }}
+                  >
+                    {link.label}
+                  </button>
                 ))}
-
-                {/* Set apart from the anchors above with a hairline and the
-                    brand tint: it's the one entry that does something rather
-                    than jumping down the page. */}
-                <button
-                  onClick={() => { closeMenu(); setAuthModal('login'); }}
-                  className="mt-2 pt-5 py-3 text-left text-[17px] font-medium transition-colors"
-                  style={{ color: 'var(--accent-soft)', borderTop: '1px solid rgba(255,255,255,0.08)' }}
-                >
+                <button onClick={() => { setMobileMenu(false); setAuthModal('login'); }} className="w-full text-left py-3 text-[14px]" style={{ color: 'var(--text-muted)' }}>
                   Sign in
                 </button>
               </div>
             </div>
-          </div>
-        )}
+          )}
+        </nav>
 
-        {/* Exactly the viewport minus the nav. It used to be cut 100px shorter
-            so the next section would peek and invite a scroll, but what peeked
-            was a half-cropped heading that read as broken; the explicit "See
-            how it works" cue at the bottom of the hero does that job instead. */}
-        <div className="flex flex-col min-h-[calc(100dvh-65px)]">
-          {/* ── Hero ─────────────────────────────────────────────────────── */}
-          <section className="relative w-full flex-1 min-h-0 flex flex-col items-center justify-center text-center px-6 pt-8 pb-6">
+        {/* ── Hero ────────────────────────────────────────────────────────────
+            The one screen with the grid on it, and the grid is the app's:
+            112px cell, --line hairline, the same surface Analyze is drawn on.
+            Everything below this is flat, exactly like every other tab.
 
-          {/* Center content */}
-          <div className="relative z-10 max-w-3xl w-full">
-            {/* Social proof sits above the headline, and it's a real verbatim
-                Discord line from a real user (the same one quoted in full
-                further down) — never an invented "trusted by N creators" count. */}
-            <HeroQuotes />
+            What used to be here: three drifting blurred blobs, a glow along
+            the bottom edge, a rotating quote pill, a marquee of four invented
+            widgets, and a haloed input. None of it existed in the product. */}
+        <header className="relative overflow-hidden">
+          <div className="absolute inset-0 grid-surface pointer-events-none" aria-hidden="true" />
+          {/* Fades the grid out into the flat page rather than cutting it at a
+              hard line across the screen. */}
+          <div
+            className="absolute inset-x-0 bottom-0 h-40 pointer-events-none"
+            style={{ background: 'linear-gradient(to bottom, transparent, var(--bg-app))' }}
+            aria-hidden="true"
+          />
 
-            {/* Never wraps: the break after "posting" split the line in a way
-                that read as a layout bug. The vw term is tuned so all 19
-                characters still fit at 360px wide. */}
-            <h1 className="animate-fade-in-up font-black text-white leading-[1.05] mb-5 whitespace-nowrap" style={{ fontSize: 'clamp(1.75rem, 8.2vw, 5rem)', letterSpacing: '-0.02em' }}>
-              Stop posting blind.
+          <div className={`relative ${SECTION} pt-16 sm:pt-28 pb-10 sm:pb-14`}>
+            <p className="label-mono mb-5 animate-fade-in">Shorts only</p>
+
+            {/* Bright line, then the same sentence continuing in the muted
+                weight. One headline doing the job the headline plus a
+                subheading used to split between them. */}
+            <h1
+              className="animate-fade-in-up font-semibold max-w-3xl"
+              style={{ fontSize: 'clamp(2.1rem, 1.2rem + 3.4vw, 3.9rem)', letterSpacing: '-0.035em', lineHeight: 1.05 }}
+            >
+              <span style={{ color: 'var(--text)' }}>Stop posting blind.</span>{' '}
+              <span style={{ color: 'var(--text-muted)' }}>Every short read against your own numbers.</span>
             </h1>
 
-            {/* Two sentences, explicit line break between them per the
-                site's copy rule — letting them wrap freely as one block
-                risked an arbitrary break mid-thought. */}
-            <p className="animate-fade-in-up delay-100 text-base sm:text-lg text-gray-500 leading-relaxed mb-8 max-w-md sm:max-w-xl mx-auto text-balance">
-              Your personal shorts producer.<br />
-              Steals what already works, rebuilds it for you, and analyzes your data to keep improving.
+            <p className="animate-fade-in-up delay-100 text-[15px] sm:text-base leading-relaxed mt-5 mb-8 max-w-lg" style={{ color: 'var(--text-muted)' }}>
+              Paste a link. Hershy watches the video, finds the seconds people left on, and tells you what to cut.
             </p>
 
-            {/* The paste field is the only hero CTA now — the button above it
-                was a second door to the same signup and split attention.
-                It carries no halo: a pulsing ring around the input was the
-                same AI-demo glow as the blobs, and the field is already the
-                only filled control on the screen. */}
-            <div className="animate-fade-in-up delay-200 flex flex-col items-center gap-3">
-              <div className="relative w-full max-w-xl">
-                <form
-                  onSubmit={handleHeroAnalyze}
-                  autoComplete="off"
-                  className="relative w-full flex items-center gap-2 rounded-2xl p-2.5"
-                  style={heroInputGlass}
+            {/* The only CTA above the fold, and it is the app's composer, not a
+                marketing input: same plate, same radius, same round send. */}
+            <form onSubmit={handleHeroAnalyze} autoComplete="off" className="animate-fade-in-up delay-200 max-w-xl">
+              <div className="flex items-center gap-2 pl-4 pr-2 py-2" style={composer}>
+                <input
+                  type="text"
+                  value={heroUrl}
+                  onChange={e => { setHeroUrl(e.target.value); if (heroError) setHeroError(''); }}
+                  placeholder="youtube.com/shorts/..."
+                  className="flex-1 min-w-0 py-1.5 text-[14px]"
+                  style={inputReset}
+                />
+                <button
+                  type="submit"
+                  aria-label="Analyze"
+                  className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 transition-opacity hover:opacity-90"
+                  style={{ background: 'var(--accent)' }}
                 >
-                  <input
-                    id="hero-url-input"
-                    type="text"
-                    value={heroUrl}
-                    onChange={e => { setHeroUrl(e.target.value); if (heroError) setHeroError(''); }}
-                    placeholder={wideField ? 'Paste a YouTube Shorts link (e.g. youtube.com/shorts/...)' : 'Paste a Shorts link'}
-                    aria-invalid={!!heroError}
-                    autoComplete="off"
-                    spellCheck={false}
-                    autoCorrect="off"
-                    autoCapitalize="off"
-                    className="flex-1 min-w-0 bg-transparent px-3.5 py-3 text-sm sm:text-base text-white placeholder-gray-500 outline-none scroll-mt-20"
-                  />
-                  <button
-                    type="submit"
-                    className="flex items-center gap-1.5 px-4 sm:px-6 py-3 text-white font-semibold rounded-xl text-sm sm:text-[15px] whitespace-nowrap hover:opacity-90 flex-shrink-0"
-                    style={{ background: 'var(--accent)', color: 'var(--on-accent)' }}
-                  >
-                    <Sparkles className="w-4 h-4" />
-                    Analyze
-                  </button>
-                </form>
+                  <ArrowUp className="w-4 h-4" style={{ color: 'var(--on-accent)' }} />
+                </button>
               </div>
-
-              {heroError
-                ? <p className="text-xs" style={{ color: '#F87171' }}>{heroError}</p>
-                : <p className="text-xs text-gray-600">20 free credits · no card required</p>}
-            </div>
+              <p className="label-mono mt-3" style={heroError ? { color: 'rgb(var(--danger-rgb))' } : undefined}>
+                {heroError || '20 free credits · no card'}
+              </p>
+            </form>
           </div>
 
-          {/* Ticker and cue travel as one block pinned to the bottom of the
-              hero. The cue alone on mt-auto sat on the last visible line but
-              tore a gap open above itself on tall phones; grouped, the slack
-              collects above the ticker and the cue stays a fixed step under
-              it, still inside the first screen. */}
-          <div className="relative z-10 w-full mt-auto pt-12 flex flex-col items-center">
-            <div className="w-full max-w-4xl min-[2200px]:max-w-6xl animate-fade-in delay-300">
-              <HeroTicker />
+          {/* The product, big, cropped by the fold. This is the whole first
+              impression: not a claim about the app, the app. */}
+          <div className={`relative ${SECTION} pb-16 sm:pb-24`}>
+            <div className="animate-fade-in-up delay-300">
+              <AppFrame />
             </div>
-
-            <button
-              onClick={() => scrollTo('tools')}
-              className="mt-8 flex flex-col items-center gap-1.5 text-xs text-gray-600 hover:text-gray-400 transition-colors animate-fade-in delay-500"
-            >
-              See how it works
-              <ChevronDown className="w-4 h-4 animate-float" />
-            </button>
           </div>
-          </section>
-        </div>
+        </header>
 
-        {/* ── 1. Tools: everything that exists, then the flagship up close ───── */}
-        <section id="tools" className="pt-8 sm:pt-14 pb-10 sm:pb-16 px-6 max-w-4xl mx-auto scroll-mt-20">
-          <RevealSection className="mb-8 sm:mb-12 max-w-2xl">
-            <p className="text-xs font-bold uppercase tracking-[0.2em] mb-3" style={{ color: 'var(--accent)' }}>The tools</p>
-            <h2 className="text-2xl sm:text-3xl font-bold text-white mb-3 text-balance leading-tight">
-              Four tools. Shorts and nothing else.
-            </h2>
-            {/* Two ideas, explicit line break between them per the site's
-                copy rule: the narrow-format reasoning, then the team-of-one
-                pitch Ivan asked to add here (not verbatim, but the same
-                point — the four tools below replace hired-out time, and do
-                it as one loop, not four separate subscriptions). */}
-            <p className="text-gray-500 text-sm sm:text-[15px] leading-relaxed">
-              No long-form. No podcasts. No everything-app.<br />
-              Four tools that replace a producer, hours of scrolling for ideas, and hours more staring at analytics, working together on every upload.
-            </p>
-          </RevealSection>
+        {/* ── Product ─────────────────────────────────────────────────────────
+            The hub's list, verbatim: same four rows, same numbering, same
+            hairlines. Signing up lands you on this screen again. */}
+        <section id="product" className={`${SECTION} py-16 sm:py-24 scroll-mt-16`}>
+          <Reveal>
+            <Head
+              eyebrow="The workspace"
+              title="Four surfaces, one balance."
+              sub="No long-form, no podcasts, no everything-app. They share one credit pool, so a week can go wherever the work goes."
+            />
+          </Reveal>
 
-          <ToolsGrid />
-        </section>
-
-        {/* ── 2. System: the real-data claim, then the loop it feeds ─────────── */}
-        <section id="system" className="pb-10 sm:pb-24 px-6 max-w-4xl mx-auto scroll-mt-20">
-          <RevealSection className="mb-8 sm:mb-12 max-w-2xl">
-            <p className="text-xs font-bold uppercase tracking-[0.2em] mb-3" style={{ color: 'var(--accent)' }}>The system</p>
-            <h2 className="text-2xl sm:text-3xl font-bold text-white mb-3 text-balance leading-tight">
-              It runs on your real numbers.
-            </h2>
-            <p className="text-gray-500 text-sm sm:text-[15px] leading-relaxed">
-              Connect your channel once and{' '}
-              <span className="text-white font-semibold">all your analytics</span> come with it. No screenshots, no copy-pasting numbers into a chat.
-            </p>
-          </RevealSection>
-
-          <SystemSteps />
-
-          {/* The loop only reads as a loop if something says the last step
-              returns to the second one — the grid above can't show that on
-              its own. */}
-          <RevealSection delay={systemSteps.length * 70}>
-            <div className="flex items-center justify-center gap-2 mt-6 sm:mt-8">
-              <Repeat className="w-3.5 h-3.5 flex-shrink-0" style={{ color: 'var(--accent)' }} />
-              <span className="text-xs sm:text-sm text-gray-500">Every upload makes the next one better.</span>
+          <Reveal delay={60}>
+            <div style={{ borderTop: '1px solid var(--line)' }}>
+              {surfaces.map(s => (
+                <div key={s.label} className="flex items-start gap-5 py-5" style={{ borderBottom: '1px solid var(--line)' }}>
+                  <span className="font-mono text-[11px] pt-1 w-6 flex-shrink-0 tabular-nums" style={{ color: 'var(--text-faint)' }}>
+                    {s.index}
+                  </span>
+                  <span className="pt-0.5 flex-shrink-0" style={{ color: 'var(--text-muted)' }}>{s.icon}</span>
+                  <span className="flex-1 min-w-0">
+                    <span className="block text-[15px] font-medium mb-1" style={{ color: 'var(--text)' }}>{s.label}</span>
+                    <span className="block text-[13px] leading-relaxed text-balance" style={{ color: 'var(--text-muted)' }}>{s.desc}</span>
+                  </span>
+                </div>
+              ))}
             </div>
-          </RevealSection>
+          </Reveal>
         </section>
 
-        {/* ── 3. Reviews ────────────────────────────────────────────────────── */}
-        <section id="reviews" className="pb-12 sm:pb-24 px-6 max-w-4xl mx-auto scroll-mt-20">
-          <RevealSection className="mb-8 sm:mb-12 max-w-xl">
-            <h2 className="text-xl sm:text-2xl font-bold text-white mb-2 text-balance">From the Discord</h2>
-            <p className="text-gray-500 text-sm leading-relaxed">
-              Not a wall of five-star reviews. Just what people said after using it.
-            </p>
-          </RevealSection>
-          <TestimonialsSection />
+        {/* ── Competitors ─────────────────────────────────────────────────── */}
+        <section className={`${SECTION} pb-16 sm:pb-24`}>
+          <Reveal>
+            <Head
+              eyebrow="Competitors"
+              title="Only what beat the channel it came from."
+              sub="Every recent short is measured against that channel's own median views per day. A big channel posting normally stays out."
+            />
+          </Reveal>
+          <Reveal delay={60}><CompetitorsFrame /></Reveal>
         </section>
 
-        {/* ── Pricing ───────────────────────────────────────────────────────── */}
-        <section id="pricing" className="pb-10 sm:pb-24 px-6 max-w-4xl mx-auto scroll-mt-20">
-          <RevealSection className="text-center mb-6">
-            <h2 className="text-xl sm:text-2xl font-bold text-white mb-2 text-balance">Simple pricing</h2>
-            <p className="text-gray-500 text-sm max-w-md mx-auto text-balance">
-              One shared credit balance, not four separate limits. Spend it on whatever this week's video actually needs.
-            </p>
-          </RevealSection>
-          {/* The free tier stated as its own row rather than a third card:
-              it's the contrast that makes the paid cards land, but giving it
-              equal card weight would sell it as a real option. Dashed border
-              + muted text reads as "the sample", not "the plan". The numbers
-              match CREDIT_LIMITS.free in supabase/functions/_shared/credits.ts
-              (20, one-time, never resets) and the Competitors gate really is
-              enforced server-side for free accounts. */}
-          <RevealSection className="mb-5 sm:mb-6">
-            {/* Stacks on phones instead of wrapping: as a single wrapping row
-                the separator dot ended up stranded at the end of a line. The
-                dots only exist in the one-line desktop layout. */}
-            <div
-              className="rounded-xl px-4 py-3 flex flex-col sm:flex-row items-center justify-center gap-x-2.5 gap-y-1 max-w-lg mx-auto"
-              style={{ background: 'rgba(255,255,255,0.02)', border: '1px dashed rgba(255,255,255,0.12)' }}
-            >
-              <span className="text-[13px] font-semibold text-gray-300">Free trial</span>
-              <span className="hidden sm:inline text-gray-700" aria-hidden="true">·</span>
-              <span className="text-[13px] text-gray-500">20 credits, one time</span>
-              <span className="hidden sm:inline text-gray-700" aria-hidden="true">·</span>
-              <span className="flex items-center gap-1.5 text-[13px] text-gray-500">
-                <Lock className="w-3 h-3 flex-shrink-0" />
-                no Competitors
-              </span>
-            </div>
-          </RevealSection>
+        {/* ── Analytics ───────────────────────────────────────────────────── */}
+        <section className={`${SECTION} pb-16 sm:pb-24`}>
+          <Reveal>
+            <Head
+              eyebrow="Analytics"
+              title="Your real curve, not a guess at it."
+              sub="Connect the channel once and every answer is written against the seconds your viewers actually left on."
+            />
+          </Reveal>
+          <Reveal delay={60}><AnalyticsFrame /></Reveal>
+        </section>
 
-          <RevealSection className="mb-8 sm:mb-12">
-            <BillingToggle interval={billingInterval} onChange={setBillingInterval} percentOff={proPercentOff} />
-          </RevealSection>
-          {/* Same 2-up grid at the same width as the Reviews cards, so the
-              two sections' card edges land on the same vertical lines. */}
-          <div className="grid sm:grid-cols-2 gap-4">
-            {pricingPlans.map((plan, i) => (
-              <RevealSection key={plan.name} delay={i * 80}>
-                <PricingCard plan={plan} interval={billingInterval} onSelect={() => setAuthModal('signup')} />
-              </RevealSection>
+        {/* ── Proof ───────────────────────────────────────────────────────── */}
+        <section className={`${SECTION} pb-16 sm:pb-24`}>
+          <Reveal>
+            <Head eyebrow="From the Discord" title="Not a wall of five stars." sub="Verbatim messages, one per surface, from people who were using it anyway." />
+          </Reveal>
+          <div className="grid sm:grid-cols-3 gap-3 sm:gap-4">
+            {testimonials.map((t, i) => (
+              <Reveal key={t.name} delay={i * 70}>
+                <div className="p-5 h-full flex flex-col" style={plate}>
+                  <p className="text-[13.5px] leading-relaxed flex-1" style={{ color: 'var(--text)' }}>&ldquo;{t.quote}&rdquo;</p>
+                  <div className="flex items-center gap-2 mt-4 pt-4" style={{ borderTop: '1px solid var(--line)' }}>
+                    <DiscordIcon className="w-3.5 h-3.5 flex-shrink-0" style={{ color: 'var(--text-faint)' }} />
+                    <span className="text-[12.5px]" style={{ color: 'var(--text-muted)' }}>{t.name}</span>
+                    <span className="label-mono ml-auto">{t.on}</span>
+                  </div>
+                </div>
+              </Reveal>
             ))}
           </div>
         </section>
 
-        {/* ── FAQ ───────────────────────────────────────────────────────────── */}
-        <section id="faq" className="pb-14 sm:pb-24 px-6 max-w-4xl mx-auto scroll-mt-20">
-          <RevealSection className="text-center mb-6 sm:mb-10">
-            <h2 className="text-xl sm:text-2xl font-bold text-white text-balance">Questions</h2>
-          </RevealSection>
-          <RevealSection>
-            <FAQSection />
-          </RevealSection>
+        {/* ── Pricing ─────────────────────────────────────────────────────── */}
+        <section id="pricing" className={`${SECTION} pb-16 sm:pb-24 scroll-mt-16`}>
+          <Reveal>
+            <div className="flex flex-wrap items-end justify-between gap-4 mb-8 sm:mb-10">
+              <div>
+                <p className="label-mono mb-4">Pricing</p>
+                <h2 className="display" style={{ color: 'var(--text)' }}>One balance, not four limits.</h2>
+              </div>
+              <BillingToggle interval={billingInterval} onChange={setBillingInterval} />
+            </div>
+          </Reveal>
+
+          <div className="grid sm:grid-cols-2 gap-3 sm:gap-4 mb-3 sm:mb-4">
+            {pricingPlans.map((plan, i) => (
+              <Reveal key={plan.name} delay={i * 70}>
+                <PricingCard plan={plan} interval={billingInterval} onSelect={() => setAuthModal('signup')} />
+              </Reveal>
+            ))}
+          </div>
+
+          {/* The free tier as a row, not a third card: it is the contrast that
+              makes the paid cards land, but equal card weight would sell it as
+              a real option. The numbers match CREDIT_LIMITS.free in
+              supabase/functions/_shared/credits.ts (20, one time, never
+              resets) and the Competitors gate really is enforced server-side
+              for free accounts. */}
+          <Reveal delay={140}>
+            <div
+              className="px-5 py-4 flex flex-col sm:flex-row sm:items-center gap-x-3 gap-y-1.5"
+              style={{ border: '1px dashed var(--line-strong)', borderRadius: 'var(--r-md)' }}
+            >
+              <span className="text-[13.5px] font-medium" style={{ color: 'var(--text)' }}>Free</span>
+              <span className="text-[13.5px]" style={{ color: 'var(--text-muted)' }}>20 credits, one time, no card</span>
+              <span className="label-mono sm:ml-auto">No Competitors</span>
+            </div>
+          </Reveal>
         </section>
 
-        {/* ── 6. Closing CTA, then Community ────────────────────────────────── */}
-        <section id="community" className="pb-14 sm:pb-24 px-6 max-w-4xl mx-auto scroll-mt-20">
-          {/* The page's second signup door. Anyone who read this far already
-              decided; making them scroll back to the hero field to act on it
-              is where that intent gets lost. Carries the hero field's accent
-              styling so it reads as the primary action on the screen, and the
-              Discord card below is deliberately left on plain glass so the
-              two don't compete. */}
-          <RevealSection className="mb-4">
-            <div className="rounded-2xl p-6 sm:p-8 text-center" style={heroInputGlass}>
-              <h2 className="text-xl sm:text-2xl font-bold text-white mb-2.5 text-balance">Start with your next short</h2>
-              <p className="text-gray-400 text-sm leading-relaxed max-w-md mx-auto mb-6">
-                Connect your channel, read the last video, and have the next one written before you film it.
-              </p>
-              <button
-                onClick={() => setAuthModal('signup')}
-                className="inline-flex items-center gap-2 px-6 py-3 text-white font-semibold rounded-xl text-sm sm:text-[15px] hover:opacity-90 transition-opacity"
-                style={{ background: 'var(--accent)', color: 'var(--on-accent)' }}
-              >
-                Get started for free
-                <ChevronRight className="w-4 h-4" />
-              </button>
-              <p className="text-xs text-gray-600 mt-3">20 free credits · no card required</p>
-            </div>
-          </RevealSection>
+        {/* ── FAQ ─────────────────────────────────────────────────────────── */}
+        <section id="faq" className={`${SECTION} pb-16 sm:pb-24 scroll-mt-16`}>
+          <Reveal><Head eyebrow="Questions" title="Before you sign up." /></Reveal>
+          <Reveal delay={60}><FAQSection /></Reveal>
+        </section>
 
-          <RevealSection>
-            <div className="rounded-2xl p-6 sm:p-8 text-center motion-card" style={glass}>
-              <h2 className="text-xl sm:text-2xl font-bold text-white mb-2.5 text-balance">Updates land here first</h2>
-              <p className="text-gray-500 text-sm leading-relaxed max-w-md mx-auto mb-6">
-                New tools land there before they ship, and bugs posted there get looked at first. Codes drop in now and then too.
+        {/* ── Close ───────────────────────────────────────────────────────── */}
+        <section className={`${SECTION} pb-16 sm:pb-24`}>
+          <Reveal>
+            <div className="p-8 sm:p-12" style={plate}>
+              <p className="label-mono mb-4">Start</p>
+              <h2 className="display max-w-lg mb-3" style={{ color: 'var(--text)' }}>Start with your next short.</h2>
+              <p className="text-[15px] leading-relaxed max-w-md mb-7" style={{ color: 'var(--text-muted)' }}>
+                Connect the channel, read the last video, and know what to change before you film the next one.
               </p>
-              <a
-                href="https://discord.com/invite/N8S6C95Ry2"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 px-5 py-2.5 text-white font-semibold rounded-xl text-sm hover:opacity-90 transition-opacity"
-                style={{ background: '#5865F2' }}
-              >
-                Join the Discord
-                <DiscordIcon className="w-4 h-4" />
+              <div className="flex flex-wrap items-center gap-3">
+                <button
+                  onClick={() => setAuthModal('signup')}
+                  className="inline-flex items-center gap-1.5 px-5 py-2.5 font-semibold rounded-[var(--r-sm)] text-[14px] transition-opacity hover:opacity-90"
+                  style={{ background: 'var(--accent)', color: 'var(--on-accent)' }}
+                >
+                  Get started
+                  <ChevronRight className="w-3.5 h-3.5" />
+                </button>
+                <a
+                  href="https://discord.com/invite/N8S6C95Ry2"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 px-4 py-2.5 text-[14px] transition-colors hover:text-[var(--text)]"
+                  style={{ color: 'var(--text-muted)' }}
+                >
+                  Join the Discord
+                  <ArrowUpRight className="w-3.5 h-3.5" />
+                </a>
+              </div>
+              <p className="label-mono mt-6">20 free credits · no card</p>
+            </div>
+          </Reveal>
+        </section>
+
+        {/* ── Footer ──────────────────────────────────────────────────────── */}
+        <footer style={{ borderTop: '1px solid var(--line)' }}>
+          <div className={`${SECTION} py-10 flex flex-col sm:flex-row sm:items-center gap-6`}>
+            <div className="flex items-center gap-2 font-black uppercase tracking-[0.14em] text-[13px]" style={{ color: 'var(--text-muted)' }}>
+              <img src="/hersh-mark.png" alt="" className="h-[12px] w-auto opacity-60" />
+              Hershy
+            </div>
+
+            <div className="flex flex-wrap items-center gap-x-5 gap-y-2 sm:ml-auto text-[13px]">
+              <a href="https://discord.com/invite/N8S6C95Ry2" target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 transition-colors hover:text-[var(--text)]" style={{ color: 'var(--text-muted)' }}>
+                <DiscordIcon className="w-3.5 h-3.5" />Discord
               </a>
+              <a href="https://x.com/reyzostyle" target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 transition-colors hover:text-[var(--text)]" style={{ color: 'var(--text-muted)' }}>
+                <Twitter className="w-3.5 h-3.5" />@reyzostyle
+              </a>
+              <a href="mailto:hershymedia@gmail.com" className="flex items-center gap-1.5 transition-colors hover:text-[var(--text)]" style={{ color: 'var(--text-muted)' }}>
+                <Mail className="w-3.5 h-3.5" />hershymedia@gmail.com
+              </a>
+              <a href="/privacy" className="transition-colors hover:text-[var(--text)]" style={{ color: 'var(--text-muted)' }}>Privacy</a>
+              <a href="/terms" className="transition-colors hover:text-[var(--text)]" style={{ color: 'var(--text-muted)' }}>Terms</a>
             </div>
-          </RevealSection>
-        </section>
-
-        {/* ── Footer ────────────────────────────────────────────────────────── */}
-        <footer className="px-6 py-8 text-center" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
-          <div className="flex flex-wrap items-center justify-center gap-x-5 gap-y-2 mb-4 text-xs">
-            <a href="https://discord.com/invite/N8S6C95Ry2" target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 text-gray-500 hover:text-white transition-colors">
-              <DiscordIcon className="w-3.5 h-3.5" />Discord
-            </a>
-            <a href="https://x.com/reyzostyle" target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 text-gray-500 hover:text-white transition-colors">
-              <Twitter className="w-3.5 h-3.5" />@reyzostyle
-            </a>
-            <a href="mailto:hershymedia@gmail.com" className="flex items-center gap-1.5 text-gray-500 hover:text-white transition-colors">
-              <Mail className="w-3.5 h-3.5" />hershymedia@gmail.com
-            </a>
           </div>
-          <div className="flex items-center justify-center gap-4 mb-3 text-xs">
-            <a href="/privacy" className="text-gray-500 hover:text-white transition-colors">Privacy Policy</a>
-            <span className="text-gray-700">·</span>
-            <a href="/terms" className="text-gray-500 hover:text-white transition-colors">Terms of Service</a>
+          <div className={`${SECTION} pb-10`}>
+            <p className="label-mono">© {new Date().getFullYear()} Hershy Media</p>
           </div>
-          <p className="text-xs text-gray-700">© {new Date().getFullYear()} Hershy Media. All rights reserved.</p>
         </footer>
       </div>
 

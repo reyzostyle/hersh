@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { Stars2OutlineIcon as Sparkles, HistoryOutlineIcon as History } from '@solar-icons/react';
+import { AddOutlineIcon as Plus, ArrowUpOutlineIcon as ArrowUp } from '@solar-icons/react';
 import { AppShell } from './AppShell';
 import { AnalysisProgressModal } from './AnalysisProgressModal';
 
@@ -16,46 +16,35 @@ import { AnalysisProgressModal } from './AnalysisProgressModal';
 // nothing to re-enter.
 const SPEED = 4;
 
-// A still of the analysis screen. The real one fetches history and credits on
-// mount, which needs an account; behind a blurred modal this reads the same
-// and asks nothing of a server.
+// A still of the Analyze screen. The real one fetches history and credits on
+// mount, which needs an account; behind a blurred modal this reads the same and
+// asks nothing of a server.
+//
+// It has to be a still of the CURRENT screen, not the one that used to be here.
+// This was still drawing the old Analysis page - a bold "Analysis" heading, a
+// History button and a URL field beside an Analyze button - none of which have
+// existed since Analyze became a conversation. Someone pasting a link on the
+// landing page got a two-second look at a product that is not the one they were
+// about to sign up for.
 function AnalysisScreenStill({ url }: { url: string }) {
   return (
-    <div className="max-w-3xl mx-auto px-4 sm:px-6 pt-4 sm:pt-6 pb-12 select-none pointer-events-none">
-      <div className="flex items-center justify-between gap-4 mb-6">
-        <div>
-          <h1 className="text-2xl font-bold text-white mb-1">Analysis</h1>
-          <p className="text-sm text-gray-500">Paste a YouTube URL or upload your video file</p>
-        </div>
-        <div
-          className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium text-gray-400"
-          style={{ background: 'rgba(255,255,255,0.06)' }}
-        >
-          <History className="w-4 h-4" /> History
-        </div>
-      </div>
+    <div className="h-full flex flex-col items-center justify-center px-5 select-none pointer-events-none">
+      <p className="label-mono mb-4">Analyze</p>
+      <h1 className="display mb-8 text-center" style={{ color: 'var(--text)' }}>What are we looking at?</h1>
 
-      <div
-        className="rounded-xl p-4 sm:p-5"
-        style={{
-          background: 'linear-gradient(rgba(255,255,255,0.04), rgba(255,255,255,0.04))',
-          border: '1px solid rgba(255,255,255,0.08)',
-        }}
-      >
-        <div className="flex items-center gap-3">
-          <div
-            className="flex-1 px-4 py-2.5 rounded-lg text-sm text-gray-300 truncate"
-            style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }}
-          >
-            {url}
-          </div>
-          <div
-            className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium text-white"
-            style={{ background: 'var(--accent)', color: 'var(--on-accent)' }}
-          >
-            <Sparkles className="w-4 h-4" /> Analyze
-          </div>
+      <div className="w-full max-w-2xl">
+        {/* The composer, with the pasted link already sitting in it. */}
+        <div
+          className="flex items-center gap-2 px-3 py-2.5"
+          style={{ background: 'var(--bg-raised)', border: '1px solid var(--line)', borderRadius: 'var(--r-lg)' }}
+        >
+          <Plus className="w-4 h-4 flex-shrink-0" style={{ color: 'var(--text-faint)' }} />
+          <span className="flex-1 min-w-0 text-[14px] truncate" style={{ color: 'var(--text)' }}>{url}</span>
+          <span className="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0" style={{ background: 'var(--accent)' }}>
+            <ArrowUp className="w-3.5 h-3.5" style={{ color: 'var(--on-accent)' }} />
+          </span>
         </div>
+        <p className="label-mono mt-2.5 text-center">5 credits a video, 3 a script, 2 a hook</p>
       </div>
     </div>
   );
@@ -80,7 +69,7 @@ export function HeroAnalysisGate({
 
   return (
     <div className="fixed inset-0 z-40">
-      <AppShell activeTab="video" onTabChange={() => {}}>
+      <AppShell activeTab="analyze" onTabChange={() => {}}>
         <AnalysisScreenStill url={url} />
       </AppShell>
 
