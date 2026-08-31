@@ -2,7 +2,13 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/png" href="/favicon.png" />
+    <!-- ?v= is a cache-buster, and it is not optional here. Every consumer of
+         this file - the browser's favicon store, Discord, Slack, X - caches it
+         by URL, so replacing the bytes at the same path changes nothing for
+         them: link previews kept showing the old navy icon for hours after the
+         new one was live. BUMP THIS NUMBER whenever public/favicon.png
+         changes, or the change is invisible everywhere it matters. -->
+    <link rel="icon" type="image/png" href="/favicon.png?v=2" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -13,8 +19,8 @@
     <meta property="og:description" content="A workspace for short-form creators. Send Hershy a link, a hook or a script and talk it through, keep the work in projects, and read every answer against your real YouTube retention curve." />
     <meta property="og:url" content="https://hershymedia.com" />
     <meta property="og:type" content="website" />
-    <meta property="og:image" content="https://hershymedia.com/favicon.png" />
-    <meta name="twitter:image" content="https://hershymedia.com/favicon.png" />
+    <meta property="og:image" content="https://hershymedia.com/favicon.png?v=2" />
+    <meta name="twitter:image" content="https://hershymedia.com/favicon.png?v=2" />
     <meta name="twitter:card" content="summary" />
     <meta name="twitter:title" content="Hershy - the shorts workspace" />
     <meta name="twitter:description" content="A workspace for short-form creators. Send Hershy a link, a hook or a script and talk it through, keep the work in projects, and read every answer against your real YouTube retention curve." />
