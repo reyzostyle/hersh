@@ -233,19 +233,45 @@ function AppContent() {
   const [offerOnboarding, setOfferOnboarding] = useState(false);
   const [onboardingOpen, setOnboardingOpen] = useState(false);
 
+  // Whether we actually know anything about this channel, which is a different
+  // question from whether onboarding ran.
+  //
+  // "Skip all" calls the same finish() as the last step, and finish() only
+  // writes the fields that are non-empty - so skipping stores
+  // onboarding_completed: true and nothing else. Those accounts were then done
+  // forever: the flag says onboarding happened, so they were never asked again,
+  // and the analyser had no niche to work from.
+  //
+  // Reading the profile instead of a "was it skipped" flag needs no new column,
+  // and it corrects itself: fill either field here or in Settings and the offer
+  // stops on its own.
+  const [profileEmpty, setProfileEmpty] = useState(false);
+
+  // Dismissing is remembered. This used to be state on a screen only reached by
+  // pasting a link on the landing page, so a session was the whole lifetime of
+  // the "no". It now applies to everyone who skipped, and a card that comes
+  // back after every analysis on every visit is nagging, not an offer.
+  const [offerDismissed, setOfferDismissed] = useState(
+    () => localStorage.getItem(OFFER_DISMISSED_KEY) === '1'
+  );
+  const dismissOffer = () => {
+    localStorage.setItem(OFFER_DISMISSED_KEY, '1');
+    setOfferDismissed(true);
+  };
+
   useEffect(() => {
-    if (!bypassOnboardingForPendingUrl) return;
+    if (!bypassOnboardingForPendingUrl && !profileEmpty) return;
     const onDone = () => setOfferOnboarding(true);
     window.addEventListener('hershy:analysis-done', onDone);
     return () => window.removeEventListener('hershy:analysis-done', onDone);
-  }, [bypassOnboardingForPendingUrl]);
+  }, [bypassOnboardingForPendingUrl, profileEmpty]);
 
   // Determine whether the logged-in user still needs onboarding.
   useEffect(() => {
     if (!user) { setNeedsOnboarding(null); return; }
     supabase
       .from('user_tokens')
-      .select('onboarding_completed')
+      .select('onboarding_completed, channel_niche, channel_description')
       .eq('user_id', user.id)
       .maybeSingle()
       .then(({ data, error }) => {
@@ -253,6 +279,9 @@ function AppContent() {
         // user in onboarding — only a real "no row / not completed" does.
         if (error) { setNeedsOnboarding(false); return; }
         setNeedsOnboarding(!data?.onboarding_completed);
+        // The two fields every analysis prompt reads. Level and goal are not
+        // counted: an account carrying only those still gets a cold read.
+        setProfileEmpty(!data?.channel_niche?.trim() && !data?.channel_description?.trim());
       });
   }, [user?.id]);
 
@@ -325,22 +354,30 @@ function AppContent() {
               setNeedsOnboarding(false);
               setOnboardingOpen(false);
               setOfferOnboarding(false);
+              // Whatever they answered, stop offering. Answering nothing a
+              // second time is an answer too.
+              setProfileEmpty(false);
             }}
           />
         </div>
       )}
 
-      {/* Only worth asking while the profile is still empty, and only once: a
-          prompt that comes back after every analysis is nagging, not an offer. */}
-      {offerOnboarding && needsOnboarding && !onboardingOpen && (
+      {/* Gated on the profile being empty rather than on onboarding never
+          having run: someone who pressed "Skip all" has onboarding_completed
+          set and no profile, and they are exactly who this is for. */}
+      {offerOnboarding && profileEmpty && !offerDismissed && !onboardingOpen && (
         <OnboardingOffer
           onAccept={() => setOnboardingOpen(true)}
-          onDismiss={() => setOfferOnboarding(false)}
+          onDismiss={dismissOffer}
         />
       )}
     </>
   );
 }
+
+// Remembers a "not now" on the profile offer, so it is asked at most once per
+// device rather than after every analysis.
+const OFFER_DISMISSED_KEY = 'hershy_onboarding_offer_dismissed';
 
 // How long a click stays attributed to the partner who sent it.
 const REF_TTL_DAYS = 60;
