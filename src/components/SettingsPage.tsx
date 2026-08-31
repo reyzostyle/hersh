@@ -98,6 +98,7 @@ export function SettingsPage() {
   // Channel context state
   const [channelNiche, setChannelNiche] = useState('');
   const [channelDescription, setChannelDescription] = useState('');
+  const [targetAudience, setTargetAudience] = useState('');
   const [creatorLevel, setCreatorLevel] = useState('intermediate');
   const [loading, setLoading] = useState(true);
   const [contextSaving, setContextSaving] = useState(false);
@@ -172,7 +173,7 @@ export function SettingsPage() {
       try {
         const { data } = await supabase
           .from('user_tokens')
-          .select('updated_at, access_token, plan, youtube_channel_name, youtube_channel_thumbnail, channel_niche, channel_description, creator_level')
+          .select('updated_at, access_token, plan, youtube_channel_name, youtube_channel_thumbnail, channel_niche, channel_description, target_audience, creator_level')
           .eq('user_id', user.id)
           .maybeSingle();
         if (cancelled) return;
@@ -190,6 +191,7 @@ export function SettingsPage() {
         try { localStorage.setItem(PLAN_CACHE_KEY, nextPlan); } catch { /* private mode */ }
         setChannelNiche(data?.channel_niche || '');
         setChannelDescription(data?.channel_description || '');
+        setTargetAudience(data?.target_audience || '');
         setCreatorLevel(data?.creator_level || 'intermediate');
       } catch {
         if (!cancelled) {
@@ -246,12 +248,12 @@ export function SettingsPage() {
     if (existing) {
       ({ error: err } = await supabase
         .from('user_tokens')
-        .update({ channel_niche: channelNiche, channel_description: channelDescription, creator_level: creatorLevel })
+        .update({ channel_niche: channelNiche, channel_description: channelDescription, target_audience: targetAudience, creator_level: creatorLevel })
         .eq('user_id', user?.id));
     } else {
       ({ error: err } = await supabase
         .from('user_tokens')
-        .insert({ user_id: user?.id, channel_niche: channelNiche, channel_description: channelDescription, creator_level: creatorLevel, access_token: '', refresh_token: '' }));
+        .insert({ user_id: user?.id, channel_niche: channelNiche, channel_description: channelDescription, target_audience: targetAudience, creator_level: creatorLevel, access_token: '', refresh_token: '' }));
     }
     setContextSaving(false);
     if (err) {
@@ -355,8 +357,30 @@ export function SettingsPage() {
               <textarea
                 value={channelDescription}
                 onChange={e => setChannelDescription(e.target.value)}
-                placeholder="Describe your content style, tone, and target audience."
+                placeholder="What's your channel about? Content style, format, tone."
                 rows={3}
+                className="glass-field w-full px-4 py-3 rounded-lg text-white placeholder-gray-600 text-sm focus:outline-none resize-none leading-relaxed transition-colors"
+                style={glassInput}
+                onFocus={e => { e.currentTarget.style.borderColor = 'var(--accent)'; }}
+                onBlur={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)'; }}
+              />
+            </div>
+
+            {/* Onboarding has asked for this since it was written and saved it
+                to target_audience, but this screen had no field for it, so the
+                second thing anyone typed on that step went into the database
+                and was never seen again. It is not decoration either: it goes
+                into the prompt in generate-outline and enrich-competitor-video.
+
+                The description's placeholder used to say "and target audience",
+                which is why one field looked like it covered both. */}
+            <div>
+              <FieldLabel>Target audience</FieldLabel>
+              <textarea
+                value={targetAudience}
+                onChange={e => setTargetAudience(e.target.value)}
+                placeholder="Who are you making it for?"
+                rows={2}
                 className="glass-field w-full px-4 py-3 rounded-lg text-white placeholder-gray-600 text-sm focus:outline-none resize-none leading-relaxed transition-colors"
                 style={glassInput}
                 onFocus={e => { e.currentTarget.style.borderColor = 'var(--accent)'; }}
