@@ -1,21 +1,24 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
+import {
+  CopyOutlineIcon as Copy, UsersGroupRoundedOutlineIcon as Users,
+  GraphUpOutlineIcon as TrendingUp, DollarOutlineIcon as DollarSign,
+  RefreshOutlineIcon as Loader2, ClockCircleOutlineIcon as Clock,
+  WalletOutlineIcon as Wallet, LinkOutlineIcon as Link,
+} from '@solar-icons/react';
+import { Check } from './BrandIcons';
 import { useAuth } from '../contexts/AuthContext';
 import { getSessionToken, fetchWithRetry } from '../lib/supabase';
-import { CopyOutlineIcon as Copy, UsersGroupRoundedOutlineIcon as Users, GraphUpOutlineIcon as TrendingUp, DollarOutlineIcon as DollarSign, RefreshOutlineIcon as Loader2, AddOutlineIcon as Plus, RefreshOutlineIcon as RefreshCw, TrashBinMinimalisticOutlineIcon as Trash2, LinkOutlineIcon as Link, HandShakeOutlineIcon as Handshake, ClockCircleOutlineIcon as Clock, WalletOutlineIcon as Wallet } from '@solar-icons/react';
-import { Check } from './BrandIcons';
-import { PageHead } from './Page';
+import { Page, PageHead, Panel, Section, Loading } from './Page';
+import { ErrorNotice } from './ErrorNotice';
 
-const ADMIN_EMAIL = 'reyzostyle@gmail.com';
+const FN_BASE = 'https://ezlousklksipvwuinpzq.supabase.co/functions/v1';
 
-// No backdrop-filter: blur over the static app background caused Chromium
-// ghost bands on sibling repaints; the blue underlay replaces its tint.
-const glassCard: React.CSSProperties = {
-  background:
-    'linear-gradient(rgba(255,255,255,0.04), rgba(255,255,255,0.04)), linear-gradient(180deg, rgba(var(--glass-tint-rgb),0.05), rgba(var(--glass-tint-rgb),0.03))',
-  border: '1px solid rgba(255,255,255,0.08)',
-};
+// Live figures without a reload. Same interval and the same reasoning as the
+// Analytics tab: a page about money that only updates when you remember to
+// refresh it is a page you do not trust.
+const REFRESH_MS = 45_000;
 
-interface PartnerStats {
+export interface PartnerStats {
   id: string;
   code: string;
   partner_name: string;
@@ -36,82 +39,22 @@ interface PartnerStats {
   payout_in_credits?: boolean;
 }
 
-const FN_BASE = 'https://ezlousklksipvwuinpzq.supabase.co/functions/v1';
+export const money = (cents?: number) => `$${((cents ?? 0) / 100).toFixed(2)}`;
 
+// Affiliate looks the same for every account, the admin's included. Managing
+// other people's partner codes is a different job on a different screen
+// (PartnersAdminPage), reached by a code in Settings.
 export function PartnersPage() {
   const { user } = useAuth();
-  const isAdmin = user?.email === ADMIN_EMAIL;
-  // The admin account was routed straight to the partner-management list, so
-  // the one person who needs to review the affiliate page could never see it.
-  const [asPartner, setAsPartner] = useState(false);
-  const showAdmin = isAdmin && !asPartner;
-
-  return (
-    <div className="sheet min-h-full max-w-4xl mx-auto px-5 sm:px-8 pt-12 sm:pt-16 pb-20 animate-fade-in-up">
-        <div className="hidden lg:block">
-          <PageHead
-            eyebrow="Affiliate"
-            title={showAdmin ? 'Affiliate partners' : 'Your affiliate link'}
-            subtitle={showAdmin ? 'Manage referral partners and track conversions.' : 'Your referral stats and your link.'}
-          />
-        </div>
-
-        {isAdmin && (
-          <button
-            onClick={() => setAsPartner(v => !v)}
-            className="mb-6 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors"
-            style={{ background: 'var(--bg-raised)', border: '1px solid var(--line)', color: 'var(--text-muted)' }}
-          >
-            {asPartner ? 'Back to partner list' : 'View as a partner'}
-          </button>
-        )}
-
-        {showAdmin ? <AdminView /> : <PartnerView userId={user?.id} />}
-    </div>
-  );
+  return <PartnerSide userId={user?.id} />;
 }
 
-function StatCard({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
-  return (
-    <div className="rounded-xl p-3 sm:p-4 flex flex-col gap-2" style={glassCard}>
-      <div className="w-6 h-6 rounded-md flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(255,255,255,0.06)' }}>
-        <span className="text-gray-400 [&>svg]:w-3.5 [&>svg]:h-3.5">{icon}</span>
-      </div>
-      <div>
-        <p className="text-[10px] font-medium uppercase tracking-wide text-gray-500 mb-0.5">{label}</p>
-        <p className="text-xl sm:text-2xl font-bold text-white">{value}</p>
-      </div>
-    </div>
-  );
-}
-
-function CopyButton({ text }: { text: string }) {
-  const [copied, setCopied] = useState(false);
-  const copy = () => {
-    navigator.clipboard.writeText(text);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
-  return (
-    <button onClick={copy} className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-white rounded-lg hover:opacity-90 transition-opacity" style={{ background: 'var(--accent)', color: 'var(--on-accent)' }}>
-      {copied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
-      {copied ? 'Copied!' : 'Copy'}
-    </button>
-  );
-}
-
-// ── Partner view ────────────────────────────────────────────────────────────
-function PartnerView({ userId }: { userId?: string }) {
+function PartnerSide({ userId }: { userId?: string }) {
   const [stats, setStats] = useState<PartnerStats | null>(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
+  const load = useCallback(async () => {
     if (!userId) return;
-    loadStats();
-  }, [userId]);
-
-  const loadStats = async () => {
-    setLoading(true);
     try {
       const token = await getSessionToken();
       if (!token) return;
@@ -119,81 +62,247 @@ function PartnerView({ userId }: { userId?: string }) {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (!res.ok) { setStats(null); return; }
-      const data = await res.json();
-      setStats(data.partner || null);
+      setStats((await res.json()).partner || null);
     } finally {
       setLoading(false);
     }
-  };
+  }, [userId]);
 
-  if (loading) return <div className="flex items-center justify-center h-32"><Loader2 className="w-5 h-5 text-[var(--accent)] animate-spin" /></div>;
+  useEffect(() => {
+    load();
+    const t = setInterval(load, REFRESH_MS);
+    return () => clearInterval(t);
+  }, [load]);
 
-  if (!stats) return <ClaimLink onClaimed={loadStats} />;
+  if (loading) {
+    return (
+      <Page>
+        <Loading />
+      </Page>
+    );
+  }
 
-  // Built from the current origin so the link keeps working after a domain move.
-  const refLink = `${window.location.origin}?ref=${stats.code}`;
-  const money = (cents?: number) => `$${((cents ?? 0) / 100).toFixed(2)}`;
+  return stats
+    ? <Dashboard stats={stats} onChanged={load} />
+    : <Pitch onClaimed={load} />;
+}
+
+// ─── Screen one: the pitch ───────────────────────────────────────────────────
+// Someone without a link has not decided yet, so this page argues for the
+// programme before it asks for anything. It used to be a single small card that
+// went straight to "pick a name", which asks for a commitment from a reader who
+// has not been told what they get.
+
+const STEPS = [
+  { n: '01', t: 'Take your link', d: 'Pick the name that goes in it. Yours in one click, no application to fill in.' },
+  { n: '02', t: 'Share it', d: 'In a video description, a newsletter, a pinned comment. Anywhere your audience already is.' },
+  { n: '03', t: 'They sign up and subscribe', d: 'They get 20 credits free first, so nobody has to gamble on a card to try it.' },
+  { n: '04', t: 'You get paid every month', d: 'Not once. Every month they stay, for their first twelve.' },
+];
+
+const BLURB = `I use Hershy to work out why my shorts land or don't. It watches the video and tells you what to fix, and it pulls the shorts already beating their own channel so you have something proven to build on. 20 free credits, no card: `;
+
+function Pitch({ onClaimed }: { onClaimed: () => void }) {
+  const [copied, setCopied] = useState(false);
 
   return (
-    <div className="space-y-6">
-      <div className="rounded-xl p-5" style={glassCard}>
-        <h2 className="text-sm font-medium text-gray-400 mb-3 uppercase tracking-wide">Your referral link</h2>
-        <div className="flex items-center gap-3">
-          <div className="flex-1 px-4 py-2.5 rounded-lg text-sm text-gray-300 font-mono truncate" style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }}>
-            {refLink}
-          </div>
-          <CopyButton text={refLink} />
+    <Page className="animate-tab-in">
+      <PageHead
+        eyebrow="Affiliate"
+        title="Earn 30% of everyone you bring"
+        subtitle="Share your link. When someone subscribes through it, you keep 30% of everything they pay for their first twelve months."
+      />
+
+      <Section label="How it works" className="mt-0">
+        <div style={{ borderTop: '1px solid var(--line)' }}>
+          {STEPS.map(s => (
+            <div key={s.n} className="flex items-start gap-5 py-4" style={{ borderBottom: '1px solid var(--line)' }}>
+              <span className="font-mono text-[11px] pt-1 w-6 flex-shrink-0 tabular-nums" style={{ color: 'var(--text-faint)' }}>
+                {s.n}
+              </span>
+              <div className="min-w-0">
+                <p className="text-[15px] font-medium mb-1" style={{ color: 'var(--text)' }}>{s.t}</p>
+                <p className="text-[13px] leading-relaxed text-balance" style={{ color: 'var(--text-muted)' }}>{s.d}</p>
+              </div>
+            </div>
+          ))}
         </div>
-        <p className="mt-2 text-xs text-gray-600">
-          {stats.commission_percent}% of what your referrals pay, every month, for their first 12 months.
+      </Section>
+
+      <Section
+        label="What your audience gets"
+        note="Twenty credits, no card asked for. Which means you are recommending something they can try, not something they have to buy first."
+      >
+        <Panel>
+          <p className="label-mono mb-3">Copy this into a description</p>
+          <p className="text-[13px] leading-relaxed" style={{ color: 'var(--text)' }}>
+            {BLURB}<span className="font-mono" style={{ color: 'var(--text-muted)' }}>hershymedia.com/?ref=yourname</span>
+          </p>
+          <button
+            onClick={() => {
+              navigator.clipboard.writeText(`${BLURB}hershymedia.com/?ref=yourname`);
+              setCopied(true);
+              setTimeout(() => setCopied(false), 2000);
+            }}
+            className="chip mt-4"
+          >
+            {copied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+            {copied ? 'Copied' : 'Copy'}
+          </button>
+        </Panel>
+      </Section>
+
+      <Section label="Your link looks like">
+        <p className="font-mono text-[15px]" style={{ color: 'var(--text)' }}>
+          hershymedia.com/?ref=<span style={{ color: 'var(--text-faint)' }}>yourname</span>
         </p>
-      </div>
+      </Section>
 
-      <div className="grid grid-cols-3 gap-2 sm:gap-4">
-        <StatCard icon={<Users className="w-4 h-4" />} label="Signups" value={String(stats.signups)} />
-        <StatCard icon={<TrendingUp className="w-4 h-4" />} label="Conversions" value={String(stats.conversions)} />
-        <StatCard icon={<DollarSign className="w-4 h-4" />} label="Earned" value={money(stats.total_commission_cents)} />
-      </div>
+      <Section label="The terms">
+        {/* Plain and small. The hold and the minimum are not hidden - they are
+            the second and third lines - but they are not in a warning box
+            either, because they are ordinary terms and framing them as risks
+            would be its own kind of dishonesty. */}
+        <ul className="space-y-2 text-[13px] leading-relaxed" style={{ color: 'var(--text-muted)' }}>
+          <li>30% of net revenue for twelve months from each subscriber you bring.</li>
+          <li>Earnings settle 30 days after the payment they came from, which is what covers refunds.</li>
+          <li>Withdraw from $10, by PayPal. Or take it in credits, worth double the cash.</li>
+          <li>Refunds and chargebacks are not counted.</li>
+          <li>Referring yourself, coupon sites and ads on our brand terms are not eligible.</li>
+        </ul>
+      </Section>
 
-      <Balance stats={stats} money={money} />
-      <PayoutSettings stats={stats} onSaved={loadStats} />
+      <Section label="Get your link">
+        <ClaimLink onClaimed={onClaimed} />
+      </Section>
+    </Page>
+  );
+}
+
+// Anyone signed in can take a link, so the programme is self-serve rather than
+// something you have to ask us for.
+function ClaimLink({ onClaimed }: { onClaimed: () => void }) {
+  const [code, setCode] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+
+  const claim = async () => {
+    if (!code.trim()) return;
+    setBusy(true);
+    setError('');
+    try {
+      const token = await getSessionToken();
+      if (!token) return;
+      const res = await fetchWithRetry(`${FN_BASE}/referral-stats`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code: code.trim(), self_serve: true }),
+      });
+      const data = await res.json();
+      if (!res.ok) { setError(data.error || 'Could not create that link'); return; }
+      onClaimed();
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div>
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+        <div className="flex items-center flex-1 rounded-[var(--r-sm)] overflow-hidden"
+             style={{ background: 'var(--bg-raised)', border: '1px solid var(--line)' }}>
+          <span className="pl-3 pr-1 text-sm font-mono whitespace-nowrap" style={{ color: 'var(--text-faint)' }}>?ref=</span>
+          <input
+            value={code}
+            onChange={e => setCode(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && claim()}
+            placeholder="yourname"
+            className="flex-1 bg-transparent py-2.5 pr-4 text-sm font-mono outline-none min-w-0"
+            style={{ color: 'var(--text)' }}
+          />
+        </div>
+        <button
+          onClick={claim}
+          disabled={busy || !code.trim()}
+          className="btn-primary px-5 py-2.5 text-sm font-medium rounded-[var(--r-sm)] disabled:opacity-40 whitespace-nowrap"
+        >
+          {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Get my link'}
+        </button>
+      </div>
+      {error && <p className="mt-3 text-[13px]" style={{ color: 'rgb(var(--danger-rgb))' }}>{error}</p>}
+      <p className="mt-3 text-[12px]" style={{ color: 'var(--text-faint)' }}>
+        3 to 24 characters, letters, numbers, dashes. One link per account, and it cannot be changed later.
+      </p>
     </div>
   );
 }
 
-// Splits earnings into what can be withdrawn now and what is still settling,
-// so the number on screen is one a partner can act on.
-function Balance({ stats, money }: { stats: PartnerStats; money: (c?: number) => string }) {
-  const min = money(stats.min_payout_cents ?? 1000);
+// ─── Screen two: the dashboard ───────────────────────────────────────────────
+
+function Dashboard({ stats, onChanged }: { stats: PartnerStats; onChanged: () => void }) {
+  // Built from the current origin so the link keeps working after a domain move.
+  const refLink = `${window.location.origin}?ref=${stats.code}`;
+  const [copied, setCopied] = useState(false);
+
   return (
-    <div className="rounded-xl p-5" style={glassCard}>
-      <h2 className="text-sm font-medium text-gray-400 mb-4 uppercase tracking-wide">Balance</h2>
-      <div className="flex flex-wrap gap-6">
-        <div>
-          <div className="flex items-center gap-1.5 mb-1">
-            <Wallet className="w-3.5 h-3.5 text-emerald-400" />
-            <p className="text-[10px] font-medium uppercase tracking-wide text-gray-500">Available</p>
-          </div>
-          <p className="text-2xl font-bold text-emerald-400">{money(stats.available_cents)}</p>
+    <Page className="animate-tab-in">
+      <PageHead
+        eyebrow="Affiliate"
+        title="Your affiliate link"
+        subtitle={`${stats.commission_percent}% of what your referrals pay, every month, for their first twelve.`}
+      />
+
+      <Panel className="flex items-center gap-3">
+        <Link className="w-4 h-4 flex-shrink-0" style={{ color: 'var(--text-faint)' }} />
+        <p className="flex-1 min-w-0 font-mono text-[13px] truncate" style={{ color: 'var(--text)' }}>{refLink}</p>
+        <button
+          onClick={() => { navigator.clipboard.writeText(refLink); setCopied(true); setTimeout(() => setCopied(false), 2000); }}
+          className="btn-primary flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-[var(--r-sm)] flex-shrink-0"
+        >
+          {copied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+          {copied ? 'Copied' : 'Copy'}
+        </button>
+      </Panel>
+
+      <Section label="Balance" className="mt-10">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+          <Figure icon={<Wallet className="w-4 h-4" />} label="Available" value={money(stats.available_cents)} accent />
+          <Figure icon={<Clock className="w-4 h-4" />} label="Settling" value={money(stats.pending_cents)} />
+          <Figure icon={<DollarSign className="w-4 h-4" />} label="Earned" value={money(stats.total_commission_cents)} />
+          <Figure icon={<Check className="w-4 h-4" />} label="Paid out" value={money(stats.paid_out_cents)} />
         </div>
-        <div>
-          <div className="flex items-center gap-1.5 mb-1">
-            <Clock className="w-3.5 h-3.5 text-gray-500" />
-            <p className="text-[10px] font-medium uppercase tracking-wide text-gray-500">Settling</p>
-          </div>
-          <p className="text-2xl font-bold text-gray-400">{money(stats.pending_cents)}</p>
+        <p className="mt-4 text-[12px] text-balance" style={{ color: 'var(--text-faint)' }}>
+          Earnings settle 30 days after the payment they came from, which covers refunds.
+          Once settled you can withdraw from {money(stats.min_payout_cents ?? 1000)}, by PayPal.
+        </p>
+      </Section>
+
+      <Section label="Traffic">
+        <div className="grid grid-cols-2 gap-2.5">
+          <Figure icon={<Users className="w-4 h-4" />} label="Signups" value={String(stats.signups)} />
+          <Figure icon={<TrendingUp className="w-4 h-4" />} label="Conversions" value={String(stats.conversions)} />
         </div>
-        {(stats.paid_out_cents ?? 0) > 0 && (
-          <div>
-            <p className="text-[10px] font-medium uppercase tracking-wide text-gray-500 mb-1 mt-[18px]">Paid out</p>
-            <p className="text-2xl font-bold text-gray-400">{money(stats.paid_out_cents)}</p>
-          </div>
-        )}
-      </div>
-      <p className="mt-4 text-xs text-gray-600 text-balance">
-        Earnings settle 30 days after the payment they came from, which covers refunds. Once settled you can withdraw from {min}, by PayPal.
+      </Section>
+
+      <Section label="Getting paid">
+        <PayoutSettings stats={stats} onSaved={onChanged} />
+      </Section>
+    </Page>
+  );
+}
+
+function Figure({ icon, label, value, accent }: {
+  icon: React.ReactNode; label: string; value: string; accent?: boolean;
+}) {
+  return (
+    <Panel className="min-w-0">
+      <span className="[&>svg]:w-4 [&>svg]:h-4" style={{ color: accent ? 'var(--process)' : 'var(--text-faint)' }}>{icon}</span>
+      <p className="label-mono mt-2 mb-1">{label}</p>
+      <p className="text-[22px] leading-none font-semibold tracking-tight tabular-nums truncate"
+         style={{ color: accent ? 'var(--process)' : 'var(--text)' }}>
+        {value}
       </p>
-    </div>
+    </Panel>
   );
 }
 
@@ -228,22 +337,19 @@ function PayoutSettings({ stats, onSaved }: { stats: PartnerStats; onSaved: () =
   };
 
   return (
-    <div className="rounded-xl p-5" style={glassCard}>
-      <h2 className="text-sm font-medium text-gray-400 mb-4 uppercase tracking-wide">Getting paid</h2>
-
+    <div>
       <div className="flex flex-col sm:flex-row gap-3">
         <input
           value={details}
           onChange={e => setDetails(e.target.value)}
           placeholder="Your PayPal email"
-          className="flex-1 px-4 py-2.5 rounded-lg text-sm text-gray-200 placeholder:text-gray-600"
-          style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }}
+          className="flex-1 px-4 py-2.5 rounded-[var(--r-sm)] text-sm focus:outline-none"
+          style={{ background: 'var(--bg-raised)', border: '1px solid var(--line)', color: 'var(--text)' }}
         />
         <button
           onClick={save}
           disabled={saving}
-          className="px-4 py-2.5 text-sm font-medium text-white rounded-lg hover:opacity-90 transition-opacity disabled:opacity-50"
-          style={{ background: 'var(--accent)', color: 'var(--on-accent)' }}
+          className="btn-primary px-4 py-2.5 text-sm font-medium rounded-[var(--r-sm)] disabled:opacity-40"
         >
           {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : saved ? <Check className="w-4 h-4" /> : 'Save'}
         </button>
@@ -256,315 +362,12 @@ function PayoutSettings({ stats, onSaved }: { stats: PartnerStats; onSaved: () =
           onChange={e => setInCredits(e.target.checked)}
           className="mt-0.5 accent-[var(--accent)]"
         />
-        <span className="text-xs text-gray-500 text-balance">
+        <span className="text-[12px] text-balance" style={{ color: 'var(--text-muted)' }}>
           Pay me in credits instead, worth double the cash amount.
         </span>
       </label>
 
-      {error && <p className="mt-3 text-xs text-red-400">{error}</p>}
-    </div>
-  );
-}
-
-// Anyone signed in can take a link, so the program is self-serve rather than
-// something you have to ask us for.
-function ClaimLink({ onClaimed }: { onClaimed: () => void }) {
-  const [code, setCode] = useState('');
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState('');
-
-  const claim = async () => {
-    if (!code.trim()) return;
-    setBusy(true);
-    setError('');
-    try {
-      const token = await getSessionToken();
-      if (!token) return;
-      const res = await fetchWithRetry(`${FN_BASE}/referral-stats`, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code: code.trim(), self_serve: true }),
-      });
-      const data = await res.json();
-      if (!res.ok) { setError(data.error || 'Could not create that link'); return; }
-      onClaimed();
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  return (
-    <div className="rounded-xl p-6 sm:p-8" style={glassCard}>
-      <Handshake className="w-9 h-9 text-gray-600 mb-4" />
-      <h2 className="text-white font-semibold text-lg mb-2">Earn 30% of every subscriber you send</h2>
-      <p className="text-sm text-gray-500 max-w-lg text-balance">
-        Share your link with your audience. When someone subscribes through it, you earn 30% of
-        everything they pay for their first 12 months. Pick the name you want in the link.
-      </p>
-
-      <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 mt-5">
-        <div className="flex items-center flex-1 rounded-lg overflow-hidden" style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }}>
-          <span className="pl-3 pr-1 text-sm text-gray-600 font-mono whitespace-nowrap">?ref=</span>
-          <input
-            value={code}
-            onChange={e => setCode(e.target.value)}
-            onKeyDown={e => e.key === 'Enter' && claim()}
-            placeholder="yourname"
-            className="flex-1 bg-transparent py-2.5 pr-4 text-sm text-gray-200 font-mono placeholder:text-gray-600 outline-none min-w-0"
-          />
-        </div>
-        <button
-          onClick={claim}
-          disabled={busy || !code.trim()}
-          className="px-5 py-2.5 text-sm font-medium text-white rounded-lg hover:opacity-90 transition-opacity disabled:opacity-40 whitespace-nowrap"
-          style={{ background: 'var(--accent)', color: 'var(--on-accent)' }}
-        >
-          {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Get my link'}
-        </button>
-      </div>
-
-      {error && <p className="mt-3 text-xs text-red-400">{error}</p>}
-
-      <p className="mt-4 text-xs text-gray-600 text-balance">
-        Earnings settle 30 days after each payment and you can withdraw from $10. Self-referrals and
-        ads on our brand terms are not eligible.
-      </p>
-    </div>
-  );
-}
-
-// ── Admin view ───────────────────────────────────────────────────────────────
-function AdminView() {
-  const [partners, setPartners] = useState<PartnerStats[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [creating, setCreating] = useState(false);
-  const [showForm, setShowForm] = useState(false);
-  const [newCode, setNewCode] = useState('');
-  const [newName, setNewName] = useState('');
-  const [newEmail, setNewEmail] = useState('');
-  // assign email to existing partner
-  const [assigningCode, setAssigningCode] = useState<string | null>(null);
-  const [assignEmail, setAssignEmail] = useState('');
-  const [assignLoading, setAssignLoading] = useState(false);
-
-  useEffect(() => { loadAll(); }, []);
-
-  const loadAll = async () => {
-    setLoading(true);
-    try {
-      const token = await getSessionToken();
-      if (!token) return;
-      const res = await fetchWithRetry(`https://ezlousklksipvwuinpzq.supabase.co/functions/v1/referral-stats`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const data = await res.json();
-      setPartners(data.partners || []);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const createPartner = async () => {
-    if (!newCode.trim() || !newName.trim()) return;
-    setCreating(true);
-    try {
-      const token = await getSessionToken();
-      const res = await fetchWithRetry(`https://ezlousklksipvwuinpzq.supabase.co/functions/v1/referral-stats`, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code: newCode.trim().toLowerCase(), partner_name: newName.trim(), owner_email: newEmail.trim() || undefined }),
-        signal: AbortSignal.timeout(15000),
-      });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        alert(err.error || 'Failed to create partner');
-        return;
-      }
-      setNewCode(''); setNewName(''); setNewEmail('');
-      setShowForm(false);
-      loadAll();
-    } catch {
-      alert('Request failed or timed out. Check that the edge function is deployed.');
-    } finally {
-      setCreating(false);
-    }
-  };
-
-  const deletePartner = async (code: string) => {
-    if (!confirm(`Delete partner "${code}"? This cannot be undone.`)) return;
-    try {
-      const token = await getSessionToken();
-      const res = await fetchWithRetry(`https://ezlousklksipvwuinpzq.supabase.co/functions/v1/referral-stats`, {
-        method: 'DELETE',
-        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code }),
-        signal: AbortSignal.timeout(15000),
-      });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        alert(err.error || 'Failed to delete partner');
-        return;
-      }
-      loadAll();
-    } catch {
-      alert('Request failed or timed out.');
-    }
-  };
-
-  const assignOwner = async (code: string) => {
-    if (!assignEmail.trim()) return;
-    setAssignLoading(true);
-    try {
-      const token = await getSessionToken();
-      const res = await fetchWithRetry(`https://ezlousklksipvwuinpzq.supabase.co/functions/v1/referral-stats`, {
-        method: 'PATCH',
-        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code, owner_email: assignEmail.trim() }),
-        signal: AbortSignal.timeout(15000),
-      });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        alert(err.error || 'Failed to assign');
-        return;
-      }
-      setAssigningCode(null);
-      setAssignEmail('');
-      loadAll();
-    } catch {
-      alert('Request failed or timed out.');
-    } finally {
-      setAssignLoading(false);
-    }
-  };
-
-  const totalSignups = partners.reduce((s, p) => s + p.signups, 0);
-  const totalConversions = partners.reduce((s, p) => s + p.conversions, 0);
-  const totalEarned = partners.reduce((s, p) => s + p.total_commission_cents, 0);
-
-  return (
-    <div className="space-y-6">
-      <div className="grid grid-cols-3 gap-2 sm:gap-4">
-        <StatCard icon={<Users className="w-4 h-4" />} label="Signups" value={String(totalSignups)} />
-        <StatCard icon={<TrendingUp className="w-4 h-4" />} label="Conversions" value={String(totalConversions)} />
-        <StatCard icon={<DollarSign className="w-4 h-4" />} label="Commission" value={`$${(totalEarned / 100).toFixed(2)}`} />
-      </div>
-
-      <div className="rounded-xl p-5" style={glassCard}>
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-base font-semibold text-white">Partners ({partners.length})</h2>
-          <div className="flex gap-2">
-            <button onClick={loadAll} disabled={loading} className="p-2 text-gray-400 hover:text-white transition-colors rounded-lg hover:bg-white/5">
-              <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-            </button>
-            <button onClick={() => setShowForm(!showForm)} className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-white rounded-lg hover:opacity-90 transition-opacity" style={{ background: 'var(--accent)', color: 'var(--on-accent)' }}>
-              <Plus className="w-3.5 h-3.5" />
-              New partner
-            </button>
-          </div>
-        </div>
-
-        {showForm && (
-          <div className="mb-4 p-4 rounded-lg space-y-3" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              <div>
-                <label className="block text-xs text-gray-500 mb-1">Code (in URL)</label>
-                <input value={newCode} onChange={e => setNewCode(e.target.value)} placeholder="marcus" className="w-full px-3 py-2 rounded-lg text-white text-sm focus:outline-none" style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }} />
-              </div>
-              <div>
-                <label className="block text-xs text-gray-500 mb-1">Partner name</label>
-                <input value={newName} onChange={e => setNewName(e.target.value)} placeholder="Marcus" className="w-full px-3 py-2 rounded-lg text-white text-sm focus:outline-none" style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }} />
-              </div>
-              <div>
-                <label className="block text-xs text-gray-500 mb-1">Partner email (optional)</label>
-                <input value={newEmail} onChange={e => setNewEmail(e.target.value)} placeholder="marcus@email.com" type="email" className="w-full px-3 py-2 rounded-lg text-white text-sm focus:outline-none" style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }} />
-              </div>
-            </div>
-            <div className="flex gap-2">
-              <button onClick={createPartner} disabled={creating || !newCode || !newName} className="px-4 py-2 text-sm font-medium text-white rounded-lg hover:opacity-90 disabled:opacity-50 transition-opacity" style={{ background: 'var(--accent)', color: 'var(--on-accent)' }}>
-                {creating ? 'Creating...' : 'Create'}
-              </button>
-              <button onClick={() => setShowForm(false)} className="px-4 py-2 text-sm text-gray-400 hover:text-white transition-colors">Cancel</button>
-            </div>
-          </div>
-        )}
-
-        {loading ? (
-          <div className="flex items-center justify-center h-16"><Loader2 className="w-4 h-4 text-gray-500 animate-spin" /></div>
-        ) : partners.length === 0 ? (
-          <p className="text-sm text-gray-500 text-center py-4">No partners yet. Create one above.</p>
-        ) : (
-          <div className="space-y-2">
-            {partners.map(p => (
-              <div key={p.code}>
-                <div className="px-4 py-3 rounded-lg space-y-2" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
-                  {/* Top row: name + actions */}
-                  <div className="flex items-center justify-between gap-2">
-                    <div className="min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className="text-white font-medium text-sm">{p.partner_name}</span>
-                        <span className="text-xs text-gray-600 font-mono">?ref={p.code}</span>
-                        {!p.active && <span className="text-xs text-red-400">inactive</span>}
-                        {!p.owner_user_id && <span className="text-xs text-amber-500">no account linked</span>}
-                      </div>
-                      <p className="text-xs text-gray-600">{p.commission_percent}% commission</p>
-                    </div>
-                    <div className="flex items-center gap-1 flex-shrink-0">
-                      <button onClick={() => { setAssigningCode(assigningCode === p.code ? null : p.code); setAssignEmail(''); }} className="p-1.5 text-gray-500 hover:text-white/70 transition-colors rounded" title="Link account">
-                        <Link className="w-3.5 h-3.5" />
-                      </button>
-                      <button onClick={() => deletePartner(p.code)} className="p-1.5 text-gray-500 hover:text-red-400 transition-colors rounded" title="Delete">
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-                  </div>
-                  {/* Bottom row: stats + copy */}
-                  <div className="flex items-center justify-between gap-2">
-                    <div className="flex items-center gap-4 text-sm">
-                      <div className="flex items-center gap-1">
-                        <span className="text-white font-semibold">{p.signups}</span>
-                        <span className="text-xs text-gray-600">signups</span>
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <span className="text-white font-semibold">{p.conversions}</span>
-                        <span className="text-xs text-gray-600">paid</span>
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <span className="text-emerald-400 font-semibold">${(p.total_commission_cents / 100).toFixed(2)}</span>
-                        <span className="text-xs text-gray-600">earned</span>
-                      </div>
-                    </div>
-                    <CopyButton text={`https://hershymedia.com?ref=${p.code}`} />
-                  </div>
-                </div>
-
-                {assigningCode === p.code && (
-                  <div className="mt-1 px-4 py-3 rounded-lg space-y-2" style={{ background: 'rgba(var(--accent-rgb),0.06)', border: '1px solid rgba(var(--accent-rgb),0.15)' }}>
-                    <input
-                      value={assignEmail}
-                      onChange={e => setAssignEmail(e.target.value)}
-                      placeholder="partner@email.com"
-                      type="email"
-                      className="w-full px-3 py-2 rounded-lg text-white text-sm focus:outline-none"
-                      style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }}
-                    />
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => assignOwner(p.code)}
-                        disabled={assignLoading || !assignEmail}
-                        className="flex-1 py-2 text-sm font-medium text-white rounded-lg disabled:opacity-50"
-                        style={{ background: 'var(--accent)', color: 'var(--on-accent)' }}
-                      >
-                        {assignLoading ? 'Linking...' : 'Link account'}
-                      </button>
-                      <button onClick={() => setAssigningCode(null)} className="px-4 py-2 text-sm text-gray-400 hover:text-white rounded-lg" style={{ background: 'rgba(255,255,255,0.06)' }}>Cancel</button>
-                    </div>
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
+      {error && <div className="mt-3"><ErrorNotice message={error} /></div>}
     </div>
   );
 }

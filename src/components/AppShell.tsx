@@ -7,7 +7,7 @@ export const MobileHeaderContext = createContext<{
   setRightAction: (node: React.ReactNode) => void;
 }>({ setRightAction: () => {} });
 
-export type NavTab = 'home' | 'analyze' | 'projects' | 'analytics' | 'competitors' | 'usage' | 'upgrade' | 'settings' | 'partners' | 'admin';
+export type NavTab = 'home' | 'analyze' | 'projects' | 'analytics' | 'competitors' | 'usage' | 'upgrade' | 'settings' | 'partners' | 'admin' | 'affiliate-admin';
 
 // Feature flags: tabs hidden from ALL users (incl. admin). Kept in code so they
 // can be re-enabled instantly by removing them from this list.
@@ -52,7 +52,7 @@ const baseNavItems: NavItem[] = [
 const partnersItem: NavItem = { id: 'partners', label: 'Affiliate', icon: <Handshake className="w-4 h-4" /> };
 
 // Labels for tabs with no sidebar entry, used only for the mobile header title.
-const TAB_LABELS: Partial<Record<NavTab, string>> = { home: 'Hershy' };
+const TAB_LABELS: Partial<Record<NavTab, string>> = { home: 'Hershy', 'affiliate-admin': 'Affiliate partners' };
 
 const SIDEBAR_COLLAPSED_KEY = 'hershy_sidebar_collapsed';
 

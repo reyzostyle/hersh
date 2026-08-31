@@ -95,7 +95,7 @@ export function AdminPage() {
 
   if (error) {
     return (
-      <div className="sheet min-h-full max-w-2xl mx-auto px-5 sm:px-8 pt-12 sm:pt-16 pb-20">
+      <div className="sheet min-h-full max-w-5xl mx-auto px-5 sm:px-8 pt-12 sm:pt-16 pb-20">
         <p className="text-sm text-red-400 bg-red-400/10 border border-red-400/20 rounded-lg px-4 py-3">{error}</p>
       </div>
     );
@@ -117,7 +117,7 @@ export function AdminPage() {
   const revenue28d = stats.revenue_28d_cents / 100;
 
   return (
-    <div className="sheet min-h-full max-w-2xl mx-auto px-5 sm:px-8 pt-12 sm:pt-16 pb-20 space-y-3 animate-fade-in-up">
+    <div className="sheet min-h-full max-w-5xl mx-auto px-5 sm:px-8 pt-12 sm:pt-16 pb-20 space-y-3">
       <div className="hidden sm:block mb-6">
         <h1 className="text-2xl font-bold text-white mb-1">Growth</h1>
         <p className="text-sm text-gray-500">Live numbers across every Hershy account. Only you can see this.</p>

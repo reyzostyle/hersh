@@ -127,10 +127,48 @@ Deno.serve(async (req: Request) => {
     return new Response(JSON.stringify({ ok: true }), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
   }
 
-  // ── PATCH: assign owner email to existing partner (admin only) ───────
+  // ── PATCH: assign owner email, or settle up (admin only) ─────────────
   if (req.method === 'PATCH') {
     if (!isAdmin) return new Response(JSON.stringify({ error: 'Forbidden' }), { status: 403, headers: corsHeaders });
-    const { code, owner_email } = await req.json();
+    const body = await req.json();
+
+    // Marking a partner paid. `paid_out` has existed on referral_conversions
+    // since the table was created and nothing ever set it, which meant the
+    // first real payout would have been an UPDATE typed by hand in the SQL
+    // editor - the exact move that took signup down once already.
+    //
+    // Only settled earnings are marked: anything still inside its 30-day hold
+    // has not been paid, and sweeping it up here would silently erase the hold
+    // for money that may yet be refunded.
+    if (body.action === 'mark_paid') {
+      const code = String(body.code ?? '');
+      if (!code) return new Response(JSON.stringify({ error: 'code required' }), { status: 400, headers: corsHeaders });
+
+      const { data: rows, error: readErr } = await supabase
+        .from('referral_conversions')
+        .select('id, commission_cents, hold_until, paid_out')
+        .eq('referral_code', code);
+      if (readErr) return new Response(JSON.stringify({ error: readErr.message }), { status: 400, headers: corsHeaders });
+
+      const now = Date.now();
+      const settled = (rows ?? []).filter((r: any) =>
+        !r.paid_out && (!r.hold_until || new Date(r.hold_until).getTime() <= now));
+      if (settled.length === 0) {
+        return new Response(JSON.stringify({ error: 'Nothing settled to pay out yet.' }), { status: 400, headers: corsHeaders });
+      }
+
+      const cents = settled.reduce((t: number, r: any) => t + (r.commission_cents || 0), 0);
+      const { error: updErr } = await supabase
+        .from('referral_conversions')
+        .update({ paid_out: true })
+        .in('id', settled.map((r: any) => r.id));
+      if (updErr) return new Response(JSON.stringify({ error: updErr.message }), { status: 400, headers: corsHeaders });
+
+      return new Response(JSON.stringify({ ok: true, marked: settled.length, cents }),
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    }
+
+    const { code, owner_email } = body;
     if (!code || !owner_email) return new Response(JSON.stringify({ error: 'code and owner_email required' }), { status: 400, headers: corsHeaders });
 
     const { data: users } = await supabase.auth.admin.listUsers();
@@ -189,7 +227,12 @@ Deno.serve(async (req: Request) => {
   if (isAdmin) {
     const { data: codes } = await supabase.from('referral_codes').select('*').order('created_at', { ascending: false });
     const partners = await getStats(codes ?? []);
-    return new Response(JSON.stringify({ partners }), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    // `partner` as well as `partners`. The admin owns a referral code like
+    // anyone else, but this branch only ever returned the list, so "View as a
+    // partner" read `data.partner`, found nothing, and showed the join-us pitch
+    // to someone who joined months ago.
+    const own = partners.find((p: any) => p.owner_user_id === authUser.id) ?? null;
+    return new Response(JSON.stringify({ partners, partner: own }), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
   }
 
   // Partner: find code linked to this user
