@@ -1026,7 +1026,6 @@ const navLinks: { label: string; id?: string; href?: string }[] = [
 export function LandingPage() {
   const [authModal, setAuthModal] = useState<null | 'login' | 'signup'>(null);
   const [heroGate, setHeroGate] = useState<string | null>(null);
-  const [scrollTop, setScrollTop] = useState(0);
   const [billingInterval, setBillingInterval] = useState<Interval>('year');
   const [heroUrl, setHeroUrl] = useState('');
   const [heroError, setHeroError] = useState('');
@@ -1087,9 +1086,6 @@ export function LandingPage() {
     setHeroGate(trimmed);
   };
 
-  // Bottom glow fades out as you scroll down the first screen
-  const glowOpacity = Math.max(0, 1 - scrollTop / 160);
-
   // The page scrolls in a div, not the window, so anchor hrefs would jump the
   // wrong box — scroll the section into view manually instead.
   const scrollTo = (id: string) => {
@@ -1098,63 +1094,23 @@ export function LandingPage() {
 
   return (
     <div className="relative overflow-hidden" style={{ background: 'linear-gradient(160deg, rgb(var(--surface-rgb)) 0%, rgb(var(--surface-rgb)) 100%)', color: 'white', height: '100dvh' }}>
-      {/* Dot grid — anchored to the non-scrolling outer container, so it never moves */}
-      <svg className="absolute inset-0 w-full h-full pointer-events-none" xmlns="http://www.w3.org/2000/svg" style={{ zIndex: 0 }}>
-        <defs>
-          <pattern id="lp-dot-grid" x="0" y="0" width="28" height="28" patternUnits="userSpaceOnUse">
-            <circle cx="1" cy="1" r="1" fill="var(--accent)" fillOpacity="0.12" />
-          </pattern>
-        </defs>
-        <rect width="100%" height="100%" fill="url(#lp-dot-grid)" />
-      </svg>
+      {/* The ruled grid, the same one the Analyze canvas is drawn on — same
+          112px cell, same hairline. A visitor who signs up should land on a
+          surface they have already seen. It replaces a 28px dot field that was
+          this page's own invention and matched nothing in the product.
 
-      {/* Ambient color drift behind the hero. Sits above the dot grid but under
-          the content, and never stops moving, so the first screen has life
-          before the visitor touches anything. Blue + violet only — the two
-          accents already in the product, at low enough opacity to stay dark. */}
-      <div aria-hidden="true" className="pointer-events-none absolute inset-0 overflow-hidden" style={{ zIndex: 0 }}>
-        <div
-          className="absolute rounded-full animate-drift-a"
-          style={{
-            top: '-16%', left: '-10%', width: '58vw', height: '58vw', maxWidth: 760, maxHeight: 760,
-            background: 'radial-gradient(circle, rgba(var(--accent-rgb),0.20), rgba(var(--accent-rgb),0) 68%)',
-            filter: 'blur(46px)',
-          }}
-        />
-        <div
-          className="absolute rounded-full animate-drift-b"
-          style={{
-            top: '-8%', right: '-14%', width: '52vw', height: '52vw', maxWidth: 680, maxHeight: 680,
-            background: 'radial-gradient(circle, rgba(var(--wash-rgb),0.18), rgba(var(--wash-rgb),0) 68%)',
-            filter: 'blur(52px)',
-          }}
-        />
-        <div
-          className="absolute rounded-full animate-drift-c"
-          style={{
-            top: '22%', left: '28%', width: '46vw', height: '46vw', maxWidth: 600, maxHeight: 600,
-            background: 'radial-gradient(circle, rgba(var(--accent-rgb),0.13), rgba(var(--accent-rgb),0) 70%)',
-            filter: 'blur(58px)',
-          }}
-        />
-      </div>
+          Anchored to the non-scrolling outer container, so it never moves. */}
+      <div className="absolute inset-0 w-full h-full pointer-events-none grid-surface" style={{ zIndex: 0 }} />
 
-      {/* Bottom glow — entices scrolling, fades out as you scroll */}
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute inset-x-0 bottom-0 h-44"
-        style={{
-          zIndex: 1,
-          opacity: glowOpacity,
-          transition: 'opacity 0.2s ease-out',
-          background: 'radial-gradient(90% 130% at 50% 100%, rgba(255,255,255,0.10), rgba(255,255,255,0) 62%)',
-        }}
-      />
+      {/* Three drifting blurred blobs and a glow along the bottom edge used to
+          sit here. That look says "an AI made this" before a word is read, and
+          it does not appear anywhere in the product, so the first screen was
+          promising a surface the app never delivers. The grid does the work
+          now: it is the same one the app is drawn on. */}
 
       <div
         ref={scrollRef}
         className="relative z-10 h-full overflow-y-auto overflow-x-hidden"
-        onScroll={(e) => setScrollTop(e.currentTarget.scrollTop)}
       >
 
         {/* ── Navbar ─────────────────────────────────────────────────────────
@@ -1330,13 +1286,11 @@ export function LandingPage() {
 
             {/* The paste field is the only hero CTA now — the button above it
                 was a second door to the same signup and split attention.
-                Given its own blue-tinted glass (not the neutral `glass` used
-                everywhere else) plus a soft always-on halo, so it visually
-                separates itself from the rest of the page as THE thing to
-                do here, not one more panel among many. */}
+                It carries no halo: a pulsing ring around the input was the
+                same AI-demo glow as the blobs, and the field is already the
+                only filled control on the screen. */}
             <div className="animate-fade-in-up delay-200 flex flex-col items-center gap-3">
               <div className="relative w-full max-w-xl">
-                <div aria-hidden="true" className="absolute inset-0 rounded-2xl pointer-events-none animate-glow-pulse" />
                 <form
                   onSubmit={handleHeroAnalyze}
                   autoComplete="off"

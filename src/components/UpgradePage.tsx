@@ -4,6 +4,7 @@ import { BoltOutlineIcon as Zap, RefreshOutlineIcon as Loader2 } from '@solar-ic
 import { Check } from './BrandIcons';
 import { ErrorNotice } from './ErrorNotice';
 import { useUsage } from '../lib/useUsage';
+import { PageHead } from './Page';
 
 type Interval = 'month' | 'year';
 
@@ -112,10 +113,9 @@ export function UpgradePage() {
     : 0;
 
   return (
-    <div className="max-w-4xl mx-auto px-4 sm:px-6 pt-4 sm:pt-6 pb-12 animate-fade-in-up">
-        <div className="hidden lg:block mb-6">
-          <h1 className="text-2xl font-bold text-white mb-1">Plans & Billing</h1>
-          <p className="text-sm text-gray-500">Compare plans and manage your subscription</p>
+    <div className="sheet min-h-full max-w-4xl mx-auto px-5 sm:px-8 pt-12 sm:pt-16 pb-20 animate-fade-in-up">
+        <div className="hidden lg:block">
+          <PageHead eyebrow="Plans" title="Plans and billing" subtitle="Compare the plans and manage your subscription." />
         </div>
       <div>
         {error && <ErrorNotice message={error} className="mb-6" />}

@@ -3,6 +3,7 @@ import { RefreshOutlineIcon as Loader2 } from '@solar-icons/react';
 import { Youtube } from './BrandIcons';
 import { supabase, getSessionToken, fetchWithRetry } from '../lib/supabase';
 import { ErrorNotice } from './ErrorNotice';
+import { Page, PageHead, Panel, Tile, Section, Empty } from './Page';
 
 const FN = 'https://ezlousklksipvwuinpzq.supabase.co/functions/v1';
 const REFRESH_MS = 60_000;
@@ -19,6 +20,16 @@ interface Stats {
 
 const AXES = ['Hook', 'Retention', 'Payoff', 'Delivery', 'Reach'] as const;
 
+// What each axis is actually measuring, so the shape is readable without
+// having to remember how the scorer weights its components.
+const AXIS_NOTE: Record<string, string> = {
+  Hook: 'First 3 seconds',
+  Retention: 'The middle',
+  Payoff: 'The ending',
+  Delivery: 'Pace and edit',
+  Reach: 'Overall score',
+};
+
 const compact = (n: number) =>
   n >= 1_000_000 ? `${(n / 1_000_000).toFixed(1)}M`
   : n >= 1_000 ? `${(n / 1_000).toFixed(1)}K`
@@ -28,8 +39,12 @@ const compact = (n: number) =>
 // analyser already returns per video, the fifth is how the recent videos landed
 // against this channel's own median. Nothing here is a new API call or a new
 // judgement, it is the same numbers arranged so a pattern is visible.
+//
+// The viewBox is wider than it is tall on purpose. The plot is square, but
+// RETENTION and DELIVERY sit outside it on the left and right, and at the old
+// square viewBox both were sliced in half by the edge.
 function Radar({ values }: { values: number[] }) {
-  const size = 260, cx = size / 2, cy = size / 2, r = 92;
+  const W = 340, H = 250, cx = W / 2, cy = 118, r = 82;
   const pt = (i: number, frac: number) => {
     const a = (Math.PI * 2 * i) / AXES.length - Math.PI / 2;
     return [cx + Math.cos(a) * r * frac, cy + Math.sin(a) * r * frac];
@@ -37,7 +52,7 @@ function Radar({ values }: { values: number[] }) {
   const poly = values.map((v, i) => pt(i, Math.max(0.04, v / 100)).join(',')).join(' ');
 
   return (
-    <svg viewBox={`0 0 ${size} ${size}`} className="w-full max-w-[280px]">
+    <svg viewBox={`0 0 ${W} ${H}`} className="w-full max-w-[340px]" role="img" aria-label="Score shape across five axes">
       {[0.25, 0.5, 0.75, 1].map(f => (
         <polygon key={f}
           points={AXES.map((_, i) => pt(i, f).join(',')).join(' ')}
@@ -53,9 +68,13 @@ function Radar({ values }: { values: number[] }) {
         return <circle key={i} cx={x} cy={y} r="3" fill="var(--process)" />;
       })}
       {AXES.map((label, i) => {
-        const [x, y] = pt(i, 1.22);
+        const [x, y] = pt(i, 1.3);
+        // Labels anchor away from the plot rather than always centring: a
+        // centred RETENTION overhangs the right edge by half its width, which
+        // is what was clipping it.
+        const anchor = x > cx + 4 ? 'start' : x < cx - 4 ? 'end' : 'middle';
         return (
-          <text key={label} x={x} y={y} textAnchor="middle" dominantBaseline="middle"
+          <text key={label} x={x} y={y} textAnchor={anchor} dominantBaseline="middle"
                 fill="var(--text-faint)" fontSize="10" fontFamily="Geist Mono, monospace"
                 letterSpacing="0.06em">
             {label.toUpperCase()}
@@ -66,12 +85,22 @@ function Radar({ values }: { values: number[] }) {
   );
 }
 
-function Stat({ label, value, sub }: { label: string; value: string; sub?: string }) {
+// The shape says where the channel is lopsided; this says by how much. A radar
+// on its own is a picture you cannot read a number off, which is fine as the
+// second thing on the screen and not fine as the only thing.
+function AxisRow({ label, value }: { label: string; value: number }) {
   return (
-    <div className="py-4" style={{ borderBottom: '1px solid var(--line)' }}>
-      <p className="label-mono mb-1.5">{label}</p>
-      <p className="text-2xl font-semibold tracking-tight" style={{ color: 'var(--text)' }}>{value}</p>
-      {sub && <p className="font-mono text-[11px] mt-1" style={{ color: 'var(--process)' }}>{sub}</p>}
+    <div className="flex items-center gap-4 py-2.5" style={{ borderBottom: '1px solid var(--line)' }}>
+      <div className="w-28 flex-shrink-0">
+        <p className="text-[13px] font-medium leading-tight" style={{ color: 'var(--text)' }}>{label}</p>
+        <p className="text-[11px] leading-tight mt-0.5 whitespace-nowrap" style={{ color: 'var(--text-faint)' }}>{AXIS_NOTE[label]}</p>
+      </div>
+      <div className="flex-1 h-1 rounded-full overflow-hidden" style={{ background: 'var(--line)' }}>
+        <div className="h-full rounded-full" style={{ width: `${Math.max(2, value)}%`, background: 'var(--process)' }} />
+      </div>
+      <span className="font-mono text-[12px] w-8 text-right tabular-nums" style={{ color: 'var(--text-muted)' }}>
+        {value}
+      </span>
     </div>
   );
 }
@@ -79,6 +108,7 @@ function Stat({ label, value, sub }: { label: string; value: string; sub?: strin
 export function AnalyticsPage() {
   const [stats, setStats] = useState<Stats | null>(null);
   const [radar, setRadar] = useState<number[]>([0, 0, 0, 0, 0]);
+  const [sampleSize, setSampleSize] = useState(0);
   const [loading, setLoading] = useState(true);
   const [failed, setFailed] = useState(false);
 
@@ -101,6 +131,7 @@ export function AnalyticsPage() {
       const breakdowns = (rows ?? [])
         .map((r: any) => r.hook_analysis?.score_breakdown)
         .filter(Boolean);
+      setSampleSize(breakdowns.length);
       if (breakdowns.length) {
         const avg = (k: string, max: number) =>
           Math.round((breakdowns.reduce((s: number, b: any) => s + (b[k] ?? 0), 0) / breakdowns.length) / max * 100);
@@ -128,55 +159,82 @@ export function AnalyticsPage() {
 
   if (loading) {
     return (
-      <div className="flex justify-center pt-24">
-        <Loader2 className="w-5 h-5 animate-spin" style={{ color: 'var(--text-faint)' }} />
-      </div>
+      <Page>
+        <div className="flex justify-center pt-16">
+          <Loader2 className="w-5 h-5 animate-spin" style={{ color: 'var(--text-faint)' }} />
+        </div>
+      </Page>
     );
   }
 
   if (failed && !stats) {
     return (
-      <div className="max-w-2xl mx-auto px-5 sm:px-8 pt-16">
+      <Page>
+        <PageHead eyebrow="Analytics" title="Your channel" />
         <ErrorNotice message="Could not reach the analytics service." />
-      </div>
+      </Page>
     );
   }
 
   if (stats && !stats.connected) {
     return (
-      <div className="max-w-2xl mx-auto px-5 sm:px-8 pt-16 text-center">
-        <Youtube className="w-8 h-8 mx-auto mb-4" style={{ color: 'var(--text-faint)' }} />
-        <h1 className="display mb-3" style={{ color: 'var(--text)' }}>Connect your channel</h1>
-        <p className="text-[15px]" style={{ color: 'var(--text-muted)' }}>
-          Analytics reads your own numbers from YouTube. Connect it in Settings and this fills in.
-        </p>
-      </div>
+      <Page>
+        <PageHead
+          eyebrow="Analytics"
+          title="Connect your channel"
+          subtitle="Analytics reads your own numbers straight from YouTube. Connect it in Settings and this fills in."
+        />
+        <Empty icon={<Youtube className="w-7 h-7" style={{ color: 'var(--text-faint)' }} />}>
+          Nothing to show until a channel is connected. It takes two clicks in Settings and reads only your own data.
+        </Empty>
+      </Page>
     );
   }
 
   return (
-    <div className="max-w-2xl mx-auto px-5 sm:px-8 pt-12 sm:pt-16 pb-16">
-      <p className="label-mono mb-4">Analytics</p>
-      <h1 className="display mb-10" style={{ color: 'var(--text)' }}>
-        {stats?.channelTitle || 'Your channel'}
-      </h1>
+    <Page>
+      <PageHead
+        eyebrow="Analytics"
+        title={stats?.channelTitle || 'Your channel'}
+        subtitle="Your own numbers from YouTube, and the shape your last analysed videos came out at."
+      />
 
-      <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-8" style={{ borderTop: '1px solid var(--line)' }}>
-        <Stat label="Subscribers" value={compact(stats?.subscribers ?? 0)}
+      {/* Tiles, not bare hairlines. Numbers this important should sit on
+          something, and a plate each is what keeps the row from reading as a
+          fragment of a table. */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5">
+        <Tile label="Subscribers" value={compact(stats?.subscribers ?? 0)}
               sub={stats?.subsGained28 ? `+${compact(stats.subsGained28)} in 28d` : undefined} />
-        <Stat label="Views 28d" value={compact(stats?.views28 ?? 0)} />
-        <Stat label="Watch time" value={`${compact(Math.round((stats?.watchMinutes28 ?? 0) / 60))}h`} />
+        <Tile label="Views 28d" value={compact(stats?.views28 ?? 0)} />
+        <Tile label="Watch time" value={`${compact(Math.round((stats?.watchMinutes28 ?? 0) / 60))}h`} />
+        <Tile label="Total views" value={compact(stats?.totalViews ?? 0)} />
       </div>
 
-      <div className="mt-12">
-        <p className="label-mono mb-1">Shape</p>
-        <p className="text-[13px] mb-6" style={{ color: 'var(--text-muted)' }}>
-          Averaged across your last 20 analysed videos.
-        </p>
-        <div className="flex justify-center py-4">
-          <Radar values={radar} />
+      {failed && (
+        <div className="mt-4">
+          <ErrorNotice message="The last refresh did not come back. These numbers may be stale." />
         </div>
-      </div>
-    </div>
+      )}
+
+      <Section
+        label="Shape"
+        note={sampleSize
+          ? `Averaged across your last ${sampleSize} analysed video${sampleSize === 1 ? '' : 's'}.`
+          : 'Fills in once you have analysed a few videos.'}
+      >
+        {sampleSize === 0 ? (
+          <Empty>Analyse a video and its score components land here, so you can see which part of your work is consistently the weak one.</Empty>
+        ) : (
+          <Panel>
+            <div className="flex justify-center">
+              <Radar values={radar} />
+            </div>
+            <div className="mt-4" style={{ borderTop: '1px solid var(--line)' }}>
+              {AXES.map((label, i) => <AxisRow key={label} label={label} value={radar[i]} />)}
+            </div>
+          </Panel>
+        )}
+      </Section>
+    </Page>
   );
 }

@@ -33,6 +33,60 @@ async function callGeminiWithRetry(buildBody: (model: string) => string, apiKey:
   return last as Response;
 }
 
+// Watch a video and answer a question about it, with no scoring pipeline
+// attached. Same model rotation and the same retry behaviour as the analysis
+// path - the only difference is that the caller supplies the whole prompt and
+// gets raw text back.
+//
+// Exists because an outline written from a transcript is written blind. For a
+// Short, half the craft is on screen and not in the words: where the cut lands,
+// what the text overlay says, how the first frame is composed. A model that has
+// only read the words can describe the topic and nothing about the execution.
+export async function watchVideo(
+  source: { fileUri: string; mimeType: string },
+  prompt: string,
+  opts: { system?: string; maxTokens: number },
+): Promise<string> {
+  const apiKey = Deno.env.get('GEMINI_API_KEY');
+  if (!apiKey) throw new Error('Gemini API key not configured');
+
+  // Same thinking rule as analyzeVideo below, and for the same reason: plain
+  // Flash thinks by default, thinking tokens come out of maxOutputTokens, and
+  // the visible answer gets silently truncated mid-object. Written without this
+  // the first time, which is exactly how it failed - an outline request came
+  // back with nothing parseable in it.
+  const buildBody = (model: string) => {
+    const isFlashLite = /flash-lite/i.test(model);
+    return JSON.stringify({
+      ...(opts.system ? { systemInstruction: { parts: [{ text: opts.system }] } } : {}),
+      contents: [{
+        role: 'user',
+        parts: [
+          { file_data: { mime_type: source.mimeType, file_uri: source.fileUri } },
+          { text: prompt },
+        ],
+      }],
+      generationConfig: {
+        temperature: 0.7,
+        maxOutputTokens: opts.maxTokens,
+        ...(isFlashLite ? {} : { thinkingConfig: { thinkingBudget: 0 } }),
+      },
+    });
+  };
+
+  const res = await callGeminiWithRetry(buildBody, apiKey);
+  if (!res.ok) throw new Error(`Gemini video call failed (${res.status}): ${await res.text()}`);
+  const data = await res.json();
+  const cand = data.candidates?.[0];
+  const text = cand?.content?.parts?.[0]?.text;
+  if (!text) {
+    // finishReason names the actual cause - MAX_TOKENS, SAFETY, RECITATION -
+    // instead of leaving every failure looking the same from the outside.
+    throw new Error(`Gemini returned no text for the video (finishReason: ${cand?.finishReason ?? 'none'})`);
+  }
+  return text as string;
+}
+
 // One call does the whole job: the model watches the video AND writes the
 // verdict. `source` is whatever Gemini can read: a YouTube URL for the paste
 // flow, or a Files API uri for an uploaded file - both paths share this.

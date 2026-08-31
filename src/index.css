@@ -48,6 +48,11 @@
   --process-rgb: 43, 217, 124;
   --ok-rgb: 43, 217, 124;
   --danger-rgb: 248, 113, 113;
+  /* The second and last colour. Green means something worked; this means
+     something is on offer, and it exists for exactly one element - the Upgrade
+     link in the sidebar. If it ever shows up on a second control, one of the
+     two is wrong. */
+  --upgrade: #F5C451;
 }
 
 @tailwind base;
@@ -92,45 +97,6 @@ body { overflow-x: clip; max-width: 100vw; background-color: rgb(var(--surface-r
 @keyframes shimmer {
   0%   { background-position: -200% center; }
   100% { background-position:  200% center; }
-}
-
-@keyframes glow-pulse {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(var(--accent-rgb),0); }
-  50%       { box-shadow: 0 0 20px 4px rgba(var(--accent-rgb),0.15); }
-}
-
-/* Ambient hero motion: soft color blobs that never stop drifting, so the first
-   screen is alive even before the visitor scrolls or interacts. Two offset
-   timings keep them from ever lining up into one obvious pulse. */
-/* Five stops instead of a there-and-back pair, with mismatched durations, so
-   the blobs wander rather than pulsing on an obvious loop. Movement is wide
-   but slow — the point is that you notice motion, not that it draws the eye
-   away from the headline. */
-@keyframes driftA {
-  0%   { transform: translate3d(0, 0, 0) scale(1); }
-  21%  { transform: translate3d(11%, -7%, 0) scale(1.16); }
-  43%  { transform: translate3d(-5%, 6%, 0) scale(0.94); }
-  66%  { transform: translate3d(8%, 10%, 0) scale(1.1); }
-  84%  { transform: translate3d(-8%, -4%, 0) scale(1.03); }
-  100% { transform: translate3d(0, 0, 0) scale(1); }
-}
-
-@keyframes driftB {
-  0%   { transform: translate3d(0, 0, 0) scale(1.08); }
-  26%  { transform: translate3d(-12%, 8%, 0) scale(0.96); }
-  48%  { transform: translate3d(6%, -6%, 0) scale(1.18); }
-  71%  { transform: translate3d(-7%, -9%, 0) scale(1); }
-  89%  { transform: translate3d(4%, 7%, 0) scale(1.11); }
-  100% { transform: translate3d(0, 0, 0) scale(1.08); }
-}
-
-@keyframes driftC {
-  0%   { transform: translate3d(0, 0, 0) scale(1); }
-  19%  { transform: translate3d(-9%, -8%, 0) scale(1.13); }
-  41%  { transform: translate3d(10%, 4%, 0) scale(0.97); }
-  63%  { transform: translate3d(-6%, 9%, 0) scale(1.07); }
-  82%  { transform: translate3d(7%, -5%, 0) scale(1.01); }
-  100% { transform: translate3d(0, 0, 0) scale(1); }
 }
 
 /* Mobile menu unfolding down out from under the navbar. clip-path rather than
@@ -179,10 +145,6 @@ body { overflow-x: clip; max-width: 100vw; background-color: rgb(var(--surface-r
 .animate-scale-in      { animation: scaleIn     0.3s ease-out both; }
 .animate-float         { animation: float       3s ease-in-out infinite; }
 .animate-tab-in        { animation: tabFadeIn   0.25s ease-out both; }
-.animate-glow-pulse    { animation: glow-pulse  2s ease-in-out infinite; }
-.animate-drift-a       { animation: driftA      26s ease-in-out infinite; }
-.animate-drift-b       { animation: driftB      34s ease-in-out infinite; }
-.animate-drift-c       { animation: driftC      29s ease-in-out infinite; }
 .animate-unfold-down   { animation: unfoldDown  0.3s cubic-bezier(0.22, 1, 0.36, 1) both; }
 .animate-fold-up       { animation: foldUp      0.22s cubic-bezier(0.4, 0, 1, 1) both; }
 .animate-fade-out      { animation: fadeOut     0.22s ease-in both; }
@@ -224,11 +186,7 @@ body { overflow-x: clip; max-width: 100vw; background-color: rgb(var(--surface-r
 /* Anything that loops forever is decoration — drop it for reduced-motion users
    rather than letting the page move indefinitely against their setting. */
 @media (prefers-reduced-motion: reduce) {
-  .animate-drift-a,
-  .animate-drift-b,
-  .animate-drift-c,
   .animate-float,
-  .animate-glow-pulse,
   .animate-dot-pulse,
   .marquee-track {
     animation: none !important;
@@ -387,12 +345,115 @@ input, textarea, select {
 
 
 
-/* The ruled grid is back. It was the thing giving the dark surface a sense of
-   precision, and taking it out is what made the app look cheap rather than
-   minimal. */
+/* ─── The sheet ───────────────────────────────────────────────────────────────
+   The grid is drawn by an overlay that sits above the page content, which is
+   how a 14px line of body copy ended up with a hairline through it on the hub,
+   on Analytics and anywhere else the text had no background of its own.
+
+   Rather than tinting the grid down until it stopped mattering, content gets
+   ground to stand on: a solid column, hairline edges, full height. The grid
+   then only shows in the margins either side, which is where it was doing its
+   job — giving the dark surface a sense of precision — and nowhere it was
+   costing legibility. Everything with words in it goes on one of these. */
+.sheet {
+  position: relative;
+  z-index: 1;
+  background: var(--bg-app);
+}
+
+/* ─── The ruled grid, where it earns its keep ────────────────────────────────
+   The grid was tried two ways across the whole app and neither held. As a
+   full-bleed layer the amount of it you saw was whatever was left beside the
+   content column, which varies by tab — a generous field on the hub, a clipped
+   piece of one line on Competitors. Pinned as a fixed band to each edge of the
+   sheet it was at least consistent, and it looked strange: a ruled stripe
+   framing a page of numbers reads as decoration wrapped around work.
+
+   It survives in the one place it was always doing something: the Analyze
+   canvas, where the screen is mostly empty and the texture is what stops that
+   emptiness reading as a page that failed to load. AppShell paints it only on
+   that tab; the chat sheet sits on top of it, so the conversation is still on
+   solid ground. Everywhere else is flat.
+
+   (The landing page has its own dot grid at 28px — a different texture for a
+   different job, and unrelated to this one.) */
 .grid-surface {
   background-image:
     linear-gradient(to right, var(--line) 1px, transparent 1px),
     linear-gradient(to bottom, var(--line) 1px, transparent 1px);
   background-size: var(--grid) var(--grid);
+}
+
+
+/* ─── Chips and segments ─────────────────────────────────────────────────────
+   Competitors wrote its filter pills as inline rgba() eight different ways,
+   so "the same control" was four slightly different greys. Two classes, both
+   on tokens. */
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+  background: transparent;
+  border: 1px solid var(--line);
+  color: var(--text-muted);
+  transition: color 0.15s ease, background-color 0.15s ease, border-color 0.15s ease;
+}
+.chip:hover { color: var(--text); border-color: var(--line-strong); }
+.chip[data-on="true"] {
+  background: var(--bg-raised-hover);
+  border-color: var(--line-strong);
+  color: var(--text);
+}
+
+/* Segmented control: one recessed track, the active option lifted out of it. */
+.seg {
+  display: inline-flex;
+  gap: 2px;
+  padding: 3px;
+  border-radius: var(--r-sm);
+  background: var(--bg-raised);
+  border: 1px solid var(--line);
+}
+.seg > button {
+  padding: 5px 10px;
+  border-radius: 7px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-faint);
+  white-space: nowrap;
+}
+.seg > button:hover { color: var(--text-muted); }
+.seg > button[data-on="true"] { background: var(--bg-raised-hover); color: var(--text); }
+
+/* ─── Working line ────────────────────────────────────────────────────────────
+   The status text while something is running. A spinner says "wait"; this says
+   what is being waited on, which is the difference between a pause and a
+   process. The shimmer travels along the text itself rather than sitting beside
+   it as a spinning glyph.
+
+   White, not the process green: green is reserved for "this worked" - a
+   connected account, a finished bar - and using it for "still going" spent the
+   one colour in the app on the least conclusive state there is. */
+.text-working {
+  background-image: linear-gradient(
+    90deg,
+    var(--text-faint) 20%,
+    var(--text) 45%,
+    var(--text) 55%,
+    var(--text-faint) 80%
+  );
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: shimmer 2.2s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .text-working { animation: none; color: var(--text-muted); }
 }

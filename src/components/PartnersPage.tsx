@@ -3,6 +3,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { getSessionToken, fetchWithRetry } from '../lib/supabase';
 import { CopyOutlineIcon as Copy, UsersGroupRoundedOutlineIcon as Users, GraphUpOutlineIcon as TrendingUp, DollarOutlineIcon as DollarSign, RefreshOutlineIcon as Loader2, AddOutlineIcon as Plus, RefreshOutlineIcon as RefreshCw, TrashBinMinimalisticOutlineIcon as Trash2, LinkOutlineIcon as Link, HandShakeOutlineIcon as Handshake, ClockCircleOutlineIcon as Clock, WalletOutlineIcon as Wallet } from '@solar-icons/react';
 import { Check } from './BrandIcons';
+import { PageHead } from './Page';
 
 const ADMIN_EMAIL = 'reyzostyle@gmail.com';
 
@@ -40,14 +41,32 @@ const FN_BASE = 'https://ezlousklksipvwuinpzq.supabase.co/functions/v1';
 export function PartnersPage() {
   const { user } = useAuth();
   const isAdmin = user?.email === ADMIN_EMAIL;
+  // The admin account was routed straight to the partner-management list, so
+  // the one person who needs to review the affiliate page could never see it.
+  const [asPartner, setAsPartner] = useState(false);
+  const showAdmin = isAdmin && !asPartner;
 
   return (
-    <div className="max-w-4xl mx-auto px-4 sm:px-6 pt-4 sm:pt-6 pb-12 animate-fade-in-up">
-        <div className="hidden lg:block mb-6">
-          <h1 className="text-2xl font-bold text-white mb-1">Partners</h1>
-          <p className="text-sm text-gray-500 text-balance">{isAdmin ? 'Manage referral partners and track conversions' : 'Your referral stats and link'}</p>
+    <div className="sheet min-h-full max-w-4xl mx-auto px-5 sm:px-8 pt-12 sm:pt-16 pb-20 animate-fade-in-up">
+        <div className="hidden lg:block">
+          <PageHead
+            eyebrow="Affiliate"
+            title={showAdmin ? 'Affiliate partners' : 'Your affiliate link'}
+            subtitle={showAdmin ? 'Manage referral partners and track conversions.' : 'Your referral stats and your link.'}
+          />
         </div>
-        {isAdmin ? <AdminView /> : <PartnerView userId={user?.id} />}
+
+        {isAdmin && (
+          <button
+            onClick={() => setAsPartner(v => !v)}
+            className="mb-6 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors"
+            style={{ background: 'var(--bg-raised)', border: '1px solid var(--line)', color: 'var(--text-muted)' }}
+          >
+            {asPartner ? 'Back to partner list' : 'View as a partner'}
+          </button>
+        )}
+
+        {showAdmin ? <AdminView /> : <PartnerView userId={user?.id} />}
     </div>
   );
 }

@@ -1,71 +1,65 @@
 import { useState, useEffect, useCallback } from 'react';
-import { RefreshOutlineIcon as Loader2, ChecklistMinimalisticOutlineIcon as ListChecks, BookmarkOutlineIcon as Bookmark, UsersGroupRoundedOutlineIcon as Users } from '@solar-icons/react';
+import { RefreshOutlineIcon as Loader2 } from '@solar-icons/react';
 import { supabase, getSessionToken } from '../lib/supabase';
-import { callFunction, filterIdeas, type CompetitorChannel, type CompetitorIdea, type IdeaFilter, type IdeaFolder } from '../lib/competitors';
+import {
+  callFunction, inboxItems, itemFromIdea, filterIdeas,
+  type CompetitorChannel, type CompetitorIdea, type FeedItem, type IdeaFilter, type PoolVideo,
+} from '../lib/competitors';
+import { listProjects, touchProject, type Project } from '../lib/projects';
 import { CompetitorsFeed } from './CompetitorsFeed';
-import { CompetitorsSaved } from './CompetitorsSaved';
-import { CompetitorIdeaDrawer } from './CompetitorIdeaDrawer';
-import { SaveToFolderModal } from './SaveToFolderModal';
+import { CompetitorVideoView } from './CompetitorVideoView';
+import { FindCompetitorsModal } from './FindCompetitorsModal';
+import { Page, PageHead } from './Page';
 
-type CompetitorsMode = 'feed' | 'saved';
-const SUB_MODE_KEY = 'hershy_competitors_submode';
-
-function readSavedMode(): CompetitorsMode {
-  const saved = localStorage.getItem(SUB_MODE_KEY);
-  // 'channels' and 'scripts' are stale values from earlier layouts (channel
-  // management moved into the feed header, and the Scripts tab became Saved
-  // when full-script generation was dropped), so both land on the feed.
-  return saved === 'saved' ? saved : 'feed';
-}
-
-// Two jobs, two panels: Feed is discovery (who you track, what beat their
-// average, which of it is worth opening) and Scripts is the workspace of
-// what you've already generated. Channels used to be a third tab, but
-// adding a competitor and seeing what they produced being two separate
-// places meant every refresh cost a round trip through the nav.
+// Two layers, and the difference is the whole point of this screen.
+//
+// `pool` is every outlier the tracked channels have produced across their last
+// 50 uploads: free, refreshed from YouTube, shared between everyone who tracks
+// the same competitor. `ideas` is the much smaller set this user has actually
+// ruled on or paid to have read. The inbox is the first minus the second, so
+// dismissing something uncovers the next best video instead of emptying the
+// tab - which is what used to happen when the feed WAS the paid list.
 export function CompetitorsPage() {
-  const [mode, setMode] = useState<CompetitorsMode>(readSavedMode);
   const [channels, setChannels] = useState<CompetitorChannel[]>([]);
+  const [pool, setPool] = useState<PoolVideo[]>([]);
   const [ideas, setIdeas] = useState<CompetitorIdea[]>([]);
   const [addingChannel, setAddingChannel] = useState(false);
-  const [fetchingIdeas, setFetchingIdeas] = useState(false);
-  const [clearingIdeas, setClearingIdeas] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+  const [clearing, setClearing] = useState(false);
   const [addError, setAddError] = useState('');
   const [fetchError, setFetchError] = useState('');
-  // "Nothing beat its channel average" is the expected outcome of most runs, so
-  // it reads as a status line rather than a failure.
+  // "Everything is already up to date" is the expected outcome of most
+  // refreshes now, so it reads as a status line rather than a failure.
   const [fetchNotice, setFetchNotice] = useState('');
   const [initialLoading, setInitialLoading] = useState(true);
   const [removingId, setRemovingId] = useState<string | null>(null);
   const [syncingChannelId, setSyncingChannelId] = useState<string | null>(null);
   const [ideaFilter, setIdeaFilter] = useState<IdeaFilter>('new');
+  // Not a gate any more - it only decides how many channels may be tracked,
+  // which the manage panel shows.
   const [userPlan, setUserPlan] = useState<string>('free');
-  const [folders, setFolders] = useState<IdeaFolder[]>([]);
-  const [deletingFolderId, setDeletingFolderId] = useState<string | null>(null);
-  const [openIdeaId, setOpenIdeaId] = useState<string | null>(null);
-  const [savingIdeaId, setSavingIdeaId] = useState<string | null>(null);
-
-  const select = (m: CompetitorsMode) => {
-    setMode(m);
-    localStorage.setItem(SUB_MODE_KEY, m);
-  };
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [openVideoId, setOpenVideoId] = useState<string | null>(null);
+  const [enrichingId, setEnrichingId] = useState<string | null>(null);
+  // Lives up here rather than in the feed because it now steers the enrichment
+  // call as well as the refresh, and both are launched from this component.
+  const [adaptForProfile, setAdaptForProfile] = useState(true);
+  const [findOpen, setFindOpen] = useState(false);
 
   const loadData = useCallback(async () => {
     try {
-      const token = await getSessionToken();
-      if (!token) return;
-      const payload = JSON.parse(atob(token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')));
-      const userId = payload.sub;
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      const userId = user.id;
 
-      const [{ data: planData }, { data: channelData }, { data: ideaData }, { data: folderData }] = await Promise.all([
+      const [{ data: planData }, { data: channelData }, { data: ideaData }, projectData] = await Promise.all([
         supabase.from('user_tokens').select('plan').eq('user_id', userId).maybeSingle(),
         supabase.from('competitor_channels').select('*').eq('user_id', userId).order('created_at', { ascending: true }),
-        supabase.from('competitor_ideas').select('*').eq('user_id', userId).order('video_published_at', { ascending: false }),
-        supabase.from('idea_folders').select('*').eq('user_id', userId).order('created_at', { ascending: true }),
+        supabase.from('competitor_ideas').select('*').eq('user_id', userId),
+        listProjects(),
       ]);
 
-      setFolders(folderData || []);
-
+      setProjects(projectData);
       setUserPlan(planData?.plan || 'free');
 
       const mappedChannels = (channelData || []).map((c: any) => ({
@@ -75,6 +69,20 @@ export function CompetitorsPage() {
       }));
       setChannels(mappedChannels);
       setIdeas(ideaData || []);
+
+      // Read straight from the table rather than through the refresh function:
+      // opening the tab should show what is already known instantly, and only
+      // an explicit refresh should go out to YouTube.
+      if (mappedChannels.length) {
+        const { data: poolData } = await supabase
+          .from('competitor_videos')
+          .select('*')
+          .in('channel_id', mappedChannels.map((c: any) => c.channel_id))
+          .order('outlier_score', { ascending: false, nullsFirst: false });
+        setPool(poolData || []);
+      } else {
+        setPool([]);
+      }
     } catch (e) {
       console.error('[CompetitorsPage] loadData error:', e);
     } finally {
@@ -82,9 +90,7 @@ export function CompetitorsPage() {
     }
   }, []);
 
-  useEffect(() => {
-    loadData();
-  }, [loadData]);
+  useEffect(() => { loadData(); }, [loadData]);
 
   const handleAddChannel = async (channelUrl: string) => {
     setAddingChannel(true);
@@ -97,15 +103,16 @@ export function CompetitorsPage() {
       if (!res.ok) throw new Error(data.error || 'Failed to add channel');
       await loadData();
 
-      // The new channel gets its own one-off sync immediately, scoped to just
-      // that channel, instead of waiting on the shared 12h refresh window.
+      // The new channel gets its own pool built immediately, scoped to just
+      // that channel. It costs three YouTube reads and nothing else, so there
+      // is no reason to make someone wait for the next manual refresh.
       const newChannelId = data.channel?.channel_id;
       if (newChannelId) {
         setSyncingChannelId(data.channel.id);
         try {
           const syncRes = await callFunction('fetch-competitor-ideas', token, { channelId: newChannelId });
           const syncData = await syncRes.json();
-          if (syncRes.ok && syncData.ideas) setIdeas(syncData.ideas);
+          if (syncRes.ok && syncData.videos) setPool(syncData.videos);
         } catch (e) {
           console.error('[CompetitorsPage] onboarding sync error:', e);
         } finally {
@@ -119,15 +126,27 @@ export function CompetitorsPage() {
     }
   };
 
+  // Auto-find hands back channel ids; each goes through the same endpoint a
+  // pasted URL does, so the five-channel cap, the id resolution and the
+  // first-sync are enforced in one place rather than two. Sequential on
+  // purpose: the cap is checked server-side per call, and firing five at once
+  // would race past it.
+  const handleAddFound = async (channelIds: string[]) => {
+    for (const id of channelIds) {
+      await handleAddChannel(`https://www.youtube.com/channel/${id}`);
+    }
+  };
+
   const handleRemoveChannel = async (channel: CompetitorChannel) => {
     setRemovingId(channel.id);
     try {
-      const token = await getSessionToken();
-      if (!token) throw new Error('Not authenticated');
-      const payload = JSON.parse(atob(token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')));
-      const userId = payload.sub;
-      await supabase.from('competitor_channels').delete().eq('id', channel.id).eq('user_id', userId);
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Not authenticated');
+      await supabase.from('competitor_channels').delete().eq('id', channel.id).eq('user_id', user.id);
       setChannels(prev => prev.filter(c => c.id !== channel.id));
+      // The pooled videos stay in the table - another user may track the same
+      // channel - they just stop being visible here.
+      setPool(prev => prev.filter(v => v.channel_id !== channel.channel_id));
     } catch (e) {
       console.error('[CompetitorsPage] remove channel error:', e);
     } finally {
@@ -135,270 +154,234 @@ export function CompetitorsPage() {
     }
   };
 
-  const handleFetchIdeas = async (adaptForProfile = true) => {
-    setFetchingIdeas(true);
+  const handleRefresh = async () => {
+    setRefreshing(true);
     setFetchError('');
     setFetchNotice('');
     try {
       const token = await getSessionToken();
       if (!token) throw new Error('Not authenticated');
-      const res = await callFunction('fetch-competitor-ideas', token, { adaptForProfile });
+      const res = await callFunction('fetch-competitor-ideas', token, {});
       const data = await res.json();
       if (data.error === 'upgrade_required') {
         window.dispatchEvent(new CustomEvent('hershy:navigate', { detail: 'upgrade' }));
         return;
       }
-      if (data.error === 'rate_limited' || data.error === 'idle_throttled') {
-        setFetchNotice(data.message || 'You can run competitor analysis once every 12 hours. Try again later.');
-        return;
-      }
-      if (!res.ok) throw new Error(data.error || 'Failed to fetch ideas');
-      setIdeas(data.ideas || []);
-      if (data.processed === 0 && data.message) {
-        setFetchNotice(data.message);
-      } else if (data.processed > 0) {
-        setIdeaFilter('new');
-        select('feed');
-      }
+      if (!res.ok) throw new Error(data.error || 'Could not refresh');
+      setPool(data.videos || []);
+      if (data.message) setFetchNotice(data.message);
     } catch (e) {
       setFetchError(e instanceof Error ? e.message : 'Something went wrong');
     } finally {
-      setFetchingIdeas(false);
+      setRefreshing(false);
     }
   };
 
-  // Writes through to the database as well as local state. The grid's save
-  // and dismiss buttons used to call a local-only version of this, so a
-  // rating survived until the next reload and no further.
-  const handleIdeaUpdated = (updated: CompetitorIdea) => {
-    setIdeas(prev => prev.map(idea => idea.id === updated.id ? updated : idea));
+  // Records a decision on a video. This is the row that used to only exist
+  // after the model had run - now it is written the moment you rule on
+  // something, whether or not anything has read it, and enrichment fills in
+  // the rest later if you ask for it.
+  const ruleOn = async (items: FeedItem[], liked: boolean | null, projectId?: string | null) => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    const rows = items.map(item => ({
+      user_id: user.id,
+      channel_id: item.channel_id,
+      channel_name: item.channel_name,
+      video_id: item.video_id,
+      video_title: item.video_title,
+      video_views: item.video_views,
+      video_published_at: item.video_published_at,
+      outlier_score: item.outlier_score,
+      liked,
+      ...(projectId !== undefined ? { project_id: projectId } : {}),
+    }));
+
+    // Optimistic, because triage has to feel instant: the card should leave the
+    // inbox on the click, not on the round trip. A row that does not exist yet
+    // gets a `pending-` id, which handleIdeaUpdated refuses to write against -
+    // it is a placeholder for one render, not a database key.
+    setIdeas(prev => {
+      const next = [...prev];
+      rows.forEach((row, i) => {
+        const at = next.findIndex(x => x.video_id === row.video_id);
+        if (at >= 0) next[at] = { ...next[at], ...row };
+        else next.push({ ...(items[i].idea ?? {}), ...row, id: `pending-${row.video_id}` } as CompetitorIdea);
+      });
+      return next;
+    });
+
+    const { data, error } = await supabase
+      .from('competitor_ideas')
+      .upsert(rows, { onConflict: 'user_id,video_id' })
+      .select();
+    // Filing something into a project counts as work on that project, so it
+    // moves up the Projects list.
+    if (projectId) touchProject(projectId);
+
+    if (error) {
+      console.error('[CompetitorsPage] rule error:', error);
+      setFetchError('Could not save that. Try again.');
+      loadData();
+      return;
+    }
+    // Swap the optimistic rows for the real ones, so they carry a real id.
+    const saved = new Map((data ?? []).map((r: any) => [r.video_id, r as CompetitorIdea]));
+    setIdeas(prev => prev.map(i => saved.get(i.video_id) ?? i));
+  };
+
+  // Runs the model on one video: transcript in, concept and an angle for this
+  // channel out. The only billed action on this screen, and it happens because
+  // someone asked for this specific video.
+  const enrich = async (item: FeedItem): Promise<CompetitorIdea | null> => {
+    if (item.idea?.concept) return item.idea;
+    setEnrichingId(item.video_id);
+    setFetchError('');
+    try {
+      const token = await getSessionToken();
+      if (!token) throw new Error('Not authenticated');
+      const res = await callFunction('enrich-competitor-video', token, { videoId: item.video_id, adaptForProfile });
+      const data = await res.json();
+      if (data.error === 'upgrade_required') {
+        window.dispatchEvent(new CustomEvent('hershy:navigate', { detail: 'upgrade' }));
+        return null;
+      }
+      if (data.error === 'limit_reached') {
+        setFetchError("You've used all your credits for this month.");
+        return null;
+      }
+      if (!res.ok) throw new Error(data.error || 'Could not read that video');
+      handleIdeaUpdated(data.idea, { persist: false });
+      return data.idea as CompetitorIdea;
+    } catch (e) {
+      setFetchError(e instanceof Error ? e.message : 'Could not read that video');
+      return null;
+    } finally {
+      setEnrichingId(null);
+    }
+  };
+
+  // Writes through to the database as well as local state, except when the
+  // caller has already persisted (an enrichment response is the stored row).
+  const handleIdeaUpdated = (updated: CompetitorIdea, { persist = true }: { persist?: boolean } = {}) => {
+    setIdeas(prev => {
+      const at = prev.findIndex(i => i.video_id === updated.video_id);
+      if (at < 0) return [...prev, updated];
+      const next = [...prev];
+      next[at] = updated;
+      return next;
+    });
+    if (!persist) return;
+    // An optimistic placeholder has no row to update yet; the real one lands a
+    // moment later from the upsert and carries the same fields.
+    if (updated.id.startsWith('pending-')) return;
     supabase
       .from('competitor_ideas')
-      .update({ liked: updated.liked, folder_id: updated.folder_id, outline: updated.outline })
+      .update({ liked: updated.liked, project_id: updated.project_id, outline: updated.outline })
       .eq('id', updated.id)
       .then(({ error }) => { if (error) console.error('[CompetitorsPage] persist idea error:', error); });
   };
 
-  const handleCreateFolder = async (name: string): Promise<IdeaFolder | null> => {
-    const token = await getSessionToken();
-    if (!token) return null;
-    const payload = JSON.parse(atob(token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')));
-    const { data, error } = await supabase
-      .from('idea_folders')
-      .insert({ user_id: payload.sub, name })
-      .select()
-      .single();
-    if (error || !data) {
-      setFetchError(error?.message.includes('duplicate') ? 'A folder with that name already exists.' : 'Could not create the folder.');
-      return null;
-    }
-    setFolders(prev => [...prev, data]);
-    return data;
-  };
+  const inbox = inboxItems(pool, ideas);
 
-  // The ideas inside are deliberately kept — the column is ON DELETE SET
-  // NULL, so they fall back to Unfiled rather than disappearing with the
-  // folder.
-  const handleDeleteFolder = async (folder: IdeaFolder) => {
-    if (!window.confirm(`Delete "${folder.name}"? The ideas inside stay saved, just unfiled.`)) return;
-    setDeletingFolderId(folder.id);
-    const { error } = await supabase.from('idea_folders').delete().eq('id', folder.id);
-    setDeletingFolderId(null);
-    if (error) { setFetchError('Could not delete the folder.'); return; }
-    setFolders(prev => prev.filter(f => f.id !== folder.id));
-    setIdeas(prev => prev.map(i => (i.folder_id === folder.id ? { ...i, folder_id: null } : i)));
-  };
-
-  // Dismisses the inbox rather than deleting it. Deleting would also wipe the
-  // record of which videos have already been analyzed, so the next run would
-  // re-analyze the same videos and bill for them a second time. Saved ideas are
-  // left alone.
-  const handleClearIdeas = async () => {
-    const inbox = filterIdeas(ideas, 'new');
-    if (inbox.length === 0) return;
-    if (!window.confirm(`Dismiss ${inbox.length} unreviewed idea${inbox.length !== 1 ? 's' : ''}? Saved ideas stay.`)) return;
-    setClearingIdeas(true);
-    try {
-      const token = await getSessionToken();
-      if (!token) throw new Error('Not authenticated');
-      const payload = JSON.parse(atob(token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')));
-      const userId = payload.sub;
-      const inboxIds = inbox.map(i => i.id);
-      const { error } = await supabase
-        .from('competitor_ideas')
-        .update({ liked: false })
-        .eq('user_id', userId)
-        .in('id', inboxIds);
-      if (error) throw error;
-      const cleared = new Set(inboxIds);
-      setIdeas(prev => prev.map(i => (cleared.has(i.id) ? { ...i, liked: false } : i)));
-    } catch (e) {
-      console.error('[CompetitorsPage] clear ideas error:', e);
-      setFetchError(e instanceof Error ? e.message : 'Failed to clear ideas');
-    } finally {
-      setClearingIdeas(false);
-    }
+  // Dismisses what is on screen, not the whole pool. Clearing the inbox is now
+  // an act of triage rather than a reset: the next batch of outliers is already
+  // sitting behind these, and dismissing costs nothing either way.
+  const handleClearInbox = async (visible: FeedItem[]) => {
+    if (visible.length === 0) return;
+    if (!window.confirm(`Dismiss ${visible.length} idea${visible.length !== 1 ? 's' : ''}? The next best ones take their place.`)) return;
+    setClearing(true);
+    await ruleOn(visible, false);
+    setClearing(false);
   };
 
   if (initialLoading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <Loader2 className="w-8 h-8 text-[var(--accent)] animate-spin" />
-      </div>
+      <Page width="lg">
+        <div className="flex justify-center pt-16">
+          <Loader2 className="w-5 h-5 animate-spin" style={{ color: 'var(--text-faint)' }} />
+        </div>
+      </Page>
     );
   }
 
-  if (userPlan === 'free') {
+  // One list, three states. `filter` decides which of them is on screen, and
+  // the counts are what the tabs show.
+  const dismissedItems = filterIdeas(ideas, 'dismissed').map(itemFromIdea);
+  const savedItems = filterIdeas(ideas, 'saved').map(itemFromIdea);
+  const items = ideaFilter === 'new' ? inbox : ideaFilter === 'saved' ? savedItems : dismissedItems;
+  const counts: Record<IdeaFilter, number> = {
+    new: inbox.length, saved: savedItems.length, dismissed: dismissedItems.length,
+  };
+
+  const openItem = openVideoId
+    ? items.find(i => i.video_id === openVideoId)
+      ?? inbox.find(i => i.video_id === openVideoId)
+      ?? (ideas.find(i => i.video_id === openVideoId) ? itemFromIdea(ideas.find(i => i.video_id === openVideoId)!) : null)
+    : null;
+
+  // Working on a video takes over the whole screen rather than sliding a tray
+  // over the grid, so an outline has somewhere to be read.
+  if (openItem) {
     return (
-      <div className="max-w-3xl mx-auto px-4 sm:px-6 pt-4 sm:pt-6 pb-8 space-y-5 sm:space-y-8 animate-fade-in-up">
-        <div className="hidden lg:block">
-          <h1 className="text-2xl font-bold text-white mb-1">Competitors</h1>
-          <p className="text-sm text-gray-500 text-balance">Track competitor channels and generate content ideas</p>
-        </div>
-        <div className="rounded-2xl p-8 flex flex-col items-center text-center space-y-4 glass-panel-accent">
-          <div className="w-12 h-12 rounded-2xl flex items-center justify-center" style={{ background: 'rgba(var(--accent-rgb),0.12)' }}>
-            <Users className="w-6 h-6 text-[var(--accent)]" />
-          </div>
-          <div className="space-y-1.5">
-            <p className="text-white font-semibold text-base">Competitors is a Plus feature</p>
-            <p className="text-gray-400 text-sm max-w-sm">Track up to 5 competitor channels, get AI-extracted ideas and outlines tailored to your niche.</p>
-          </div>
-          <button
-            onClick={() => window.dispatchEvent(new CustomEvent('hershy:navigate', { detail: 'upgrade' }))}
-            className="px-6 py-2.5 rounded-xl text-white text-sm font-semibold transition-all hover:opacity-90"
-            style={{ background: 'var(--accent)', color: 'var(--on-accent)' }}
-          >
-            Upgrade to Plus
-          </button>
-        </div>
-      </div>
+      <CompetitorVideoView
+        item={openItem}
+        projects={projects}
+        onBack={() => setOpenVideoId(null)}
+        onBreakDown={() => enrich(openItem)}
+        breaking={enrichingId === openItem.video_id}
+        onSave={() => ruleOn([openItem], openItem.idea?.liked === true ? null : true)}
+        onDismiss={() => ruleOn([openItem], openItem.idea?.liked === false ? null : false)}
+        onFile={projectId => ruleOn([openItem], true, projectId)}
+        onUpdated={handleIdeaUpdated}
+      />
     );
   }
-
-  const inboxCount = filterIdeas(ideas, 'new').length;
-  const savedCount = ideas.filter(i => i.liked === true).length;
-  const openIdea = openIdeaId ? ideas.find(i => i.id === openIdeaId) ?? null : null;
-  const savingIdea = savingIdeaId ? ideas.find(i => i.id === savingIdeaId) ?? null : null;
-
-  const modes: { id: CompetitorsMode; label: string; icon: React.ReactNode; badge: number }[] = [
-    { id: 'feed', label: 'Feed', icon: <ListChecks className="w-4 h-4" />, badge: inboxCount },
-    { id: 'saved', label: 'Saved', icon: <Bookmark className="w-4 h-4" />, badge: savedCount },
-  ];
 
   return (
-    <div className="h-full flex">
-      {/* Desktop sub-nav — same shell as AnalyzeHub. pt-16 clears AppShell's
-          fixed sidebar-collapse toggle. */}
-      <div className="hidden lg:flex lg:flex-col w-44 flex-shrink-0 px-3 pt-16 pb-5 gap-0.5" style={{ borderRight: '1px solid rgba(255,255,255,0.08)' }}>
-        {modes.map(m => (
-          <button
-            key={m.id}
-            onClick={() => select(m.id)}
-            className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm font-medium transition-all ${
-              mode === m.id
-                ? 'bg-[var(--accent)]/15 text-[var(--accent)] ring-1 ring-inset ring-[var(--accent)]/20'
-                : 'text-gray-400 hover:text-white hover:bg-white/5'
-            }`}
-          >
-            {m.icon}
-            <span className="flex-1 text-left">{m.label}</span>
-            {m.badge > 0 && (
-              <span
-                className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full tabular-nums"
-                style={mode === m.id ? { background: 'rgba(var(--accent-rgb),0.22)', color: 'var(--accent-soft)' } : { background: 'rgba(255,255,255,0.08)', color: '#9ca3af' }}
-              >
-                {m.badge}
-              </span>
-            )}
-          </button>
-        ))}
-      </div>
+    <Page width="lg">
+      <PageHead
+        eyebrow="Competitors"
+        title="What beat its own average"
+        subtitle="Finding them is free. Reading one costs a credit."
+      />
 
-      <div className="flex-1 min-w-0 h-full flex flex-col">
-        {/* Mobile sub-nav */}
-        <div className="lg:hidden flex items-center gap-2 px-4 pt-3 pb-2 flex-shrink-0 overflow-x-auto" style={{ borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
-          {modes.map(m => (
-            <button
-              key={m.id}
-              onClick={() => select(m.id)}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-all flex-shrink-0 ${
-                mode === m.id ? 'bg-[var(--accent)]/15 text-[var(--accent)]' : 'text-gray-500 hover:text-gray-300'
-              }`}
-            >
-              {m.icon}
-              {m.label}
-              {m.badge > 0 && <span className="tabular-nums">({m.badge})</span>}
-            </button>
-          ))}
-        </div>
+      <CompetitorsFeed
+        items={items}
+        counts={counts}
+        pool={pool}
+        channels={channels}
+        filter={ideaFilter}
+        onFilterChange={setIdeaFilter}
+        onOpen={item => setOpenVideoId(item.video_id)}
+        onDismiss={item => ruleOn([item], item.idea?.liked === false ? null : false)}
+        onSave={item => ruleOn([item], item.idea?.liked === true ? null : true)}
+        onClear={handleClearInbox}
+        clearing={clearing}
+        addingChannel={addingChannel}
+        addError={addError}
+        removingId={removingId}
+        syncingChannelId={syncingChannelId}
+        onAddChannel={handleAddChannel}
+        onRemoveChannel={handleRemoveChannel}
+        onAutoFind={() => setFindOpen(true)}
+        channelLimit={userPlan === 'free' ? 3 : 5}
+        refreshing={refreshing}
+        fetchError={fetchError}
+        fetchNotice={fetchNotice}
+        onRefresh={handleRefresh}
+        adaptForProfile={adaptForProfile}
+        onAdaptChange={setAdaptForProfile}
+      />
 
-        <div className="flex-1 min-h-0 overflow-y-auto">
-          {mode === 'feed' && (
-            <CompetitorsFeed
-              ideas={ideas}
-              channels={channels}
-              filter={ideaFilter}
-              onFilterChange={setIdeaFilter}
-              onIdeaUpdated={handleIdeaUpdated}
-              onOpenIdea={setOpenIdeaId}
-              onSaveIdea={idea => setSavingIdeaId(idea.id)}
-              onClear={handleClearIdeas}
-              clearingIdeas={clearingIdeas}
-              addingChannel={addingChannel}
-              addError={addError}
-              removingId={removingId}
-              syncingChannelId={syncingChannelId}
-              onAddChannel={handleAddChannel}
-              onRemoveChannel={handleRemoveChannel}
-              fetchingIdeas={fetchingIdeas}
-              fetchError={fetchError}
-              fetchNotice={fetchNotice}
-              onFetchIdeas={handleFetchIdeas}
-            />
-          )}
-          {mode === 'saved' && (
-            <CompetitorsSaved
-              ideas={ideas}
-              folders={folders}
-              onIdeaUpdated={handleIdeaUpdated}
-              onOpenIdea={setOpenIdeaId}
-              onSaveIdea={idea => setSavingIdeaId(idea.id)}
-              onCreateFolder={handleCreateFolder}
-              onDeleteFolder={handleDeleteFolder}
-              deletingFolderId={deletingFolderId}
-            />
-          )}
-        </div>
-      </div>
-
-      {/* Both live at page level so an idea opened from the Feed and the same
-          idea opened from Saved get the identical panel. */}
-      {openIdea && (
-        <CompetitorIdeaDrawer
-          idea={openIdea}
-          onClose={() => setOpenIdeaId(null)}
-          onUpdated={handleIdeaUpdated}
-          onSave={() => setSavingIdeaId(openIdea.id)}
+      {findOpen && (
+        <FindCompetitorsModal
+          slotsLeft={Math.max(0, (userPlan === 'free' ? 3 : 5) - channels.length)}
+          onAdd={handleAddFound}
+          onClose={() => setFindOpen(false)}
         />
       )}
-
-      {savingIdea && (
-        <SaveToFolderModal
-          folders={folders}
-          currentFolderId={savingIdea.folder_id}
-          isSaved={savingIdea.liked === true}
-          onPick={folderId => {
-            handleIdeaUpdated({ ...savingIdea, liked: true, folder_id: folderId });
-            setSavingIdeaId(null);
-          }}
-          onUnsave={() => {
-            handleIdeaUpdated({ ...savingIdea, liked: null, folder_id: null });
-            setSavingIdeaId(null);
-          }}
-          onCreateFolder={handleCreateFolder}
-          onClose={() => setSavingIdeaId(null)}
-        />
-      )}
-    </div>
+    </Page>
   );
 }

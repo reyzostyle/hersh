@@ -3,6 +3,7 @@ import { RefreshOutlineIcon as Loader2, Stars2OutlineIcon as Sparkles, AltArrowD
 import { type CompetitorIdea } from '../lib/competitors';
 import { useIdeaGeneration } from '../lib/useIdeaGeneration';
 import { ErrorNotice } from './ErrorNotice';
+import { CREDIT_COSTS } from '../lib/useUsage';
 
 // The AI half of an idea: what the competitor did, the angle rewritten for
 // you, and the outline. Full script generation was dropped 2026-08-23 — the
@@ -109,7 +110,9 @@ export function CompetitorIdeaAnalysis({ idea, onUpdated, stickyActions = false 
             style={{ background: 'rgba(var(--ok-rgb),0.12)', color: '#6ee7b7', border: '1px solid rgba(var(--ok-rgb),0.25)' }}
           >
             {generatingOutline ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
-            {generatingOutline ? 'Creating outline...' : 'Create Outline'}
+            {generatingOutline
+              ? 'Watching the video'
+              : `Create outline · ${CREDIT_COSTS.competitor_outline} cr`}
           </button>
         </div>
       )}

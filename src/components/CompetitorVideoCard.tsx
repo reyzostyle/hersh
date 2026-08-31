@@ -1,111 +1,82 @@
-import { EyeOutlineIcon as Eye, EyeClosedOutlineIcon as EyeOff, GraphUpOutlineIcon as TrendingUp, Stars2OutlineIcon as Sparkles, RefreshOutlineIcon as Loader2, AddFolderOutlineIcon as FolderPlus, SquareArrowRightUpOutlineIcon as ExternalLink } from '@solar-icons/react';
+import { EyeOutlineIcon as Eye, SlashCircleOutlineIcon as Dismissed, GraphUpOutlineIcon as TrendingUp, BookmarkOutlineIcon as Bookmark } from '@solar-icons/react';
 import { Check } from './BrandIcons';
-import { formatViews, formatDate, type CompetitorIdea } from '../lib/competitors';
-import { useIdeaGeneration } from '../lib/useIdeaGeneration';
+import { formatViews, formatDate, type FeedItem } from '../lib/competitors';
 
-// Text-first, no thumbnail. The 16:9 image block was most of the card's
-// height while telling you almost nothing — a Shorts mqdefault is the
-// vertical frame padded with blur — so on a phone you could compare two
-// ideas per screen. The multiplier, the title and the first lines of the
-// angle are what you actually judge on, and those fit three or four to a
-// screen without an image.
-export function CompetitorVideoCard({ idea, onOpen, onLike, onUpdated, onSave }: {
-  idea: CompetitorIdea;
+// A tile in the grid, and nothing more. It used to carry a preview of the
+// written angle and two more buttons, which made every card a small document
+// you had to read to get past. Triage is a glance: how hard it beat its
+// channel, what it was, keep or drop. Everything else happens on the video's
+// own screen.
+export function CompetitorVideoCard({ item, onOpen, onDismiss, onSave }: {
+  item: FeedItem;
   onOpen: () => void;
-  onLike: (value: boolean) => void;
-  onUpdated: (updated: CompetitorIdea) => void;
+  onDismiss: () => void;
   onSave: () => void;
 }) {
-  const hasOutline = !!idea.outline;
-  const { generatingOutline, generateOutline } = useIdeaGeneration(idea, onUpdated);
-
-  const handleAction = async () => {
-    if (hasOutline) { onOpen(); return; }
-    if (await generateOutline()) onOpen();
-  };
+  const idea = item.idea;
+  const isSaved = idea?.liked === true;
+  const isDismissed = idea?.liked === false;
 
   return (
     <div
-      className="group rounded-xl p-3 flex flex-col gap-2 transition-all cursor-pointer glass-panel hover:ring-1 hover:ring-[var(--accent)]/40"
-      style={{ opacity: idea.liked === false ? 0.45 : 1 }}
+      className="group rounded-[var(--r-md)] p-3.5 flex flex-col gap-2.5 transition-colors cursor-pointer"
+      style={{
+        background: 'var(--bg-raised)',
+        border: '1px solid var(--line)',
+        opacity: isDismissed ? 0.5 : 1,
+      }}
       onClick={onOpen}
       role="button"
       tabIndex={0}
       onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onOpen(); } }}
     >
-      {/* Header: the numbers you sort on, in one line */}
       <div className="flex items-center gap-2 min-w-0">
-        {idea.outlier_score != null && (
+        {item.outlier_score != null && (
           <span
-            className="flex items-center gap-1 text-[11px] font-bold px-1.5 py-0.5 rounded-md flex-shrink-0"
-            style={{ background: 'rgba(var(--ok-rgb),0.14)', color: '#6ee7b7' }}
-            title="Views per day versus this channel's usual pace"
+            className="flex items-center gap-1 font-mono text-[11px] px-1.5 py-0.5 rounded flex-shrink-0 tabular-nums"
+            style={{ background: 'rgba(var(--process-rgb),0.12)', color: 'var(--process)' }}
+            title="Views against this channel's median"
           >
             <TrendingUp className="w-3 h-3" />
-            {idea.outlier_score}x
+            {item.outlier_score}x
           </span>
         )}
-        <span className="text-[11px] text-gray-500 truncate min-w-0">{idea.channel_name}</span>
-        <span className="ml-auto flex items-center gap-2 flex-shrink-0 text-[11px] text-gray-600 tabular-nums">
-          {idea.video_views !== null && (
-            <span className="flex items-center gap-1"><Eye className="w-3 h-3" />{formatViews(idea.video_views)}</span>
+        <span className="ml-auto flex items-center gap-2 flex-shrink-0 font-mono text-[11px] tabular-nums" style={{ color: 'var(--text-faint)' }}>
+          {item.video_views !== null && (
+            <span className="flex items-center gap-1"><Eye className="w-3 h-3" />{formatViews(item.video_views)}</span>
           )}
-          {idea.video_published_at && <span>{formatDate(idea.video_published_at)}</span>}
+          {item.video_published_at && <span>{formatDate(item.video_published_at)}</span>}
         </span>
       </div>
 
-      <p className="text-white text-[13px] font-medium leading-snug line-clamp-2">
-        {idea.video_title || 'Untitled video'}
+      <p className="text-[13px] font-medium leading-snug line-clamp-2" style={{ color: 'var(--text)' }}>
+        {item.video_title || 'Untitled video'}
       </p>
 
-      {idea.adapted_idea && (
-        <p className="text-[12px] leading-relaxed line-clamp-2 text-white/70/70">
-          {idea.adapted_idea}
-        </p>
-      )}
+      <p className="text-[11px] truncate" style={{ color: 'var(--text-faint)' }}>{item.channel_name}</p>
 
-      {/* Action pills. stopPropagation so filing or dismissing an idea never
-          also opens it — the feed is meant to be cleared fast. */}
-      <div className="flex items-center gap-1.5 mt-auto pt-0.5" onClick={e => e.stopPropagation()}>
+      {/* stopPropagation so keeping or dropping never also opens the card. */}
+      <div className="flex items-center gap-1 mt-auto pt-1" onClick={e => e.stopPropagation()}>
         <button
           onClick={onSave}
-          title={idea.liked === true ? 'Saved — change folder' : 'Save to folder'}
-          className="flex items-center gap-1 text-[11px] font-medium px-2 py-1 rounded-lg transition-colors"
-          style={idea.liked === true
-            ? { background: 'rgba(var(--ok-rgb),0.12)', color: '#6ee7b7' }
-            : { color: '#6b7280' }}
+          title={isSaved ? 'Saved' : 'Save'}
+          className="flex items-center gap-1 text-[11px] font-medium px-2 py-1 rounded-[var(--r-sm)] transition-colors"
+          style={isSaved
+            ? { background: 'rgba(var(--process-rgb),0.12)', color: 'var(--process)' }
+            : { color: 'var(--text-faint)' }}
         >
-          {idea.liked === true ? <Check className="w-3 h-3" /> : <FolderPlus className="w-3 h-3" />}
-          {idea.liked === true ? 'Saved' : 'Save'}
+          {isSaved ? <Check className="w-3 h-3" /> : <Bookmark className="w-3 h-3" />}
+          {isSaved ? 'Saved' : 'Save'}
         </button>
 
         <button
-          onClick={() => onLike(false)}
-          title="Dismiss idea"
-          className="p-1 rounded-lg transition-colors"
-          style={{ color: idea.liked === false ? '#9ca3af' : '#4b5563' }}
+          onClick={onDismiss}
+          title={isDismissed ? 'Put back' : 'Dismiss'}
+          className="flex items-center gap-1 text-[11px] font-medium px-2 py-1 rounded-[var(--r-sm)] transition-colors hover:text-[var(--text)]"
+          style={{ color: 'var(--text-faint)' }}
         >
-          <EyeOff className="w-3.5 h-3.5" />
-        </button>
-
-        <a
-          href={`https://www.youtube.com/watch?v=${idea.video_id}`}
-          target="_blank"
-          rel="noopener noreferrer"
-          title="Open on YouTube"
-          className="p-1 rounded-lg text-gray-600 hover:text-gray-300 transition-colors"
-        >
-          <ExternalLink className="w-3.5 h-3.5" />
-        </a>
-
-        <button
-          onClick={handleAction}
-          disabled={generatingOutline}
-          className="ml-auto flex items-center gap-1 text-[11px] font-semibold px-2 py-1 rounded-lg transition-colors disabled:opacity-60"
-          style={{ color: 'var(--accent-soft)', background: 'rgba(var(--accent-rgb),0.10)' }}
-        >
-          {generatingOutline ? <Loader2 className="w-3 h-3 animate-spin" /> : <Sparkles className="w-3 h-3" />}
-          {generatingOutline ? 'Creating...' : hasOutline ? 'View outline' : 'Create outline'}
+          <Dismissed className="w-3 h-3" />
+          {isDismissed ? 'Restore' : 'Dismiss'}
         </button>
       </div>
     </div>

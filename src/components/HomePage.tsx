@@ -1,6 +1,7 @@
 import { VideocameraOutlineIcon as VideoIcon, FolderOutlineIcon as Folder, UsersGroupRoundedOutlineIcon as Users, ArrowRightUpOutlineIcon as ArrowUpRight } from '@solar-icons/react';
 import { useAuth } from '../contexts/AuthContext';
 import { NavTab, HIDDEN_TABS } from './AppShell';
+import { Page, PageHead } from './Page';
 
 interface HomePageProps {
   onNavigate: (tab: NavTab) => void;
@@ -46,18 +47,18 @@ export function HomePage({ onNavigate }: HomePageProps) {
   const visibleTools = tools.filter(t => !HIDDEN_TABS.includes(t.id));
 
   return (
-    <div className="max-w-3xl mx-auto px-5 sm:px-8 pt-12 sm:pt-20 pb-16">
-      <p className="label-mono mb-4">Workspace</p>
-
-      <h1 className="display text-white mb-3">
-        {name ? `Welcome back, ${name}` : 'Welcome back'}
-      </h1>
-      <p className="text-[15px] text-white/40 mb-12 max-w-md">
-        Pick a tool and get to work.
-      </p>
+    <Page>
+      <PageHead
+        eyebrow="Workspace"
+        title={name ? `Welcome back, ${name}` : 'Welcome back'}
+        subtitle="Pick a tool and get to work."
+      />
 
       {/* A single column, not a grid of small cards. Fewer, larger rows read as
-          deliberate; four tiles of the same weight read as a template. */}
+          deliberate; four tiles of the same weight read as a template. The rows
+          sit on the sheet, so the hairline between two of them is the only
+          horizontal line the eye has to resolve — the ruled grid used to add a
+          second one at a slightly different grey, right through the copy. */}
       <div style={{ borderTop: '1px solid var(--line)' }}>
         {visibleTools.map(tool => (
           <button
@@ -66,22 +67,22 @@ export function HomePage({ onNavigate }: HomePageProps) {
             className="group w-full text-left flex items-start gap-5 py-5 transition-colors"
             style={{ borderBottom: '1px solid var(--line)' }}
           >
-            <span className="font-mono text-[11px] text-white/25 pt-1 w-6 flex-shrink-0 tabular-nums">
+            <span className="font-mono text-[11px] pt-1 w-6 flex-shrink-0 tabular-nums" style={{ color: 'var(--text-faint)' }}>
               {tool.index}
             </span>
-            <span className="text-white/40 pt-0.5 flex-shrink-0 transition-colors group-hover:text-white">
+            <span className="pt-0.5 flex-shrink-0 transition-colors group-hover:text-[var(--text)]" style={{ color: 'var(--text-muted)' }}>
               {tool.icon}
             </span>
             <span className="flex-1 min-w-0">
-              <span className="block text-[15px] font-medium text-white mb-1">{tool.label}</span>
-              <span className="block text-[13px] leading-relaxed text-white/40 text-balance">
+              <span className="block text-[15px] font-medium mb-1" style={{ color: 'var(--text)' }}>{tool.label}</span>
+              <span className="block text-[13px] leading-relaxed text-balance" style={{ color: 'var(--text-muted)' }}>
                 {tool.description}
               </span>
             </span>
-            <ArrowUpRight className="w-4 h-4 text-white/15 flex-shrink-0 mt-1 transition-colors group-hover:text-white" />
+            <ArrowUpRight className="w-4 h-4 flex-shrink-0 mt-1 transition-colors group-hover:text-[var(--text)]" style={{ color: 'var(--text-faint)' }} />
           </button>
         ))}
       </div>
-    </div>
+    </Page>
   );
 }

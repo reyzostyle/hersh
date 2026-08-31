@@ -1,7 +1,10 @@
 import { useState, useRef, useEffect } from 'react';
-import { AddOutlineIcon as Plus, ArrowUpOutlineIcon as ArrowUp, RefreshOutlineIcon as Loader2, CloseCircleOutlineIcon as X, ClapperboardOpenOutlineIcon as Film } from '@solar-icons/react';
+import { AddOutlineIcon as Plus, ArrowUpOutlineIcon as ArrowUp, RefreshOutlineIcon as Loader2, CloseCircleOutlineIcon as X, ClapperboardOpenOutlineIcon as Film, FolderOutlineIcon as FolderIcon } from '@solar-icons/react';
 import { supabase, getSessionToken, fetchWithRetry } from '../lib/supabase';
 import { ErrorNotice } from './ErrorNotice';
+import { useUsage, CREDIT_COSTS } from '../lib/useUsage';
+import { listProjects, createProject, fileThread, type Project } from '../lib/projects';
+import { SaveToProjectModal } from './SaveToProjectModal';
 
 const FN = 'https://ezlousklksipvwuinpzq.supabase.co/functions/v1';
 
@@ -71,13 +74,56 @@ function AnalysisCard({ a }: { a: Analysis }) {
   );
 }
 
+// What the run is actually doing, in the order it does it. analyze-with-gemini
+// fetches the video, has the model watch it, then has it score what it saw; the
+// text checks read, compare, then write. So the sequence is real - what is
+// estimated is the timing, because a single opaque request cannot report its
+// own progress. Stages therefore advance on elapsed time and the last one holds
+// until the answer lands, rather than pretending to finish.
+const STAGES: Record<string, string[]> = {
+  video: ['Fetching the video', 'Watching it through', 'Marking the hook and the drop', 'Writing what to fix'],
+  hook: ['Reading the hook', 'Weighing it against what works', 'Writing the fix'],
+  script: ['Reading the script', 'Finding where attention drops', 'Writing the fix'],
+  followup: ['Rereading the review', 'Answering'],
+};
+
+const STAGE_MS = 3800;
+
+function Working({ kind }: { kind: keyof typeof STAGES }) {
+  const stages = STAGES[kind] ?? STAGES.video;
+  const [at, setAt] = useState(0);
+
+  useEffect(() => {
+    setAt(0);
+    const t = setInterval(() => setAt(i => Math.min(i + 1, stages.length - 1)), STAGE_MS);
+    return () => clearInterval(t);
+  }, [kind]);
+
+  return (
+    <p className="text-working text-[14px] font-medium" aria-live="polite">
+      {stages[at]}
+    </p>
+  );
+}
+
 export function AnalysisChat() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [threadId, setThreadId] = useState<string | null>(null);
   const [composer, setComposer] = useState('');
   const [busy, setBusy] = useState(false);
+  // Which pipeline is running, so the working line can name its actual stages.
+  const [busyKind, setBusyKind] = useState<keyof typeof STAGES>('video');
   const [error, setError] = useState('');
   const [file, setFile] = useState<File | null>(null);
+  // Reloaded after every send, so the count under the composer is the balance
+  // as of the last thing that was actually charged.
+  const { usage, reload: reloadUsage } = useUsage();
+  // A conversation is worth keeping next to the video that prompted it, so a
+  // thread can be filed into a project the same way a competitor idea is.
+  // Projects load only when the picker is opened - most threads are never filed.
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [filingOpen, setFilingOpen] = useState(false);
+  const [threadProject, setThreadProject] = useState<Project | null>(null);
 
   const fileRef = useRef<HTMLInputElement>(null);
   const endRef = useRef<HTMLDivElement>(null);
@@ -112,6 +158,7 @@ export function AnalysisChat() {
   };
 
   const runAnalysis = async (videoId: string, context: string, shownText: string) => {
+    setBusyKind('video');
     setBusy(true);
     setError('');
     push({ role: 'user', content: shownText });
@@ -148,6 +195,7 @@ export function AnalysisChat() {
         await persist(tid, 'assistant', '', a);
         await supabase.from('chat_threads').update({ analysis_id: data.analysis?.id }).eq('id', tid);
       }
+      reloadUsage();
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Analysis failed');
     } finally {
@@ -158,6 +206,7 @@ export function AnalysisChat() {
   // Hook Lab and Script Lab used to be their own tabs. Same functions, same
   // credits, now answered in the thread so the follow-ups work on them too.
   const runTextAnalysis = async (kind: 'hook' | 'script', text: string) => {
+    setBusyKind(kind);
     setBusy(true);
     setError('');
     push({ role: 'user', content: text });
@@ -185,6 +234,7 @@ export function AnalysisChat() {
       };
       push({ role: 'assistant', content: `Read that as a ${kind}.`, analysis: a });
       if (tid) await persist(tid, 'assistant', `Read that as a ${kind}.`, a);
+      reloadUsage();
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Analysis failed');
     } finally {
@@ -194,6 +244,7 @@ export function AnalysisChat() {
 
   const askFollowUp = async (question: string) => {
     if (!threadId) return;
+    setBusyKind('followup');
     setBusy(true);
     setError('');
     push({ role: 'user', content: question });
@@ -208,12 +259,18 @@ export function AnalysisChat() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Could not answer that');
       push({ role: 'assistant', content: data.answer });
+      reloadUsage();
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Could not answer that');
     } finally {
       setBusy(false);
     }
   };
+
+  // Whether the thread already has something to ask about. It decides both
+  // what a send does and what it costs, so it is one value, read in both
+  // places, rather than the same test written twice.
+  const hasResult = messages.some(m => m.analysis);
 
   const submit = () => {
     const text = composer.trim();
@@ -223,7 +280,6 @@ export function AnalysisChat() {
     // Once a thread has a result, anything typed is a question about it. Before
     // that, the message has to carry a link, because there is nothing to ask
     // about yet.
-    const hasResult = messages.some(m => m.analysis);
     if (hasResult) { askFollowUp(text); return; }
 
     const url = text.match(/https?:\/\/\S+/)?.[0] ?? text;
@@ -237,12 +293,55 @@ export function AnalysisChat() {
     runTextAnalysis(isScript ? 'script' : 'hook', text);
   };
 
+  const openFiling = async () => {
+    setProjects(await listProjects());
+    setFilingOpen(true);
+  };
+
+  const fileInto = async (projectId: string | null) => {
+    if (!threadId) return;
+    await fileThread(threadId, projectId);
+    // Re-read rather than looking the project up in local state: filing into a
+    // project that was created inside the picker would otherwise miss, because
+    // this closure still holds the list from before it existed.
+    if (projectId) {
+      const all = await listProjects();
+      setProjects(all);
+      setThreadProject(all.find(p => p.id === projectId) ?? null);
+    } else {
+      setThreadProject(null);
+    }
+    setFilingOpen(false);
+  };
+
   const empty = messages.length === 0;
 
+  // What the next send will cost. Analyze took over Hook Lab and Script Lab and
+  // then grew an open-ended conversation on top, so "one analysis, one charge"
+  // stopped being true: a thread can run all afternoon. Every message is
+  // billed, and the price of the next one is on screen before it is sent
+  // rather than discovered afterwards on the Usage tab.
+  const left = usage ? Math.max(0, usage.creditsLimit - usage.creditsUsed) : null;
+
+  const priceLine = hasResult
+    ? `${CREDIT_COSTS.chat_followup} credit a message`
+    : `${CREDIT_COSTS.video_analysis} credits a video, ${CREDIT_COSTS.script_check} a script, ${CREDIT_COSTS.hook_check} a hook`;
+
+  const Price = () => (
+    <p className="label-mono mt-2.5 text-center">
+      {priceLine}
+      {left != null && ` · ${left} left`}
+    </p>
+  );
+
+  // No sheet here. Analyze is the one tab AppShell rules with the grid, and a
+  // solid panel laid over it just hid the thing that makes this screen look
+  // like anything. The conversation sits on the grid directly.
   return (
     <div className="h-full flex flex-col">
       {empty ? (
         <div className="flex-1 flex flex-col items-center justify-center px-5">
+          <p className="label-mono mb-4">Analyze</p>
           <h1 className="display mb-8 text-center" style={{ color: 'var(--text)' }}>What are we looking at?</h1>
           <div className="w-full max-w-2xl">
             <Composer
@@ -250,6 +349,7 @@ export function AnalysisChat() {
               file={file} setFile={setFile} fileRef={fileRef} taRef={taRef}
               placeholder="Paste a link, a hook or a script"
             />
+            <Price />
           </div>
         </div>
       ) : (
@@ -278,11 +378,7 @@ export function AnalysisChat() {
                 )
               ))}
 
-              {busy && (
-                <div className="flex items-center gap-2 text-[13px]" style={{ color: 'var(--process)' }}>
-                  <Loader2 className="w-4 h-4 animate-spin" /> Watching
-                </div>
-              )}
+              {busy && <Working kind={busyKind} />}
 
               {error && <ErrorNotice message={error} />}
               <div ref={endRef} />
@@ -291,14 +387,41 @@ export function AnalysisChat() {
 
           <div className="flex-shrink-0 px-5 pb-5">
             <div className="max-w-2xl mx-auto">
+              {threadId && (
+                <button
+                  onClick={openFiling}
+                  className="flex items-center gap-1.5 mb-2 text-[12px] transition-colors hover:text-[var(--text)]"
+                  style={{ color: threadProject ? 'var(--text)' : 'var(--text-faint)' }}
+                >
+                  <FolderIcon className="w-3.5 h-3.5" />
+                  {threadProject ? threadProject.name : 'Save to project'}
+                </button>
+              )}
               <Composer
                 value={composer} onChange={setComposer} onSubmit={submit} busy={busy}
                 file={file} setFile={setFile} fileRef={fileRef} taRef={taRef}
                 placeholder="Ask about the fixes, or send another link"
               />
+              <Price />
             </div>
           </div>
         </>
+      )}
+
+      {filingOpen && (
+        <SaveToProjectModal
+          projects={projects}
+          currentProjectId={threadProject?.id ?? null}
+          isSaved={!!threadProject}
+          onPick={fileInto}
+          onUnsave={() => fileInto(null)}
+          onCreateProject={async name => {
+            const project = await createProject(name);
+            if (project) setProjects(prev => [project, ...prev]);
+            return project;
+          }}
+          onClose={() => setFilingOpen(false)}
+        />
       )}
     </div>
   );

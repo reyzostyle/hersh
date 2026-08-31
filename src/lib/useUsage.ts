@@ -14,8 +14,16 @@ export const CREDIT_COSTS = {
   hook_check: 2,
   script_check: 3,
   competitor_idea: 1,
-  competitor_outline: 1,
+  // Watches the competitor's video before writing, so it costs what watching
+  // costs. Mirrors _shared/credits.ts.
+  competitor_outline: 4,
   competitor_script: 1,
+  // Analyze is the whole product now: a link, a hook, a script and every
+  // follow-up all land in the one thread. A follow-up answers from the
+  // analysis already in the thread rather than watching the video again, so
+  // it is the cheapest action there is - but it is not free, because a chat
+  // with no price on it is a thread someone can leave running all afternoon.
+  chat_followup: 1,
 } as const;
 
 // DB value → display name

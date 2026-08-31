@@ -15,9 +15,10 @@ export const CREDIT_LIMITS: Record<string, number> = { free: 20, pro: 300, agenc
 // ~8x input, so a big-input/small-output action like video is cheaper than
 // its token count suggests, and a small-input/big-output one like a hook
 // check is dearer). Real per-call costs at the 2026-08 default model:
-// video ~$0.0130 (two model calls: watch + score), script check ~$0.0033,
-// hook check ~$0.0021, outline ~$0.0016, idea ~$0.0010, comp script
-// ~$0.0006. The spread is then COMPRESSED (~22x real -> 5x charged) so
+// video ~$0.0130 (two model calls: watch + score), outline ~$0.0120 (watches
+// the competitor's video), script check ~$0.0033, hook check ~$0.0021,
+// idea ~$0.0010 (reads a free transcript, pays only for the model reading
+// it), comp script ~$0.0006. The spread is then COMPRESSED so
 // video doesn't read as prohibitively expensive next to everything else;
 // the resulting margin varies with usage mix, which is exactly why the
 // limits above are sized against the worst case rather than the average.
@@ -26,7 +27,12 @@ export const CREDIT_COSTS = {
   hook_check: 2,
   script_check: 3,
   competitor_idea: 1,
-  competitor_outline: 1,
+  // Was 1, when the outline was written from the competitor's transcript. It
+  // now WATCHES the video (see generate-outline), which is the same class of
+  // work as a full video analysis and about eight times the cost of the text
+  // pass it replaced. Priced just under video_analysis because the output is
+  // shorter.
+  competitor_outline: 4,
   competitor_script: 1,
   // A follow-up answers from the analysis already in the thread, so it is a
   // short text call rather than another look at the video.

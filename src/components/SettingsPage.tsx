@@ -3,6 +3,7 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { RefreshOutlineIcon as Loader2, EyeOutlineIcon as Eye, EyeClosedOutlineIcon as EyeOff, RefreshOutlineIcon as RefreshCw, LinkOutlineIcon as Link, AltArrowDownOutlineIcon as ChevronDown, Stars2OutlineIcon as Sparkles, UserOutlineIcon as User, BoltOutlineIcon as Zap, ChatRoundOutlineIcon as MessageCircle, SquareArrowRightUpOutlineIcon as ExternalLink, TicketOutlineIcon as Ticket } from '@solar-icons/react';
 import { getSessionToken, fetchWithRetry } from '../lib/supabase';
+import { PageHead } from './Page';
 
 function YouTubeLogo({ className }: { className?: string }) {
   return (
@@ -291,11 +292,10 @@ export function SettingsPage() {
   };
 
   return (
-    <div className="max-w-3xl mx-auto px-4 sm:px-6 pt-4 sm:pt-6 pb-12 space-y-4 animate-fade-in-up">
+    <div className="sheet min-h-full max-w-3xl mx-auto px-5 sm:px-8 pt-12 sm:pt-16 pb-20 space-y-4 animate-fade-in-up">
 
-      <div className="hidden lg:block mb-6">
-        <h1 className="text-2xl font-bold text-white mb-1">Settings</h1>
-        <p className="text-sm text-gray-500 text-balance">Manage your channel profile, account, and subscription</p>
+      <div className="hidden lg:block">
+        <PageHead eyebrow="Settings" title="Your account" subtitle="Your channel profile, your connections, and your subscription." />
       </div>
 
       {/* ── Channel profile ── */}

@@ -1,17 +1,7 @@
 import { useState, useEffect, createContext, useContext, useRef } from 'react';
-import { GraphUpOutlineIcon as GraphUp, FolderOutlineIcon as Folder, SettingsOutlineIcon as Settings, LogoutOutlineIcon as LogOut, HamburgerMenuOutlineIcon as Menu, CloseCircleOutlineIcon as X, BoltOutlineIcon as Zap, UsersGroupRoundedOutlineIcon as Users, HandShakeOutlineIcon as Handshake, ChartSquareOutlineIcon as BarChart2, SidebarMinimalisticOutlineIcon as PanelLeftClose, SidebarMinimalisticOutlineIcon as PanelLeftOpen, VideocameraOutlineIcon as VideoIcon } from '@solar-icons/react';
+import { GraphUpOutlineIcon as GraphUp, FolderOutlineIcon as Folder, SettingsOutlineIcon as Settings, LogoutOutlineIcon as LogOut, HamburgerMenuOutlineIcon as Menu, CloseCircleOutlineIcon as X, BoltOutlineIcon as Zap, UsersGroupRoundedOutlineIcon as Users, HandShakeOutlineIcon as Handshake, ChartSquareOutlineIcon as BarChart2, SidebarMinimalisticOutlineIcon as PanelLeftClose, SidebarMinimalisticOutlineIcon as PanelLeftOpen, VideocameraOutlineIcon as VideoIcon, WidgetOutlineIcon as HubIcon } from '@solar-icons/react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
-
-// Bold, filled house glyph — lucide's Home is a thin outline and reads too
-// light next to the font-black wordmark next to it.
-function HubIcon({ className }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 24 24" fill="currentColor" className={className}>
-      <path d="M12 2.7 2.5 10.8v10.5h6.2v-6.8h6.6v6.8h6.2V10.8L12 2.7Z" />
-    </svg>
-  );
-}
 
 export const MobileHeaderContext = createContext<{
   setRightAction: (node: React.ReactNode) => void;
@@ -56,7 +46,10 @@ const baseNavItems: NavItem[] = [
   { id: 'settings', label: 'Settings', icon: <Settings className="w-4 h-4" /> },
 ];
 
-const partnersItem: NavItem = { id: 'partners', label: 'Partners', icon: <Handshake className="w-4 h-4" /> };
+// Label only. The tab id stays 'partners': it is persisted in state, dispatched
+// on the navigate channel and matched against referral_codes, and renaming an
+// identifier to match a caption is how those quietly come apart.
+const partnersItem: NavItem = { id: 'partners', label: 'Affiliate', icon: <Handshake className="w-4 h-4" /> };
 
 // Labels for tabs with no sidebar entry, used only for the mobile header title.
 const TAB_LABELS: Partial<Record<NavTab, string>> = { home: 'Hershy' };
@@ -111,14 +104,30 @@ export function AppShell({ activeTab, onTabChange, children }: AppShellProps) {
   const renderNavButton = (item: NavItem) => (
     <button
       key={item.id}
-      onClick={() => { onTabChange(item.id); setMobileOpen(false); }}
+      onClick={() => {
+        onTabChange(item.id);
+        // Also announced on the shared channel, so a tab that holds its own
+        // inner state can return to its top level. Clicking Projects while
+        // inside a project used to do nothing at all: the tab was already
+        // active, so nothing re-rendered and the detail view stayed put.
+        window.dispatchEvent(new CustomEvent('hershy:navigate', { detail: item.id }));
+        setMobileOpen(false);
+      }}
       title={item.label}
       className={`relative w-full flex items-center py-2 rounded-md text-[13px] font-medium transition-colors ${collapsed ? 'lg:justify-center lg:px-0 gap-3 px-3' : 'gap-3 px-3'} ${
-        activeTab === item.id
-          ? 'text-white'
-          : 'text-white/45 hover:text-white/80'
+        item.highlight
+          ? ''
+          : activeTab === item.id
+            ? 'text-white'
+            : 'text-white/45 hover:text-white/80'
       }`}
-      style={activeTab === item.id ? { background: 'var(--bg-raised)' } : undefined}
+      style={{
+        // `highlight` was declared on the nav item and then never read. It marks
+        // the one link that is asking for money, and it now carries the only
+        // other colour in the product.
+        ...(item.highlight ? { color: 'var(--upgrade)' } : {}),
+        ...(activeTab === item.id ? { background: 'var(--bg-raised)' } : {}),
+      }}
     >
             {item.icon}
       <span className={`flex-1 text-left whitespace-nowrap ${collapsed ? 'lg:hidden' : ''}`}>{item.label}</span>
@@ -139,7 +148,8 @@ export function AppShell({ activeTab, onTabChange, children }: AppShellProps) {
       {/* overflow-hidden matters for the collapse animation: labels are clipped
           by the narrowing panel instead of re-wrapping inside it. */}
       <aside className={`
-        fixed inset-y-0 left-0 z-50 flex flex-col w-56 border-r overflow-hidden transition-all duration-200 ease-in-out
+        fixed inset-y-0 left-0 z-50 flex flex-col w-56 border-r overflow-hidden
+        transition-[width,transform] duration-300 ease-[cubic-bezier(0.32,0.72,0,1)]
         ${mobileOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0
         ${collapsed ? 'lg:w-14' : 'lg:w-56'}
       `} style={{ background: 'var(--bg-app)', borderColor: 'var(--line)' }}>
@@ -149,7 +159,7 @@ export function AppShell({ activeTab, onTabChange, children }: AppShellProps) {
           <button
             onClick={() => { onTabChange('home'); setMobileOpen(false); }}
             title="Hershy"
-            className="w-full flex items-center gap-3 px-3 py-1 rounded-lg font-semibold tracking-tight text-[15px] transition-colors group"
+            className={`w-full flex items-center py-1 rounded-lg font-semibold tracking-tight text-[15px] transition-colors group ${collapsed ? 'lg:justify-center lg:px-0 gap-3 px-3' : 'gap-3 px-3'}`}
           >
             <HubIcon
               className={`w-4 h-4 flex-shrink-0 transition-colors ${activeTab === 'home' ? 'text-[var(--accent)]' : 'text-white group-hover:text-[var(--accent)]'}`}
@@ -158,7 +168,7 @@ export function AppShell({ activeTab, onTabChange, children }: AppShellProps) {
                 the same blue. The uppercase wordmark sits on a taller line box
                 than the icon, which is what made the two look a pixel out of
                 line; leading-none drops that extra space. */}
-            <span className={`leading-none whitespace-nowrap transition-colors ${activeTab === 'home' ? 'text-[var(--accent)]' : 'text-white group-hover:text-[var(--accent)]'} ${collapsed ? 'lg:hidden' : ''}`}>
+            <span className={`leading-none whitespace-nowrap uppercase tracking-[0.12em] text-[13px] transition-colors ${activeTab === 'home' ? 'text-[var(--accent)]' : 'text-white group-hover:text-[var(--accent)]'} ${collapsed ? 'lg:hidden' : ''}`}>
               Hershy
             </span>
           </button>
@@ -204,14 +214,21 @@ export function AppShell({ activeTab, onTabChange, children }: AppShellProps) {
         onClick={() => setCollapsed(c => !c)}
         title={collapsed ? 'Show sidebar' : 'Collapse sidebar'}
         aria-label={collapsed ? 'Show sidebar' : 'Collapse sidebar'}
-        className={`hidden lg:flex fixed top-4 z-40 p-2 rounded-lg text-gray-500 hover:text-white transition-all duration-200 ${collapsed ? 'left-[4.5rem]' : 'left-[15rem]'}`}
+        className={`hidden lg:flex fixed top-4 z-40 p-2 rounded-lg text-gray-500 hover:text-white transition-[left,color] duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] ${collapsed ? 'left-[4.5rem]' : 'left-[15rem]'}`}
         style={{ background: 'rgba(var(--surface-rgb),0.8)', border: '1px solid rgba(255,255,255,0.08)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)' }}
       >
         {collapsed ? <PanelLeftOpen className="w-4 h-4" /> : <PanelLeftClose className="w-4 h-4" />}
       </button>
 
-      <div className={`flex-1 flex flex-col min-w-0 relative overflow-x-hidden transition-[margin] duration-200 ease-in-out ${collapsed ? 'lg:ml-14' : 'lg:ml-56'}`} style={{ zIndex: 1 }}>
-        <div className="absolute inset-0 pointer-events-none grid-surface" style={{ zIndex: 0 }} />
+      {/* The rail, the page and the toggle all move on the same curve and the
+          same 300ms. They used to run transition-all at 200ms, which animated
+          colours and borders alongside the width and left the three of them
+          arriving at slightly different moments - that mismatch is what read
+          as jerky rather than the speed. */}
+      <div className={`flex-1 flex flex-col min-w-0 relative overflow-x-hidden transition-[margin-left] duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] ${collapsed ? 'lg:ml-14' : 'lg:ml-56'}`} style={{ zIndex: 1 }}>
+        {activeTab === 'analyze' && (
+          <div className="absolute inset-0 pointer-events-none grid-surface" style={{ zIndex: 0 }} />
+        )}
         <header className="lg:hidden sticky top-0 z-30 flex items-center gap-3 px-4 py-3 flex-shrink-0" style={{ borderBottom: '1px solid rgba(255,255,255,0.08)', background: 'rgba(var(--surface-rgb),0.95)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)' }}>
           <button
             onClick={() => setMobileOpen(!mobileOpen)}
@@ -225,7 +242,16 @@ export function AppShell({ activeTab, onTabChange, children }: AppShellProps) {
           {rightAction}
         </header>
 
-        <main ref={mainRef} key={activeTab} className="flex-1 overflow-auto animate-tab-in" style={{ background: 'transparent', overscrollBehavior: 'none' }}>
+        {/* The grid is Analyze's alone. It is the one tab that is mostly open
+            space — a headline, a composer, and a lot of nothing until the
+            first answer arrives — and that emptiness needs a texture to read
+            as deliberate. Every other tab is a page of work and looks better
+            on flat ground.
+
+            relative + z-index keeps the page above it, so the chat's sheet can
+            cover the lines under the conversation. Without that the grid, being
+            the only positioned layer, painted over the text. */}
+        <main ref={mainRef} key={activeTab} className="relative z-[1] flex-1 overflow-y-auto overflow-x-hidden animate-tab-in" style={{ background: 'transparent', overscrollBehavior: 'none' }}>
           <MobileHeaderContext.Provider value={{ setRightAction }}>
             {children}
           </MobileHeaderContext.Provider>

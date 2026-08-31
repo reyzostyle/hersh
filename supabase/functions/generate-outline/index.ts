@@ -1,6 +1,7 @@
 import { createClient } from 'npm:@supabase/supabase-js@2.57.4';
-import { callLLM } from '../_shared/llm.ts';
 import { loadCreditStatus, canAfford, spendCredits, CREDIT_COSTS } from '../_shared/credits.ts';
+import { watchVideo } from '../_shared/analyze-video.ts';
+import { loadChannelScan, channelScanBlock } from '../_shared/channel-scan.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -29,16 +30,31 @@ function stripDashes(s: unknown): unknown {
   return s;
 }
 
+// The outline is written while WATCHING the competitor's video, not from a
+// transcript of it. That is the whole point of the step: half of what makes a
+// Short work is on screen and nowhere in the words - where the cut lands, what
+// the overlay says, how the first frame is framed, how long the pause before
+// the payoff is. Read blind, the model can only paraphrase the topic; watching,
+// it can say "they hold on the reaction for a beat before cutting, do that".
 async function generateOutline(
+  videoId: string,
   videoTitle: string,
-  adaptedIdea: string
+  adaptedIdea: string,
+  profileBlock: string,
+  scanBlock: string,
 ): Promise<{ hook: string; sections: Array<{ title: string; content: string; duration: string }>; cta: string }> {
-  const prompt = `You are a YouTube Shorts expert. Generate a concise video outline for a Short based on this adapted idea.
+  const prompt = `You are watching a competitor's YouTube Short that outperformed its channel. Write the outline for the version THIS creator should make.
 
-Video idea: ${adaptedIdea}
-Inspired by competitor video: "${videoTitle}"
+The angle already worked out for them: ${adaptedIdea}
+The video you are watching: "${videoTitle}"
 
-Create a Short outline for a 45-90 second video. Follow this exact JSON format:
+${profileBlock}${scanBlock}
+
+Watch it properly first. Note how the first frame is composed, what is on screen in the opening second, where the cuts land, what any text overlay says, and how long it sits before the payoff. Those are the parts that do not survive into a transcript, and they are what you are here to carry over.
+
+Then write the outline for the creator's own version: same structural moves, their subject matter, their register. Say what to SHOW, not only what to say.
+
+Follow this exact JSON format:
 
 {
   "hook": "exact hook text spoken in first 3 seconds - make it punchy and attention-grabbing",
@@ -55,10 +71,17 @@ Rules:
 - Hook must be the first thing said, not an intro
 - Sections should build logically toward a payoff
 - CTA should feel natural, not forced
+- Every section names something visual, not just a line to say
 - No em-dash or en-dash, only regular hyphen (-)
 - Respond with JSON only, no markdown`;
 
-  const content = await callLLM(prompt, { maxTokens: 1000 });
+  const content = await watchVideo(
+    { fileUri: `https://www.youtube.com/watch?v=${videoId}`, mimeType: 'video/mp4' },
+    prompt,
+    // Roomy: a truncated outline is a total loss, and the request is already
+    // paid for by the time the model starts writing.
+    { maxTokens: 8192 },
+  );
 
   try {
     const jsonMatch = content.match(/\{[\s\S]*\}/);
@@ -66,8 +89,9 @@ Rules:
       return stripDashes(JSON.parse(jsonMatch[0])) as { hook: string; sections: Array<{ title: string; content: string; duration: string }>; cta: string };
     }
     throw new Error('No JSON in response');
-  } catch {
-    throw new Error('Failed to parse outline from Claude response');
+  } catch (e) {
+    console.error('[generate-outline] unparseable model output:', content.slice(0, 800));
+    throw new Error(`Could not read an outline back from the video: ${e instanceof Error ? e.message : 'no JSON found'}`);
   }
 }
 
@@ -103,15 +127,14 @@ Deno.serve(async (req: Request) => {
     }
     const isAdmin = authUser.email === ADMIN_EMAIL;
 
-    // Outlines are Plus+ (same gate as the rest of Competitors) and spend
-    // from the shared credit pool — this used to have no plan/usage check at
-    // all, see _shared/credits.ts.
-    const { data: planRow } = await supabase.from('user_tokens').select('plan').eq('user_id', userId).maybeSingle();
-    if ((planRow?.plan || 'free') === 'free') {
-      return new Response(JSON.stringify({ error: 'upgrade_required', plan_required: 'plus' }), {
-        status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
+    // No plan gate. Competitors used to be Plus-only in five separate places,
+    // which meant nobody could see the feature before paying for it - and the
+    // gate was redundant anyway: the credit pool already is the trial. A free
+    // account has 20 credits, one-time, and this costs four of them.
+    const { data: profile } = await supabase
+      .from('user_tokens')
+      .select('channel_niche, channel_description, channel_context, target_audience')
+      .eq('user_id', userId).maybeSingle();
     const creditStatus = await loadCreditStatus(supabase, userId);
     const cost = CREDIT_COSTS.competitor_outline;
     if (!canAfford(creditStatus, cost, isAdmin)) {
@@ -142,10 +165,20 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    console.log('[generate-outline] Generating outline for idea:', ideaId);
+    console.log('[generate-outline] Watching video for idea:', ideaId);
+    const profileBlock = `## What they told us about their channel
+Niche: ${profile?.channel_niche || 'not set'}
+Description: ${profile?.channel_description || 'not set'}
+Audience: ${profile?.target_audience || 'not set'}
+Extra context: ${profile?.channel_context || 'not set'}`;
+    const scanBlock = channelScanBlock(await loadChannelScan(supabase, userId));
+
     const outline = await generateOutline(
+      idea.video_id,
       idea.video_title || '',
-      idea.adapted_idea || ''
+      idea.adapted_idea || '',
+      profileBlock,
+      scanBlock,
     );
 
     const { data: updated, error: updateError } = await supabase

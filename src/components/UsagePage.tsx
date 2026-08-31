@@ -3,11 +3,13 @@ import { ChartSquareOutlineIcon as BarChart2, RefreshOutlineIcon as Loader2, Ref
 import { ErrorNotice } from './ErrorNotice';
 import { getSessionToken, fetchWithRetry } from '../lib/supabase';
 import { useUsage, PLAN_DISPLAY, CREDIT_COSTS } from '../lib/useUsage';
+import { PageHead } from './Page';
 
 const PRICE_LIST: { label: string; cost: number }[] = [
   { label: 'Video analysis', cost: CREDIT_COSTS.video_analysis },
   { label: 'Hook check', cost: CREDIT_COSTS.hook_check },
   { label: 'Script check', cost: CREDIT_COSTS.script_check },
+  { label: 'Follow-up message', cost: CREDIT_COSTS.chat_followup },
   { label: 'Competitor idea found', cost: CREDIT_COSTS.competitor_idea },
   { label: 'Competitor outline', cost: CREDIT_COSTS.competitor_outline },
   { label: 'Competitor script', cost: CREDIT_COSTS.competitor_script },
@@ -60,10 +62,9 @@ export function UsagePage() {
   };
 
   return (
-    <div className="max-w-2xl mx-auto px-4 sm:px-6 pt-4 sm:pt-6 pb-12 animate-fade-in-up">
-      <div className="hidden lg:block mb-6">
-        <h1 className="text-2xl font-bold text-white mb-1">Usage</h1>
-        <p className="text-sm text-gray-500">One credit balance across Analyze and Competitors.</p>
+    <div className="sheet min-h-full max-w-2xl mx-auto px-5 sm:px-8 pt-12 sm:pt-16 pb-20 animate-fade-in-up">
+      <div className="hidden lg:block">
+        <PageHead eyebrow="Usage" title="What you have left" subtitle="One credit balance across Analyze and Competitors." />
       </div>
 
       {error && <ErrorNotice message={error} className="mb-6" />}

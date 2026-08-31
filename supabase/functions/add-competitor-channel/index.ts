@@ -132,15 +132,15 @@ Deno.serve(async (req: Request) => {
       return new Response(JSON.stringify({ error: 'Invalid token' }), { status: 401, headers: corsHeaders });
     }
 
-    // Plan check — Competitors is Plus+
+    // Competitors is no longer Plus-only. What the plan buys here is how many
+    // channels you may track, and that limit exists for the YouTube quota
+    // rather than for monetisation: the pool is cached per channel, so the
+    // daily cost scales with distinct channels tracked, not with users. Three
+    // is enough to see whether the feature works; five is enough to use it.
     const { data: planRow } = await supabase
       .from('user_tokens').select('plan').eq('user_id', userId).maybeSingle();
     const userPlan = planRow?.plan || 'free';
-    if (userPlan === 'free') {
-      return new Response(JSON.stringify({ error: 'upgrade_required', plan_required: 'plus' }), {
-        status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
+    const channelLimit = userPlan === 'free' ? 3 : 5;
 
     const { channelUrl } = await req.json();
     if (!channelUrl) {
@@ -154,9 +154,14 @@ Deno.serve(async (req: Request) => {
       .eq('user_id', userId);
 
     if (countError) throw countError;
-    if ((existing?.length ?? 0) >= 5) {
+    if ((existing?.length ?? 0) >= channelLimit) {
       return new Response(
-        JSON.stringify({ error: 'You can track up to 5 competitor channels. Remove one to add another.' }),
+        JSON.stringify({
+          error: userPlan === 'free'
+            ? 'Free accounts can track 3 competitor channels. Upgrade to track 5, or remove one to add another.'
+            : 'You can track up to 5 competitor channels. Remove one to add another.',
+          plan_required: userPlan === 'free' ? 'plus' : undefined,
+        }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
