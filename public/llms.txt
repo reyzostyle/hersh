@@ -1,10 +1,10 @@
 # Hershy
 
-> An AI toolkit for short-form video creators. Hershy finds ideas already working
-> on competitor channels, checks a hook and script before filming, and after a
-> Short is posted it watches the video and reads the creator's real YouTube
-> retention curve to say exactly which seconds lost viewers and what edit fixes
-> them. Shorts only.
+> A workspace for short-form video creators. Hershy watches a Short, or reads a
+> hook or a script, and keeps answering follow-up questions about it in one
+> conversation. The work is filed into projects, and a connected YouTube channel
+> gives every answer the creator's real audience-retention curve to sit on.
+> Shorts only.
 
 Hershy is aimed at people making vertical short-form video (YouTube Shorts,
 TikTok, Reels). It is not a general video editor and it does not generate video.
@@ -18,32 +18,36 @@ It will say "add a cash register sound on the word money at 0:04" or "put a slow
 punch-in across the opening clip". It will not tell you to re-shoot or rewrite
 the script.
 
-## Tools
+## Surfaces
 
-- Video Review: watches a Short (pasted YouTube link or an uploaded file), builds
-  a beat-by-beat timeline of every cut, overlay and sound, scores it out of 100
-  across hook, retention, payoff and delivery, and returns timestamped edit fixes.
-  For a creator's own published video it also maps the real retention drop-offs
-  onto that timeline.
+- Analyze: one conversation, not a form. Send a pasted YouTube link, an uploaded
+  video file, a written hook or a full script. For a video it watches the whole
+  thing, builds a beat-by-beat read of every cut, overlay and sound, scores it
+  out of 100 across hook, retention, payoff and delivery, and returns timestamped
+  edit fixes. For a creator's own published video it maps the real retention
+  drop-offs onto that timeline. Follow-up questions are answered against the
+  analysis already in the thread, so the review is a starting point rather than a
+  verdict.
+- Projects: folders holding a conversation, the video it was about, and the ideas
+  saved off it. A conversation filed into a project reopens where it was left.
+- Analytics: the creator's own YouTube numbers, alongside the retention curves of
+  the videos they have run through Hershy.
 - Competitors: tracks rival channels and surfaces only the Shorts that clearly
-  beat that channel's own median views per day, then rewrites the idea for the
+  beat that channel's own median views per day, then rebuilds the idea for the
   user's niche instead of copying it.
-- Hook Lab: scores a written hook and returns three finished, copy-paste rewrites
-  in fixed angles (negative/risk, curiosity gap, contrarian).
-- Script Lab: breaks down a full script before filming, with the literal lines to
-  paste for trimming, open loops and the closing call to action.
 
 ## Pricing
 
 - Free: 20 credits, no card required, one time with no monthly refill. Enough for
-  a couple of video reviews or several hook and script checks. Competitors
-  requires a paid plan.
+  a few videos or several hook and script checks. Competitors requires a paid
+  plan.
 - Plus: $9.99 per month, or $119.99 per year. 300 credits per month.
 - Pro: $19.99 per month, or $155.99 per year (an effective $12.99 per month).
-  1000 credits per month.
+  Unlimited credits under a fair-use ceiling.
 - Extra credits: $4.99 for 100.
 
-One credit balance covers every tool, so users only spend on what they use.
+One credit balance covers every surface, so users only spend on what they use.
+A video costs 5 credits, a script check 3, a hook check 2, a follow-up message 1.
 
 ## Links
 
