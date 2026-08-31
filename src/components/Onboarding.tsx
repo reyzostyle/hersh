@@ -40,6 +40,10 @@ const NICHE_PRESETS = [
 const TOTAL_STEPS = 5;
 
 const accent = 'var(--accent)';
+// The label on a filled button. The accent is white, so `text-white` on top of
+// it is an invisible label - which is exactly what every primary button in
+// here rendered as until this was added. Icons inherit it through currentColor.
+const onAccent = 'var(--on-accent)';
 // No backdrop-filter: blur over the static app background caused Chromium
 // ghost bands on sibling repaints; the blue underlay replaces its tint.
 const cardBase: React.CSSProperties = {
@@ -182,7 +186,7 @@ export function Onboarding({ onDone }: { onDone: () => void }) {
             <p className="text-gray-400 text-sm leading-relaxed mb-8 text-balance max-w-sm mx-auto">
               Answer a few quick questions so every analysis and idea is tailored to your channel. Takes under a minute.
             </p>
-            <button onClick={next} className="w-full py-3 rounded-xl font-semibold text-white flex items-center justify-center gap-2" style={{ background: accent }}>
+            <button onClick={next} className="w-full py-3 rounded-xl font-semibold flex items-center justify-center gap-2" style={{ background: accent, color: onAccent }}>
               Let&apos;s go <ArrowRight className="w-4 h-4" />
             </button>
             <button onClick={finish} className="mt-3 text-sm text-gray-500 hover:text-gray-300 transition-colors">
@@ -366,12 +370,12 @@ export function Onboarding({ onDone }: { onDone: () => void }) {
                 <button onClick={next} className="px-4 py-2.5 rounded-xl text-sm text-gray-400 hover:text-white transition-colors">
                   Skip
                 </button>
-                <button onClick={next} className="flex items-center gap-1.5 px-5 py-2.5 rounded-xl text-sm font-semibold text-white" style={{ background: accent }}>
+                <button onClick={next} className="flex items-center gap-1.5 px-5 py-2.5 rounded-xl text-sm font-semibold" style={{ background: accent, color: onAccent }}>
                   Continue <ArrowRight className="w-4 h-4" />
                 </button>
               </>
             ) : (
-              <button onClick={finish} disabled={saving} className="flex items-center gap-1.5 px-5 py-2.5 rounded-xl text-sm font-semibold text-white disabled:opacity-50" style={{ background: accent }}>
+              <button onClick={finish} disabled={saving} className="flex items-center gap-1.5 px-5 py-2.5 rounded-xl text-sm font-semibold disabled:opacity-50" style={{ background: accent, color: onAccent }}>
                 {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />} Finish
               </button>
             )}
