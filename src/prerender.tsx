@@ -32,10 +32,15 @@ const wrap = (node: JSX.Element) =>
 export function render(): PrerenderRoute[] {
   return [
     {
+      // title and description here OVERWRITE the ones in index.html for this
+      // route, so the pair has to be kept in step with it. They drifted once
+      // already: index.html was updated for the current product and the live
+      // page still served "AI toolkit for short-form content" in its title,
+      // because this is the copy that actually reaches the crawler.
       path: '/',
-      title: 'Hershy - AI toolkit for short-form content',
+      title: 'Hershy - the shorts workspace',
       description:
-        'Hershy is an AI toolkit for short-form creators. Analyzes your videos and hooks, reads your real retention curve, and shows you exactly what to fix.',
+        'A workspace for short-form creators. Send Hershy a link, a hook or a script and talk it through, keep the work in projects, and read every answer against your real YouTube retention curve.',
       html: wrap(<LandingPage />),
     },
     {
