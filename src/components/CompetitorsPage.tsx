@@ -1,15 +1,14 @@
 import { useState, useEffect, useCallback } from 'react';
-import { RefreshOutlineIcon as Loader2 } from '@solar-icons/react';
-import { supabase, getSessionToken } from '../lib/supabase';
+import { supabase, getSessionToken, getUserId } from '../lib/supabase';
 import {
   callFunction, inboxItems, itemFromIdea, filterIdeas,
   type CompetitorChannel, type CompetitorIdea, type FeedItem, type IdeaFilter, type PoolVideo,
 } from '../lib/competitors';
-import { listProjects, touchProject, type Project } from '../lib/projects';
+import { listProjects, touchProject, takeRequestedVideo, type Project } from '../lib/projects';
 import { CompetitorsFeed } from './CompetitorsFeed';
 import { CompetitorVideoView } from './CompetitorVideoView';
 import { FindCompetitorsModal } from './FindCompetitorsModal';
-import { Page, PageHead } from './Page';
+import { Page, PageHead, Loading } from './Page';
 
 // Two layers, and the difference is the whole point of this screen.
 //
@@ -48,9 +47,8 @@ export function CompetitorsPage() {
 
   const loadData = useCallback(async () => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-      const userId = user.id;
+      const userId = await getUserId();
+      if (!userId) return;
 
       const [{ data: planData }, { data: channelData }, { data: ideaData }, projectData] = await Promise.all([
         supabase.from('user_tokens').select('plan').eq('user_id', userId).maybeSingle(),
@@ -91,6 +89,15 @@ export function CompetitorsPage() {
   }, []);
 
   useEffect(() => { loadData(); }, [loadData]);
+
+  // A saved idea opened from its project. Read once on mount and cleared, the
+  // same handoff Analyze uses for a filed conversation. The lookup below falls
+  // back to the ideas table, so a video that has aged out of the pool still
+  // opens.
+  useEffect(() => {
+    const requested = takeRequestedVideo();
+    if (requested) setOpenVideoId(requested);
+  }, []);
 
   const handleAddChannel = async (channelUrl: string) => {
     setAddingChannel(true);
@@ -140,9 +147,9 @@ export function CompetitorsPage() {
   const handleRemoveChannel = async (channel: CompetitorChannel) => {
     setRemovingId(channel.id);
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('Not authenticated');
-      await supabase.from('competitor_channels').delete().eq('id', channel.id).eq('user_id', user.id);
+      const userId = await getUserId();
+      if (!userId) throw new Error('Not authenticated');
+      await supabase.from('competitor_channels').delete().eq('id', channel.id).eq('user_id', userId);
       setChannels(prev => prev.filter(c => c.id !== channel.id));
       // The pooled videos stay in the table - another user may track the same
       // channel - they just stop being visible here.
@@ -182,11 +189,11 @@ export function CompetitorsPage() {
   // something, whether or not anything has read it, and enrichment fills in
   // the rest later if you ask for it.
   const ruleOn = async (items: FeedItem[], liked: boolean | null, projectId?: string | null) => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
+    const userId = await getUserId();
+    if (!userId) return;
 
     const rows = items.map(item => ({
-      user_id: user.id,
+      user_id: userId,
       channel_id: item.channel_id,
       channel_name: item.channel_name,
       video_id: item.video_id,
@@ -298,10 +305,8 @@ export function CompetitorsPage() {
 
   if (initialLoading) {
     return (
-      <Page width="lg">
-        <div className="flex justify-center pt-16">
-          <Loader2 className="w-5 h-5 animate-spin" style={{ color: 'var(--text-faint)' }} />
-        </div>
+      <Page>
+        <Loading />
       </Page>
     );
   }
@@ -340,7 +345,7 @@ export function CompetitorsPage() {
   }
 
   return (
-    <Page width="lg">
+    <Page className="animate-tab-in">
       <PageHead
         eyebrow="Competitors"
         title="What beat its own average"

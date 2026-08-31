@@ -1,9 +1,9 @@
 import { useState, useRef, useEffect } from 'react';
 import { AddOutlineIcon as Plus, ArrowUpOutlineIcon as ArrowUp, RefreshOutlineIcon as Loader2, CloseCircleOutlineIcon as X, ClapperboardOpenOutlineIcon as Film, FolderOutlineIcon as FolderIcon } from '@solar-icons/react';
-import { supabase, getSessionToken, fetchWithRetry } from '../lib/supabase';
+import { supabase, getSessionToken, getUserId, fetchWithRetry } from '../lib/supabase';
 import { ErrorNotice } from './ErrorNotice';
 import { useUsage, CREDIT_COSTS } from '../lib/useUsage';
-import { listProjects, createProject, fileThread, type Project } from '../lib/projects';
+import { listProjects, createProject, fileThread, loadThread, loadThreadMessages, takeRequestedThread, type Project } from '../lib/projects';
 import { SaveToProjectModal } from './SaveToProjectModal';
 
 const FN = 'https://ezlousklksipvwuinpzq.supabase.co/functions/v1';
@@ -131,6 +131,33 @@ export function AnalysisChat() {
 
   useEffect(() => { endRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages, busy]);
 
+  // Opening a conversation filed in a project. The tab remounts when it is
+  // switched to, so the request is read once here and cleared.
+  useEffect(() => {
+    const requested = takeRequestedThread();
+    if (!requested) return;
+    (async () => {
+      setBusy(true);
+      const [rows, thread] = await Promise.all([
+        loadThreadMessages(requested),
+        loadThread(requested),
+      ]);
+      setThreadId(requested);
+      setMessages(rows.map(r => ({
+        id: r.id,
+        role: r.role,
+        content: r.content,
+        analysis: r.analysis ?? null,
+      })));
+      if (thread?.project_id) {
+        const all = await listProjects();
+        setThreadProject(all.find(p => p.id === thread.project_id) ?? null);
+        setProjects(all);
+      }
+      setBusy(false);
+    })();
+  }, []);
+
   // Grows with the text the way a chat input should, up to a ceiling.
   useEffect(() => {
     const ta = taRef.current;
@@ -142,18 +169,18 @@ export function AnalysisChat() {
   const push = (m: Omit<Message, 'id'>) => setMessages(prev => [...prev, { ...m, id: uid() }]);
 
   const persist = async (tid: string, role: 'user' | 'assistant', content: string, analysis?: Analysis) => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
+    const userId = await getUserId();
+    if (!userId) return;
     await supabase.from('chat_messages').insert({
-      thread_id: tid, user_id: user.id, role, content, analysis: analysis ?? null,
+      thread_id: tid, user_id: userId, role, content, analysis: analysis ?? null,
     });
   };
 
   const startThread = async (title: string) => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return null;
+    const userId = await getUserId();
+    if (!userId) return null;
     const { data } = await supabase
-      .from('chat_threads').insert({ user_id: user.id, title }).select('id').single();
+      .from('chat_threads').insert({ user_id: userId, title }).select('id').single();
     return data?.id ?? null;
   };
 

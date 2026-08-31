@@ -37,7 +37,7 @@ export function CompetitorsChannels({
   };
 
   return (
-    <div className="animate-fade-in-up">
+    <div>
       {/* Add channel */}
       <div className="rounded-[var(--r-md)] p-4 sm:p-5 space-y-3" style={{ background: 'var(--bg-raised)', border: '1px solid var(--line)' }}>
         {/* Auto-find sits above the URL field, because pasting five channel

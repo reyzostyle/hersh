@@ -1,9 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
-import { RefreshOutlineIcon as Loader2 } from '@solar-icons/react';
 import { Youtube } from './BrandIcons';
-import { supabase, getSessionToken, fetchWithRetry } from '../lib/supabase';
+import { supabase, getSessionToken, getUserId, fetchWithRetry } from '../lib/supabase';
 import { ErrorNotice } from './ErrorNotice';
-import { Page, PageHead, Panel, Tile, Section, Empty } from './Page';
+import { Page, PageHead, Panel, Tile, Section, Empty, Loading } from './Page';
 
 const FN = 'https://ezlousklksipvwuinpzq.supabase.co/functions/v1';
 const REFRESH_MS = 60_000;
@@ -122,10 +121,10 @@ export function AnalyticsPage() {
       setFailed(false);
 
       // The four score components, averaged over the analyses that carry them.
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
+      const userId = await getUserId();
+      if (!userId) return;
       const { data: rows } = await supabase
-        .from('analyses').select('hook_analysis').eq('user_id', user.id)
+        .from('analyses').select('hook_analysis').eq('user_id', userId)
         .order('created_at', { ascending: false }).limit(20);
 
       const breakdowns = (rows ?? [])
@@ -160,16 +159,14 @@ export function AnalyticsPage() {
   if (loading) {
     return (
       <Page>
-        <div className="flex justify-center pt-16">
-          <Loader2 className="w-5 h-5 animate-spin" style={{ color: 'var(--text-faint)' }} />
-        </div>
+        <Loading />
       </Page>
     );
   }
 
   if (failed && !stats) {
     return (
-      <Page>
+      <Page className="animate-tab-in">
         <PageHead eyebrow="Analytics" title="Your channel" />
         <ErrorNotice message="Could not reach the analytics service." />
       </Page>
@@ -178,7 +175,7 @@ export function AnalyticsPage() {
 
   if (stats && !stats.connected) {
     return (
-      <Page>
+      <Page className="animate-tab-in">
         <PageHead
           eyebrow="Analytics"
           title="Connect your channel"
@@ -192,7 +189,7 @@ export function AnalyticsPage() {
   }
 
   return (
-    <Page>
+    <Page className="animate-tab-in">
       <PageHead
         eyebrow="Analytics"
         title={stats?.channelTitle || 'Your channel'}

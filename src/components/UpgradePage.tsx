@@ -113,37 +113,60 @@ export function UpgradePage() {
     : 0;
 
   return (
-    <div className="sheet min-h-full max-w-4xl mx-auto px-5 sm:px-8 pt-12 sm:pt-16 pb-20 animate-fade-in-up">
+    <div className="sheet min-h-full max-w-5xl mx-auto px-5 sm:px-8 pt-12 sm:pt-16 pb-20">
+        {/* The billing toggle lives in the header's action slot rather than in a
+            centred block of its own. That block plus its margins pushed the
+            plans 306px down the page, so on a laptop the cards ran past the
+            fold and you had to scroll to see the price you came for. The slot
+            already exists for exactly this and costs no vertical space. */}
         <div className="hidden lg:block">
-          <PageHead eyebrow="Plans" title="Plans and billing" subtitle="Compare the plans and manage your subscription." />
+          <PageHead
+            eyebrow="Plans"
+            title="Plans and billing"
+            subtitle="Compare the plans and manage your subscription."
+            action={
+              <div className="flex flex-col items-end gap-1.5">
+                <div className="seg">
+                  {(['month', 'year'] as Interval[]).map(iv => (
+                    <button key={iv} onClick={() => setBillingInterval(iv)} data-on={interval === iv}>
+                      {iv === 'month' ? 'Monthly' : 'Yearly'}
+                    </button>
+                  ))}
+                </div>
+                {interval === 'year' && proYearlySavings > 0 && (
+                  <p className="font-mono text-[11px]" style={{ color: 'var(--process)' }}>
+                    save ${proYearlySavings.toFixed(2)}/yr on Pro, {proYearlyPercentOff}% off
+                  </p>
+                )}
+              </div>
+            }
+          />
         </div>
       <div>
         {error && <ErrorNotice message={error} className="mb-6" />}
 
-        {/* Billing interval toggle */}
-        <div className="flex flex-col items-center mb-6">
-          <div className="inline-flex p-1 rounded-full" style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.08)' }}>
+        {/* On a phone the header is hidden, so the toggle needs its own row. */}
+        <div className="lg:hidden flex flex-col items-center gap-1.5 mb-6">
+          <div className="seg">
             {(['month', 'year'] as Interval[]).map(iv => (
-              <button
-                key={iv}
-                onClick={() => setBillingInterval(iv)}
-                className={`px-4 py-1.5 rounded-full text-sm font-medium transition-colors ${
-                  interval === iv ? 'bg-white text-gray-900' : 'text-gray-400 hover:text-white'
-                }`}
-              >
+              <button key={iv} onClick={() => setBillingInterval(iv)} data-on={interval === iv}>
                 {iv === 'month' ? 'Monthly' : 'Yearly'}
               </button>
             ))}
           </div>
           {interval === 'year' && proYearlySavings > 0 && (
-            <p className="mt-2 text-xs font-medium" style={{ color: '#34D399' }}>
-              Save ${proYearlySavings.toFixed(2)}/yr on Pro, that's {proYearlyPercentOff}% off
+            <p className="font-mono text-[11px]" style={{ color: 'var(--process)' }}>
+              save ${proYearlySavings.toFixed(2)}/yr on Pro, {proYearlyPercentOff}% off
             </p>
           )}
         </div>
 
         {/* Plans grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-2xl mx-auto">
+        {/* Full width, so the cards start where the heading above them starts.
+            They were capped at 672 inside an 896 container, which left the
+            plans floating in the middle of a page whose text began further
+            left - the single most visible spacing fault in the app. */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {plans.map(plan => {
             const isCurrent = currentPlan === plan.id;
             const isHigher = (
@@ -155,7 +178,7 @@ export function UpgradePage() {
             return (
               <div
                 key={plan.id}
-                className={`relative flex flex-col p-5 rounded-xl motion-card animate-fade-in-up ${((isPopular && isHigher) || isCurrent) ? 'glass-panel-accent' : 'glass-panel'}`}
+                className={`relative flex flex-col p-5 rounded-xl motion-card ${((isPopular && isHigher) || isCurrent) ? 'glass-panel-accent' : 'glass-panel'}`}
                 style={{ animationDelay: `${plans.indexOf(plan) * 80}ms` }}
               >
                 {isPopular && !isCurrent && isHigher && (

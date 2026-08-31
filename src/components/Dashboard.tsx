@@ -8,6 +8,7 @@ import { UpgradePage } from './UpgradePage';
 import { UsagePage } from './UsagePage';
 import { SettingsPage } from './SettingsPage';
 import { PartnersPage } from './PartnersPage';
+import { PartnersAdminPage } from './PartnersAdminPage';
 import { CompetitorsPage } from './CompetitorsPage';
 import { AdminPage } from './AdminPage';
 
@@ -15,7 +16,7 @@ import { AdminPage } from './AdminPage';
 // only reached by entering the admin code in Settings. AdminPage itself
 // re-checks the caller's email before rendering anything or fetching data.
 // 'home' also has no nav entry: it's reached from the brand row in the sidebar.
-const VALID_TABS: NavTab[] = ['home', 'analyze', 'projects', 'analytics', 'competitors', 'usage', 'upgrade', 'partners', 'settings', 'admin'];
+const VALID_TABS: NavTab[] = ['home', 'analyze', 'projects', 'analytics', 'competitors', 'usage', 'upgrade', 'partners', 'settings', 'admin', 'affiliate-admin'];
 
 // A tab is reachable only if it's known and not feature-flagged off.
 const isTabReachable = (t: string): t is NavTab =>
@@ -63,6 +64,7 @@ export function Dashboard() {
       {activeTab === 'usage' && <UsagePage />}
       {activeTab === 'upgrade' && <UpgradePage />}
       {activeTab === 'partners' && <PartnersPage />}
+      {activeTab === 'affiliate-admin' && <PartnersAdminPage />}
       {activeTab === 'settings' && <SettingsPage />}
       {activeTab === 'admin' && <AdminPage />}
     </AppShell>

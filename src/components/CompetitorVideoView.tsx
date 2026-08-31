@@ -39,7 +39,7 @@ export function CompetitorVideoView({
     useIdeaGeneration(idea ?? ({ id: '' } as CompetitorIdea), onUpdated);
 
   return (
-    <Page>
+    <Page className="animate-tab-in">
       <button
         onClick={onBack}
         className="flex items-center gap-1.5 mb-6 text-[13px] transition-colors hover:text-[var(--text)]"

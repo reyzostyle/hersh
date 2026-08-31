@@ -62,14 +62,14 @@ export function UsagePage() {
   };
 
   return (
-    <div className="sheet min-h-full max-w-2xl mx-auto px-5 sm:px-8 pt-12 sm:pt-16 pb-20 animate-fade-in-up">
+    <div className="sheet min-h-full max-w-5xl mx-auto px-5 sm:px-8 pt-12 sm:pt-16 pb-20">
       <div className="hidden lg:block">
         <PageHead eyebrow="Usage" title="What you have left" subtitle="One credit balance across Analyze and Competitors." />
       </div>
 
       {error && <ErrorNotice message={error} className="mb-6" />}
 
-      <div className="p-4 sm:p-5 rounded-xl motion-card animate-fade-in-up delay-100 glass-panel">
+      <div className="p-4 sm:p-5 rounded-xl motion-card delay-100 glass-panel">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2 min-w-0">
             <BarChart2 className="w-4 h-4 text-gray-400 flex-shrink-0" />

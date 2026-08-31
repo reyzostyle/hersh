@@ -63,6 +63,10 @@ const CREATOR_LEVELS = [
 // account's own email, not on knowing this string (see admin-stats function).
 const ADMIN_EMAIL = 'reyzostyle@gmail.com';
 const ADMIN_CODE = 'ADMIN';
+// The affiliate tab is now identical for every account, admin included, so the
+// partner-management list needs its own door. Same mechanism as ADMIN: the code
+// is a shortcut, not the security - the endpoint behind it checks the email.
+const PARTNERS_CODE = 'PARTNERS';
 const PLAN_CACHE_KEY = 'hershy_last_plan';
 
 export function SettingsPage() {
@@ -127,6 +131,12 @@ export function SettingsPage() {
       setRedeemMsg(null);
       setRedeemCode('');
       window.dispatchEvent(new CustomEvent('hershy:navigate', { detail: 'admin' }));
+      return;
+    }
+    if (user?.email === ADMIN_EMAIL && code.toUpperCase() === PARTNERS_CODE) {
+      setRedeemMsg(null);
+      setRedeemCode('');
+      window.dispatchEvent(new CustomEvent('hershy:navigate', { detail: 'affiliate-admin' }));
       return;
     }
     setRedeeming(true);
@@ -292,7 +302,7 @@ export function SettingsPage() {
   };
 
   return (
-    <div className="sheet min-h-full max-w-3xl mx-auto px-5 sm:px-8 pt-12 sm:pt-16 pb-20 space-y-4 animate-fade-in-up">
+    <div className="sheet min-h-full max-w-5xl mx-auto px-5 sm:px-8 pt-12 sm:pt-16 pb-20 space-y-4">
 
       <div className="hidden lg:block">
         <PageHead eyebrow="Settings" title="Your account" subtitle="Your channel profile, your connections, and your subscription." />
