@@ -85,6 +85,12 @@ const STAGES: Record<string, string[]> = {
   hook: ['Reading the hook', 'Weighing it against what works', 'Writing the fix'],
   script: ['Reading the script', 'Finding where attention drops', 'Writing the fix'],
   followup: ['Rereading the review', 'Answering'],
+  // Shown while the message is still being worked out. It has to be honest
+  // about not knowing yet: "Fetching the video" under a typed question was
+  // the line telling everyone the product had misread them before the
+  // scored-out-of-100 reply confirmed it. If this turns out to be a hook or
+  // a script, the stage switches when the real run starts.
+  question: ['Reading what you sent', 'Thinking'],
 };
 
 const STAGE_MS = 3800;
@@ -221,7 +227,10 @@ export function AnalysisChat() {
       if (r.ok) title = (await r.json()).title ?? '';
     } catch { /* title is a nicety, not a requirement */ }
 
-    const tid = await startThread(title || shownText.slice(0, 60));
+    // Reuse the thread if the conversation already started - a question can
+    // come before the first link now, and starting a second thread here would
+    // orphan everything said up to this point.
+    const tid = threadId ?? await startThread(title || shownText.slice(0, 60));
     setThreadId(tid);
     if (tid) await persist(tid, 'user', shownText);
 
@@ -262,13 +271,16 @@ export function AnalysisChat() {
 
   // Hook Lab and Script Lab used to be their own tabs. Same functions, same
   // credits, now answered in the thread so the follow-ups work on them too.
-  const runTextAnalysis = async (kind: 'hook' | 'script', text: string) => {
+  // `pushed` is set when the router already put the message on screen: it
+  // decided this was a hook rather than a question, and the bubble went up
+  // before that was known.
+  const runTextAnalysis = async (kind: 'hook' | 'script', text: string, pushed = false) => {
     setBusyKind(kind);
     setBusy(true);
     setError('');
-    push({ role: 'user', content: text });
+    if (!pushed) push({ role: 'user', content: text });
 
-    const tid = await startThread(text.slice(0, 60));
+    const tid = threadId ?? await startThread(text.slice(0, 60));
     setThreadId(tid);
     if (tid) await persist(tid, 'user', text);
 
@@ -299,6 +311,65 @@ export function AnalysisChat() {
 
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Analysis failed');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  // Works out what an unprompted message actually is, and answers it if it is
+  // a question.
+  //
+  // There was no router before this: anything without a link went straight to
+  // a hook or script check on the strength of "is it longer than 200
+  // characters". Typing "why did my last short flop?" came back as a score out
+  // of 100 against the question itself. The judgement now happens server-side,
+  // in the same call that writes the answer, so a question costs one round
+  // trip and a hook costs one cheap call before the real run.
+  const routeMessage = async (text: string) => {
+    // Deliberately vague until the server says otherwise - see STAGES.question.
+    setBusyKind('question');
+    setBusy(true);
+    setError('');
+    push({ role: 'user', content: text });
+
+    try {
+      const token = await getSessionToken();
+      if (!token) throw new Error('Not authenticated');
+      const res = await fetchWithRetry(`${FN}/chat-followup`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ threadId, question: text }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Could not read that');
+
+      if (data.intent === 'hook' || data.intent === 'script') {
+        // Hands off with the bubble already on screen. runTextAnalysis takes
+        // over the busy state and the stage line from here.
+        await runTextAnalysis(data.intent, text, true);
+        return;
+      }
+
+      push({ role: 'assistant', content: data.answer });
+
+      // The server only persists into a thread that already exists, because
+      // until now there was nothing worth keeping. A question can open a
+      // conversation, so this is where that thread gets made.
+      if (!threadId) {
+        const tid = await startThread(text.slice(0, 60));
+        setThreadId(tid);
+        if (tid) {
+          await persist(tid, 'user', text);
+          await persist(tid, 'assistant', data.answer);
+        }
+      }
+      reloadUsage();
+    } catch (e) {
+      // No falling back to the old length heuristic. Guessing "hook" on a
+      // failed route is the exact behaviour being fixed, and it would spend
+      // their credits to do the wrong thing. fetchWithRetry has already
+      // ridden out anything transient by the time this runs.
+      setError(e instanceof Error ? e.message : 'Could not read that');
     } finally {
       setBusy(false);
     }
@@ -348,11 +419,11 @@ export function AnalysisChat() {
     const videoId = extractVideoId(url);
     if (videoId) { runAnalysis(videoId, text.replace(url, '').trim(), text); return; }
 
-    // No link means they pasted the writing itself. A script is long or has
-    // line breaks; a hook is the one line that opens a video. The reply says
-    // which it assumed, so a wrong guess costs one sentence to correct.
-    const isScript = text.includes('\n') || text.length > 200;
-    runTextAnalysis(isScript ? 'script' : 'hook', text);
+    // A link is the one unambiguous message. Everything else - a question, a
+    // hook, a script - is worked out on the server, because the difference
+    // between "how do i write a better hook" and "how i wrote the hook that
+    // got me 2M" is not a difference any test written here can see.
+    routeMessage(text);
   };
 
   const openFiling = async () => {
@@ -387,7 +458,7 @@ export function AnalysisChat() {
 
   const priceLine = hasResult
     ? `${CREDIT_COSTS.chat_followup} credit a message`
-    : `${CREDIT_COSTS.video_analysis} credits a video, ${CREDIT_COSTS.script_check} a script, ${CREDIT_COSTS.hook_check} a hook`;
+    : `${CREDIT_COSTS.video_analysis} credits a video, ${CREDIT_COSTS.script_check} a script, ${CREDIT_COSTS.hook_check} a hook, ${CREDIT_COSTS.chat_followup} a question`;
 
   const Price = () => (
     <p className="label-mono mt-2.5 text-center">
@@ -409,7 +480,7 @@ export function AnalysisChat() {
             <Composer
               value={composer} onChange={setComposer} onSubmit={submit} busy={busy}
               file={file} setFile={setFile} fileRef={fileRef} taRef={taRef}
-              placeholder="Paste a link, a hook or a script"
+              placeholder="Paste a link, a hook or a script, or just ask"
             />
             <Price />
           </div>
@@ -462,7 +533,7 @@ export function AnalysisChat() {
               <Composer
                 value={composer} onChange={setComposer} onSubmit={submit} busy={busy}
                 file={file} setFile={setFile} fileRef={fileRef} taRef={taRef}
-                placeholder="Ask about the fixes, or send another link"
+                placeholder={hasResult ? 'Ask about the fixes, or send another link' : 'Ask anything, or send a link'}
               />
               <Price />
             </div>
