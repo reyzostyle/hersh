@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
 import { AddOutlineIcon as Plus, ArrowUpOutlineIcon as ArrowUp, RefreshOutlineIcon as Loader2, CloseCircleOutlineIcon as X, ClapperboardOpenOutlineIcon as Film, FolderOutlineIcon as FolderIcon } from '@solar-icons/react';
 import { supabase, getSessionToken, getUserId, fetchWithRetry } from '../lib/supabase';
 import { ErrorNotice } from './ErrorNotice';
@@ -20,6 +20,11 @@ interface Message {
   role: 'user' | 'assistant';
   content: string;
   analysis?: Analysis | null;
+  // Set on messages that arrived while watching, cleared on messages loaded
+  // out of the database. Only the first kind animates in or reveals itself:
+  // replaying twenty of them when a saved conversation opens is not a
+  // conversation arriving, it is a page flickering.
+  fresh?: boolean;
 }
 
 const extractVideoId = (input: string): string | null => {
@@ -98,17 +103,96 @@ const STAGE_MS = 3800;
 function Working({ kind }: { kind: keyof typeof STAGES }) {
   const stages = STAGES[kind] ?? STAGES.video;
   const [at, setAt] = useState(0);
+  const [shown, setShown] = useState(true);
 
+  // Fade the line out, swap the words while nothing is visible, fade back in.
+  // Swapping the text in place made each stage change read as a glitch rather
+  // than as progress, and the shimmer running over it did not soften that -
+  // the words simply became different words between two frames.
   useEffect(() => {
     setAt(0);
-    const t = setInterval(() => setAt(i => Math.min(i + 1, stages.length - 1)), STAGE_MS);
-    return () => clearInterval(t);
+    setShown(true);
+    let swap: ReturnType<typeof setTimeout>;
+    const t = setInterval(() => {
+      setAt(i => {
+        if (i >= stages.length - 1) return i;
+        setShown(false);
+        swap = setTimeout(() => setShown(true), 220);
+        return i + 1;
+      });
+    }, STAGE_MS);
+    return () => { clearInterval(t); clearTimeout(swap); };
   }, [kind]);
 
   return (
-    <p className="text-working text-[14px] font-medium" aria-live="polite">
-      {stages[at]}
+    <p className="animate-msg-in text-[14px] font-medium" aria-live="polite">
+      <span
+        className="text-working inline-block transition-opacity duration-200"
+        style={{ opacity: shown ? 1 : 0 }}
+      >
+        {stages[at]}
+      </span>
     </p>
+  );
+}
+
+// How long the whole reveal takes, however long the answer is. A per-word rate
+// reads fine on two sentences and becomes a wait on twenty.
+const REVEAL_MS = 900;
+// Scrolling on every frame of the reveal is what made the first version of this
+// take twice its own duration, so the follow is throttled well below 60fps. The
+// eye cannot tell; setInterval could.
+const FOLLOW_MS = 120;
+
+// Reveals an answer that has ALREADY fully arrived, a few words at a time.
+//
+// This is not streaming and does not pretend to be: the request is finished
+// before the first word shows, so it saves nobody any waiting. What it fixes is
+// that a finished block of text appearing between two frames is both a jolt and
+// genuinely ambiguous - there is no moment in it that reads as "it stopped".
+// The caret supplies that moment by going out.
+//
+// Real streaming would be the better answer and is a different job: callLLM is
+// a single-shot helper over three providers, so it means an SSE path through
+// each of them plus a reader on this end.
+function RevealText({ text, onAdvance }: { text: string; onAdvance: () => void }) {
+  // Split on whitespace but KEEP it, so the reveal never reflows the paragraph
+  // - dropping the separators would re-wrap every line as words land.
+  const parts = useMemo(() => text.split(/(\s+)/), [text]);
+  const [shown, setShown] = useState(0);
+
+  // Driven by elapsed time on rAF, not by a word count on a timer. A timer
+  // assumes every tick costs nothing, and these ticks re-render the thread and
+  // move the scroll, so the interval slipped to two or three times its nominal
+  // rate and a 900ms reveal took a little over two seconds. Reading the clock
+  // means the reveal lasts REVEAL_MS whatever the frames cost.
+  useEffect(() => {
+    const reduced = typeof window !== 'undefined'
+      && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+    if (reduced) { setShown(parts.length); return; }
+
+    setShown(0);
+    let raf = 0;
+    let lastFollow = 0;
+    const started = performance.now();
+
+    const frame = (now: number) => {
+      const progress = Math.min(1, (now - started) / REVEAL_MS);
+      setShown(Math.max(1, Math.ceil(progress * parts.length)));
+      if (now - lastFollow > FOLLOW_MS) { lastFollow = now; onAdvance(); }
+      if (progress < 1) raf = requestAnimationFrame(frame);
+      else onAdvance();
+    };
+    raf = requestAnimationFrame(frame);
+    return () => cancelAnimationFrame(raf);
+  }, [parts]);
+
+  const done = shown >= parts.length;
+  return (
+    <>
+      {parts.slice(0, shown).join('')}
+      {!done && <span className="reveal-caret" aria-hidden="true" />}
+    </>
   );
 }
 
@@ -134,6 +218,10 @@ export function AnalysisChat() {
   const fileRef = useRef<HTMLInputElement>(null);
   const endRef = useRef<HTMLDivElement>(null);
   const taRef = useRef<HTMLTextAreaElement>(null);
+
+  // Instant, not smooth, when called from the reveal: a smooth scroll retriggered
+  // every 28ms never settles, and the page ends up crawling behind the text.
+  const scrollToEnd = () => endRef.current?.scrollIntoView({ behavior: 'auto', block: 'end' });
 
   useEffect(() => { endRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages, busy]);
 
@@ -197,7 +285,7 @@ export function AnalysisChat() {
     ta.style.height = Math.min(ta.scrollHeight, 200) + 'px';
   }, [composer]);
 
-  const push = (m: Omit<Message, 'id'>) => setMessages(prev => [...prev, { ...m, id: uid() }]);
+  const push = (m: Omit<Message, 'id'>) => setMessages(prev => [...prev, { ...m, id: uid(), fresh: true }]);
 
   const persist = async (tid: string, role: 'user' | 'assistant', content: string, analysis?: Analysis) => {
     const userId = await getUserId();
@@ -491,22 +579,28 @@ export function AnalysisChat() {
             <div className="max-w-2xl mx-auto px-5 py-8 space-y-6">
               {messages.map(m => (
                 m.role === 'user' ? (
-                  <div key={m.id} className="flex justify-end">
+                  <div key={m.id} className={`flex justify-end ${m.fresh ? 'animate-msg-in' : ''}`}>
                     <div className="max-w-[85%] rounded-2xl px-4 py-2.5 text-[14px] leading-relaxed break-words"
                          style={{ background: 'var(--bg-raised)', color: 'var(--text)' }}>
                       {m.content}
                     </div>
                   </div>
                 ) : m.analysis ? (
-                  <div key={m.id} className="space-y-2">
+                  <div key={m.id} className={`space-y-2 ${m.fresh ? 'animate-msg-in' : ''}`}>
                     {m.content && (
                       <p className="label-mono">{m.content}</p>
                     )}
                     <AnalysisCard a={m.analysis} />
                   </div>
                 ) : (
-                  <div key={m.id} className="text-[14px] leading-relaxed whitespace-pre-line" style={{ color: 'var(--text-muted)' }}>
-                    {m.content}
+                  /* --text, not --text-muted. This is the answer, the thing on
+                     the screen worth reading; muted is the weight for labels
+                     and captions around it, and using it here made the one
+                     piece of content look like supporting text. */
+                  <div key={m.id} className={`text-[14px] leading-relaxed whitespace-pre-line ${m.fresh ? 'animate-msg-in' : ''}`} style={{ color: 'var(--text)' }}>
+                    {m.fresh
+                      ? <RevealText text={m.content} onAdvance={scrollToEnd} />
+                      : m.content}
                   </div>
                 )
               ))}
