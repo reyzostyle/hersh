@@ -25,6 +25,9 @@ interface Message {
   // replaying twenty of them when a saved conversation opens is not a
   // conversation arriving, it is a page flickering.
   fresh?: boolean;
+  // On a video review: which video it is of. Lets a link that is already scored
+  // in this thread be read as a reference to it rather than a second request.
+  videoId?: string;
   // On a hook or script result: which of the two it decided this was, and the
   // text it decided it about. Enough to run the other one from a click.
   textKind?: 'hook' | 'script';
@@ -362,7 +365,7 @@ export function AnalysisChat() {
         strong_spots: data.analysis?.strong_spots ?? [],
         weak_spots: data.analysis?.weak_spots ?? [],
       };
-      push({ role: 'assistant', content: '', analysis: a });
+      push({ role: 'assistant', content: '', analysis: a, videoId });
       if (tid) {
         await persist(tid, 'assistant', '', a);
         await supabase.from('chat_threads').update({ analysis_id: data.analysis?.id }).eq('id', tid);
@@ -380,7 +383,13 @@ export function AnalysisChat() {
       // question nobody asked. The review still runs, because watching is the
       // expensive part and it is what makes the answer worth anything, and the
       // question is then answered against it.
-      if (context.trim() && tid) await askFollowUp(context.trim(), { silent: true, tid });
+      // Only when it is actually a question. "i want u to analyze the second
+      // video" is an instruction that the review just carried out, and putting
+      // it to the model afterwards spends a credit to be told what is already
+      // on screen. A question mark is a blunt test, but its failure mode is
+      // mild: a question phrased without one is simply asked again as the next
+      // message, at the same price it would have cost here.
+      if (tid && context.includes('?')) await askFollowUp(context.trim(), { silent: true, tid });
 
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Analysis failed');
@@ -578,19 +587,33 @@ export function AnalysisChat() {
     if (!text || busy) return;
     setComposer('');
 
-    // Once a thread has a result, anything typed is a question about it. Before
-    // that, the message has to carry a link, because there is nothing to ask
-    // about yet.
-    if (hasResult) { askFollowUp(text); return; }
-
     const url = text.match(/https?:\/\/\S+/)?.[0] ?? text;
     const videoId = extractVideoId(url);
-    if (videoId) { runAnalysis(videoId, text.replace(url, '').trim(), text); return; }
 
-    // A link is the one unambiguous message. Everything else - a question, a
-    // hook, a script - is worked out on the server, because the difference
-    // between "how do i write a better hook" and "how i wrote the hook that
-    // got me 2M" is not a difference any test written here can see.
+    // A NEW video is checked before anything else, including whether the thread
+    // already has a review in it.
+    //
+    // This used to sit under the hasResult branch, so once one video had been
+    // scored every later message was treated as a question about it - a second
+    // link included. Pasting one got "drop the URL again and I will review it",
+    // which was true of the model and false of the app: the link was never
+    // going anywhere near the analyser, so it could be pasted forever.
+    //
+    // A link to the video already scored here is different: that is someone
+    // referring back to it, not asking for it twice at five credits a go.
+    const alreadyHere = !!videoId && messages.some(m => m.videoId === videoId);
+    if (videoId && !alreadyHere) {
+      runAnalysis(videoId, text.replace(url, '').trim(), text);
+      return;
+    }
+
+    // With a review on screen, everything else is a question about it.
+    if (hasResult) { askFollowUp(text); return; }
+
+    // Nothing scored yet and no link. Question, hook or script is worked out on
+    // the server, because the difference between "how do i write a better hook"
+    // and "how i wrote the hook that got me 2M" is not a difference any test
+    // written here can see.
     routeMessage(text);
   };
 

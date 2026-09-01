@@ -32,6 +32,8 @@ const FOLLOWUP_SYSTEM = `You are the senior short-form video editor who just rev
 
 The video is not necessarily theirs - people send competitors' Shorts here too - so do not assume they made it.
 
+If the thread says other videos were reviewed before this one, the review below is the most recent, and it is the one to answer from unless they clearly mean an earlier one.
+
 Ground every answer in the analysis below. If they ask about something it does not cover, say what you can see from it and what you cannot, rather than inventing a detail about footage you are not looking at right now.
 
 Their own channel is described below when they have filled it in. Use it whenever the question is about them rather than about the video: "would this work for my niche" is a question about the gap between the two, and answering it without looking at their channel is answering a different question.
@@ -169,6 +171,7 @@ Deno.serve(async (req: Request) => {
     // ── Load the thread, if there is one ─────────────────────────────────────
     // Scoped to its owner here rather than trusted from the body.
     let analysis: Record<string, unknown> | null = null;
+    let earlierReviews = 0;
     let history = '';
     if (threadId) {
       const { data: thread } = await supabase
@@ -183,7 +186,13 @@ Deno.serve(async (req: Request) => {
         .order('created_at', { ascending: true });
 
       const rows = messages ?? [];
-      analysis = rows.find(m => m.analysis)?.analysis ?? null;
+      // The LAST review, not the first. A thread can hold more than one now -
+      // paste a second link and it gets scored in place - and grounding the
+      // answer in the oldest one would have it confidently describing a video
+      // that scrolled off the screen two reviews ago.
+      const reviewed = rows.filter(m => m.analysis);
+      analysis = reviewed.length ? reviewed[reviewed.length - 1].analysis : null;
+      earlierReviews = Math.max(0, reviewed.length - 1);
       // Only the tail: on a thread with a review, that review is the context
       // that matters and a long history would push it out of the window.
       history = rows
@@ -212,7 +221,7 @@ Deno.serve(async (req: Request) => {
         strong_spots?: string[]; weak_spots?: string[];
       };
       const block = profileBlock(profile);
-      const prompt = `${block ? `## Whose channel this is for\n${block}\n\n` : ''}## The review you gave
+      const prompt = `${block ? `## Whose channel this is for\n${block}\n\n` : ''}${earlierReviews ? `(${earlierReviews} earlier ${earlierReviews === 1 ? 'video was' : 'videos were'} reviewed in this thread. The one below is the latest.)\n\n` : ''}## The review you gave
 Score: ${a.overall_score ?? 'n/a'} out of 100
 ${a.overall_assessment ?? ''}
 
