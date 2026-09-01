@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { CloseCircleOutlineIcon as X, RefreshOutlineIcon as Loader2, MagnifierOutlineIcon as Search } from '@solar-icons/react';
+import { CloseCircleOutlineIcon as X, RefreshOutlineIcon as Loader2, MagnifierOutlineIcon as Search, ArrowRightUpOutlineIcon as ArrowUpRight } from '@solar-icons/react';
 import { Check } from './BrandIcons';
 import { getSessionToken } from '../lib/supabase';
 import { callFunction, formatViews } from '../lib/competitors';
@@ -13,6 +13,9 @@ export interface Suggestion {
   thumbnail: string;
   subscribers: number | null;
   hits: number;
+  // What this channel's videos on the searched subject actually did. Null when
+  // the stats call failed, in which case the list falls back to hit counts.
+  medianViews?: number | null;
 }
 
 // The picker for auto-find. Nothing is added until Add is pressed: the search
@@ -131,34 +134,59 @@ export function FindCompetitorsModal({ slotsLeft, onAdd, onClose }: {
                 const on = picked.has(s.channelId);
                 const blocked = !on && atLimit;
                 return (
-                  <button
+                  /* The row is a div with two controls in it, not one big
+                     button. Picking a channel blind was the whole complaint:
+                     the only way to see who these people are was to copy the
+                     name into YouTube by hand, so the row now opens them. An
+                     anchor cannot live inside a button, hence the split. */
+                  <div
                     key={s.channelId}
-                    onClick={() => toggle(s.channelId)}
-                    disabled={blocked}
-                    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-[var(--r-sm)] text-left transition-colors disabled:opacity-35"
+                    className={`w-full flex items-center rounded-[var(--r-sm)] transition-colors ${blocked ? 'opacity-35' : ''}`}
                     style={{
                       background: on ? 'var(--bg-raised-hover)' : 'var(--bg-raised)',
                       border: `1px solid ${on ? 'var(--line-strong)' : 'var(--line)'}`,
                     }}
                   >
-                    <span
-                      className="w-4 h-4 rounded flex items-center justify-center flex-shrink-0"
-                      style={on ? { background: 'var(--accent)' } : { border: '1px solid var(--line-strong)' }}
+                    <button
+                      onClick={() => toggle(s.channelId)}
+                      disabled={blocked}
+                      className="flex-1 min-w-0 flex items-center gap-3 px-3 py-2.5 text-left"
                     >
-                      {on && <Check className="w-3 h-3" style={{ color: 'var(--on-accent)' }} />}
-                    </span>
-                    {s.thumbnail
-                      ? <img src={s.thumbnail} alt="" className="w-8 h-8 rounded-full object-cover flex-shrink-0" />
-                      : <span className="w-8 h-8 rounded-full flex-shrink-0" style={{ background: 'rgba(255,255,255,0.08)' }} />}
-                    <span className="flex-1 min-w-0">
-                      <span className="block text-[13px] font-medium truncate" style={{ color: 'var(--text)' }}>{s.name}</span>
-                      <span className="block font-mono text-[11px] tabular-nums" style={{ color: 'var(--text-faint)' }}>
-                        {s.subscribers != null ? `${formatViews(s.subscribers)} subs` : 'subs hidden'}
-                        {' · '}
-                        {s.hits} {s.hits === 1 ? 'hit' : 'hits'} in the top 50
+                      <span
+                        className="w-4 h-4 rounded flex items-center justify-center flex-shrink-0"
+                        style={on ? { background: 'var(--accent)' } : { border: '1px solid var(--line-strong)' }}
+                      >
+                        {on && <Check className="w-3 h-3" style={{ color: 'var(--on-accent)' }} />}
                       </span>
-                    </span>
-                  </button>
+                      {s.thumbnail
+                        ? <img src={s.thumbnail} alt="" className="w-8 h-8 rounded-full object-cover flex-shrink-0" />
+                        : <span className="w-8 h-8 rounded-full flex-shrink-0" style={{ background: 'rgba(255,255,255,0.08)' }} />}
+                      <span className="flex-1 min-w-0">
+                        <span className="block text-[13px] font-medium truncate" style={{ color: 'var(--text)' }}>{s.name}</span>
+                        <span className="block font-mono text-[11px] tabular-nums" style={{ color: 'var(--text-faint)' }}>
+                          {/* Median views on the searched subject leads, because
+                              it is the number worth choosing on. Subscriber
+                              counts go stale and hit counts only say they post
+                              about it a lot. */}
+                          {s.medianViews != null
+                            ? `${formatViews(s.medianViews)} median views`
+                            : `${s.hits} ${s.hits === 1 ? 'hit' : 'hits'} in the top 50`}
+                          {' · '}
+                          {s.subscribers != null ? `${formatViews(s.subscribers)} subs` : 'subs hidden'}
+                        </span>
+                      </span>
+                    </button>
+                    <a
+                      href={`https://www.youtube.com/channel/${s.channelId}/shorts`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      title="Open on YouTube"
+                      className="flex-shrink-0 p-2.5 mr-1 rounded-[var(--r-sm)] transition-colors hover:text-[var(--text)]"
+                      style={{ color: 'var(--text-faint)' }}
+                    >
+                      <ArrowUpRight className="w-4 h-4" />
+                    </a>
+                  </div>
                 );
               })}
             </div>

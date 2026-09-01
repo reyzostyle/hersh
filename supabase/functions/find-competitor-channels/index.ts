@@ -27,6 +27,21 @@ const SEARCH_WINDOW_DAYS = 180;
 const FIND_COOLDOWN_MS = 24 * 60 * 60 * 1000;
 const MAX_SUGGESTIONS = 10;
 
+// A channel whose best matching video cannot clear this is not a competitor,
+// it is someone posting into the void. The ranking used to be "how many of the
+// top fifty results does this channel own", which rewards posting volume on a
+// keyword and nothing else - it put two channels averaging 20 to 100 views a
+// video at the top of the list, because they owned the phrase and no one was
+// watching. Owning a phrase is not the same as being watched.
+const MIN_TOP_VIEWS = 5000;
+
+const median = (xs: number[]) => {
+  if (!xs.length) return null;
+  const a = [...xs].sort((x, y) => x - y);
+  const mid = Math.floor(a.length / 2);
+  return a.length % 2 ? a[mid] : Math.round((a[mid - 1] + a[mid]) / 2);
+};
+
 // deno-lint-ignore no-explicit-any
 async function buildQuery(scan: any, niche: string, description: string): Promise<string> {
   const titles = (scan?.videos ?? []).slice(0, 20).map((v: any) => `- ${v.title}`).join('\n');
@@ -119,23 +134,35 @@ Deno.serve(async (req: Request) => {
     // relevanceLanguage is a hint, not a filter - it happily returned a
     // Portuguese channel for an English query, and that channel then fed the
     // user's feed with videos they cannot read. So the hits are checked against
-    // what the videos actually declare. One extra quota unit for all fifty.
+    // what the videos actually declare.
+    //
+    // `statistics` rides along on the same request. videos.list costs one unit
+    // whatever parts are asked for, so the view counts that decide the ranking
+    // below are free, and they are the difference between suggesting channels
+    // that own a phrase and suggesting channels people watch.
     const searchIds = items.map((it: any) => it.id?.videoId).filter(Boolean).slice(0, 50);
     const englishIds = new Set<string>();
+    const viewsByChannel = new Map<string, number[]>();
+    let haveStats = false;
     if (searchIds.length) {
       const langRes = await fetch(
-        `https://www.googleapis.com/youtube/v3/videos?id=${searchIds.join(',')}&part=snippet&key=${ytApiKey}`);
+        `https://www.googleapis.com/youtube/v3/videos?id=${searchIds.join(',')}&part=snippet,statistics&key=${ytApiKey}`);
       if (langRes.ok) {
+        haveStats = true;
         for (const v of (await langRes.json()).items || []) {
           const lang = v.snippet?.defaultAudioLanguage || v.snippet?.defaultLanguage;
           // Unset counts as English, same rule the pool uses.
           if (!lang || String(lang).toLowerCase().startsWith('en')) englishIds.add(v.id);
+          else continue;
+          const ch = v.snippet?.channelId;
+          const views = Number(v.statistics?.viewCount ?? 0);
+          if (ch) viewsByChannel.set(ch, [...(viewsByChannel.get(ch) ?? []), views]);
         }
       }
     }
 
-    // How many of the top fifty a channel owns IS the ranking. One hit is a
-    // coincidence; three means they own the subject.
+    // Hits still count - one is a coincidence, three means they keep landing on
+    // this subject - but they are the tiebreak now, not the ranking.
     const hits = new Map<string, number>();
     for (const it of items) {
       const id = it.snippet?.channelId;
@@ -164,17 +191,30 @@ Deno.serve(async (req: Request) => {
 
     const ownChannelTitle = (scan?.channelTitle || '').toLowerCase();
     const channels = chItems
-      .map((c: any) => ({
-        channelId: c.id,
-        name: c.snippet?.title || c.id,
-        thumbnail: c.snippet?.thumbnails?.default?.url || '',
-        subscribers: c.statistics?.subscriberCount ? Number(c.statistics.subscriberCount) : null,
-        hits: hits.get(c.id) ?? 0,
-      }))
+      .map((c: any) => {
+        const matched = viewsByChannel.get(c.id) ?? [];
+        return {
+          channelId: c.id,
+          name: c.snippet?.title || c.id,
+          thumbnail: c.snippet?.thumbnails?.default?.url || '',
+          subscribers: c.statistics?.subscriberCount ? Number(c.statistics.subscriberCount) : null,
+          hits: hits.get(c.id) ?? 0,
+          // What their videos ON THIS SUBJECT actually did. Median rather than
+          // best, so one lucky upload cannot carry a channel nobody watches.
+          medianViews: median(matched),
+          topViews: matched.length ? Math.max(...matched) : null,
+        };
+      })
       // Their own channel turning up as its own competitor is the one result
       // nobody needs.
       .filter((c: any) => c.name.toLowerCase() !== ownChannelTitle)
-      .sort((a: any, b: any) => b.hits - a.hits || (b.subscribers ?? 0) - (a.subscribers ?? 0))
+      // Only when the stats call actually answered. If it failed, ranking falls
+      // back to hits and nothing is silently dropped on missing data.
+      .filter((c: any) => !haveStats || (c.topViews ?? 0) >= MIN_TOP_VIEWS)
+      .sort((a: any, b: any) =>
+        (b.medianViews ?? 0) - (a.medianViews ?? 0)
+        || b.hits - a.hits
+        || (b.subscribers ?? 0) - (a.subscribers ?? 0))
       .slice(0, MAX_SUGGESTIONS);
 
     await supabase.from('user_tokens')
