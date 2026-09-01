@@ -25,9 +25,6 @@ interface Message {
   // replaying twenty of them when a saved conversation opens is not a
   // conversation arriving, it is a page flickering.
   fresh?: boolean;
-  // On a video review: which video it is of. Lets a link that is already scored
-  // in this thread be read as a reference to it rather than a second request.
-  videoId?: string;
   // On a hook or script result: which of the two it decided this was, and the
   // text it decided it about. Enough to run the other one from a click.
   textKind?: 'hook' | 'script';
@@ -365,7 +362,7 @@ export function AnalysisChat() {
         strong_spots: data.analysis?.strong_spots ?? [],
         weak_spots: data.analysis?.weak_spots ?? [],
       };
-      push({ role: 'assistant', content: '', analysis: a, videoId });
+      push({ role: 'assistant', content: '', analysis: a });
       if (tid) {
         await persist(tid, 'assistant', '', a);
         await supabase.from('chat_threads').update({ analysis_id: data.analysis?.id }).eq('id', tid);
@@ -383,13 +380,11 @@ export function AnalysisChat() {
       // question nobody asked. The review still runs, because watching is the
       // expensive part and it is what makes the answer worth anything, and the
       // question is then answered against it.
-      // Only when it is actually a question. "i want u to analyze the second
-      // video" is an instruction that the review just carried out, and putting
-      // it to the model afterwards spends a credit to be told what is already
-      // on screen. A question mark is a blunt test, but its failure mode is
-      // mild: a question phrased without one is simply asked again as the next
-      // message, at the same price it would have cost here.
-      if (tid && context.includes('?')) await askFollowUp(context.trim(), { silent: true, tid });
+      // Whatever came with the link goes to the model too, always. It decides
+      // whether that was a question worth answering, an instruction already
+      // carried out, or a hook to score - which is the same judgement it makes
+      // on every other message, and a better one than a question mark.
+      if (tid && context.trim()) await routeMessage(context.trim(), { silent: true, tid });
 
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Analysis failed');
@@ -462,12 +457,21 @@ export function AnalysisChat() {
   // of 100 against the question itself. The judgement now happens server-side,
   // in the same call that writes the answer, so a question costs one round
   // trip and a hook costs one cheap call before the real run.
-  const routeMessage = async (text: string) => {
-    // Deliberately vague until the server says otherwise - see STAGES.question.
-    setBusyKind('question');
+  //
+  // `silent` is for the text that came attached to a link: it is already on
+  // screen inside the message that carried the link, and pushing it again would
+  // show the creator saying it twice. `tid` is passed by that caller because
+  // the thread was created moments earlier and setThreadId has not landed in
+  // this closure yet.
+  const routeMessage = async (text: string, { silent = false, tid }: { silent?: boolean; tid?: string | null } = {}) => {
+    const thread = tid ?? threadId;
+    // Vague until the server says otherwise - see STAGES.question. With a
+    // review already on screen the call still classifies, but it is reading
+    // that review to do it, so the line can say so.
+    setBusyKind(hasResult ? 'followup' : 'question');
     setBusy(true);
     setError('');
-    push({ role: 'user', content: text });
+    if (!silent) push({ role: 'user', content: text });
 
     try {
       const token = await getSessionToken();
@@ -475,7 +479,7 @@ export function AnalysisChat() {
       const res = await fetchWithRetry(`${FN}/chat-followup`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ threadId, question: text }),
+        body: JSON.stringify({ threadId: thread, question: text }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Could not read that');
@@ -483,7 +487,7 @@ export function AnalysisChat() {
       if (data.intent === 'hook' || data.intent === 'script') {
         // Hands off with the bubble already on screen. runTextAnalysis takes
         // over the busy state and the stage line from here.
-        await runTextAnalysis(data.intent, text, { pushed: true });
+        await runTextAnalysis(data.intent, text, { pushed: !silent });
         return;
       }
 
@@ -492,12 +496,12 @@ export function AnalysisChat() {
       // The server only persists into a thread that already exists, because
       // until now there was nothing worth keeping. A question can open a
       // conversation, so this is where that thread gets made.
-      if (!threadId) {
-        const tid = await startThread(text.slice(0, 60));
-        setThreadId(tid);
-        if (tid) {
-          await persist(tid, 'user', text);
-          await persist(tid, 'assistant', data.answer);
+      if (!thread) {
+        const opened = await startThread(text.slice(0, 60));
+        setThreadId(opened);
+        if (opened) {
+          await persist(opened, 'user', text);
+          await persist(opened, 'assistant', data.answer);
         }
       }
       reloadUsage();
@@ -546,37 +550,6 @@ export function AnalysisChat() {
     await runTextAnalysis(to, source, { pushed: true, stored: true });
   };
 
-  // `silent` is for the question that came attached to a link: it is already on
-  // screen inside the message that carried the link, and pushing it again would
-  // show the creator asking twice. `tid` is passed explicitly by that caller
-  // because the thread was created moments earlier and setThreadId has not
-  // landed in this closure yet.
-  const askFollowUp = async (question: string, { silent = false, tid }: { silent?: boolean; tid?: string | null } = {}) => {
-    const useThread = tid ?? threadId;
-    if (!useThread) return;
-    setBusyKind('followup');
-    setBusy(true);
-    setError('');
-    if (!silent) push({ role: 'user', content: question });
-    try {
-      const token = await getSessionToken();
-      if (!token) throw new Error('Not authenticated');
-      const res = await fetchWithRetry(`${FN}/chat-followup`, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ threadId: useThread, question }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Could not answer that');
-      push({ role: 'assistant', content: data.answer });
-      reloadUsage();
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Could not answer that');
-    } finally {
-      setBusy(false);
-    }
-  };
-
   // Whether the thread already has something to ask about. It decides both
   // what a send does and what it costs, so it is one value, read in both
   // places, rather than the same test written twice.
@@ -590,30 +563,19 @@ export function AnalysisChat() {
     const url = text.match(/https?:\/\/\S+/)?.[0] ?? text;
     const videoId = extractVideoId(url);
 
-    // A NEW video is checked before anything else, including whether the thread
-    // already has a review in it.
+    // Two rules, no exceptions to either. A link means watch that video. Every
+    // other message is put to the model to be identified.
     //
-    // This used to sit under the hasResult branch, so once one video had been
-    // scored every later message was treated as a question about it - a second
-    // link included. Pasting one got "drop the URL again and I will review it",
-    // which was true of the model and false of the app: the link was never
-    // going anywhere near the analyser, so it could be pasted forever.
-    //
-    // A link to the video already scored here is different: that is someone
-    // referring back to it, not asking for it twice at five credits a go.
-    const alreadyHere = !!videoId && messages.some(m => m.videoId === videoId);
-    if (videoId && !alreadyHere) {
+    // What used to be here instead: a link was skipped if the thread already
+    // had a review, then skipped again if that video had been seen before, and
+    // the text beside it was only treated as a question when it contained a
+    // question mark. Three guesses, each cheap, each wrong often enough that
+    // the product stopped feeling dependable - which costs more than the credit
+    // any of them saved.
+    if (videoId) {
       runAnalysis(videoId, text.replace(url, '').trim(), text);
       return;
     }
-
-    // With a review on screen, everything else is a question about it.
-    if (hasResult) { askFollowUp(text); return; }
-
-    // Nothing scored yet and no link. Question, hook or script is worked out on
-    // the server, because the difference between "how do i write a better hook"
-    // and "how i wrote the hook that got me 2M" is not a difference any test
-    // written here can see.
     routeMessage(text);
   };
 

@@ -27,35 +27,29 @@ const ADMIN_EMAIL = 'reyzostyle@gmail.com';
 // back scored out of 100 as though the question were a hook. That is the one
 // behaviour that makes the product feel broken rather than early.
 
-// ── Follow-up: there is a review on screen and they are asking about it ──────
-const FOLLOWUP_SYSTEM = `You are the senior short-form video editor who just reviewed the video under discussion. You are answering the creator's follow-up questions about that review, in the same voice: peer to peer, direct, specific, no flattery and no filler.
-
-The video is not necessarily theirs - people send competitors' Shorts here too - so do not assume they made it.
-
-If the thread says other videos were reviewed before this one, the review below is the most recent, and it is the one to answer from unless they clearly mean an earlier one.
-
-Ground every answer in the analysis below. If they ask about something it does not cover, say what you can see from it and what you cannot, rather than inventing a detail about footage you are not looking at right now.
-
-Their own channel is described below when they have filled it in. Use it whenever the question is about them rather than about the video: "would this work for my niche" is a question about the gap between the two, and answering it without looking at their channel is answering a different question.
-
-Keep answers short. Two or three sentences unless they explicitly ask for more. If a fix has a timestamp, give it. Never mention being a model, a tool, or a pipeline.
-
-PUNCTUATION: never use an em-dash or en-dash. Only the regular hyphen.`;
-
-// ── Router: no review on screen yet, so work out what they sent ──────────────
+// One prompt, one call, every message. There is no longer a branch that
+// decides what a message is before asking - the model classifies and answers in
+// the same call, whether or not a review is already on screen.
 //
-// Classifying and answering in one call rather than two. A question is the
-// common case and it gets a single round trip; a hook or a script costs this
-// one cheap call before the real analysis, which is invisible next to the
-// seconds that analysis already takes.
+// What that replaced: three places where the code guessed. A message arriving
+// after a review was assumed to be a question about it, so a hook typed at that
+// point got chatted about instead of scored. Text riding along with a link was
+// only treated as a question if it contained a question mark. And a link to a
+// video already in the thread was assumed to be a reference rather than a
+// request. Each guess was cheap and each one was wrong often enough to make the
+// product feel unreliable, which costs more than the credit it saved.
 //
-// The hard case is not question-versus-script, it is question-versus-hook:
-// both are one short line, and "how i made $10k in a month" is a hook while
-// "how do i make $10k a month" is a question. The rule that separates them is
-// who the line is aimed at - a hook is written AT an audience, a question is
-// addressed TO you - so that is the rule the prompt is given, with the near
-// misses spelled out rather than left to be inferred.
-const ROUTER_SYSTEM = `You are the short-form video specialist inside Hershy, a tool for people who make YouTube Shorts, TikToks and Reels. A creator has sent you a message and nothing has been analysed in this conversation yet.
+// Classifying and answering together keeps a question at one round trip; a hook
+// or a script pays this one cheap call before the real analysis, which is
+// invisible next to the seconds that analysis takes.
+//
+// The hard case is not question-versus-script, it is question-versus-hook: both
+// are one short line, and "how i made $10k in a month" is a hook while "how do
+// i make $10k a month" is a question. The rule that separates them is who the
+// line is aimed at - a hook is written AT an audience, a question is addressed
+// TO you - so that is the rule the prompt is given, with the near misses spelled
+// out rather than left to be inferred.
+const SYSTEM = `You are the short-form video specialist inside Hershy, a tool for people who make YouTube Shorts, TikToks and Reels. A creator has sent you a message.
 
 STEP 1. Decide what the message is. Your first line must be exactly one of:
 INTENT: question
@@ -72,6 +66,8 @@ Near misses, decide them this way:
 - "here's my script, thoughts?" followed by the script -> script.
 - A question that happens to be long, or written over several lines, is still a question. Length decides nothing on its own.
 - A greeting, a one-word message or small talk is a question. Reply in one line and ask what they are working on.
+- A REVIEW MAY ALREADY BE ON SCREEN, and if so it is below. That does not make everything after it a question. A hook pasted under a finished review is still a hook and still wants scoring. Judge the message on what it is, not on what came before it.
+- An instruction you have already carried out - "analyse this", "review it" - is a question. The work is done and sitting above; do not restate it. Answer in one line with the single most useful thing in it.
 - If it is genuinely ambiguous, choose question. Answering a hook as a question wastes nobody's credits; scoring a question out of 100 makes the product look broken.
 
 STEP 2.
@@ -79,8 +75,9 @@ STEP 2.
 - If the intent is question, output the INTENT line, then a blank line, then your answer.
 
 ANSWERING. You are not a general assistant and you are not a search engine. You are the person in the room who has watched thousands of Shorts and knows why they hold or lose people.
+- WHEN A REVIEW IS INCLUDED BELOW, answer from it. You are the editor who just wrote it, in the same voice. If they ask about something it does not cover, say what you can see from it and what you cannot, rather than inventing a detail about footage you are not looking at right now. If a fix has a timestamp, give it. The video is not necessarily theirs - people send competitors' Shorts here too - so do not assume they made it. When more than one video has been reviewed in this thread, the one below is the latest and is the one to answer from unless they clearly mean an earlier one.
 - Be specific and concrete. Give the actual line, the actual number, the actual edit. Never "consider improving your hook".
-- Use the creator's profile below when it is relevant, and do not recite it back at them.
+- Use the creator's profile below when it is relevant, and do not recite it back at them. It matters most when the question is about them rather than about a video: "would this work for my niche" is a question about the gap between the two, and answering it without looking at their channel is answering a different question.
 - Short by default: a few sentences, or a tight list if they asked for options. Expand only when the question genuinely needs it.
 - If you do not know something, say so. Never invent a statistic, a platform rule or an algorithm detail.
 - If the honest answer is that you would need to see the video, say that and tell them to paste the link. Do not pitch the product in any other situation.
@@ -211,17 +208,15 @@ Deno.serve(async (req: Request) => {
       await supabase.from('chat_threads').update({ updated_at: new Date().toISOString() }).eq('id', threadId);
     };
 
-    // ── Path 1: a review is on screen, so this is a follow-up about it ───────
-    // No routing here. Once there is something to point at, everything typed
-    // after it is a question about it, which was already the rule and is still
-    // the right one.
-    if (analysis) {
-      const a = analysis as {
-        overall_score?: number; overall_assessment?: string;
-        strong_spots?: string[]; weak_spots?: string[];
-      };
-      const block = profileBlock(profile);
-      const prompt = `${block ? `## Whose channel this is for\n${block}\n\n` : ''}${earlierReviews ? `(${earlierReviews} earlier ${earlierReviews === 1 ? 'video was' : 'videos were'} reviewed in this thread. The one below is the latest.)\n\n` : ''}## The review you gave
+    // One path. The review, when there is one, is context in the same prompt
+    // rather than a branch that skips the classification.
+    const a = (analysis ?? {}) as {
+      overall_score?: number; overall_assessment?: string;
+      strong_spots?: string[]; weak_spots?: string[];
+    };
+    const block = profileBlock(profile);
+    const reviewBlock = analysis
+      ? `${earlierReviews ? `(${earlierReviews} earlier ${earlierReviews === 1 ? 'video was' : 'videos were'} reviewed in this thread. The one below is the latest.)\n\n` : ''}## The review you gave
 Score: ${a.overall_score ?? 'n/a'} out of 100
 ${a.overall_assessment ?? ''}
 
@@ -231,26 +226,15 @@ ${(a.strong_spots ?? []).map(s => `- ${s}`).join('\n') || '- none noted'}
 What to fix:
 ${(a.weak_spots ?? []).map(s => `- ${s}`).join('\n') || '- none noted'}
 
-${history ? `## The conversation so far\n${history}\n` : ''}
-## Their question
-${question.trim()}`;
+`
+      : '';
 
-      const answer = (await callLLM(prompt, { system: FOLLOWUP_SYSTEM, maxTokens: 700 })).replace(/[—–]/g, '-').trim();
-      await persist(answer);
-      await spendCredits(supabase, user.id, creditStatus, CREDIT_COSTS.chat_followup);
-      return new Response(JSON.stringify({ intent: 'question', answer }), {
-        status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
-
-    // ── Path 2: nothing analysed yet, so work out what they sent ─────────────
-    const routerBlock = profileBlock(profile);
-    const routerPrompt = `${routerBlock ? `## Who you are talking to\n${routerBlock}\n\n` : ''}${history ? `## The conversation so far\n${history}\n\n` : ''}## Their message
+    const prompt = `${block ? `## Who you are talking to\n${block}\n\n` : ''}${reviewBlock}${history ? `## The conversation so far\n${history}\n\n` : ''}## Their message
 """
 ${question.trim()}
 """`;
 
-    const raw = await callLLM(routerPrompt, { system: ROUTER_SYSTEM, maxTokens: 900 });
+    const raw = await callLLM(prompt, { system: SYSTEM, maxTokens: 900 });
     const { intent, answer } = splitRouted(raw);
 
     // A hook or a script is not answered here and is not charged here. The
