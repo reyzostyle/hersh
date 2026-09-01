@@ -25,6 +25,10 @@ interface Message {
   // replaying twenty of them when a saved conversation opens is not a
   // conversation arriving, it is a page flickering.
   fresh?: boolean;
+  // On a hook or script result: which of the two it decided this was, and the
+  // text it decided it about. Enough to run the other one from a click.
+  textKind?: 'hook' | 'script';
+  source?: string;
 }
 
 const extractVideoId = (input: string): string | null => {
@@ -362,7 +366,15 @@ export function AnalysisChat() {
   // `pushed` is set when the router already put the message on screen: it
   // decided this was a hook rather than a question, and the bubble went up
   // before that was known.
-  const runTextAnalysis = async (kind: 'hook' | 'script', text: string, pushed = false) => {
+  // `pushed`  - the message is already on screen (the router put it there).
+  // `stored`  - it is already in the database too, so do not write it twice.
+  // They are separate because the router leaves the bubble on screen without
+  // persisting it, while a re-read has both already done.
+  const runTextAnalysis = async (
+    kind: 'hook' | 'script',
+    text: string,
+    { pushed = false, stored = false }: { pushed?: boolean; stored?: boolean } = {},
+  ) => {
     setBusyKind(kind);
     setBusy(true);
     setError('');
@@ -370,7 +382,7 @@ export function AnalysisChat() {
 
     const tid = threadId ?? await startThread(text.slice(0, 60));
     setThreadId(tid);
-    if (tid) await persist(tid, 'user', text);
+    if (tid && !stored) await persist(tid, 'user', text);
 
     try {
       const token = await getSessionToken();
@@ -389,8 +401,8 @@ export function AnalysisChat() {
         strong_spots: data.strong_spots ?? [],
         weak_spots: data.weak_spots ?? [],
       };
-      push({ role: 'assistant', content: `Read that as a ${kind}.`, analysis: a });
-      if (tid) await persist(tid, 'assistant', `Read that as a ${kind}.`, a);
+      push({ role: 'assistant', content: `Read that as a ${kind}`, analysis: a, textKind: kind, source: text });
+      if (tid) await persist(tid, 'assistant', `Read that as a ${kind}`, a);
       reloadUsage();
       // App defers onboarding for anyone who arrived by pasting a link on the
       // landing page, and puts the offer up when their first result lands. That
@@ -434,7 +446,7 @@ export function AnalysisChat() {
       if (data.intent === 'hook' || data.intent === 'script') {
         // Hands off with the bubble already on screen. runTextAnalysis takes
         // over the busy state and the stage line from here.
-        await runTextAnalysis(data.intent, text, true);
+        await runTextAnalysis(data.intent, text, { pushed: true });
         return;
       }
 
@@ -461,6 +473,40 @@ export function AnalysisChat() {
     } finally {
       setBusy(false);
     }
+  };
+
+  // Reading the same text the other way.
+  //
+  // Hook versus script is the one call the router can reasonably get wrong -
+  // a paragraph that opens AND pays off sits exactly on the line - and until
+  // now there was no way to say so: once a result exists, everything typed
+  // after it is a follow-up question about that result, so "no, that was a
+  // script" got a polite reply rather than a re-read.
+  //
+  // It replaces the result rather than adding a second one. Two scored cards
+  // for one piece of text is a worse answer than one right card, and nobody
+  // clicking this wants a record of the wrong reading kept.
+  const reread = async (messageId: string, source: string, from: 'hook' | 'script') => {
+    if (busy) return;
+    const to = from === 'hook' ? 'script' : 'hook';
+
+    setMessages(prev => prev.filter(m => m.id !== messageId));
+
+    // The stored copy goes too. The client makes its own ids and never sees the
+    // row's, so the row is found the only way it can be: the newest assistant
+    // message in this thread, which is the one just taken off the screen.
+    if (threadId) {
+      const { data } = await supabase
+        .from('chat_messages')
+        .select('id')
+        .eq('thread_id', threadId)
+        .eq('role', 'assistant')
+        .order('created_at', { ascending: false })
+        .limit(1);
+      if (data?.[0]) await supabase.from('chat_messages').delete().eq('id', data[0].id);
+    }
+
+    await runTextAnalysis(to, source, { pushed: true, stored: true });
   };
 
   const askFollowUp = async (question: string) => {
@@ -587,8 +633,27 @@ export function AnalysisChat() {
                   </div>
                 ) : m.analysis ? (
                   <div key={m.id} className={`space-y-2 ${m.fresh ? 'animate-msg-in' : ''}`}>
-                    {m.content && (
-                      <p className="label-mono">{m.content}</p>
+                    {/* The line that states the assumption is also where it is
+                        corrected. Anywhere else and the control is a feature to
+                        be found; here it is the sentence answering itself.
+                        Only on the newest result: offering it on an older card
+                        would rewrite the middle of the conversation. */}
+                    {(m.content || m.textKind) && (
+                      <div className="flex items-center gap-3 flex-wrap">
+                        {m.content && <p className="label-mono">{m.content}</p>}
+                        {m.textKind && m.source && m.id === messages[messages.length - 1]?.id && (
+                          <button
+                            className="chip"
+                            disabled={busy}
+                            onClick={() => reread(m.id, m.source!, m.textKind!)}
+                          >
+                            Read as a {m.textKind === 'hook' ? 'script' : 'hook'}
+                            <span className="font-mono" style={{ color: 'var(--text-faint)' }}>
+                              {m.textKind === 'hook' ? CREDIT_COSTS.script_check : CREDIT_COSTS.hook_check}
+                            </span>
+                          </button>
+                        )}
+                      </div>
                     )}
                     <AnalysisCard a={m.analysis} />
                   </div>
