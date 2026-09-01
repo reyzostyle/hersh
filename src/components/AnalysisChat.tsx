@@ -715,14 +715,24 @@ export function AnalysisChat() {
                     <AnalysisCard a={m.analysis} fresh={m.fresh} onAdvance={scrollToEnd} />
                   </div>
                 ) : (
-                  /* --text, not --text-muted. This is the answer, the thing on
-                     the screen worth reading; muted is the weight for labels
-                     and captions around it, and using it here made the one
-                     piece of content look like supporting text. */
-                  <div key={m.id} className={`text-[14px] leading-relaxed whitespace-pre-line ${m.fresh ? 'animate-msg-in' : ''}`} style={{ color: 'var(--text)' }}>
-                    {m.fresh
-                      ? <RevealText text={m.content} onAdvance={scrollToEnd} />
-                      : m.content}
+                  /* On a plate, like the creator's own messages and like the
+                     review card. Bare text floating between two bubbles read as
+                     a system notice rather than as the other side of a
+                     conversation. Alignment carries who is speaking; the plate
+                     is the same either way.
+
+                     --text, not --text-muted: this is the answer, the thing on
+                     the screen worth reading, and muted is the weight for the
+                     labels and captions around it. */
+                  <div key={m.id} className={`flex justify-start ${m.fresh ? 'animate-msg-in' : ''}`}>
+                    <div
+                      className="max-w-[85%] rounded-2xl px-4 py-2.5 text-[14px] leading-relaxed whitespace-pre-line break-words"
+                      style={{ background: 'var(--bg-raised)', color: 'var(--text)' }}
+                    >
+                      {m.fresh
+                        ? <RevealText text={m.content} onAdvance={scrollToEnd} />
+                        : m.content}
+                    </div>
                   </div>
                 )
               ))}
