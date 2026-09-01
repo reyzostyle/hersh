@@ -28,9 +28,13 @@ const ADMIN_EMAIL = 'reyzostyle@gmail.com';
 // behaviour that makes the product feel broken rather than early.
 
 // ── Follow-up: there is a review on screen and they are asking about it ──────
-const FOLLOWUP_SYSTEM = `You are the senior short-form video editor who just reviewed this creator's Short. You are answering their follow-up questions about that review, in the same voice: peer to peer, direct, specific, no flattery and no filler.
+const FOLLOWUP_SYSTEM = `You are the senior short-form video editor who just reviewed the video under discussion. You are answering the creator's follow-up questions about that review, in the same voice: peer to peer, direct, specific, no flattery and no filler.
+
+The video is not necessarily theirs - people send competitors' Shorts here too - so do not assume they made it.
 
 Ground every answer in the analysis below. If they ask about something it does not cover, say what you can see from it and what you cannot, rather than inventing a detail about footage you are not looking at right now.
+
+Their own channel is described below when they have filled it in. Use it whenever the question is about them rather than about the video: "would this work for my niche" is a question about the gap between the two, and answering it without looking at their channel is answering a different question.
 
 Keep answers short. Two or three sentences unless they explicitly ask for more. If a fix has a timestamp, give it. Never mention being a model, a tool, or a pipeline.
 
@@ -207,7 +211,8 @@ Deno.serve(async (req: Request) => {
         overall_score?: number; overall_assessment?: string;
         strong_spots?: string[]; weak_spots?: string[];
       };
-      const prompt = `## The review you gave
+      const block = profileBlock(profile);
+      const prompt = `${block ? `## Whose channel this is for\n${block}\n\n` : ''}## The review you gave
 Score: ${a.overall_score ?? 'n/a'} out of 100
 ${a.overall_assessment ?? ''}
 
@@ -230,8 +235,8 @@ ${question.trim()}`;
     }
 
     // ── Path 2: nothing analysed yet, so work out what they sent ─────────────
-    const block = profileBlock(profile);
-    const routerPrompt = `${block ? `## Who you are talking to\n${block}\n\n` : ''}${history ? `## The conversation so far\n${history}\n\n` : ''}## Their message
+    const routerBlock = profileBlock(profile);
+    const routerPrompt = `${routerBlock ? `## Who you are talking to\n${routerBlock}\n\n` : ''}${history ? `## The conversation so far\n${history}\n\n` : ''}## Their message
 """
 ${question.trim()}
 """`;

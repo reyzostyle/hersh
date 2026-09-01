@@ -41,8 +41,23 @@ const uid = () => Math.random().toString(36).slice(2);
 
 // The scored reply. It is a message in the thread rather than a panel over it,
 // so the conversation that follows has something to point at.
-function AnalysisCard({ a }: { a: Analysis }) {
+// `fresh` means this review just landed rather than being loaded out of a saved
+// thread. The card then writes itself in the order a person would read it:
+// the score, the verdict revealing a few words at a time, then the two lists
+// dropping in under it.
+//
+// The plain-text answers already did this and the review did not, which is why
+// "still no animations" was a fair report even after the last pass: a 30 second
+// wait ending in a finished card fading up over 260ms is, from the chair, a
+// card that appeared.
+function AnalysisCard({ a, fresh, onAdvance }: { a: Analysis; fresh?: boolean; onAdvance?: () => void }) {
   const score = a.overall_score;
+  // The lists wait for the verdict to finish writing. Landing under a sentence
+  // that is still being written reads as two things racing.
+  const listsAt = fresh && a.overall_assessment ? REVEAL_MS : 0;
+  const step = (i: number) => (fresh ? { animationDelay: `${listsAt + i * 70}ms` } : undefined);
+  const cls = fresh ? 'animate-msg-in' : '';
+
   return (
     <div className="rounded-2xl p-5 sm:p-6" style={{ background: 'var(--bg-raised)', border: '1px solid var(--line)' }}>
       {score != null && (
@@ -53,17 +68,21 @@ function AnalysisCard({ a }: { a: Analysis }) {
       )}
 
       {a.overall_assessment && (
-        <div className="text-[14px] leading-relaxed whitespace-pre-line mb-5" style={{ color: 'var(--text-muted)' }}>
-          {a.overall_assessment}
+        /* --text, not --text-muted. Same call as the chat answers: this is the
+           verdict, not a caption on it. */
+        <div className="text-[14px] leading-relaxed whitespace-pre-line mb-5" style={{ color: 'var(--text)' }}>
+          {fresh
+            ? <RevealText text={a.overall_assessment} onAdvance={onAdvance ?? (() => {})} />
+            : a.overall_assessment}
         </div>
       )}
 
       {!!a.strong_spots?.length && (
         <div className="mb-4">
-          <p className="label-mono mb-2">Working</p>
+          <p className={`label-mono mb-2 ${cls}`} style={step(0)}>Working</p>
           <ul className="space-y-1.5">
             {a.strong_spots.map((s, i) => (
-              <li key={i} className="text-[13px] leading-relaxed" style={{ color: 'var(--text-muted)' }}>{s}</li>
+              <li key={i} className={`text-[13px] leading-relaxed ${cls}`} style={{ color: 'var(--text-muted)', ...step(i + 1) }}>{s}</li>
             ))}
           </ul>
         </div>
@@ -71,10 +90,10 @@ function AnalysisCard({ a }: { a: Analysis }) {
 
       {!!a.weak_spots?.length && (
         <div>
-          <p className="label-mono mb-2">Fix</p>
+          <p className={`label-mono mb-2 ${cls}`} style={step((a.strong_spots?.length ?? 0) + 1)}>Fix</p>
           <ul className="space-y-1.5">
             {a.weak_spots.map((s, i) => (
-              <li key={i} className="text-[13px] leading-relaxed" style={{ color: 'var(--text)' }}>{s}</li>
+              <li key={i} className={`text-[13px] leading-relaxed ${cls}`} style={{ color: 'var(--text)', ...step((a.strong_spots?.length ?? 0) + 2 + i) }}>{s}</li>
             ))}
           </ul>
         </div>
@@ -354,6 +373,15 @@ export function AnalysisChat() {
       // event was dispatched by HookAnalysis and by nothing since.
       window.dispatchEvent(new CustomEvent('hershy:analysis-done'));
 
+      // A link almost never arrives alone. "is this good to replicate for my
+      // niche?" went in as videoContext, which is the field for facts ABOUT the
+      // video, so the question was read as a description of it and answered
+      // with a polish score for someone else's upload - a real answer to a
+      // question nobody asked. The review still runs, because watching is the
+      // expensive part and it is what makes the answer worth anything, and the
+      // question is then answered against it.
+      if (context.trim() && tid) await askFollowUp(context.trim(), { silent: true, tid });
+
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Analysis failed');
     } finally {
@@ -509,19 +537,25 @@ export function AnalysisChat() {
     await runTextAnalysis(to, source, { pushed: true, stored: true });
   };
 
-  const askFollowUp = async (question: string) => {
-    if (!threadId) return;
+  // `silent` is for the question that came attached to a link: it is already on
+  // screen inside the message that carried the link, and pushing it again would
+  // show the creator asking twice. `tid` is passed explicitly by that caller
+  // because the thread was created moments earlier and setThreadId has not
+  // landed in this closure yet.
+  const askFollowUp = async (question: string, { silent = false, tid }: { silent?: boolean; tid?: string | null } = {}) => {
+    const useThread = tid ?? threadId;
+    if (!useThread) return;
     setBusyKind('followup');
     setBusy(true);
     setError('');
-    push({ role: 'user', content: question });
+    if (!silent) push({ role: 'user', content: question });
     try {
       const token = await getSessionToken();
       if (!token) throw new Error('Not authenticated');
       const res = await fetchWithRetry(`${FN}/chat-followup`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ threadId, question }),
+        body: JSON.stringify({ threadId: useThread, question }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Could not answer that');
@@ -655,7 +689,7 @@ export function AnalysisChat() {
                         )}
                       </div>
                     )}
-                    <AnalysisCard a={m.analysis} />
+                    <AnalysisCard a={m.analysis} fresh={m.fresh} onAdvance={scrollToEnd} />
                   </div>
                 ) : (
                   /* --text, not --text-muted. This is the answer, the thing on
