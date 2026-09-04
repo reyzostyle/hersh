@@ -1,6 +1,7 @@
 import { createClient } from 'npm:@supabase/supabase-js@2.57.4';
 import { loadCreditStatus, canAfford, spendCredits, CREDIT_COSTS } from '../_shared/credits.ts';
 import { analyzeVideo } from '../_shared/analyze-video.ts';
+import { parseImages, type AttachedImage } from '../_shared/images.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -11,6 +12,9 @@ const corsHeaders = {
 interface RequestBody {
   videoId: string; // YouTube video ID
   videoContext?: string;
+  // Screenshots sent with the link. Retention for someone else's video, or for
+  // a channel that is not connected, exists nowhere this function can fetch it.
+  images?: AttachedImage[];
 }
 
 async function fetchPublicVideoData(videoId: string, accessTokenOrApiKey: string, useApiKey = false): Promise<any> {
@@ -170,7 +174,14 @@ Deno.serve(async (req: Request) => {
       return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: corsHeaders });
     }
 
-    const { videoId, videoContext }: RequestBody = await req.json();
+    const { videoId, videoContext, images: rawImages }: RequestBody = await req.json();
+    const { images, error: imageError } = parseImages(rawImages);
+    if (imageError) {
+      return new Response(
+        JSON.stringify({ error: imageError }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+      );
+    }
     console.log(`[analyze-with-gemini] user=${userId}, videoId=${videoId}`);
 
     // Check plan limits
@@ -276,7 +287,7 @@ Deno.serve(async (req: Request) => {
     console.log('[analyze-with-gemini] Analyzing video...');
     const analysis = await analyzeVideo(
       { fileUri: `https://www.youtube.com/watch?v=${videoId}`, mimeType: 'video/mp4' },
-      video, profile, videoContext, supabase, profile.creator_level,
+      video, profile, videoContext, supabase, profile.creator_level, images,
     );
     console.log('[analyze-with-gemini] Done, transcript length:', analysis.transcript?.length);
 

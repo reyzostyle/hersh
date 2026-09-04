@@ -1,3 +1,5 @@
+import type { AttachedImage } from './images.ts';
+
 // Shared video analysis: one Gemini call that both WATCHES the video and writes
 // the verdict. Used by analyze-with-gemini (pasted YouTube link) and
 // analyze-upload (uploaded file) so the two entry points can never drift apart.
@@ -102,6 +104,11 @@ export async function analyzeVideo(
   videoContext?: string,
   supabase?: any,
   creatorLevel?: string,
+  // Screenshots sent along with the video. The usual one is the retention
+  // curve: for a video that is not the creator's own, or whose channel is not
+  // connected, that curve exists nowhere this code can reach, and only they
+  // can put it on the table.
+  extraImages?: AttachedImage[],
 ) {
   const geminiApiKey = Deno.env.get('GEMINI_API_KEY');
   if (!geminiApiKey) throw new Error('Gemini API key not configured');
@@ -177,7 +184,7 @@ If a drop-off list is provided, it comes from this channel's real audience-reten
 HARD RULES
 1. Every strong_spot and weak_spot MUST begin with a timestamp from your own timeline, formatted "M:SS - ". If you cannot point at a specific beat, do not say it at all.
 2. Timestamps are approximate, so always also quote the words being spoken at that moment (or name what is on screen if it is silent) so the creator can find it.
-3. Never invent retention numbers, views, or stats. Never state decibel levels or exact pause durations - you cannot measure those.
+3. Never invent retention numbers, views, or stats. Never state decibel levels or exact pause durations - you cannot measure those. Numbers you can actually READ off an attached screenshot are the exception: those are measured, quote them.
 4. If niche/channel profile is N/A, analyze the video on its own merits. Don't guess the niche.
 5. Banned generic phrases: "engaging content", "great hook", "good pacing", "keep it up", "consider adding", "you could try", "just make sure", "overall this is a solid video" - and banned generic script notes like "tighten the intro" or "restructure the opening" (that's a script fix, not an edit).
 6. No flattery. No recap of what the video does. Tell them what's wrong with the edit.
@@ -231,6 +238,9 @@ ${profileSection}
 
 ## User Context
 ${videoContext?.trim() || 'N/A - no extra context provided'}
+${extraImages?.length ? `
+## Attached screenshots
+${extraImages.length === 1 ? 'A screenshot is' : `${extraImages.length} screenshots are`} attached alongside the video, usually the retention curve or the traffic sources. Read the numbers off ${extraImages.length === 1 ? 'it' : 'them'} and use them as real data about THIS video. Say the ones you reason from out loud so they can check you read the screen right. If a value is cut off or ambiguous, say so rather than picking one.` : ''}
 
 Respond with valid JSON only, no markdown, with the keys in exactly this order - the timeline comes first because you build it before you judge:
 {
@@ -270,6 +280,7 @@ Respond with valid JSON only, no markdown, with the keys in exactly this order -
         role: 'user',
         parts: [
           { file_data: { mime_type: source.mimeType, file_uri: source.fileUri } },
+          ...(extraImages ?? []).map(im => ({ inline_data: { mime_type: im.mimeType, data: im.base64 } })),
           { text: prompt },
         ],
       }],

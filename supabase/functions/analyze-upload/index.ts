@@ -1,6 +1,7 @@
 import { createClient } from 'npm:@supabase/supabase-js@2.57.4';
 import { loadCreditStatus, canAfford, spendCredits, CREDIT_COSTS } from '../_shared/credits.ts';
 import { analyzeVideo } from '../_shared/analyze-video.ts';
+import { parseImages } from '../_shared/images.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -48,7 +49,14 @@ Deno.serve(async (req: Request) => {
       return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: corsHeaders });
     }
 
-    const { geminiFileName, videoContext, fileName, mimeType } = await req.json();
+    const { geminiFileName, videoContext, fileName, mimeType, images: rawImages } = await req.json();
+    const { images, error: imageError } = parseImages(rawImages);
+    if (imageError) {
+      return new Response(
+        JSON.stringify({ error: imageError }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+      );
+    }
     if (!geminiFileName) {
       return new Response(JSON.stringify({ error: 'geminiFileName required' }), { status: 400, headers: corsHeaders });
     }
@@ -132,7 +140,7 @@ Deno.serve(async (req: Request) => {
 
       const analysis = await analyzeVideo(
         { fileUri: geminiFileUri, mimeType: fileMimeType },
-        video, profile, videoContext, supabase, profile.creator_level,
+        video, profile, videoContext, supabase, profile.creator_level, images,
       );
       console.log('[analyze-upload] Analysis done');
 

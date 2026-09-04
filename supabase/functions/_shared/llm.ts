@@ -15,15 +15,19 @@
 //
 // ANALYSIS_MODEL selects the model (default 'claude-sonnet-5').
 
-// An image sent alongside the prompt, already base64 encoded without the
-// data: URL prefix. All three providers below accept one, in three different
-// shapes, which is the whole reason this lives here rather than at a call site.
+// Images sent alongside the prompt, already base64 encoded without the data:
+// URL prefix. All three providers below accept them, in three different shapes,
+// which is the whole reason this lives here rather than at a call site.
+//
+// A list rather than one, because a question rarely comes with exactly one
+// screenshot: the retention curve and the traffic sources are two screens, and
+// answering from one of them is answering half the question.
 //
 // The model has to be a multimodal one. ANALYSIS_MODEL is a secret, so nothing
 // here can check that: a text-only model sent an image returns the provider's
 // own 400, which callLLM surfaces verbatim. That is the intended failure - a
-// clear error naming the model beats silently dropping the image and answering
-// a question about a screenshot nobody looked at.
+// clear error naming the model beats silently dropping the images and
+// answering a question about screenshots nobody looked at.
 export interface LLMImage {
   mimeType: string;
   base64: string;
@@ -32,7 +36,7 @@ export interface LLMImage {
 export interface LLMCallOptions {
   system?: string;
   maxTokens: number;
-  image?: LLMImage;
+  images?: LLMImage[];
 }
 
 // 529 is Anthropic's overloaded signal; 429/500/502/503 are the general
@@ -70,13 +74,16 @@ async function callOnce(provider: string, model: string, prompt: string, opts: L
           model,
           max_tokens: opts.maxTokens,
           ...(opts.system ? { system: opts.system } : {}),
-          // Image first, question second. Anthropic reads a prompt about an
+          // Images first, question second. Anthropic reads a prompt about an
           // image better in that order, and the other two are indifferent.
           messages: [{
             role: 'user',
-            content: opts.image
+            content: opts.images?.length
               ? [
-                  { type: 'image', source: { type: 'base64', media_type: opts.image.mimeType, data: opts.image.base64 } },
+                  ...opts.images.map(im => ({
+                    type: 'image',
+                    source: { type: 'base64', media_type: im.mimeType, data: im.base64 },
+                  })),
                   { type: 'text', text: prompt },
                 ]
               : prompt,
@@ -105,8 +112,11 @@ async function callOnce(provider: string, model: string, prompt: string, opts: L
           ...(opts.system ? { systemInstruction: { parts: [{ text: opts.system }] } } : {}),
           contents: [{
             role: 'user',
-            parts: opts.image
-              ? [{ inline_data: { mime_type: opts.image.mimeType, data: opts.image.base64 } }, { text: prompt }]
+            parts: opts.images?.length
+              ? [
+                  ...opts.images.map(im => ({ inline_data: { mime_type: im.mimeType, data: im.base64 } })),
+                  { text: prompt },
+                ]
               : [{ text: prompt }],
           }],
           generationConfig: {
@@ -122,9 +132,12 @@ async function callOnce(provider: string, model: string, prompt: string, opts: L
       const baseUrl = Deno.env.get('ANALYSIS_BASE_URL');
       if (!apiKey) throw new Error('ANALYSIS_API_KEY not configured');
       if (!baseUrl) throw new Error('ANALYSIS_BASE_URL not configured');
-      const userContent = opts.image
+      const userContent = opts.images?.length
         ? [
-            { type: 'image_url', image_url: { url: `data:${opts.image.mimeType};base64,${opts.image.base64}` } },
+            ...opts.images.map(im => ({
+              type: 'image_url',
+              image_url: { url: `data:${im.mimeType};base64,${im.base64}` },
+            })),
             { type: 'text', text: prompt },
           ]
         : prompt;

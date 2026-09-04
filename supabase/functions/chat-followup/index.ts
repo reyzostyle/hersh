@@ -1,5 +1,6 @@
 import { createClient } from 'npm:@supabase/supabase-js@2.57.4';
-import { callLLM, type LLMImage } from '../_shared/llm.ts';
+import { callLLM } from '../_shared/llm.ts';
+import { parseImages } from '../_shared/images.ts';
 import { loadCreditStatus, canAfford, spendCredits, CREDIT_COSTS } from '../_shared/credits.ts';
 
 const corsHeaders = {
@@ -9,11 +10,6 @@ const corsHeaders = {
 };
 
 const ADMIN_EMAIL = 'reyzostyle@gmail.com';
-
-// What every provider in llm.ts accepts. GIF is left out on purpose: it is
-// nobody's screenshot format and animated frames cost tokens for nothing.
-const ALLOWED_IMAGE_TYPES = new Set(['image/png', 'image/jpeg', 'image/webp']);
-const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
 
 // The chat endpoint. The slug still says "followup" because that is what it
 // was when Analyze first became a conversation, and the deployed name is what
@@ -93,7 +89,8 @@ ANSWERING. You are not a general assistant and you are not a search engine. You 
 - PLAIN TEXT ONLY. This is rendered as raw text, so markdown does not format, it just shows up as punctuation: no asterisks for bold, no hash headings, no backticks. For a list, put each item on its own line starting with "- ". Nothing else.
 - If the intent is question you must always write an answer. Never output the INTENT line on its own.
 
-READING A SCREENSHOT. When an image is attached it is almost always YouTube Studio, TikTok or Instagram analytics, a comment section, or a video frame. Treat it as the evidence and the message beside it as the question about it.
+READING A SCREENSHOT. When images are attached they are almost always YouTube Studio, TikTok or Instagram analytics, a comment section, or a video frame. Treat them as the evidence and the message beside them as the question about it.
+- More than one image is one piece of evidence, not several questions. They are different views of the same thing - the retention curve and the traffic sources, two videos being compared, a before and an after. Work out what the set is showing together and answer that, and say which image you mean when they differ.
 - Read the numbers off it exactly. Say the ones you are reasoning from out loud, so they can see whether you read the screen correctly: "3 videos, 7,282 then 4 then 0".
 - If a number is cut off, blurry or ambiguous, say which one and ask, rather than picking a value.
 - If there is no text with the image, the question is "what am I looking at and what should I do about it". Answer that.
@@ -162,32 +159,23 @@ Deno.serve(async (req: Request) => {
 
     // threadId is optional now: the first message of a conversation can be a
     // question, and there is no thread until something is worth keeping.
-    const { threadId, question, image } = await req.json();
+    const { threadId, question, image, images: rawImages } = await req.json();
 
-    // An image is a message on its own: "why did this happen" is often just the
-    // screenshot. Text stays required when there is nothing else to look at.
-    const hasImage = !!image?.base64 && !!image?.mimeType;
-    if (!question?.trim() && !hasImage) {
-      return new Response(JSON.stringify({ error: 'question required' }), { status: 400, headers: corsHeaders });
+    // `image` is still read so a client from before the array shipped keeps
+    // working across the gap between the two deploys.
+    const { images, error: imageError } = parseImages(rawImages ?? image);
+    if (imageError) {
+      return new Response(
+        JSON.stringify({ error: imageError }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+      );
     }
 
-    let imagePart: LLMImage | undefined;
-    if (hasImage) {
-      if (!ALLOWED_IMAGE_TYPES.has(image.mimeType)) {
-        return new Response(
-          JSON.stringify({ error: 'That image format is not supported. Send a PNG, JPG or WebP.' }),
-          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
-        );
-      }
-      // base64 runs about 4/3 the size of the bytes it encodes, so this is the
-      // 5MB ceiling every provider here imposes, measured on the wire.
-      if (image.base64.length > MAX_IMAGE_BYTES * 1.37) {
-        return new Response(
-          JSON.stringify({ error: 'That screenshot is too large. Keep it under 5MB.' }),
-          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
-        );
-      }
-      imagePart = { mimeType: image.mimeType, base64: image.base64 };
+    // A screenshot is a message on its own: "why did this happen" is often just
+    // the picture. Text stays required when there is nothing else to look at.
+    const hasImage = images.length > 0;
+    if (!question?.trim() && !hasImage) {
+      return new Response(JSON.stringify({ error: 'question required' }), { status: 400, headers: corsHeaders });
     }
 
     const isAdmin = user.email === ADMIN_EMAIL;
@@ -245,9 +233,10 @@ Deno.serve(async (req: Request) => {
     // The screenshot itself is not stored anywhere - there is no bucket for it
     // yet - so the transcript keeps the fact that there was one. Reopening the
     // thread later shows the question and the answer without the image.
+    const shotTag = images.length > 1 ? `[${images.length} screenshots]` : '[screenshot]';
     const storedQuestion = question?.trim()
-      ? (hasImage ? `[screenshot] ${question.trim()}` : question.trim())
-      : '[screenshot]';
+      ? (hasImage ? `${shotTag} ${question.trim()}` : question.trim())
+      : shotTag;
 
     const persist = async (answer: string) => {
       if (!threadId) return;
@@ -283,9 +272,9 @@ ${(a.weak_spots ?? []).map(s => `- ${s}`).join('\n') || '- none noted'}
       ? `## Their message\n"""\n${question.trim()}\n"""`
       : '## Their message\nThey sent the screenshot with no text.';
 
-    const prompt = `${block ? `## Who you are talking to\n${block}\n\n` : ''}${reviewBlock}${history ? `## The conversation so far\n${history}\n\n` : ''}${hasImage ? '## Attached\nA screenshot is attached above. It is the evidence for whatever they are asking.\n\n' : ''}${messageBlock}`;
+    const prompt = `${block ? `## Who you are talking to\n${block}\n\n` : ''}${reviewBlock}${history ? `## The conversation so far\n${history}\n\n` : ''}${hasImage ? `## Attached\n${images.length === 1 ? 'A screenshot is' : `${images.length} screenshots are`} attached above. They are the evidence for whatever they are asking.\n\n` : ''}${messageBlock}`;
 
-    const raw = await callLLM(prompt, { system: SYSTEM, maxTokens: 900, image: imagePart });
+    const raw = await callLLM(prompt, { system: SYSTEM, maxTokens: 900, images });
     const routed = splitRouted(raw);
     // Enforced here rather than trusted from the prompt. A screenshot routed to
     // hook would hand the client an empty string to score out of 100, and the

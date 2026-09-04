@@ -29,10 +29,10 @@ interface Message {
   // text it decided it about. Enough to run the other one from a click.
   textKind?: 'hook' | 'script';
   source?: string;
-  // A screenshot sent with this message, as a data URL, for the bubble to
-  // show. Not persisted: the thread keeps "[screenshot]" and the answer, so a
-  // reopened conversation has the reasoning without the picture.
-  image?: string;
+  // Screenshots sent with this message, as data URLs, for the bubble to show.
+  // Not persisted: the thread keeps "[screenshot]" and the answer, so a
+  // reopened conversation has the reasoning without the pictures.
+  images?: string[];
 }
 
 const extractVideoId = (input: string): string | null => {
@@ -56,6 +56,10 @@ const MAX_SIZE_MB = 300;
 // Studio and exposes nothing like it. So the picture IS the data.
 const IMAGE_TYPES = ['image/png', 'image/jpeg', 'image/webp'];
 const MAX_IMAGE_MB = 5;
+// Matches the ceiling in _shared/images.ts. A question about a channel is
+// rarely one screen - the retention curve and the traffic sources are two -
+// but past a handful it stops being evidence and starts being a folder.
+const MAX_IMAGES = 4;
 
 const isImage = (f: File) => IMAGE_TYPES.includes(f.type);
 
@@ -82,6 +86,12 @@ const readDataUrl = (f: File) => new Promise<string>((resolve, reject) => {
   r.onerror = () => reject(new Error('Could not read that file'));
   r.readAsDataURL(f);
 });
+
+const toImageParts = async (shots: File[]) =>
+  Promise.all(shots.map(async f => {
+    const dataUrl = await readDataUrl(f);
+    return { mimeType: f.type, base64: dataUrl.slice(dataUrl.indexOf(',') + 1) };
+  }));
 
 const formatSize = (bytes: number) => {
   if (bytes >= 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
@@ -283,7 +293,9 @@ export function AnalysisChat() {
   // Which pipeline is running, so the working line can name its actual stages.
   const [busyKind, setBusyKind] = useState<keyof typeof STAGES>('video');
   const [error, setError] = useState('');
-  const [file, setFile] = useState<File | null>(null);
+  // A list, not one. A video and the screenshot of its retention curve are one
+  // message, and so are two screenshots of the same channel.
+  const [files, setFiles] = useState<File[]>([]);
   // Reloaded after every send, so the count under the composer is the balance
   // as of the last thing that was actually charged.
   const { usage, reload: reloadUsage } = useUsage();
@@ -352,7 +364,7 @@ export function AnalysisChat() {
     const videoId = extractVideoId(pending);
     // A link that does not resolve goes into the composer rather than being
     // thrown away. They typed it; they should still see it.
-    if (videoId) runAnalysis(videoId, '', pending);
+    if (videoId) runAnalysis(videoId, [], '', pending);
     else setComposer(pending);
   }, []);
 
@@ -382,7 +394,7 @@ export function AnalysisChat() {
     return data?.id ?? null;
   };
 
-  const runAnalysis = async (videoId: string, context: string, shownText: string) => {
+  const runAnalysis = async (videoId: string, shots: File[], context: string, shownText: string) => {
     setBusyKind('video');
     setBusy(true);
     setError('');
@@ -407,7 +419,7 @@ export function AnalysisChat() {
       const res = await fetchWithRetry(`${FN}/analyze-with-gemini`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ videoId, videoContext: context }),
+        body: JSON.stringify({ videoId, videoContext: context, images: await toImageParts(shots) }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Analysis failed');
@@ -460,7 +472,7 @@ export function AnalysisChat() {
   // been attaching files to a submit() that only ever read the textarea, so the
   // plate showed the name, the send button stayed disabled, and the file went
   // nowhere. This is the wire that was missing, not new machinery.
-  const runUpload = async (f: File, context: string, shownText: string) => {
+  const runUpload = async (f: File, shots: File[], context: string, shownText: string) => {
     setBusyKind('uploading');
     setBusy(true);
     setError('');
@@ -513,6 +525,7 @@ export function AnalysisChat() {
           videoContext: context,
           fileName: f.name,
           mimeType,
+          images: await toImageParts(shots),
         }),
       });
       const data = await res.json();
@@ -617,19 +630,19 @@ export function AnalysisChat() {
   // this closure yet.
   const routeMessage = async (
     text: string,
-    { silent = false, tid, image, preview }: {
+    { silent = false, tid, images, previews }: {
       silent?: boolean; tid?: string | null;
-      image?: { mimeType: string; base64: string }; preview?: string;
+      images?: { mimeType: string; base64: string }[]; previews?: string[];
     } = {},
   ) => {
     const thread = tid ?? threadId;
     // Vague until the server says otherwise - see STAGES.question. With a
     // review already on screen the call still classifies, but it is reading
     // that review to do it, so the line can say so.
-    setBusyKind(image ? 'screenshot' : hasResult ? 'followup' : 'question');
+    setBusyKind(images?.length ? 'screenshot' : hasResult ? 'followup' : 'question');
     setBusy(true);
     setError('');
-    if (!silent) push({ role: 'user', content: text, image: preview });
+    if (!silent) push({ role: 'user', content: text, images: previews });
 
     try {
       const token = await getSessionToken();
@@ -637,7 +650,7 @@ export function AnalysisChat() {
       const res = await fetchWithRetry(`${FN}/chat-followup`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ threadId: thread, question: text, image }),
+        body: JSON.stringify({ threadId: thread, question: text, images }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Could not read that');
@@ -658,7 +671,8 @@ export function AnalysisChat() {
         const opened = await startThread(text.slice(0, 60) || 'Screenshot');
         setThreadId(opened);
         if (opened) {
-          await persist(opened, 'user', image ? `[screenshot] ${text}`.trim() : text);
+          const tag = (images?.length ?? 0) > 1 ? `[${images!.length} screenshots]` : '[screenshot]';
+          await persist(opened, 'user', images?.length ? `${tag} ${text}`.trim() : text);
           await persist(opened, 'assistant', data.answer);
         }
       }
@@ -676,16 +690,19 @@ export function AnalysisChat() {
 
   // A screenshot goes to the chat, not to the video pipeline. It is an ordinary
   // message with a picture attached, so it routes and is charged like one.
-  const askWithImage = async (f: File, text: string) => {
-    let dataUrl: string;
+  const askWithImages = async (shots: File[], text: string) => {
+    let previews: string[];
     try {
-      dataUrl = await readDataUrl(f);
+      previews = await Promise.all(shots.map(readDataUrl));
     } catch {
-      setError('Could not read that screenshot.');
+      setError(shots.length > 1 ? 'Could not read those screenshots.' : 'Could not read that screenshot.');
       return;
     }
-    const base64 = dataUrl.slice(dataUrl.indexOf(',') + 1);
-    await routeMessage(text, { image: { mimeType: f.type, base64 }, preview: dataUrl });
+    const images = shots.map((f, i) => ({
+      mimeType: f.type,
+      base64: previews[i].slice(previews[i].indexOf(',') + 1),
+    }));
+    await routeMessage(text, { images, previews });
   };
 
   // Reading the same text the other way.
@@ -731,22 +748,20 @@ export function AnalysisChat() {
     const text = composer.trim();
     if (busy) return;
 
-    // A file is the whole message and needs nothing typed with it. Everything
-    // below assumes text because until now nothing else could be sent.
-    if (file) {
-      const f = file;
-      setFile(null);
-      setComposer('');
-      if (isImage(f)) askWithImage(f, text);
-      else runUpload(f, text, text ? `${f.name}\n\n${text}` : f.name);
-      return;
-    }
-
-    if (!text) return;
-    setComposer('');
+    // The attachments split into at most one video and the screenshots around
+    // it. A video is the thing being reviewed; screenshots are evidence about
+    // whatever is being reviewed, and on their own they are the whole message.
+    const video = files.find(f => !isImage(f));
+    const shots = files.filter(isImage);
 
     const url = text.match(/https?:\/\/\S+/)?.[0] ?? text;
-    const videoId = extractVideoId(url);
+    const videoId = text ? extractVideoId(url) : null;
+
+    // Nothing typed and nothing attached.
+    if (!video && !shots.length && !text) return;
+
+    setFiles([]);
+    setComposer('');
 
     // Two rules, no exceptions to either. A link means watch that video. Every
     // other message is put to the model to be identified.
@@ -757,8 +772,20 @@ export function AnalysisChat() {
     // question mark. Three guesses, each cheap, each wrong often enough that
     // the product stopped feeling dependable - which costs more than the credit
     // any of them saved.
+    // An uploaded file beats a link in the same message: they attached the cut
+    // they want looked at, and the link is something they were talking about.
+    if (video) {
+      const shown = [video.name, ...shots.map(s => s.name)].join('\n');
+      runUpload(video, shots, text, text ? `${shown}\n\n${text}` : shown);
+      return;
+    }
     if (videoId) {
-      runAnalysis(videoId, text.replace(url, '').trim(), text);
+      runAnalysis(videoId, shots, text.replace(url, '').trim(), text);
+      return;
+    }
+    // Screenshots with no video anywhere: the pictures are the question.
+    if (shots.length) {
+      askWithImages(shots, text);
       return;
     }
     routeMessage(text);
@@ -817,7 +844,7 @@ export function AnalysisChat() {
           <div className="w-full max-w-2xl">
             <Composer
               value={composer} onChange={setComposer} onSubmit={submit} busy={busy}
-              file={file} setFile={setFile} onFileError={setError} fileRef={fileRef} taRef={taRef}
+              files={files} setFiles={setFiles} onFileError={setError} fileRef={fileRef} taRef={taRef}
               placeholder="Paste a link, a hook or a script, or just ask"
             />
             <Price />
@@ -836,8 +863,14 @@ export function AnalysisChat() {
                   <div key={m.id} className={`flex justify-end ${m.fresh ? 'animate-msg-in' : ''}`}>
                     <div className="max-w-[85%] rounded-2xl px-4 py-2.5 text-[14px] leading-relaxed whitespace-pre-line break-words"
                          style={{ background: 'var(--bg-raised)', color: 'var(--text)' }}>
-                      {m.image && (
-                        <img src={m.image} alt="" className={`rounded-xl max-w-full max-h-72 w-auto ${m.content ? 'mb-2' : ''}`} />
+                      {!!m.images?.length && (
+                        <div className={`flex flex-wrap gap-1.5 ${m.content ? 'mb-2' : ''}`}>
+                          {m.images.map((src, i) => (
+                            <img key={i} src={src} alt=""
+                                 className="rounded-xl max-w-full w-auto"
+                                 style={{ maxHeight: m.images!.length > 1 ? '9rem' : '18rem' }} />
+                          ))}
+                        </div>
                       )}
                       {m.content}
                     </div>
@@ -912,7 +945,7 @@ export function AnalysisChat() {
               )}
               <Composer
                 value={composer} onChange={setComposer} onSubmit={submit} busy={busy}
-                file={file} setFile={setFile} onFileError={setError} fileRef={fileRef} taRef={taRef}
+                files={files} setFiles={setFiles} onFileError={setError} fileRef={fileRef} taRef={taRef}
                 placeholder={hasResult ? 'Ask about the fixes, or send another link' : 'Ask anything, or send a link'}
               />
               <Price />
@@ -941,10 +974,11 @@ export function AnalysisChat() {
 }
 
 function Composer({
-  value, onChange, onSubmit, busy, file, setFile, onFileError, fileRef, taRef, placeholder,
+  value, onChange, onSubmit, busy, files, setFiles, onFileError, fileRef, taRef, placeholder,
 }: {
   value: string; onChange: (v: string) => void; onSubmit: () => void; busy: boolean;
-  file: File | null; setFile: (f: File | null) => void; onFileError: (msg: string) => void;
+  files: File[]; setFiles: React.Dispatch<React.SetStateAction<File[]>>;
+  onFileError: (msg: string) => void;
   fileRef: React.RefObject<HTMLInputElement>; taRef: React.RefObject<HTMLTextAreaElement>;
   placeholder: string;
 }) {
@@ -954,12 +988,32 @@ function Composer({
   // the desktop is the long way round the thing they are trying to ask.
   const [dragging, setDragging] = useState(false);
 
-  const accept = (f: File | null | undefined): boolean => {
-    if (!f) return false;
-    const bad = validateFile(f);
-    if (bad) { onFileError(bad); return false; }
+  const accept = (incoming: File | null | undefined | FileList): boolean => {
+    if (!incoming) return false;
+    const list = incoming instanceof File ? [incoming] : Array.from(incoming);
+    if (!list.length) return false;
+
+    for (const f of list) {
+      const bad = validateFile(f);
+      if (bad) { onFileError(bad); return false; }
+    }
+
+    // One video at a time. Two cuts in one message is two reviews, two prices
+    // and one answer that has to talk about both, which is worse than sending
+    // them one after the other.
+    const videos = [...files, ...list].filter(f => !isImage(f));
+    if (videos.length > 1) {
+      onFileError('One video at a time. Screenshots can come with it.');
+      return false;
+    }
+    const shots = [...files, ...list].filter(isImage);
+    if (shots.length > MAX_IMAGES) {
+      onFileError(`That is too many images. Send up to ${MAX_IMAGES} at a time.`);
+      return false;
+    }
+
     onFileError('');
-    setFile(f);
+    setFiles(prev => [...prev, ...list]);
     return true;
   };
 
@@ -977,26 +1031,35 @@ function Composer({
         // actually leaving the composer counts.
         if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setDragging(false);
       }}
-      onDrop={e => { e.preventDefault(); setDragging(false); accept(e.dataTransfer.files?.[0]); }}
+      onDrop={e => { e.preventDefault(); setDragging(false); accept(e.dataTransfer.files); }}
     >
       <input ref={fileRef} type="file" className="hidden"
              accept="video/mp4,video/quicktime,video/webm,video/x-msvideo,.mp4,.mov,.webm,.avi,image/png,image/jpeg,image/webp"
+             multiple
              onChange={e => {
-               const f = e.target.files?.[0];
+               const picked = e.target.files;
+               const list = picked ? Array.from(picked) : [];
                e.currentTarget.value = '';
-               accept(f);
+               if (list.length) accept(picked);
              }} />
 
-      {file && (
-        <div className="mx-2 mt-2 rounded-2xl px-3 py-2.5 flex items-center gap-3" style={{ background: 'rgba(255,255,255,0.05)' }}>
-          {isImage(file)
-            ? <ImageIcon className="w-4 h-4 flex-shrink-0" style={{ color: 'var(--text-faint)' }} />
-            : <Film className="w-4 h-4 flex-shrink-0" style={{ color: 'var(--text-faint)' }} />}
-          <p className="flex-1 min-w-0 text-[13px] truncate" style={{ color: 'var(--text)' }}>{file.name}</p>
-          <span className="font-mono text-[11px] flex-shrink-0" style={{ color: 'var(--text-faint)' }}>{formatSize(file.size)}</span>
-          <button onClick={() => setFile(null)} className="p-1 transition-colors" style={{ color: 'var(--text-faint)' }}>
-            <X className="w-4 h-4" />
-          </button>
+      {files.length > 0 && (
+        <div className="mx-2 mt-2 space-y-1.5">
+          {files.map((f, i) => (
+            <div key={`${f.name}-${f.size}-${i}`}
+                 className="rounded-2xl px-3 py-2.5 flex items-center gap-3"
+                 style={{ background: 'rgba(255,255,255,0.05)' }}>
+              {isImage(f)
+                ? <ImageIcon className="w-4 h-4 flex-shrink-0" style={{ color: 'var(--text-faint)' }} />
+                : <Film className="w-4 h-4 flex-shrink-0" style={{ color: 'var(--text-faint)' }} />}
+              <p className="flex-1 min-w-0 text-[13px] truncate" style={{ color: 'var(--text)' }}>{f.name}</p>
+              <span className="font-mono text-[11px] flex-shrink-0" style={{ color: 'var(--text-faint)' }}>{formatSize(f.size)}</span>
+              <button onClick={() => setFiles(prev => prev.filter((_, j) => j !== i))}
+                      className="p-1 transition-colors" style={{ color: 'var(--text-faint)' }} aria-label={`Remove ${f.name}`}>
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          ))}
         </div>
       )}
 
@@ -1014,7 +1077,9 @@ function Composer({
           if (accept(item.getAsFile())) e.preventDefault();
         }}
         rows={1}
-        placeholder={file ? (isImage(file) ? 'Ask about it, or just send' : 'Add context, or just send') : placeholder}
+        placeholder={files.length
+          ? (files.every(isImage) ? 'Ask about it, or just send' : 'Add context, or just send')
+          : placeholder}
         autoComplete="off"
         spellCheck={false}
         className="w-full bg-transparent resize-none px-5 pt-4 pb-1 text-[15px] leading-relaxed focus:outline-none"
@@ -1026,7 +1091,7 @@ function Composer({
                 className="w-8 h-8 rounded-full flex items-center justify-center" style={{ color: 'var(--text-muted)' }}>
           <Plus className="w-[18px] h-[18px]" />
         </button>
-        <button onClick={onSubmit} disabled={busy || (!value.trim() && !file)} title="Send"
+        <button onClick={onSubmit} disabled={busy || (!value.trim() && !files.length)} title="Send"
                 className="w-8 h-8 rounded-full flex items-center justify-center transition-opacity disabled:opacity-25"
                 style={{ background: 'var(--accent)', color: 'var(--on-accent)' }}>
           {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : <ArrowUp className="w-[18px] h-[18px]" />}
