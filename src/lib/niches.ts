@@ -17,9 +17,9 @@
 // enough to read at a glance. Coarse on purpose: it only has to be good enough
 // to group a benchmark by, and the description field takes the detail.
 export const NICHES = [
-  'Ranking', 'Minecraft', 'Roblox', 'Commentary',
-  'Gaming', 'Anime', 'Reddit', 'Facts',
-  'Motivation', 'Sports', 'Fitness', 'Finance',
+  'Ranking', 'Commentary', 'Gaming', 'Anime',
+  'Reddit', 'Facts', 'Movies', 'Sports',
+  'Motivation', 'Comedy', 'Fitness', 'Finance',
 ] as const;
 
 export type Niche = typeof NICHES[number];
