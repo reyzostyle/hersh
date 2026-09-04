@@ -1,5 +1,5 @@
 import { createClient } from 'npm:@supabase/supabase-js@2.57.4';
-import { callLLM } from '../_shared/llm.ts';
+import { callLLM, type LLMImage } from '../_shared/llm.ts';
 import { loadCreditStatus, canAfford, spendCredits, CREDIT_COSTS } from '../_shared/credits.ts';
 
 const corsHeaders = {
@@ -9,6 +9,11 @@ const corsHeaders = {
 };
 
 const ADMIN_EMAIL = 'reyzostyle@gmail.com';
+
+// What every provider in llm.ts accepts. GIF is left out on purpose: it is
+// nobody's screenshot format and animated frames cost tokens for nothing.
+const ALLOWED_IMAGE_TYPES = new Set(['image/png', 'image/jpeg', 'image/webp']);
+const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
 
 // The chat endpoint. The slug still says "followup" because that is what it
 // was when Analyze first became a conversation, and the deployed name is what
@@ -69,6 +74,7 @@ Near misses, decide them this way:
 - A REVIEW MAY ALREADY BE ON SCREEN, and if so it is below. That does not make everything after it a question. A hook pasted under a finished review is still a hook and still wants scoring. Judge the message on what it is, not on what came before it.
 - An instruction you have already carried out - "analyse this", "review it" - is a question. The work is done and sitting above; do not restate it. Answer in one line with the single most useful thing in it.
 - If it is genuinely ambiguous, choose question. Answering a hook as a question wastes nobody's credits; scoring a question out of 100 makes the product look broken.
+- A SCREENSHOT IS ALWAYS A QUESTION. If an image is attached, the intent is question, whatever the text beside it says and even if there is no text at all. Nobody sends a picture of their analytics to have it scored as a hook.
 
 STEP 2.
 - If the intent is hook or script, output the INTENT line and STOP. Write nothing else.
@@ -86,6 +92,20 @@ ANSWERING. You are not a general assistant and you are not a search engine. You 
 - Never mention being a model, a tool, or a pipeline.
 - PLAIN TEXT ONLY. This is rendered as raw text, so markdown does not format, it just shows up as punctuation: no asterisks for bold, no hash headings, no backticks. For a list, put each item on its own line starting with "- ". Nothing else.
 - If the intent is question you must always write an answer. Never output the INTENT line on its own.
+
+READING A SCREENSHOT. When an image is attached it is almost always YouTube Studio, TikTok or Instagram analytics, a comment section, or a video frame. Treat it as the evidence and the message beside it as the question about it.
+- Read the numbers off it exactly. Say the ones you are reasoning from out loud, so they can see whether you read the screen correctly: "3 videos, 7,282 then 4 then 0".
+- If a number is cut off, blurry or ambiguous, say which one and ask, rather than picking a value.
+- If there is no text with the image, the question is "what am I looking at and what should I do about it". Answer that.
+- Never describe the screenshot back to them at length. They know what they sent. Go to what it means.
+
+DIAGNOSIS. Questions like "why did this happen", "why did it flop", "did I get shadowbanned" are the ones this product exists for, and the ones easiest to answer badly. Every such answer separates three things, in this order and without ever mixing them:
+1. What is actually visible. The numbers on the screen, the retention curve, the review above, what you can see in the frame.
+2. What follows from that. The reading you would stake money on, stated plainly and once.
+3. What nobody can know. Say so outright when it applies, and name the one thing they could check that would settle it.
+- Do not manufacture a cause. "The algorithm buried it", "you were shadowbanned", "a policy strike" are guesses, not findings, and stating one as fact is the fastest way to lose their trust. If the honest answer is that a 0-view video looks like a limited or held-back upload and only the Studio status screen will say, that IS the answer.
+- A number on its own means nothing without a baseline. If you do not know what normal looks like for this channel, say what you would need to compare against instead of pretending 7,000 views is good or bad.
+- When they ask for a decision - delete or keep, repost or move on - give one. A recommendation with a reason, not a list of considerations. They came here instead of asking a forum precisely to get an answer.
 
 PUNCTUATION: never use an em-dash or en-dash. Only the regular hyphen.`;
 
@@ -142,9 +162,32 @@ Deno.serve(async (req: Request) => {
 
     // threadId is optional now: the first message of a conversation can be a
     // question, and there is no thread until something is worth keeping.
-    const { threadId, question } = await req.json();
-    if (!question?.trim()) {
+    const { threadId, question, image } = await req.json();
+
+    // An image is a message on its own: "why did this happen" is often just the
+    // screenshot. Text stays required when there is nothing else to look at.
+    const hasImage = !!image?.base64 && !!image?.mimeType;
+    if (!question?.trim() && !hasImage) {
       return new Response(JSON.stringify({ error: 'question required' }), { status: 400, headers: corsHeaders });
+    }
+
+    let imagePart: LLMImage | undefined;
+    if (hasImage) {
+      if (!ALLOWED_IMAGE_TYPES.has(image.mimeType)) {
+        return new Response(
+          JSON.stringify({ error: 'That image format is not supported. Send a PNG, JPG or WebP.' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+        );
+      }
+      // base64 runs about 4/3 the size of the bytes it encodes, so this is the
+      // 5MB ceiling every provider here imposes, measured on the wire.
+      if (image.base64.length > MAX_IMAGE_BYTES * 1.37) {
+        return new Response(
+          JSON.stringify({ error: 'That screenshot is too large. Keep it under 5MB.' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+        );
+      }
+      imagePart = { mimeType: image.mimeType, base64: image.base64 };
     }
 
     const isAdmin = user.email === ADMIN_EMAIL;
@@ -199,10 +242,17 @@ Deno.serve(async (req: Request) => {
         .join('\n');
     }
 
+    // The screenshot itself is not stored anywhere - there is no bucket for it
+    // yet - so the transcript keeps the fact that there was one. Reopening the
+    // thread later shows the question and the answer without the image.
+    const storedQuestion = question?.trim()
+      ? (hasImage ? `[screenshot] ${question.trim()}` : question.trim())
+      : '[screenshot]';
+
     const persist = async (answer: string) => {
       if (!threadId) return;
       await supabase.from('chat_messages').insert([
-        { thread_id: threadId, user_id: user.id, role: 'user', content: question.trim() },
+        { thread_id: threadId, user_id: user.id, role: 'user', content: storedQuestion },
         { thread_id: threadId, user_id: user.id, role: 'assistant', content: answer },
       ]);
       await supabase.from('chat_threads').update({ updated_at: new Date().toISOString() }).eq('id', threadId);
@@ -229,13 +279,19 @@ ${(a.weak_spots ?? []).map(s => `- ${s}`).join('\n') || '- none noted'}
 `
       : '';
 
-    const prompt = `${block ? `## Who you are talking to\n${block}\n\n` : ''}${reviewBlock}${history ? `## The conversation so far\n${history}\n\n` : ''}## Their message
-"""
-${question.trim()}
-"""`;
+    const messageBlock = question?.trim()
+      ? `## Their message\n"""\n${question.trim()}\n"""`
+      : '## Their message\nThey sent the screenshot with no text.';
 
-    const raw = await callLLM(prompt, { system: SYSTEM, maxTokens: 900 });
-    const { intent, answer } = splitRouted(raw);
+    const prompt = `${block ? `## Who you are talking to\n${block}\n\n` : ''}${reviewBlock}${history ? `## The conversation so far\n${history}\n\n` : ''}${hasImage ? '## Attached\nA screenshot is attached above. It is the evidence for whatever they are asking.\n\n' : ''}${messageBlock}`;
+
+    const raw = await callLLM(prompt, { system: SYSTEM, maxTokens: 900, image: imagePart });
+    const routed = splitRouted(raw);
+    // Enforced here rather than trusted from the prompt. A screenshot routed to
+    // hook would hand the client an empty string to score out of 100, and the
+    // rule is absolute anyway: an image is always a question.
+    const intent = hasImage ? 'question' : routed.intent;
+    const answer = routed.answer;
 
     // A hook or a script is not answered here and is not charged here. The
     // client runs the real analysis next, which charges its own price - being
@@ -249,7 +305,13 @@ ${question.trim()}
     // The model routed to question and then wrote nothing, which it does on a
     // bare "hey". An error notice for saying hello is worse than a plain
     // opening line, and this is cheap enough not to be worth a second call.
-    const clean = answer.replace(/[—–]/g, '-').trim() || 'What are you working on?';
+    // The screenshot case needs its own fallback: "What are you working on?"
+    // is a fine reply to a bare hello and a useless one to a picture of
+    // someone's analytics.
+    const clean = answer.replace(/[—–]/g, '-').trim()
+      || (hasImage
+        ? 'I can see the screenshot but did not get a clear read on it. Tell me what you want to know about it.'
+        : 'What are you working on?');
 
     await persist(clean);
     await spendCredits(supabase, user.id, creditStatus, CREDIT_COSTS.chat_followup);

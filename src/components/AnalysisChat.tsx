@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useMemo } from 'react';
-import { AddOutlineIcon as Plus, ArrowUpOutlineIcon as ArrowUp, RefreshOutlineIcon as Loader2, CloseCircleOutlineIcon as X, ClapperboardOpenOutlineIcon as Film, FolderOutlineIcon as FolderIcon } from '@solar-icons/react';
+import { AddOutlineIcon as Plus, ArrowUpOutlineIcon as ArrowUp, RefreshOutlineIcon as Loader2, CloseCircleOutlineIcon as X, ClapperboardOpenOutlineIcon as Film, GalleryOutlineIcon as ImageIcon, FolderOutlineIcon as FolderIcon } from '@solar-icons/react';
 import { supabase, getSessionToken, getUserId, fetchWithRetry } from '../lib/supabase';
 import { ErrorNotice } from './ErrorNotice';
 import { useUsage, CREDIT_COSTS } from '../lib/useUsage';
@@ -29,6 +29,10 @@ interface Message {
   // text it decided it about. Enough to run the other one from a click.
   textKind?: 'hook' | 'script';
   source?: string;
+  // A screenshot sent with this message, as a data URL, for the bubble to
+  // show. Not persisted: the thread keeps "[screenshot]" and the answer, so a
+  // reopened conversation has the reasoning without the picture.
+  image?: string;
 }
 
 const extractVideoId = (input: string): string | null => {
@@ -38,6 +42,51 @@ const extractVideoId = (input: string): string | null => {
 };
 
 const uid = () => Math.random().toString(36).slice(2);
+
+// An upload is watched by the same model as a link, so what it accepts is what
+// Gemini accepts, and the ceiling is the one the edge proxy was built against.
+// Checked on the way in rather than after the file has been sent: a 2GB pick
+// that fails on arrival costs the wait twice.
+const ACCEPTED_TYPES = ['video/mp4', 'video/quicktime', 'video/webm', 'video/x-msvideo'];
+const MAX_SIZE_MB = 300;
+
+// A screenshot is the other thing people arrive with. Someone asking why a
+// video got 0 views has the answer on their Studio screen, not in a link, and
+// no API hands that number over: YouTube shows the Shorts swipe-away rate in
+// Studio and exposes nothing like it. So the picture IS the data.
+const IMAGE_TYPES = ['image/png', 'image/jpeg', 'image/webp'];
+const MAX_IMAGE_MB = 5;
+
+const isImage = (f: File) => IMAGE_TYPES.includes(f.type);
+
+const validateFile = (f: File): string => {
+  if (isImage(f)) {
+    return f.size > MAX_IMAGE_MB * 1024 * 1024
+      ? `Screenshot too large. Maximum size is ${MAX_IMAGE_MB}MB.`
+      : '';
+  }
+  if (ACCEPTED_TYPES.includes(f.type) || f.name.match(/\.(mp4|mov|webm|avi)$/i)) {
+    return f.size > MAX_SIZE_MB * 1024 * 1024
+      ? `File too large. Maximum size is ${MAX_SIZE_MB}MB.`
+      : '';
+  }
+  return 'Send a video (MP4, MOV, WebM, AVI) or a screenshot (PNG, JPG, WebP).';
+};
+
+// Read once, use twice: the base64 half goes to the model, the whole data URL
+// is what the message bubble shows. An object URL would need revoking and
+// would give the bubble nothing the data URL does not already have.
+const readDataUrl = (f: File) => new Promise<string>((resolve, reject) => {
+  const r = new FileReader();
+  r.onload = () => resolve(String(r.result));
+  r.onerror = () => reject(new Error('Could not read that file'));
+  r.readAsDataURL(f);
+});
+
+const formatSize = (bytes: number) => {
+  if (bytes >= 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  return `${(bytes / 1024).toFixed(0)} KB`;
+};
 
 // The scored reply. It is a message in the thread rather than a panel over it,
 // so the conversation that follows has something to point at.
@@ -110,6 +159,13 @@ function AnalysisCard({ a, fresh, onAdvance }: { a: Analysis; fresh?: boolean; o
 // until the answer lands, rather than pretending to finish.
 const STAGES: Record<string, string[]> = {
   video: ['Fetching the video', 'Watching it through', 'Marking the hook and the drop', 'Writing what to fix'],
+  // An upload is the one run with a step that reports itself: the bytes are
+  // either still going or they are not. So it does not guess at that half -
+  // one line holds until the file is over - and only then falls back to the
+  // timed stages, which are the link run's minus the fetch it does not do.
+  uploading: ['Sending the file over'],
+  screenshot: ['Reading the screenshot', 'Working out what happened'],
+  upload: ['Waiting on the file to process', 'Watching it through', 'Marking the hook and the drop', 'Writing what to fix'],
   hook: ['Reading the hook', 'Weighing it against what works', 'Writing the fix'],
   script: ['Reading the script', 'Finding where attention drops', 'Writing the fix'],
   followup: ['Rereading the review', 'Answering'],
@@ -393,6 +449,102 @@ export function AnalysisChat() {
     }
   };
 
+  // The creator's own footage, before it is anyone else's video. Same review as
+  // a link and the same price; three requests instead of one, because the file
+  // has to exist somewhere the model can watch it first: open a resumable
+  // session, stream the bytes to it through the edge proxy, then analyze what
+  // landed.
+  //
+  // All of that already worked - it is what the Analyze panel did before this
+  // screen was a conversation, and nothing carried it over. The paperclip has
+  // been attaching files to a submit() that only ever read the textarea, so the
+  // plate showed the name, the send button stayed disabled, and the file went
+  // nowhere. This is the wire that was missing, not new machinery.
+  const runUpload = async (f: File, context: string, shownText: string) => {
+    setBusyKind('uploading');
+    setBusy(true);
+    setError('');
+    push({ role: 'user', content: shownText });
+
+    const title = f.name.replace(/\.[^.]+$/, '');
+    const tid = threadId ?? await startThread(title || f.name);
+    setThreadId(tid);
+    if (tid) await persist(tid, 'user', shownText);
+
+    try {
+      const token = await getSessionToken();
+      if (!token) throw new Error('Not authenticated');
+      const mimeType = f.type || 'video/mp4';
+
+      const sessionRes = await fetchWithRetry(`${FN}/get-upload-url`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ fileName: f.name, fileSize: f.size, mimeType }),
+      });
+      const session = await sessionRes.json();
+      if (!sessionRes.ok || !session.uploadUrl) throw new Error(session.error || 'Could not start the upload');
+
+      // Plain fetch, not fetchWithRetry: the body is the file. Retrying a
+      // failed send means pushing every byte again, twice over a bad
+      // connection, which is slower than telling them it did not go.
+      const uploadRes = await fetch(`${FN}/upload-video-chunk`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': mimeType,
+          'X-Upload-Url': session.uploadUrl,
+          'X-Upload-Offset': '0',
+          'X-Is-Last': 'true',
+        },
+        body: f,
+      });
+      const uploaded = await uploadRes.json();
+      if (!uploadRes.ok || !uploaded.geminiFileName) throw new Error(uploaded.error || 'Upload failed');
+
+      // The bytes are over. What is left is the wait a link gets, so the stage
+      // line switches to the stages that are now actually running.
+      setBusyKind('upload');
+
+      const res = await fetchWithRetry(`${FN}/analyze-upload`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          geminiFileName: uploaded.geminiFileName,
+          videoContext: context,
+          fileName: f.name,
+          mimeType,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Analysis failed');
+
+      const a: Analysis = {
+        overall_score: data.analysis?.hook_analysis?.overall_score,
+        overall_assessment: data.analysis?.hook_analysis?.overall_assessment,
+        strong_spots: data.analysis?.strong_spots ?? [],
+        weak_spots: data.analysis?.weak_spots ?? [],
+      };
+      push({ role: 'assistant', content: '', analysis: a });
+      if (tid) {
+        await persist(tid, 'assistant', '', a);
+        await supabase.from('chat_threads').update({ analysis_id: data.analysis?.id }).eq('id', tid);
+      }
+      reloadUsage();
+      window.dispatchEvent(new CustomEvent('hershy:analysis-done'));
+
+      // Whatever was typed alongside the file goes to the model after the
+      // review, exactly as it does alongside a link: videoContext is the field
+      // for facts about the footage, and a question dropped in there comes back
+      // answered as a description of it.
+      if (tid && context.trim()) await routeMessage(context.trim(), { silent: true, tid });
+
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Analysis failed');
+    } finally {
+      setBusy(false);
+    }
+  };
+
   // Hook Lab and Script Lab used to be their own tabs. Same functions, same
   // credits, now answered in the thread so the follow-ups work on them too.
   // `pushed` is set when the router already put the message on screen: it
@@ -463,15 +615,21 @@ export function AnalysisChat() {
   // show the creator saying it twice. `tid` is passed by that caller because
   // the thread was created moments earlier and setThreadId has not landed in
   // this closure yet.
-  const routeMessage = async (text: string, { silent = false, tid }: { silent?: boolean; tid?: string | null } = {}) => {
+  const routeMessage = async (
+    text: string,
+    { silent = false, tid, image, preview }: {
+      silent?: boolean; tid?: string | null;
+      image?: { mimeType: string; base64: string }; preview?: string;
+    } = {},
+  ) => {
     const thread = tid ?? threadId;
     // Vague until the server says otherwise - see STAGES.question. With a
     // review already on screen the call still classifies, but it is reading
     // that review to do it, so the line can say so.
-    setBusyKind(hasResult ? 'followup' : 'question');
+    setBusyKind(image ? 'screenshot' : hasResult ? 'followup' : 'question');
     setBusy(true);
     setError('');
-    if (!silent) push({ role: 'user', content: text });
+    if (!silent) push({ role: 'user', content: text, image: preview });
 
     try {
       const token = await getSessionToken();
@@ -479,7 +637,7 @@ export function AnalysisChat() {
       const res = await fetchWithRetry(`${FN}/chat-followup`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ threadId: thread, question: text }),
+        body: JSON.stringify({ threadId: thread, question: text, image }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Could not read that');
@@ -497,10 +655,10 @@ export function AnalysisChat() {
       // until now there was nothing worth keeping. A question can open a
       // conversation, so this is where that thread gets made.
       if (!thread) {
-        const opened = await startThread(text.slice(0, 60));
+        const opened = await startThread(text.slice(0, 60) || 'Screenshot');
         setThreadId(opened);
         if (opened) {
-          await persist(opened, 'user', text);
+          await persist(opened, 'user', image ? `[screenshot] ${text}`.trim() : text);
           await persist(opened, 'assistant', data.answer);
         }
       }
@@ -514,6 +672,20 @@ export function AnalysisChat() {
     } finally {
       setBusy(false);
     }
+  };
+
+  // A screenshot goes to the chat, not to the video pipeline. It is an ordinary
+  // message with a picture attached, so it routes and is charged like one.
+  const askWithImage = async (f: File, text: string) => {
+    let dataUrl: string;
+    try {
+      dataUrl = await readDataUrl(f);
+    } catch {
+      setError('Could not read that screenshot.');
+      return;
+    }
+    const base64 = dataUrl.slice(dataUrl.indexOf(',') + 1);
+    await routeMessage(text, { image: { mimeType: f.type, base64 }, preview: dataUrl });
   };
 
   // Reading the same text the other way.
@@ -557,7 +729,20 @@ export function AnalysisChat() {
 
   const submit = () => {
     const text = composer.trim();
-    if (!text || busy) return;
+    if (busy) return;
+
+    // A file is the whole message and needs nothing typed with it. Everything
+    // below assumes text because until now nothing else could be sent.
+    if (file) {
+      const f = file;
+      setFile(null);
+      setComposer('');
+      if (isImage(f)) askWithImage(f, text);
+      else runUpload(f, text, text ? `${f.name}\n\n${text}` : f.name);
+      return;
+    }
+
+    if (!text) return;
     setComposer('');
 
     const url = text.match(/https?:\/\/\S+/)?.[0] ?? text;
@@ -632,10 +817,14 @@ export function AnalysisChat() {
           <div className="w-full max-w-2xl">
             <Composer
               value={composer} onChange={setComposer} onSubmit={submit} busy={busy}
-              file={file} setFile={setFile} fileRef={fileRef} taRef={taRef}
+              file={file} setFile={setFile} onFileError={setError} fileRef={fileRef} taRef={taRef}
               placeholder="Paste a link, a hook or a script, or just ask"
             />
             <Price />
+            {/* The hero had nowhere to say no. Nothing could fail here before -
+                a send left this screen immediately - but a file can be turned
+                down before it is ever sent. */}
+            {error && <div className="mt-4"><ErrorNotice message={error} /></div>}
           </div>
         </div>
       ) : (
@@ -645,8 +834,11 @@ export function AnalysisChat() {
               {messages.map(m => (
                 m.role === 'user' ? (
                   <div key={m.id} className={`flex justify-end ${m.fresh ? 'animate-msg-in' : ''}`}>
-                    <div className="max-w-[85%] rounded-2xl px-4 py-2.5 text-[14px] leading-relaxed break-words"
+                    <div className="max-w-[85%] rounded-2xl px-4 py-2.5 text-[14px] leading-relaxed whitespace-pre-line break-words"
                          style={{ background: 'var(--bg-raised)', color: 'var(--text)' }}>
+                      {m.image && (
+                        <img src={m.image} alt="" className={`rounded-xl max-w-full max-h-72 w-auto ${m.content ? 'mb-2' : ''}`} />
+                      )}
                       {m.content}
                     </div>
                   </div>
@@ -720,7 +912,7 @@ export function AnalysisChat() {
               )}
               <Composer
                 value={composer} onChange={setComposer} onSubmit={submit} busy={busy}
-                file={file} setFile={setFile} fileRef={fileRef} taRef={taRef}
+                file={file} setFile={setFile} onFileError={setError} fileRef={fileRef} taRef={taRef}
                 placeholder={hasResult ? 'Ask about the fixes, or send another link' : 'Ask anything, or send a link'}
               />
               <Price />
@@ -749,22 +941,34 @@ export function AnalysisChat() {
 }
 
 function Composer({
-  value, onChange, onSubmit, busy, file, setFile, fileRef, taRef, placeholder,
+  value, onChange, onSubmit, busy, file, setFile, onFileError, fileRef, taRef, placeholder,
 }: {
   value: string; onChange: (v: string) => void; onSubmit: () => void; busy: boolean;
-  file: File | null; setFile: (f: File | null) => void;
+  file: File | null; setFile: (f: File | null) => void; onFileError: (msg: string) => void;
   fileRef: React.RefObject<HTMLInputElement>; taRef: React.RefObject<HTMLTextAreaElement>;
   placeholder: string;
 }) {
   return (
     <div className="overflow-hidden" style={{ background: 'var(--bg-raised)', border: '1px solid var(--line)', borderRadius: 'var(--r-lg)' }}>
-      <input ref={fileRef} type="file" accept="video/*" className="hidden"
-             onChange={e => { const f = e.target.files?.[0]; if (f) setFile(f); e.currentTarget.value = ''; }} />
+      <input ref={fileRef} type="file" className="hidden"
+             accept="video/mp4,video/quicktime,video/webm,video/x-msvideo,.mp4,.mov,.webm,.avi,image/png,image/jpeg,image/webp"
+             onChange={e => {
+               const f = e.target.files?.[0];
+               e.currentTarget.value = '';
+               if (!f) return;
+               const bad = validateFile(f);
+               if (bad) { onFileError(bad); return; }
+               onFileError('');
+               setFile(f);
+             }} />
 
       {file && (
         <div className="mx-2 mt-2 rounded-2xl px-3 py-2.5 flex items-center gap-3" style={{ background: 'rgba(255,255,255,0.05)' }}>
-          <Film className="w-4 h-4 flex-shrink-0" style={{ color: 'var(--text-faint)' }} />
+          {isImage(file)
+            ? <ImageIcon className="w-4 h-4 flex-shrink-0" style={{ color: 'var(--text-faint)' }} />
+            : <Film className="w-4 h-4 flex-shrink-0" style={{ color: 'var(--text-faint)' }} />}
           <p className="flex-1 min-w-0 text-[13px] truncate" style={{ color: 'var(--text)' }}>{file.name}</p>
+          <span className="font-mono text-[11px] flex-shrink-0" style={{ color: 'var(--text-faint)' }}>{formatSize(file.size)}</span>
           <button onClick={() => setFile(null)} className="p-1 transition-colors" style={{ color: 'var(--text-faint)' }}>
             <X className="w-4 h-4" />
           </button>
@@ -777,7 +981,7 @@ function Composer({
         onChange={e => onChange(e.target.value)}
         onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); onSubmit(); } }}
         rows={1}
-        placeholder={placeholder}
+        placeholder={file ? (isImage(file) ? 'Ask about it, or just send' : 'Add context, or just send') : placeholder}
         autoComplete="off"
         spellCheck={false}
         className="w-full bg-transparent resize-none px-5 pt-4 pb-1 text-[15px] leading-relaxed focus:outline-none"
@@ -785,11 +989,11 @@ function Composer({
       />
 
       <div className="flex items-center justify-between gap-3 px-3 pb-3 pt-1">
-        <button type="button" onClick={() => fileRef.current?.click()} title="Attach a video file"
+        <button type="button" onClick={() => fileRef.current?.click()} title="Attach a video or a screenshot"
                 className="w-8 h-8 rounded-full flex items-center justify-center" style={{ color: 'var(--text-muted)' }}>
           <Plus className="w-[18px] h-[18px]" />
         </button>
-        <button onClick={onSubmit} disabled={busy || !value.trim()} title="Send"
+        <button onClick={onSubmit} disabled={busy || (!value.trim() && !file)} title="Send"
                 className="w-8 h-8 rounded-full flex items-center justify-center transition-opacity disabled:opacity-25"
                 style={{ background: 'var(--accent)', color: 'var(--on-accent)' }}>
           {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : <ArrowUp className="w-[18px] h-[18px]" />}

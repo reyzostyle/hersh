@@ -15,9 +15,24 @@
 //
 // ANALYSIS_MODEL selects the model (default 'claude-sonnet-5').
 
+// An image sent alongside the prompt, already base64 encoded without the
+// data: URL prefix. All three providers below accept one, in three different
+// shapes, which is the whole reason this lives here rather than at a call site.
+//
+// The model has to be a multimodal one. ANALYSIS_MODEL is a secret, so nothing
+// here can check that: a text-only model sent an image returns the provider's
+// own 400, which callLLM surfaces verbatim. That is the intended failure - a
+// clear error naming the model beats silently dropping the image and answering
+// a question about a screenshot nobody looked at.
+export interface LLMImage {
+  mimeType: string;
+  base64: string;
+}
+
 export interface LLMCallOptions {
   system?: string;
   maxTokens: number;
+  image?: LLMImage;
 }
 
 // 529 is Anthropic's overloaded signal; 429/500/502/503 are the general
@@ -55,7 +70,17 @@ async function callOnce(provider: string, model: string, prompt: string, opts: L
           model,
           max_tokens: opts.maxTokens,
           ...(opts.system ? { system: opts.system } : {}),
-          messages: [{ role: 'user', content: prompt }],
+          // Image first, question second. Anthropic reads a prompt about an
+          // image better in that order, and the other two are indifferent.
+          messages: [{
+            role: 'user',
+            content: opts.image
+              ? [
+                  { type: 'image', source: { type: 'base64', media_type: opts.image.mimeType, data: opts.image.base64 } },
+                  { type: 'text', text: prompt },
+                ]
+              : prompt,
+          }],
         }),
       });
     }
@@ -78,7 +103,12 @@ async function callOnce(provider: string, model: string, prompt: string, opts: L
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           ...(opts.system ? { systemInstruction: { parts: [{ text: opts.system }] } } : {}),
-          contents: [{ role: 'user', parts: [{ text: prompt }] }],
+          contents: [{
+            role: 'user',
+            parts: opts.image
+              ? [{ inline_data: { mime_type: opts.image.mimeType, data: opts.image.base64 } }, { text: prompt }]
+              : [{ text: prompt }],
+          }],
           generationConfig: {
             maxOutputTokens: isFlashLite || isPlainFlash ? opts.maxTokens : opts.maxTokens * 4,
             ...(isPlainFlash ? { thinkingConfig: { thinkingBudget: 0 } } : {}),
@@ -92,9 +122,15 @@ async function callOnce(provider: string, model: string, prompt: string, opts: L
       const baseUrl = Deno.env.get('ANALYSIS_BASE_URL');
       if (!apiKey) throw new Error('ANALYSIS_API_KEY not configured');
       if (!baseUrl) throw new Error('ANALYSIS_BASE_URL not configured');
+      const userContent = opts.image
+        ? [
+            { type: 'image_url', image_url: { url: `data:${opts.image.mimeType};base64,${opts.image.base64}` } },
+            { type: 'text', text: prompt },
+          ]
+        : prompt;
       const messages = opts.system
-        ? [{ role: 'system', content: opts.system }, { role: 'user', content: prompt }]
-        : [{ role: 'user', content: prompt }];
+        ? [{ role: 'system', content: opts.system }, { role: 'user', content: userContent }]
+        : [{ role: 'user', content: userContent }];
       return fetch(`${baseUrl.replace(/\/$/, '')}/chat/completions`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
