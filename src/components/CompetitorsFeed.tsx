@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { LightbulbOutlineIcon as Lightbulb, TrashBinMinimalisticOutlineIcon as Trash2, RefreshOutlineIcon as Loader2, AddOutlineIcon as Plus, RefreshOutlineIcon as RefreshCw, AltArrowUpOutlineIcon as ChevronUp, UsersGroupRoundedOutlineIcon as Users } from '@solar-icons/react';
+import { LightbulbOutlineIcon as Lightbulb, TrashBinMinimalisticOutlineIcon as Trash2, RefreshOutlineIcon as Loader2, AddOutlineIcon as Plus, RefreshOutlineIcon as RefreshCw, AltArrowUpOutlineIcon as ChevronUp, UsersGroupRoundedOutlineIcon as Users, FilterOutlineIcon as Filter } from '@solar-icons/react';
 import {
   sortAndFilterFeed,
   type CompetitorChannel, type FeedItem, type IdeaFilter, type IdeaSort, type PoolVideo,
@@ -65,51 +65,73 @@ export function CompetitorsFeed({
   const [sort, setSort] = useState<IdeaSort>('outlier');
 
   const visible = sortAndFilterFeed(items, { floor: 0, sort, channelId: null });
+  // Clearing only makes sense on the inbox, and only with something in it. It
+  // decides the layout as well as its own visibility: whichever control comes
+  // first on the right takes the auto margin that pushes the group there.
+  const showClear = filter === 'new' && visible.length > 0;
   const nothingAnywhere = counts.new + counts.saved + counts.dismissed === 0;
 
   return (
     <div className="space-y-3">
-      {/* One row on a desktop, two on a phone. It used to be one row that
-          scrolled sideways, which put Refresh - the button this screen exists
-          to press - off the right edge behind a horizontal swipe nobody
-          expects. The filters keep their own scroll on the first line, and the
-          controls sit on the second where they are always reachable.
-          sm:contents dissolves the second wrapper on a desktop, so the row
-          above the phone breakpoint is exactly what it was. */}
+      {/* One row on a desktop, two on a phone.
+          The second line was still overflowing on a phone, because four
+          controls do not fit across 350 points and the row simply ran off the
+          edge - Refresh, the button this screen exists to press, was cut in
+          half. The bin moves up beside the tabs, which have room to spare, and
+          the second line is left with three.
+          On a desktop both wrappers dissolve into the outer row (sm:contents)
+          and the explicit order puts everything back where it was: tabs, sort,
+          bin, Manage, Refresh. */}
       <div className="space-y-2 sm:space-y-0 sm:flex sm:items-center sm:gap-2">
-        <div className="overflow-x-auto pb-0.5 -mb-0.5 sm:overflow-visible sm:pb-0 sm:mb-0 sm:flex-shrink-0">
-          <div className="seg w-max">
-            {TABS.map(t => (
-              <button key={t.id} onClick={() => onFilterChange(t.id)} data-on={filter === t.id}>
-                {t.label} ({counts[t.id]})
-              </button>
-            ))}
-          </div>
-        </div>
-
         <div className="flex items-center gap-2 sm:contents">
-        <select
-          value={sort}
-          onChange={e => setSort(e.target.value as IdeaSort)}
-          className="flex-shrink-0 px-2.5 py-[7px] rounded-[var(--r-sm)] text-xs font-medium focus:outline-none cursor-pointer"
-          style={{ background: 'var(--bg-raised)', border: '1px solid var(--line)', color: 'var(--text-muted)' }}
-        >
-          {SORTS.map(s => <option key={s.value} value={s.value} style={{ background: 'var(--bg-raised)' }}>{s.label}</option>)}
-        </select>
+          <div className="flex-1 min-w-0 overflow-x-auto pb-0.5 -mb-0.5 sm:flex-none sm:overflow-visible sm:pb-0 sm:mb-0 sm:flex-shrink-0 sm:order-1">
+            <div className="seg w-max">
+              {TABS.map(t => (
+                <button key={t.id} onClick={() => onFilterChange(t.id)} data-on={filter === t.id}>
+                  {t.label} ({counts[t.id]})
+                </button>
+              ))}
+            </div>
+          </div>
 
-        <div className="flex items-center gap-2 ml-auto flex-shrink-0 pl-2">
-          {filter === 'new' && visible.length > 0 && (
+          {showClear && (
             <button
               onClick={() => onClear(visible)}
               disabled={clearing}
               title="Dismiss everything on screen. The next best outliers take their place."
-              className="p-[7px] rounded-[var(--r-sm)] transition-colors disabled:opacity-50"
+              className="ml-auto flex-shrink-0 p-[7px] rounded-[var(--r-sm)] transition-colors disabled:opacity-50 sm:order-3"
               style={{ border: '1px solid rgba(var(--danger-rgb),0.25)', color: 'rgb(var(--danger-rgb))' }}
             >
               {clearing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
             </button>
           )}
-          <button onClick={() => setManageOpen(o => !o)} className="chip" style={{ borderStyle: 'dashed' }}>
+        </div>
+
+        <div className="flex items-center gap-2 sm:contents">
+          {/* The sort read as a heading rather than as something you could
+              press: bare text, no border cue that carried at a glance. The
+              funnel is the part that says this list can be reordered. */}
+          <div className="relative min-w-0 flex-shrink sm:order-2">
+            <Filter
+              className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none"
+              style={{ color: 'var(--text-faint)' }}
+            />
+            <select
+              value={sort}
+              onChange={e => setSort(e.target.value as IdeaSort)}
+              aria-label="Sort the feed"
+              className="w-full pl-8 pr-7 py-[7px] rounded-[var(--r-sm)] text-xs font-medium focus:outline-none cursor-pointer"
+              style={{ background: 'var(--bg-raised)', border: '1px solid var(--line)', color: 'var(--text-muted)' }}
+            >
+              {SORTS.map(s => <option key={s.value} value={s.value} style={{ background: 'var(--bg-raised)' }}>{s.label}</option>)}
+            </select>
+          </div>
+
+          <button
+            onClick={() => setManageOpen(o => !o)}
+            className={`chip ml-auto flex-shrink-0 sm:order-4 ${showClear ? 'sm:ml-0' : ''}`}
+            style={{ borderStyle: 'dashed' }}
+          >
             {manageOpen ? <ChevronUp className="w-3.5 h-3.5" /> : <Plus className="w-3.5 h-3.5" />}
             {channels.length === 0 ? 'Add channel' : 'Manage'}
           </button>
@@ -117,12 +139,11 @@ export function CompetitorsFeed({
             onClick={onRefresh}
             disabled={refreshing}
             title="Check the tracked channels for new outliers. Costs nothing."
-            className="btn-primary flex items-center gap-1.5 px-3 py-[7px] rounded-[var(--r-sm)] text-xs font-medium disabled:opacity-40"
+            className="btn-primary flex-shrink-0 flex items-center gap-1.5 px-3 py-[7px] rounded-[var(--r-sm)] text-xs font-medium disabled:opacity-40 sm:order-5"
           >
             {refreshing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
             {refreshing ? 'Checking' : 'Refresh'}
           </button>
-        </div>
         </div>
       </div>
 
