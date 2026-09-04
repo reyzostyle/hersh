@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { LightbulbOutlineIcon as Lightbulb, TrashBinMinimalisticOutlineIcon as Trash2, RefreshOutlineIcon as Loader2, AddOutlineIcon as Plus, RefreshOutlineIcon as RefreshCw, AltArrowUpOutlineIcon as ChevronUp, UsersGroupRoundedOutlineIcon as Users, FilterOutlineIcon as Filter } from '@solar-icons/react';
+import { LightbulbOutlineIcon as Lightbulb, TrashBinMinimalisticOutlineIcon as Trash2, RefreshOutlineIcon as Loader2, AddOutlineIcon as Plus, RefreshOutlineIcon as RefreshCw, AltArrowUpOutlineIcon as ChevronUp, AltArrowDownOutlineIcon as ChevronDown, UsersGroupRoundedOutlineIcon as Users, FilterOutlineIcon as Filter } from '@solar-icons/react';
 import {
   sortAndFilterFeed,
   type CompetitorChannel, type FeedItem, type IdeaFilter, type IdeaSort, type PoolVideo,
@@ -114,14 +114,29 @@ export function CompetitorsFeed({
           <div className="relative min-w-0 flex-shrink sm:order-2">
             <Filter
               className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none"
-              style={{ color: 'var(--text-faint)' }}
+              style={{ color: 'var(--text-muted)' }}
+            />
+            {/* The browser's own arrow is drawn at the end of the TEXT, so on a
+                phone, where the label truncates, it floated in the middle of
+                the control instead of sitting at its edge - and Safari renders
+                it in a grey nothing can change. appearance:none takes it away
+                so this one can be pinned to the right and given a colour that
+                reads at arm's length. Tapping still opens the native picker. */}
+            <ChevronDown
+              className="w-3.5 h-3.5 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none"
+              style={{ color: 'var(--text)' }}
             />
             <select
               value={sort}
               onChange={e => setSort(e.target.value as IdeaSort)}
               aria-label="Sort the feed"
-              className="w-full pl-8 pr-7 py-[7px] rounded-[var(--r-sm)] text-xs font-medium focus:outline-none cursor-pointer"
-              style={{ background: 'var(--bg-raised)', border: '1px solid var(--line)', color: 'var(--text-muted)' }}
+              className="w-full appearance-none pl-8 pr-8 py-[7px] rounded-[var(--r-sm)] text-xs font-medium focus:outline-none cursor-pointer"
+              style={{
+                WebkitAppearance: 'none',
+                background: 'var(--bg-raised)',
+                border: '1px solid var(--line)',
+                color: 'var(--text-muted)',
+              }}
             >
               {SORTS.map(s => <option key={s.value} value={s.value} style={{ background: 'var(--bg-raised)' }}>{s.label}</option>)}
             </select>
