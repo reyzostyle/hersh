@@ -948,18 +948,43 @@ function Composer({
   fileRef: React.RefObject<HTMLInputElement>; taRef: React.RefObject<HTMLTextAreaElement>;
   placeholder: string;
 }) {
+  // Three ways in, one gate. The file picker was the only one, which is the
+  // wrong single way for this product: a screenshot lives in the clipboard
+  // straight after Cmd+Shift+4, and going through Finder to fetch it back off
+  // the desktop is the long way round the thing they are trying to ask.
+  const [dragging, setDragging] = useState(false);
+
+  const accept = (f: File | null | undefined): boolean => {
+    if (!f) return false;
+    const bad = validateFile(f);
+    if (bad) { onFileError(bad); return false; }
+    onFileError('');
+    setFile(f);
+    return true;
+  };
+
   return (
-    <div className="overflow-hidden" style={{ background: 'var(--bg-raised)', border: '1px solid var(--line)', borderRadius: 'var(--r-lg)' }}>
+    <div
+      className="overflow-hidden transition-colors"
+      style={{
+        background: 'var(--bg-raised)',
+        border: `1px solid ${dragging ? 'var(--accent)' : 'var(--line)'}`,
+        borderRadius: 'var(--r-lg)',
+      }}
+      onDragOver={e => { e.preventDefault(); setDragging(true); }}
+      onDragLeave={e => {
+        // Children fire dragleave as the cursor crosses them. Only the pointer
+        // actually leaving the composer counts.
+        if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setDragging(false);
+      }}
+      onDrop={e => { e.preventDefault(); setDragging(false); accept(e.dataTransfer.files?.[0]); }}
+    >
       <input ref={fileRef} type="file" className="hidden"
              accept="video/mp4,video/quicktime,video/webm,video/x-msvideo,.mp4,.mov,.webm,.avi,image/png,image/jpeg,image/webp"
              onChange={e => {
                const f = e.target.files?.[0];
                e.currentTarget.value = '';
-               if (!f) return;
-               const bad = validateFile(f);
-               if (bad) { onFileError(bad); return; }
-               onFileError('');
-               setFile(f);
+               accept(f);
              }} />
 
       {file && (
@@ -980,6 +1005,14 @@ function Composer({
         value={value}
         onChange={e => onChange(e.target.value)}
         onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); onSubmit(); } }}
+        onPaste={e => {
+          // Only intercept a pasted image. Text, and a screenshot pasted as a
+          // file path, go through untouched.
+          const item = Array.from(e.clipboardData.items)
+            .find(i => i.kind === 'file' && i.type.startsWith('image/'));
+          if (!item) return;
+          if (accept(item.getAsFile())) e.preventDefault();
+        }}
         rows={1}
         placeholder={file ? (isImage(file) ? 'Ask about it, or just send' : 'Add context, or just send') : placeholder}
         autoComplete="off"
