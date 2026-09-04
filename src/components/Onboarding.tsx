@@ -3,6 +3,7 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { RefreshOutlineIcon as Loader2, ArrowLeftOutlineIcon as ArrowLeft, ArrowRightOutlineIcon as ArrowRight, DollarOutlineIcon as DollarSign, FireOutlineIcon as Flame, GraphUpOutlineIcon as TrendingUp, CupOutlineIcon as Trophy, LeafOutlineIcon as Sprout, RocketOutlineIcon as Rocket, BagOutlineIcon as ShoppingBag } from '@solar-icons/react';
 import { Youtube, Check } from './BrandIcons';
+import { NICHES as NICHE_PRESETS } from '../lib/niches';
 
 const STORAGE_KEY = 'hershy_onboarding';
 
@@ -31,10 +32,7 @@ const GOALS = [
 
 const GOAL_IDS = GOALS.map(g => g.id);
 
-const NICHE_PRESETS = [
-  'Finance', 'Fitness', 'Education', 'Tech', 'Gaming', 'Beauty',
-  'Food', 'Comedy', 'Motivation', 'Business', 'Travel', 'Lifestyle',
-];
+
 
 // content steps (welcome is index 0, not counted in the progress bar)
 const TOTAL_STEPS = 5;

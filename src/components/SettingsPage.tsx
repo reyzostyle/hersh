@@ -4,6 +4,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { RefreshOutlineIcon as Loader2, EyeOutlineIcon as Eye, EyeClosedOutlineIcon as EyeOff, RefreshOutlineIcon as RefreshCw, LinkOutlineIcon as Link, AltArrowDownOutlineIcon as ChevronDown, Stars2OutlineIcon as Sparkles, UserOutlineIcon as User, BoltOutlineIcon as Zap, ChatRoundOutlineIcon as MessageCircle, SquareArrowRightUpOutlineIcon as ExternalLink, TicketOutlineIcon as Ticket } from '@solar-icons/react';
 import { getSessionToken, fetchWithRetry } from '../lib/supabase';
 import { PageHead } from './Page';
+import { NICHES, parseNiches, joinNiches } from '../lib/niches';
 
 function YouTubeLogo({ className }: { className?: string }) {
   return (
@@ -340,11 +341,41 @@ export function SettingsPage() {
 
             <div>
               <FieldLabel>Channel niche</FieldLabel>
+              {/* The same chips as onboarding, because everyone who signed up
+                  before this list existed typed something free-form, and a
+                  typed niche is a user with nothing to benchmark them against.
+                  This is where they can pick one without redoing onboarding.
+                  The text field stays for anyone genuinely outside the list. */}
+              <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 mb-2.5">
+                {NICHES.map(n => {
+                  const picked = parseNiches(channelNiche);
+                  const active = picked.includes(n);
+                  const atCap = picked.length >= 3 && !active;
+                  return (
+                    <button
+                      key={n}
+                      type="button"
+                      disabled={atCap}
+                      onClick={() => setChannelNiche(joinNiches(
+                        active ? picked.filter(p => p !== n) : [...picked, n],
+                      ))}
+                      className="w-full px-2 py-1.5 rounded-full text-sm text-center whitespace-nowrap transition-all disabled:opacity-40"
+                      style={{
+                        border: `1px solid ${active ? 'var(--accent)' : 'rgba(255,255,255,0.08)'}`,
+                        background: active ? 'rgba(var(--accent-rgb),0.12)' : 'rgba(255,255,255,0.03)',
+                        color: active ? '#fff' : '#cbd5e1',
+                      }}
+                    >
+                      {n}
+                    </button>
+                  );
+                })}
+              </div>
               <input
                 type="text"
                 value={channelNiche}
                 onChange={e => setChannelNiche(e.target.value)}
-                placeholder="e.g. Personal finance for millennials, fitness, tech reviews..."
+                placeholder="Or type it, if none of these fit"
                 className="glass-field w-full px-4 py-2.5 rounded-lg text-white placeholder-gray-600 text-sm focus:outline-none transition-colors"
                 style={glassInput}
                 onFocus={e => { e.currentTarget.style.borderColor = 'var(--accent)'; }}
