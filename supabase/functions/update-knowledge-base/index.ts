@@ -1,5 +1,6 @@
 import { createClient } from 'npm:@supabase/supabase-js@2.57.4';
 import { callLLM } from '../_shared/llm.ts';
+import { parseModelJson } from '../_shared/json.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -85,8 +86,7 @@ Extract patterns and return knowledge base entries as JSON array.`;
 
   let entries: any[] = [];
   try {
-    const match = content.match(/\[[\s\S]*\]/);
-    if (match) entries = JSON.parse(match[0]);
+    if (/\[[\s\S]*\]/.test(content)) entries = parseModelJson(content, 'knowledge base', 'array');
   } catch {
     return new Response(JSON.stringify({ error: 'Failed to parse Claude response', raw: content }), { headers: corsHeaders });
   }

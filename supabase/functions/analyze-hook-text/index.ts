@@ -1,6 +1,7 @@
 import { createClient } from 'npm:@supabase/supabase-js@2.57.4';
 import { callLLM } from '../_shared/llm.ts';
 import { loadCreditStatus, canAfford, spendCredits, CREDIT_COSTS } from '../_shared/credits.ts';
+import { parseModelJson } from '../_shared/json.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -122,9 +123,7 @@ Return ONLY valid JSON, no markdown:
     // not a guarantee, and other providers can preface it with a sentence.
     let result;
     try {
-      const jsonMatch = content.match(/\{[\s\S]*\}/);
-      if (!jsonMatch) throw new Error('no JSON object in response');
-      result = JSON.parse(jsonMatch[0]);
+      result = parseModelJson(content);
     } catch {
       return new Response(JSON.stringify({ error: 'Could not parse analysis. Try again.' }), { status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }

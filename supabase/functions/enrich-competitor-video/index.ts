@@ -3,6 +3,7 @@ import { callLLM } from '../_shared/llm.ts';
 import { loadCreditStatus, canAfford, spendCredits, CREDIT_COSTS } from '../_shared/credits.ts';
 import { loadChannelScan, channelScanBlock } from '../_shared/channel-scan.ts';
 import { watchVideo } from '../_shared/analyze-video.ts';
+import { parseModelJson } from '../_shared/json.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -130,9 +131,8 @@ Rules:
       );
 
   try {
-    const jsonMatch = content.match(/\{[\s\S]*\}/);
-    if (jsonMatch) {
-      const parsed = JSON.parse(jsonMatch[0]);
+    if (/\{[\s\S]*\}/.test(content)) {
+      const parsed = parseModelJson(content);
       return {
         concept: String(stripDashes(parsed.concept) || ''),
         adapted_idea: String(stripDashes(parsed.adapted_idea) || ''),

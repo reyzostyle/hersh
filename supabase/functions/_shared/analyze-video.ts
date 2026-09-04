@@ -1,4 +1,5 @@
 import type { AttachedImage } from './images.ts';
+import { parseModelJson } from './json.ts';
 
 // Shared video analysis: one Gemini call that both WATCHES the video and writes
 // the verdict. Used by analyze-with-gemini (pasted YouTube link) and
@@ -314,9 +315,7 @@ Respond with valid JSON only, no markdown, with the keys in exactly this order -
     return s;
   };
 
-  const jsonMatch = content.match(/\{[\s\S]*\}/);
-  if (!jsonMatch) throw new Error('No JSON in Gemini response');
-  const parsed = stripDashes(JSON.parse(jsonMatch[0]));
+  const parsed = stripDashes(parseModelJson(content, 'Gemini response'));
 
   console.log(`[gemini] timeline beats: ${parsed.timeline?.length ?? 0}, weak_spots: ${parsed.weak_spots?.length ?? 0}, score: ${parsed.overall_score}`);
   return parsed;

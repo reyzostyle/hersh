@@ -2,6 +2,7 @@ import { createClient } from 'npm:@supabase/supabase-js@2.57.4';
 import { loadCreditStatus, canAfford, spendCredits, CREDIT_COSTS } from '../_shared/credits.ts';
 import { watchVideo } from '../_shared/analyze-video.ts';
 import { loadChannelScan, channelScanBlock } from '../_shared/channel-scan.ts';
+import { parseModelJson } from '../_shared/json.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -84,9 +85,8 @@ Rules:
   );
 
   try {
-    const jsonMatch = content.match(/\{[\s\S]*\}/);
-    if (jsonMatch) {
-      return stripDashes(JSON.parse(jsonMatch[0])) as { hook: string; sections: Array<{ title: string; content: string; duration: string }>; cta: string };
+    if (/\{[\s\S]*\}/.test(content)) {
+      return stripDashes(parseModelJson(content, 'outline')) as { hook: string; sections: Array<{ title: string; content: string; duration: string }>; cta: string };
     }
     throw new Error('No JSON in response');
   } catch (e) {
