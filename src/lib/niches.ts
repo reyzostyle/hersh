@@ -13,15 +13,13 @@
 // own, so the comparison has to come from everyone else in the same niche, and
 // free text groups with nothing. The description field stays for the detail.
 //
-// 24 keeps the grid whole at 3 across on a phone and 4 on a desktop; any count
-// that divides by both avoids stranding one chip alone on the last row.
+// 12 keeps the grid whole at 3 across on a phone and 4 on a desktop, and short
+// enough to read at a glance. Coarse on purpose: it only has to be good enough
+// to group a benchmark by, and the description field takes the detail.
 export const NICHES = [
   'Ranking', 'Minecraft', 'Roblox', 'Commentary',
   'Gaming', 'Anime', 'Reddit', 'Facts',
-  'Memes', 'Movies', 'Sports', 'Cars',
-  'Motivation', 'Finance', 'Fitness', 'Food',
-  'Beauty', 'Tech', 'Education', 'Business',
-  'Travel', 'Comedy', 'Music', 'Lifestyle',
+  'Motivation', 'Sports', 'Fitness', 'Finance',
 ] as const;
 
 export type Niche = typeof NICHES[number];
