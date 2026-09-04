@@ -10,6 +10,9 @@ interface Stats {
   new_users_today: number;
   new_users_28d: number;
   active_users_28d: number;
+  active_users_today: number;
+  active_users_7d: number;
+  daily_active: number[];
   daily_signups: number[];
   plan_free: number;
   plan_plus: number;
@@ -111,9 +114,11 @@ export function AdminPage() {
 
   const paying = stats.plan_plus + stats.plan_pro;
   // Approximation: assumes every subscriber is on monthly billing. Yearly
-  // subscribers (flat $59.99/yr on both plans) actually contribute less
-  // per month than this — stats doesn't currently track billing interval.
-  const mrr = stats.plan_plus * 4.99 + stats.plan_pro * 9.99;
+  // subscribers pay $119.99 on Plus and $155.99 on Pro, which works out to
+  // $10.00 and $13.00 a month, so a yearly Pro is counted here as $7 a month
+  // more than it brings in. plan_events doesn't record the billing interval,
+  // so this cannot be split without storing it first.
+  const mrr = stats.plan_plus * 9.99 + stats.plan_pro * 19.99;
   const revenue28d = stats.revenue_28d_cents / 100;
 
   return (
@@ -135,7 +140,7 @@ export function AdminPage() {
         icon="💰"
         label="Monthly recurring revenue"
         value={`$${mrr.toLocaleString()}`}
-        sub={`Plus ${stats.plan_plus} × $4.99 · Pro ${stats.plan_pro} × $9.99`}
+        sub={`Plus ${stats.plan_plus} × $9.99 · Pro ${stats.plan_pro} × $19.99`}
         color="#34D399"
       />
       <StatCard
@@ -144,6 +149,14 @@ export function AdminPage() {
         value={`$${revenue28d.toLocaleString()}`}
         sub="Last 28 days"
         color="#34D399"
+      />
+      <StatCard
+        icon="🔥"
+        label="Daily active users"
+        value={String(stats.active_users_today)}
+        sub={`Today · ${stats.active_users_7d} in the last 7 days`}
+        color="#F472B6"
+        spark={stats.daily_active}
       />
       <StatCard
         icon="🧑‍🤝‍🧑"
@@ -155,9 +168,9 @@ export function AdminPage() {
       />
       <StatCard
         icon="👥"
-        label="Active users"
+        label="Signed in"
         value={String(stats.active_users_28d)}
-        sub="Signed in within the last 28 days"
+        sub="Opened the app within the last 28 days, whether or not they used it"
         color="var(--accent-soft)"
       />
       <StatCard

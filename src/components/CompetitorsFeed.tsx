@@ -69,15 +69,25 @@ export function CompetitorsFeed({
 
   return (
     <div className="space-y-3">
-      <div className="flex items-center gap-2 overflow-x-auto pb-0.5 -mb-0.5">
-        <div className="seg flex-shrink-0">
-          {TABS.map(t => (
-            <button key={t.id} onClick={() => onFilterChange(t.id)} data-on={filter === t.id}>
-              {t.label} ({counts[t.id]})
-            </button>
-          ))}
+      {/* One row on a desktop, two on a phone. It used to be one row that
+          scrolled sideways, which put Refresh - the button this screen exists
+          to press - off the right edge behind a horizontal swipe nobody
+          expects. The filters keep their own scroll on the first line, and the
+          controls sit on the second where they are always reachable.
+          sm:contents dissolves the second wrapper on a desktop, so the row
+          above the phone breakpoint is exactly what it was. */}
+      <div className="space-y-2 sm:space-y-0 sm:flex sm:items-center sm:gap-2">
+        <div className="overflow-x-auto pb-0.5 -mb-0.5 sm:overflow-visible sm:pb-0 sm:mb-0 sm:flex-shrink-0">
+          <div className="seg w-max">
+            {TABS.map(t => (
+              <button key={t.id} onClick={() => onFilterChange(t.id)} data-on={filter === t.id}>
+                {t.label} ({counts[t.id]})
+              </button>
+            ))}
+          </div>
         </div>
 
+        <div className="flex items-center gap-2 sm:contents">
         <select
           value={sort}
           onChange={e => setSort(e.target.value as IdeaSort)}
@@ -112,6 +122,7 @@ export function CompetitorsFeed({
             {refreshing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
             {refreshing ? 'Checking' : 'Refresh'}
           </button>
+        </div>
         </div>
       </div>
 
