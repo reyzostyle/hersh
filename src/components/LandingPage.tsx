@@ -333,7 +333,7 @@ function AppFrame() {
             wide and the thread beside it unreadable, which shows off nothing. */}
         <div className="hidden sm:flex w-[168px] flex-shrink-0 flex-col py-4 px-3" style={{ borderRight: '1px solid var(--line)' }}>
           <div className="flex items-center gap-2 px-2 mb-6">
-            <img src="/hersh-mark.png" alt="" className="h-[11px] w-auto" />
+            <img src="/chumoku-mark.png" alt="" className="h-[11px] w-auto" />
             <span className="font-black uppercase tracking-[0.14em] text-[10px]" style={{ color: 'var(--text)' }}>Chumoku</span>
           </div>
           <div className="space-y-0.5">
@@ -880,7 +880,7 @@ export function LandingPage() {
               className="flex items-center gap-2 font-black uppercase tracking-[0.14em] text-[14px] whitespace-nowrap"
               style={{ color: 'var(--text)' }}
             >
-              <img src="/hersh-mark.png" alt="" className="h-[14px] w-auto flex-shrink-0" />
+              <img src="/chumoku-mark.png" alt="" className="h-[14px] w-auto flex-shrink-0" />
               Chumoku
             </button>
 
@@ -1174,7 +1174,7 @@ export function LandingPage() {
         <footer style={{ borderTop: '1px solid var(--line)' }}>
           <div className={`${SECTION} py-10 flex flex-col sm:flex-row sm:items-center gap-6`}>
             <div className="flex items-center gap-2 font-black uppercase tracking-[0.14em] text-[13px]" style={{ color: 'var(--text-muted)' }}>
-              <img src="/hersh-mark.png" alt="" className="h-[12px] w-auto opacity-60" />
+              <img src="/chumoku-mark.png" alt="" className="h-[12px] w-auto opacity-60" />
               Chumoku
             </div>
 
