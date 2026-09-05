@@ -105,7 +105,7 @@ unsubscribe: ${ctx.unsubscribeUrl}`;
 
 // Step 2 — +24h.
 function competitors(ctx: EmailCtx): RenderedEmail {
-  const url = `${ctx.appUrl}/#pricing`;
+  const url = ctx.appUrl;
   const text = `most "find trending ideas" tools just show you whatever is big right now.
 chumoku does the opposite.
 
@@ -117,11 +117,10 @@ the whole feature.
 then it re-angles the idea for your niche and writes it out as a script in
 your voice, so you're not copying anyone.
 
-heads up: competitor tracking is on Plus, not the free tier. everything
-else (hook checks, script checks, analyzing a short) works on your free
-credits right now.
+finding them costs nothing. you only spend a credit on the one you decide
+to open.
 
-see what Plus includes: ${url}
+find your outliers: ${url}
 
 unsubscribe: ${ctx.unsubscribeUrl}`;
 
@@ -130,14 +129,14 @@ unsubscribe: ${ctx.unsubscribeUrl}`;
     text,
     html: layout({
       preheader: "outliers on their channel, not whatever is big this week",
-      ctaLabel: 'see what Plus includes',
+      ctaLabel: 'find my outliers',
       ctaUrl: url,
       unsubscribeUrl: ctx.unsubscribeUrl,
       body:
         p('most "trending ideas" tools show you whatever is big right now. chumoku does the opposite.') +
         p(`you add channels in your niche, and it only surfaces shorts that beat ${strong("that channel's own average views per day")}. a small channel's breakout shows up. a big channel's routine upload doesn't. that difference is the whole feature.`) +
         p('then it re-angles the idea for your niche and writes it out as a script in your voice, so you land it as your video instead of a copy.') +
-        p(`one honest note: competitor tracking sits on ${strong('Plus')}. hook checks, script checks and analyzing a short all run on the free credits you already have.`),
+        p(`finding them costs ${strong('nothing')}. you only spend a credit on the one you decide to open.`),
     }),
   };
 }

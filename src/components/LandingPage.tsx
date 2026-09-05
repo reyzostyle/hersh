@@ -15,7 +15,7 @@ import {
   UsersGroupRoundedOutlineIcon as Users,
   HamburgerMenuOutlineIcon as Menu,
 } from '@solar-icons/react';
-import { Twitter, Check } from './BrandIcons';
+import { Check } from './BrandIcons';
 import { useAuth } from '../contexts/AuthContext';
 import { HeroAnalysisGate } from './HeroAnalysisGate';
 import { supabase } from '../lib/supabase';
@@ -1179,12 +1179,6 @@ export function LandingPage() {
             </div>
 
             <div className="flex flex-wrap items-center gap-x-5 gap-y-2 sm:ml-auto text-[13px]">
-              <a href="https://discord.com/invite/N8S6C95Ry2" target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 transition-colors hover:text-[var(--text)]" style={{ color: 'var(--text-muted)' }}>
-                <DiscordIcon className="w-3.5 h-3.5" />Discord
-              </a>
-              <a href="https://x.com/reyzostyle" target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 transition-colors hover:text-[var(--text)]" style={{ color: 'var(--text-muted)' }}>
-                <Twitter className="w-3.5 h-3.5" />@reyzostyle
-              </a>
               <a href={`mailto:${SUPPORT_EMAIL}`} className="flex items-center gap-1.5 transition-colors hover:text-[var(--text)]" style={{ color: 'var(--text-muted)' }}>
                 <Mail className="w-3.5 h-3.5" />{SUPPORT_EMAIL}
               </a>
@@ -1193,7 +1187,7 @@ export function LandingPage() {
             </div>
           </div>
           <div className={`${SECTION} pb-10`}>
-            <p className="label-mono">© {new Date().getFullYear()} Chumoku Media</p>
+            <p className="label-mono">© {new Date().getFullYear()} Chumoku</p>
           </div>
         </footer>
       </div>
