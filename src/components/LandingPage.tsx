@@ -320,14 +320,26 @@ function AuthModal({ initialMode, onClose, context }: {
 // The questions are the two asked most in the Discord this was built for:
 // why a video died, and whether a number is normal. Answers are short on
 // purpose - the point is that an answer arrives, not that it is exhaustive.
-const SCRIPT: { role: 'user' | 'working' | 'card' | 'answer'; text?: string; mono?: boolean; hold: number }[] = [
-  { role: 'user', text: 'youtube.com/shorts/8fLq2Xr', mono: true, hold: 1100 },
-  { role: 'working', text: 'Watching the whole thing', hold: 1900 },
-  { role: 'card', hold: 2600 },
-  { role: 'user', text: 'why did this video flop?', hold: 1200 },
-  { role: 'answer', text: 'It did not flop on the idea. 41% left before 0:03, so almost nobody saw the idea.', hold: 2600 },
-  { role: 'user', text: 'is this swipe rate ok?', hold: 1200 },
-  { role: 'answer', text: 'No. Your last five held twice as many past the first second.', hold: 3400 },
+const SCRIPT: { role: 'user' | 'working' | 'card' | 'answer' | 'shot'; text?: string; mono?: boolean; hold: number }[] = [
+  { role: 'user', text: 'youtube.com/shorts/8fLq2Xr', mono: true, hold: 1200 },
+  { role: 'working', text: 'Watching the whole thing', hold: 2000 },
+  { role: 'card', hold: 2900 },
+  { role: 'user', text: 'why did this video flop?', hold: 1300 },
+  {
+    role: 'answer',
+    text: 'It did not flop on the idea. 41% left before 0:03, so almost nobody got to the idea. The thumbnail already showed the payoff, so the first three seconds had nothing left to promise.',
+    hold: 3400,
+  },
+  // The screenshot is the point of this beat. YouTube shows the Shorts
+  // swipe-away rate in Studio and exposes nothing like it in any API, so for a
+  // whole class of question the picture IS the data - and a page that never
+  // shows one never tells anybody they can send it.
+  { role: 'shot', text: 'is this swipe rate ok?', hold: 1600 },
+  {
+    role: 'answer',
+    text: 'No. 38% swiped in the first second, and your last five sat near 19%. Same hook, same opening shot, so it is the first frame doing it, not the idea.',
+    hold: 4200,
+  },
 ];
 
 function AppFrame() {
@@ -443,8 +455,30 @@ function AppFrame() {
                 cropped by the frame's fixed height. */}
             <div className="flex-1 min-h-0 overflow-hidden flex flex-col justify-end space-y-3">
               {SCRIPT.slice(0, step).map((m, i) => (
-                <div key={i} className="animate-msg-in">
-                  {m.role === 'user' ? (
+                <div key={i} className="animate-msg-land">
+                  {m.role === 'shot' ? (
+                    /* A screenshot, sent the way people actually send one:
+                       the picture first, the question under it, both inside
+                       the creator's own bubble. */
+                    <div className="flex justify-end">
+                      <div className="max-w-[80%] flex flex-col items-end gap-1.5">
+                        <div className="rounded-[12px] overflow-hidden p-2.5 w-[168px]" style={{ background: 'var(--bg-raised)', border: '1px solid var(--line)' }}>
+                          <p className="label-mono mb-1.5" style={{ fontSize: '8px' }}>Viewed vs swiped away</p>
+                          <svg viewBox="0 0 100 34" preserveAspectRatio="none" className="w-full h-[34px]" aria-hidden="true">
+                            <rect x="0" y="4" width="38" height="10" rx="1.5" fill="var(--text-faint)" opacity="0.5" />
+                            <rect x="0" y="19" width="93" height="10" rx="1.5" fill="#FF4444" opacity="0.75" />
+                          </svg>
+                          <div className="flex justify-between mt-1.5">
+                            <span className="font-mono" style={{ fontSize: '8px', color: 'var(--text-faint)' }}>viewed 62%</span>
+                            <span className="font-mono" style={{ fontSize: '8px', color: '#FF4444' }}>swiped 38%</span>
+                          </div>
+                        </div>
+                        <span className="rounded-[14px] px-3 py-1.5 text-[11.5px]" style={{ background: 'var(--bg-raised)', color: 'var(--text)' }}>
+                          {m.text}
+                        </span>
+                      </div>
+                    </div>
+                  ) : m.role === 'user' ? (
                     <div className="flex justify-end">
                       <span
                         className={`rounded-[14px] px-3 py-1.5 text-[11.5px] truncate max-w-[80%] ${m.mono ? 'font-mono' : ''}`}
