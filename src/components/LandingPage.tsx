@@ -948,12 +948,16 @@ export function LandingPage() {
               className="animate-fade-in-up font-semibold max-w-3xl"
               style={{ fontSize: 'clamp(2.1rem, 1.2rem + 3.4vw, 3.9rem)', letterSpacing: '-0.035em', lineHeight: 1.05 }}
             >
-              <span style={{ color: 'var(--text)' }}>Meet Chumoku,</span>{' '}
-              <span style={{ color: 'var(--text-muted)' }}>your AI producer.</span>
+              {/* Each half on its own line. Left to wrap on its own the break
+                  landed inside the phrase - "your AI" ending one line and
+                  "content producer" starting the next - which reads as the
+                  text having run out of room rather than as two lines. */}
+              <span className="block" style={{ color: 'var(--text)' }}>Meet Chumoku,</span>
+              <span className="block text-balance" style={{ color: 'var(--text-muted)' }}>your AI content producer.</span>
             </h1>
 
             <p className="animate-fade-in-up delay-100 text-[15px] sm:text-base leading-relaxed mt-5 mb-8 max-w-lg" style={{ color: 'var(--text-muted)' }}>
-              The only AI you need to grow a Shorts channel. It watches the video, not just the numbers.
+              The only AI you need to grow a Shorts channel.
             </p>
 
             {/* The only CTA above the fold, and it is the app's composer, not a
