@@ -75,7 +75,7 @@ function FeedbackSection({ analysisId }: { analysisId: string }) {
     return (
       <div className="flex items-center gap-2 text-emerald-400 text-sm">
         <span>✓</span>
-        <span>Thanks, this helps Hershy improve.</span>
+        <span>Thanks, this helps Chumoku improve.</span>
       </div>
     );
   }

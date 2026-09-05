@@ -1,7 +1,7 @@
 import { createClient } from 'npm:@supabase/supabase-js@2.57.4';
 
 const REDIRECT_URI = 'https://ezlousklksipvwuinpzq.supabase.co/functions/v1/notion-oauth-callback';
-const APP_URL = 'https://hershymedia.com';
+const APP_URL = 'https://chumoku.co';
 
 function redirect(status: 'connected' | 'error') {
   return new Response(null, { status: 302, headers: { Location: `${APP_URL}/?notion=${status}` } });

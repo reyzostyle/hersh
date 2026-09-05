@@ -331,10 +331,10 @@ export function AnalysisChat() {
   // afterwards and the link is still there to be run.
   useEffect(() => {
     const requested = takeRequestedThread();
-    const pending = localStorage.getItem('hershy_pending_video_url');
+    const pending = localStorage.getItem('chumoku_pending_video_url');
     // Cleared before anything awaits, so a double mount cannot spend the
     // credits twice.
-    if (pending) localStorage.removeItem('hershy_pending_video_url');
+    if (pending) localStorage.removeItem('chumoku_pending_video_url');
 
     if (requested) {
       (async () => {
@@ -439,7 +439,7 @@ export function AnalysisChat() {
       // App defers onboarding for anyone who arrived by pasting a link on the
       // landing page, and puts the offer up when their first result lands. That
       // event was dispatched by HookAnalysis and by nothing since.
-      window.dispatchEvent(new CustomEvent('hershy:analysis-done'));
+      window.dispatchEvent(new CustomEvent('chumoku:analysis-done'));
 
       // A link almost never arrives alone. "is this good to replicate for my
       // niche?" went in as videoContext, which is the field for facts ABOUT the
@@ -543,7 +543,7 @@ export function AnalysisChat() {
         await supabase.from('chat_threads').update({ analysis_id: data.analysis?.id }).eq('id', tid);
       }
       reloadUsage();
-      window.dispatchEvent(new CustomEvent('hershy:analysis-done'));
+      window.dispatchEvent(new CustomEvent('chumoku:analysis-done'));
 
       // Whatever was typed alongside the file goes to the model after the
       // review, exactly as it does alongside a link: videoContext is the field
@@ -604,7 +604,7 @@ export function AnalysisChat() {
       // App defers onboarding for anyone who arrived by pasting a link on the
       // landing page, and puts the offer up when their first result lands. That
       // event was dispatched by HookAnalysis and by nothing since.
-      window.dispatchEvent(new CustomEvent('hershy:analysis-done'));
+      window.dispatchEvent(new CustomEvent('chumoku:analysis-done'));
 
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Analysis failed');

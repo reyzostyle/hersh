@@ -68,7 +68,7 @@ const ADMIN_CODE = 'ADMIN';
 // partner-management list needs its own door. Same mechanism as ADMIN: the code
 // is a shortcut, not the security - the endpoint behind it checks the email.
 const PARTNERS_CODE = 'PARTNERS';
-const PLAN_CACHE_KEY = 'hershy_last_plan';
+const PLAN_CACHE_KEY = 'chumoku_last_plan';
 
 export function SettingsPage() {
   const { user } = useAuth();
@@ -132,13 +132,13 @@ export function SettingsPage() {
     if (user?.email === ADMIN_EMAIL && code.toUpperCase() === ADMIN_CODE) {
       setRedeemMsg(null);
       setRedeemCode('');
-      window.dispatchEvent(new CustomEvent('hershy:navigate', { detail: 'admin' }));
+      window.dispatchEvent(new CustomEvent('chumoku:navigate', { detail: 'admin' }));
       return;
     }
     if (user?.email === ADMIN_EMAIL && code.toUpperCase() === PARTNERS_CODE) {
       setRedeemMsg(null);
       setRedeemCode('');
-      window.dispatchEvent(new CustomEvent('hershy:navigate', { detail: 'affiliate-admin' }));
+      window.dispatchEvent(new CustomEvent('chumoku:navigate', { detail: 'affiliate-admin' }));
       return;
     }
     setRedeeming(true);

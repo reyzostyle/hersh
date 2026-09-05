@@ -5,7 +5,7 @@ import { RefreshOutlineIcon as Loader2, ArrowLeftOutlineIcon as ArrowLeft, Arrow
 import { Youtube, Check } from './BrandIcons';
 import { NICHES as NICHE_PRESETS } from '../lib/niches';
 
-const STORAGE_KEY = 'hershy_onboarding';
+const STORAGE_KEY = 'chumoku_onboarding';
 
 interface Answers {
   level: string;
@@ -180,7 +180,7 @@ export function Onboarding({ onDone }: { onDone: () => void }) {
         {/* ── Welcome ── */}
         {step === 0 && (
           <div className="text-center">
-            <h1 className="text-2xl font-bold text-white mb-3 text-balance">Welcome to Hershy</h1>
+            <h1 className="text-2xl font-bold text-white mb-3 text-balance">Welcome to Chumoku</h1>
             <p className="text-gray-400 text-sm leading-relaxed mb-8 text-balance max-w-sm mx-auto">
               Answer a few quick questions so every analysis and idea is tailored to your channel. Takes under a minute.
             </p>

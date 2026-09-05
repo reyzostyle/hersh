@@ -98,7 +98,7 @@ function AuthCallbackHandler() {
 
     if (youtubeUserId) {
       sessionStorage.removeItem('youtube_oauth_user_id');
-      const redirectUri = 'https://hershymedia.com/auth/callback';
+      const redirectUri = `${window.location.origin}/auth/callback`;
 
       getSessionToken().then(token => {
         if (!token) {
@@ -176,7 +176,7 @@ function AuthCallbackHandler() {
             className="w-full py-3 text-white rounded-xl font-semibold text-sm"
             style={{ background: 'var(--accent)', color: 'var(--on-accent)' }}
           >
-            Open Hershy on this device
+            Open Chumoku on this device
           </button>
         </div>
       </div>
@@ -224,7 +224,7 @@ function AppContent() {
   // profile is still missing and still worth asking for - just not here. The
   // offer below raises it once their first result is on screen.
   const [bypassOnboardingForPendingUrl] = useState(
-    () => !!localStorage.getItem('hershy_pending_video_url')
+    () => !!localStorage.getItem('chumoku_pending_video_url')
   );
 
   // Onboarding isn't dropped for those users, it's deferred: the offer goes up
@@ -262,8 +262,8 @@ function AppContent() {
   useEffect(() => {
     if (!bypassOnboardingForPendingUrl && !profileEmpty) return;
     const onDone = () => setOfferOnboarding(true);
-    window.addEventListener('hershy:analysis-done', onDone);
-    return () => window.removeEventListener('hershy:analysis-done', onDone);
+    window.addEventListener('chumoku:analysis-done', onDone);
+    return () => window.removeEventListener('chumoku:analysis-done', onDone);
   }, [bypassOnboardingForPendingUrl, profileEmpty]);
 
   // Determine whether the logged-in user still needs onboarding.
@@ -300,14 +300,14 @@ function AppContent() {
         if (error) {
           // Duplicate = already recorded, clear ref and move on
           if (error.code === '23505') {
-            localStorage.removeItem('hersh_ref');
+            localStorage.removeItem('chumoku_ref');
             return;
           }
           console.error('[referral] insert failed:', error);
           return;
         }
         console.log('[referral] signup recorded:', refCode);
-        localStorage.removeItem('hersh_ref');
+        localStorage.removeItem('chumoku_ref');
       });
   }, [user?.id]);
 
@@ -377,7 +377,7 @@ function AppContent() {
 
 // Remembers a "not now" on the profile offer, so it is asked at most once per
 // device rather than after every analysis.
-const OFFER_DISMISSED_KEY = 'hershy_onboarding_offer_dismissed';
+const OFFER_DISMISSED_KEY = 'chumoku_onboarding_offer_dismissed';
 
 // How long a click stays attributed to the partner who sent it.
 const REF_TTL_DAYS = 60;
@@ -385,14 +385,14 @@ const REF_TTL_DAYS = 60;
 // Reads the stored affiliate code, dropping it once it is past its window.
 // Tolerates the bare string that older visitors already have in localStorage.
 function readStoredRef(): string | null {
-  const raw = localStorage.getItem('hersh_ref');
+  const raw = localStorage.getItem('chumoku_ref');
   if (!raw) return null;
   try {
     const parsed = JSON.parse(raw);
     if (!parsed?.code) return null;
     const ageDays = (Date.now() - (parsed.at ?? 0)) / 86400000;
     if (ageDays > REF_TTL_DAYS) {
-      localStorage.removeItem('hersh_ref');
+      localStorage.removeItem('chumoku_ref');
       return null;
     }
     return parsed.code;
@@ -408,7 +408,7 @@ const urlRef =
   new URLSearchParams(window.location.search).get('ref') ||
   new URLSearchParams(window.location.search).get('via');
 if (urlRef) {
-  localStorage.setItem('hersh_ref', JSON.stringify({ code: urlRef, at: Date.now() }));
+  localStorage.setItem('chumoku_ref', JSON.stringify({ code: urlRef, at: Date.now() }));
 }
 
 function App() {

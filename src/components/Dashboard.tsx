@@ -31,7 +31,7 @@ export function Dashboard() {
   // there instead of stranding it on the hub. This also carries the link
   // across onboarding: Dashboard mounts after it, and the key is still set.
   const [activeTab, setActiveTab] = useState<NavTab>(
-    () => (localStorage.getItem('hershy_pending_video_url') ? 'analyze' : 'home')
+    () => (localStorage.getItem('chumoku_pending_video_url') ? 'analyze' : 'home')
   );
 
   useEffect(() => {
@@ -39,8 +39,8 @@ export function Dashboard() {
       const tab = (e as CustomEvent).detail as NavTab;
       if (tab && isTabReachable(tab)) setActiveTab(tab);
     };
-    window.addEventListener('hershy:navigate', handler);
-    return () => window.removeEventListener('hershy:navigate', handler);
+    window.addEventListener('chumoku:navigate', handler);
+    return () => window.removeEventListener('chumoku:navigate', handler);
   }, []);
 
   // Handle return from Notion OAuth (callback redirects to /?notion=connected|error)

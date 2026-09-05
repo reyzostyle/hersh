@@ -55,9 +55,9 @@ const baseNavItems: NavItem[] = [
 const partnersItem: NavItem = { id: 'partners', label: 'Affiliate', icon: <Handshake className="w-4 h-4" /> };
 
 // Labels for tabs with no sidebar entry, used only for the mobile header title.
-const TAB_LABELS: Partial<Record<NavTab, string>> = { home: 'Hershy', 'affiliate-admin': 'Affiliate partners' };
+const TAB_LABELS: Partial<Record<NavTab, string>> = { home: 'Chumoku', 'affiliate-admin': 'Affiliate partners' };
 
-const SIDEBAR_COLLAPSED_KEY = 'hershy_sidebar_collapsed';
+const SIDEBAR_COLLAPSED_KEY = 'chumoku_sidebar_collapsed';
 
 export function AppShell({ activeTab, onTabChange, children }: AppShellProps) {
   const { user, signOut } = useAuth();
@@ -103,7 +103,7 @@ export function AppShell({ activeTab, onTabChange, children }: AppShellProps) {
         // inner state can return to its top level. Clicking Projects while
         // inside a project used to do nothing at all: the tab was already
         // active, so nothing re-rendered and the detail view stayed put.
-        window.dispatchEvent(new CustomEvent('hershy:navigate', { detail: item.id }));
+        window.dispatchEvent(new CustomEvent('chumoku:navigate', { detail: item.id }));
         setMobileOpen(false);
       }}
       title={item.label}
@@ -151,7 +151,7 @@ export function AppShell({ activeTab, onTabChange, children }: AppShellProps) {
         <div className="px-3 py-3.5 flex-shrink-0" style={{ borderBottom: '1px solid var(--line)' }}>
           <button
             onClick={() => { onTabChange('home'); setMobileOpen(false); }}
-            title="Hershy"
+            title="Chumoku"
             className={`w-full flex items-center py-1 rounded-lg font-semibold tracking-tight text-[15px] transition-colors group ${collapsed ? 'lg:justify-center lg:px-0 gap-3 px-3' : 'gap-3 px-3'}`}
           >
             <HubIcon
@@ -162,7 +162,7 @@ export function AppShell({ activeTab, onTabChange, children }: AppShellProps) {
                 than the icon, which is what made the two look a pixel out of
                 line; leading-none drops that extra space. */}
             <span className={`leading-none whitespace-nowrap uppercase tracking-[0.12em] text-[13px] transition-colors ${activeTab === 'home' ? 'text-[var(--accent)]' : 'text-white group-hover:text-[var(--accent)]'} ${collapsed ? 'lg:hidden' : ''}`}>
-              Hershy
+              Chumoku
             </span>
           </button>
         </div>
@@ -230,7 +230,7 @@ export function AppShell({ activeTab, onTabChange, children }: AppShellProps) {
             {mobileOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
           </button>
           <span className="flex-1 text-white font-semibold text-sm">
-            {navItems.find(i => i.id === activeTab)?.label ?? TAB_LABELS[activeTab] ?? 'Hershy'}
+            {navItems.find(i => i.id === activeTab)?.label ?? TAB_LABELS[activeTab] ?? 'Chumoku'}
           </span>
           {rightAction}
         </header>

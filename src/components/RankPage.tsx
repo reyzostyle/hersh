@@ -200,7 +200,7 @@ export function RankPage() {
         />
         {!data.youtubeConnected && (
           <button
-            onClick={() => window.dispatchEvent(new CustomEvent('hershy:navigate', { detail: 'settings' }))}
+            onClick={() => window.dispatchEvent(new CustomEvent('chumoku:navigate', { detail: 'settings' }))}
             className="mt-3 w-full flex items-center justify-center gap-2 py-2.5 rounded-lg text-xs font-medium text-gray-400 hover:text-white transition-colors"
             style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}
           >

@@ -46,7 +46,7 @@ export function SaveToNotionButton({ type, name, content, eligible = true, class
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
         if (data.error === 'not_connected') showToast('Connect Notion in Settings first', 'error');
-        else if (data.error === 'no_page') showToast('Give the Hershy integration access to a Notion page, then retry', 'error');
+        else if (data.error === 'no_page') showToast('Give the Chumoku integration access to a Notion page, then retry', 'error');
         else if (data.error === 'upgrade_required') showToast('Saving to Notion is a paid feature', 'error');
         else showToast('Failed to save to Notion', 'error');
         return;

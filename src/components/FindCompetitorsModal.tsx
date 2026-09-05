@@ -48,7 +48,7 @@ export function FindCompetitorsModal({ slotsLeft, onAdd, onClose }: {
         const res = await callFunction('find-competitor-channels', token, {});
         const data = await res.json();
         if (data.error === 'upgrade_required') {
-          window.dispatchEvent(new CustomEvent('hershy:navigate', { detail: 'upgrade' }));
+          window.dispatchEvent(new CustomEvent('chumoku:navigate', { detail: 'upgrade' }));
           onClose();
           return;
         }

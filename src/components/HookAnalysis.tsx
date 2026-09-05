@@ -100,9 +100,9 @@ export function HookAnalysis() {
   // before anything can throw, so a reload never re-analyses and never
   // double-charges — that also makes StrictMode's double effect a no-op.
   useEffect(() => {
-    const pending = localStorage.getItem('hershy_pending_video_url');
+    const pending = localStorage.getItem('chumoku_pending_video_url');
     if (!pending) return;
-    localStorage.removeItem('hershy_pending_video_url');
+    localStorage.removeItem('chumoku_pending_video_url');
 
     const videoId = extractVideoId(pending);
     if (!videoId) {
@@ -225,7 +225,7 @@ export function HookAnalysis() {
         setProgressDone(false);
         setOpenedFromHistory(false);
         setAnalysisPanelOpen(true);
-        window.dispatchEvent(new CustomEvent('hershy:analysis-done'));
+        window.dispatchEvent(new CustomEvent('chumoku:analysis-done'));
       }, 600);
     } catch (err) {
       setProgressOpen(false);
@@ -320,7 +320,7 @@ export function HookAnalysis() {
         setShowContext(false);
         setOpenedFromHistory(false);
         setAnalysisPanelOpen(true);
-        window.dispatchEvent(new CustomEvent('hershy:analysis-done'));
+        window.dispatchEvent(new CustomEvent('chumoku:analysis-done'));
       }, 600);
     } catch (err) {
       setProgressOpen(false);

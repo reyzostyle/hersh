@@ -1,7 +1,7 @@
 import { createClient } from 'npm:@supabase/supabase-js@2.57.4';
 
 const REDIRECT_URI = 'https://ezlousklksipvwuinpzq.supabase.co/functions/v1/youtube-oauth-callback';
-const APP_URL = 'https://hershymedia.com';
+const APP_URL = 'https://chumoku.co';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',

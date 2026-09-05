@@ -28,7 +28,7 @@ export function useIdeaGeneration(idea: CompetitorIdea, onUpdated: (updated: Com
       const res = await callFunction(endpoint, token, { ideaId: idea.id });
       const data = await res.json();
       if (data.error === 'upgrade_required') {
-        window.dispatchEvent(new CustomEvent('hershy:navigate', { detail: 'upgrade' }));
+        window.dispatchEvent(new CustomEvent('chumoku:navigate', { detail: 'upgrade' }));
         return false;
       }
       if (data.error === 'limit_reached') {

@@ -16,7 +16,7 @@ const MIN_PAYOUT_CENTS = 1000;
 // Codes that would be confusing or impersonating in a link.
 const RESERVED_CODES = new Set([
   'admin', 'api', 'app', 'auth', 'billing', 'support', 'help', 'team',
-  'hershy', 'hershymedia', 'official', 'staff', 'login', 'signup', 'www',
+  'chumoku', 'chumokumedia', 'official', 'staff', 'login', 'signup', 'www',
 ]);
 
 Deno.serve(async (req: Request) => {

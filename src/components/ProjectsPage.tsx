@@ -70,8 +70,8 @@ export function ProjectsPage() {
     const onNav = (e: Event) => {
       if ((e as CustomEvent).detail === 'projects') setOpenId(null);
     };
-    window.addEventListener('hershy:navigate', onNav);
-    return () => window.removeEventListener('hershy:navigate', onNav);
+    window.addEventListener('chumoku:navigate', onNav);
+    return () => window.removeEventListener('chumoku:navigate', onNav);
   }, []);
 
   const create = async () => {

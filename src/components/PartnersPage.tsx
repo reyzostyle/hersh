@@ -10,6 +10,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { getSessionToken, fetchWithRetry } from '../lib/supabase';
 import { Page, PageHead, Panel, Section, Loading } from './Page';
 import { ErrorNotice } from './ErrorNotice';
+import { SITE_HOST } from '../lib/brand';
 
 const FN_BASE = 'https://ezlousklksipvwuinpzq.supabase.co/functions/v1';
 
@@ -100,7 +101,7 @@ const STEPS = [
   { n: '04', t: 'You get paid every month', d: 'Not once. Every month they stay, for their first twelve.' },
 ];
 
-const BLURB = `I use Hershy to work out why my shorts land or don't. It watches the video and tells you what to fix, and it pulls the shorts already beating their own channel so you have something proven to build on. 20 free credits, no card: `;
+const BLURB = `I use Chumoku to work out why my shorts land or don't. It watches the video and tells you what to fix, and it pulls the shorts already beating their own channel so you have something proven to build on. 20 free credits, no card: `;
 
 function Pitch({ onClaimed }: { onClaimed: () => void }) {
   const [copied, setCopied] = useState(false);
@@ -136,11 +137,11 @@ function Pitch({ onClaimed }: { onClaimed: () => void }) {
         <Panel>
           <p className="label-mono mb-3">Copy this into a description</p>
           <p className="text-[13px] leading-relaxed" style={{ color: 'var(--text)' }}>
-            {BLURB}<span className="font-mono" style={{ color: 'var(--text-muted)' }}>hershymedia.com/?ref=yourname</span>
+            {BLURB}<span className="font-mono" style={{ color: 'var(--text-muted)' }}>{SITE_HOST}/?ref=yourname</span>
           </p>
           <button
             onClick={() => {
-              navigator.clipboard.writeText(`${BLURB}hershymedia.com/?ref=yourname`);
+              navigator.clipboard.writeText(`${BLURB}${SITE_HOST}/?ref=yourname`);
               setCopied(true);
               setTimeout(() => setCopied(false), 2000);
             }}
@@ -154,7 +155,7 @@ function Pitch({ onClaimed }: { onClaimed: () => void }) {
 
       <Section label="Your link looks like">
         <p className="font-mono text-[15px]" style={{ color: 'var(--text)' }}>
-          hershymedia.com/?ref=<span style={{ color: 'var(--text-faint)' }}>yourname</span>
+          {SITE_HOST}/?ref=<span style={{ color: 'var(--text-faint)' }}>yourname</span>
         </p>
       </Section>
 

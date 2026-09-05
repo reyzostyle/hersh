@@ -54,7 +54,7 @@ Score given: ${a?.hook_analysis?.overall_score ?? 'N/A'}
 Weak spots: ${(a?.weak_spots || []).join(' | ')}`;
   }).join('\n\n---\n\n');
 
-  const systemPrompt = `You are a quality analyst for Hersh, an AI tool that analyzes YouTube Shorts hooks.
+  const systemPrompt = `You are a quality analyst for Chumoku, an AI tool that analyzes YouTube Shorts hooks.
 
 Your job: review creator feedback on analyses and extract GENUINE patterns that should inform future analyses.
 

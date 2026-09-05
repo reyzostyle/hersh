@@ -38,22 +38,22 @@ export function render(): PrerenderRoute[] {
       // page still served "AI toolkit for short-form content" in its title,
       // because this is the copy that actually reaches the crawler.
       path: '/',
-      title: 'Hershy - the shorts workspace',
+      title: 'Chumoku - the shorts workspace',
       description:
-        'A workspace for short-form creators. Send Hershy a link, a hook or a script and talk it through, keep the work in projects, and read every answer against your real YouTube retention curve.',
+        'A workspace for short-form creators. Send Chumoku a link, a hook or a script and talk it through, keep the work in projects, and read every answer against your real YouTube retention curve.',
       html: wrap(<LandingPage />),
     },
     {
       path: '/privacy',
-      title: 'Privacy Policy - Hershy',
+      title: 'Privacy Policy - Chumoku',
       description:
-        'How Hershy handles your data, what the YouTube connection reads, and what is stored.',
+        'How Chumoku handles your data, what the YouTube connection reads, and what is stored.',
       html: wrap(<PrivacyPolicy />),
     },
     {
       path: '/terms',
-      title: 'Terms of Service - Hershy',
-      description: 'The terms covering use of Hershy, billing, credits and cancellation.',
+      title: 'Terms of Service - Chumoku',
+      description: 'The terms covering use of Chumoku, billing, credits and cancellation.',
       html: wrap(<TermsOfService />),
     },
   ];

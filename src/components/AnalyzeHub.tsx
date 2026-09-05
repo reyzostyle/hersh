@@ -6,7 +6,7 @@ import { ScriptLab } from './ScriptLab';
 
 type AnalyzeMode = 'video' | 'hook' | 'script';
 
-const SUB_MODE_KEY = 'hershy_analyze_submode';
+const SUB_MODE_KEY = 'chumoku_analyze_submode';
 
 const modes: { id: AnalyzeMode; label: string; icon: React.ReactNode }[] = [
   { id: 'video', label: 'Video', icon: <VideoIcon className="w-4 h-4" /> },

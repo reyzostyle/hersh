@@ -19,6 +19,7 @@ import { Twitter, Check } from './BrandIcons';
 import { useAuth } from '../contexts/AuthContext';
 import { HeroAnalysisGate } from './HeroAnalysisGate';
 import { supabase } from '../lib/supabase';
+import { SUPPORT_EMAIL } from '../lib/brand';
 
 // ─── Surface ─────────────────────────────────────────────────────────────────
 // This page used to run on three bespoke `glass` objects: stacked white
@@ -159,7 +160,7 @@ function AuthModal({ initialMode, onClose, context }: {
     setError('');
     setLoading(true);
     const { error: err } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: 'https://hershymedia.com/auth/callback?type=recovery',
+      redirectTo: `${window.location.origin}/auth/callback?type=recovery`,
     });
     setLoading(false);
     if (err) setError(err.message);
@@ -206,7 +207,7 @@ function AuthModal({ initialMode, onClose, context }: {
             {emailSent ? 'Almost there' : mode === 'forgot' ? 'Reset password' : mode === 'login' ? 'Welcome back' : (context?.title ?? 'Start for free')}
           </p>
           <p className="text-[13px]" style={{ color: 'var(--text-muted)' }}>
-            {emailSent ? 'Confirm your email to activate your account.' : mode === 'forgot' ? "We'll send you a reset link." : mode === 'login' ? 'Sign in to your Hershy account.' : (context?.sub ?? 'No credit card required.')}
+            {emailSent ? 'Confirm your email to activate your account.' : mode === 'forgot' ? "We'll send you a reset link." : mode === 'login' ? 'Sign in to your Chumoku account.' : (context?.sub ?? 'No credit card required.')}
           </p>
         </div>
 
@@ -218,7 +219,7 @@ function AuthModal({ initialMode, onClose, context }: {
             <div className="p-3 mb-5 text-left" style={plate}>
               <p className="label-mono mb-1.5">One thing</p>
               <p className="text-[12px] leading-relaxed" style={{ color: 'var(--text-muted)' }}>
-                Open the link on <strong style={{ color: 'var(--text)' }}>this device</strong>. Clicking it on your phone while Hershy is open on a PC will not sign you in here.
+                Open the link on <strong style={{ color: 'var(--text)' }}>this device</strong>. Clicking it on your phone while Chumoku is open on a PC will not sign you in here.
               </p>
             </div>
             <button
@@ -333,7 +334,7 @@ function AppFrame() {
         <div className="hidden sm:flex w-[168px] flex-shrink-0 flex-col py-4 px-3" style={{ borderRight: '1px solid var(--line)' }}>
           <div className="flex items-center gap-2 px-2 mb-6">
             <img src="/hersh-mark.png" alt="" className="h-[11px] w-auto" />
-            <span className="font-black uppercase tracking-[0.14em] text-[10px]" style={{ color: 'var(--text)' }}>Hershy</span>
+            <span className="font-black uppercase tracking-[0.14em] text-[10px]" style={{ color: 'var(--text)' }}>Chumoku</span>
           </div>
           <div className="space-y-0.5">
             {nav.map(n => (
@@ -575,12 +576,12 @@ const testimonials: { quote: string; name: string; on: string }[] = [
 // having neither.
 const faqs: { q: string; a: string }[] = [
   {
-    q: 'What does Hershy actually do?',
+    q: 'What does Chumoku actually do?',
     a: 'It reads short-form video. Send it a link, a hook or a script and it watches or reads the thing and tells you what to change, then you keep talking to it until you know what to do. Connect your channel and it checks that against your real retention curve instead of guessing. Shorts only. That is the whole point.',
   },
   {
     q: 'What happens when I connect my YouTube?',
-    a: 'You get your own numbers instead of an opinion. Hershy reads what YouTube Studio shows you, finds the exact seconds viewers left, and writes every fix against those timestamps. It takes two clicks, and everything else works without connecting anything.',
+    a: 'You get your own numbers instead of an opinion. Chumoku reads what YouTube Studio shows you, finds the exact seconds viewers left, and writes every fix against those timestamps. It takes two clicks, and everything else works without connecting anything.',
   },
   {
     q: 'What is in it?',
@@ -851,7 +852,7 @@ export function LandingPage() {
       return;
     }
     setHeroError('');
-    localStorage.setItem('hershy_pending_video_url', trimmed);
+    localStorage.setItem('chumoku_pending_video_url', trimmed);
     // Show the work starting before asking for anything. The signup form comes
     // up on the last step, from inside the gate.
     setHeroGate(trimmed);
@@ -880,7 +881,7 @@ export function LandingPage() {
               style={{ color: 'var(--text)' }}
             >
               <img src="/hersh-mark.png" alt="" className="h-[14px] w-auto flex-shrink-0" />
-              Hershy
+              Chumoku
             </button>
 
             <div className="hidden md:flex items-center gap-1 ml-6">
@@ -977,7 +978,7 @@ export function LandingPage() {
             </h1>
 
             <p className="animate-fade-in-up delay-100 text-[15px] sm:text-base leading-relaxed mt-5 mb-8 max-w-lg" style={{ color: 'var(--text-muted)' }}>
-              Paste a link. Hershy watches the video, finds the seconds people left on, and tells you what to cut.
+              Paste a link. Chumoku watches the video, finds the seconds people left on, and tells you what to cut.
             </p>
 
             {/* The only CTA above the fold, and it is the app's composer, not a
@@ -1174,7 +1175,7 @@ export function LandingPage() {
           <div className={`${SECTION} py-10 flex flex-col sm:flex-row sm:items-center gap-6`}>
             <div className="flex items-center gap-2 font-black uppercase tracking-[0.14em] text-[13px]" style={{ color: 'var(--text-muted)' }}>
               <img src="/hersh-mark.png" alt="" className="h-[12px] w-auto opacity-60" />
-              Hershy
+              Chumoku
             </div>
 
             <div className="flex flex-wrap items-center gap-x-5 gap-y-2 sm:ml-auto text-[13px]">
@@ -1184,15 +1185,15 @@ export function LandingPage() {
               <a href="https://x.com/reyzostyle" target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 transition-colors hover:text-[var(--text)]" style={{ color: 'var(--text-muted)' }}>
                 <Twitter className="w-3.5 h-3.5" />@reyzostyle
               </a>
-              <a href="mailto:hershymedia@gmail.com" className="flex items-center gap-1.5 transition-colors hover:text-[var(--text)]" style={{ color: 'var(--text-muted)' }}>
-                <Mail className="w-3.5 h-3.5" />hershymedia@gmail.com
+              <a href={`mailto:${SUPPORT_EMAIL}`} className="flex items-center gap-1.5 transition-colors hover:text-[var(--text)]" style={{ color: 'var(--text-muted)' }}>
+                <Mail className="w-3.5 h-3.5" />{SUPPORT_EMAIL}
               </a>
               <a href="/privacy" className="transition-colors hover:text-[var(--text)]" style={{ color: 'var(--text-muted)' }}>Privacy</a>
               <a href="/terms" className="transition-colors hover:text-[var(--text)]" style={{ color: 'var(--text-muted)' }}>Terms</a>
             </div>
           </div>
           <div className={`${SECTION} pb-10`}>
-            <p className="label-mono">© {new Date().getFullYear()} Hershy Media</p>
+            <p className="label-mono">© {new Date().getFullYear()} Chumoku Media</p>
           </div>
         </footer>
       </div>
@@ -1202,7 +1203,7 @@ export function LandingPage() {
           url={heroGate}
           onNeedAccount={() => setAuthModal('signup')}
           onBack={() => {
-            localStorage.removeItem('hershy_pending_video_url');
+            localStorage.removeItem('chumoku_pending_video_url');
             setHeroGate(null);
             setAuthModal(null);
           }}

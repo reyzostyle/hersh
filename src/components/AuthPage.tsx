@@ -18,7 +18,7 @@ export function AuthPage() {
     setError('');
     setLoading(true);
     const { error: err } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: 'https://hershymedia.com/auth/callback?type=recovery',
+      redirectTo: `${window.location.origin}/auth/callback?type=recovery`,
     });
     setLoading(false);
     if (err) {

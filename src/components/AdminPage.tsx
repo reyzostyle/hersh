@@ -125,7 +125,7 @@ export function AdminPage() {
     <div className="sheet min-h-full max-w-5xl mx-auto px-5 sm:px-8 pt-12 sm:pt-16 pb-20 space-y-3">
       <div className="hidden sm:block mb-6">
         <h1 className="text-2xl font-bold text-white mb-1">Growth</h1>
-        <p className="text-sm text-gray-500">Live numbers across every Hershy account. Only you can see this.</p>
+        <p className="text-sm text-gray-500">Live numbers across every Chumoku account. Only you can see this.</p>
       </div>
 
       <StatCard

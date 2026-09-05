@@ -171,7 +171,7 @@ export function CompetitorsPage() {
       const res = await callFunction('fetch-competitor-ideas', token, {});
       const data = await res.json();
       if (data.error === 'upgrade_required') {
-        window.dispatchEvent(new CustomEvent('hershy:navigate', { detail: 'upgrade' }));
+        window.dispatchEvent(new CustomEvent('chumoku:navigate', { detail: 'upgrade' }));
         return;
       }
       if (!res.ok) throw new Error(data.error || 'Could not refresh');
@@ -251,7 +251,7 @@ export function CompetitorsPage() {
       const res = await callFunction('enrich-competitor-video', token, { videoId: item.video_id, adaptForProfile });
       const data = await res.json();
       if (data.error === 'upgrade_required') {
-        window.dispatchEvent(new CustomEvent('hershy:navigate', { detail: 'upgrade' }));
+        window.dispatchEvent(new CustomEvent('chumoku:navigate', { detail: 'upgrade' }));
         return null;
       }
       if (data.error === 'limit_reached') {

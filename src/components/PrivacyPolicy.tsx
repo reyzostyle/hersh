@@ -1,4 +1,6 @@
 import { ArrowLeftOutlineIcon as ArrowLeft } from '@solar-icons/react';
+import { SUPPORT_EMAIL } from '../lib/brand';
+import { SITE_HOST } from '../lib/brand';
 
 const UPDATED = 'July 1, 2026';
 
@@ -19,7 +21,7 @@ export function PrivacyPolicy() {
           href="/"
           className="inline-flex items-center gap-2 text-sm text-gray-400 hover:text-white transition-colors mb-8"
         >
-          <ArrowLeft className="w-4 h-4" /> Back to Hershy
+          <ArrowLeft className="w-4 h-4" /> Back to Chumoku
         </a>
 
         <div
@@ -35,10 +37,10 @@ export function PrivacyPolicy() {
 
           <Section title="Who we are">
             <p>
-              Hershy ("Hershy", "we", "us") is a service operated by Hershy Media that helps creators
+              Chumoku ("Chumoku", "we", "us") is a service operated by Chumoku Media that helps creators
               analyze their YouTube content to improve hooks, scripts, and performance. This policy
               explains what data we collect, how we use it, and the choices you have. It applies to the
-              website at <span className="text-white">hershymedia.com</span> and the Hershy application.
+              website at <span className="text-white">{SITE_HOST}</span> and the Chumoku application.
             </p>
           </Section>
 
@@ -70,19 +72,19 @@ export function PrivacyPolicy() {
 
           <Section title="Google / YouTube user data">
             <p>
-              When you choose to connect your YouTube account, Hershy requests the
+              When you choose to connect your YouTube account, Chumoku requests the
               <span className="text-white"> https://www.googleapis.com/auth/youtube.readonly </span>
               scope. This is a read-only scope. We use it solely to read your own channel and video
               information (such as your videos, titles, descriptions, and public performance metrics) in
               order to generate the analysis, recommendations, and insights that are the core function of
-              Hershy.
+              Chumoku.
             </p>
             <p>We do <span className="text-white">not</span> use this access to modify, upload, or delete any content on your channel.</p>
           </Section>
 
           <Section title="Limited Use disclosure">
             <p>
-              Hershy's use and transfer of information received from Google APIs adheres to the{' '}
+              Chumoku's use and transfer of information received from Google APIs adheres to the{' '}
               <a
                 href="https://developers.google.com/terms/api-services-user-data-policy"
                 target="_blank"
@@ -103,7 +105,7 @@ export function PrivacyPolicy() {
 
           <Section title="How we use your data">
             <ul className="list-disc pl-5 space-y-1.5">
-              <li>To provide the analysis, hook lab, and recommendation features of Hershy.</li>
+              <li>To provide the analysis, hook lab, and recommendation features of Chumoku.</li>
               <li>To operate your account, apply usage limits, and prevent abuse.</li>
               <li>To process payments and manage subscriptions through Stripe.</li>
               <li>To communicate with you about your account and the service.</li>
@@ -119,7 +121,7 @@ export function PrivacyPolicy() {
           <Section title="Data sharing">
             <p>
               We do not sell your personal data. We share data only with service providers who help us
-              operate Hershy — currently Supabase (database and authentication), Vercel (hosting), Stripe
+              operate Chumoku — currently Supabase (database and authentication), Vercel (hosting), Stripe
               (payments), and our AI processing providers — and only to the extent needed to provide the
               service, or where required by law.
             </p>
@@ -129,7 +131,7 @@ export function PrivacyPolicy() {
             <p>
               We retain your data for as long as your account is active. You can disconnect your YouTube
               account at any time from the app's settings, which revokes our stored access tokens. You may
-              also revoke Hershy's access directly from your{' '}
+              also revoke Chumoku's access directly from your{' '}
               <a
                 href="https://myaccount.google.com/permissions"
                 target="_blank"
@@ -152,13 +154,13 @@ export function PrivacyPolicy() {
           </Section>
 
           <Section title="Children">
-            <p>Hershy is not directed to children under 13, and we do not knowingly collect their data.</p>
+            <p>Chumoku is not directed to children under 13, and we do not knowingly collect their data.</p>
           </Section>
 
           <Section title="Changes to this policy">
             <p>
               We may update this policy from time to time. When we do, we will revise the "Last updated"
-              date above. Continued use of Hershy after changes take effect constitutes acceptance of the
+              date above. Continued use of Chumoku after changes take effect constitutes acceptance of the
               updated policy.
             </p>
           </Section>
@@ -166,8 +168,8 @@ export function PrivacyPolicy() {
           <Section title="Contact">
             <p>
               If you have any questions about this Privacy Policy or your data, contact us at{' '}
-              <a href="mailto:hershymedia@gmail.com" className="text-[var(--accent)] hover:underline">
-                hershymedia@gmail.com
+              <a href={`mailto:${SUPPORT_EMAIL}`} className="text-[var(--accent)] hover:underline">
+                {SUPPORT_EMAIL}
               </a>
               .
             </p>

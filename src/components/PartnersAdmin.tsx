@@ -4,6 +4,7 @@ import { Check } from './BrandIcons';
 import { getSessionToken, fetchWithRetry } from '../lib/supabase';
 import { Panel } from './Page';
 import { money, type PartnerStats } from './PartnersPage';
+import { SITE_URL } from '../lib/brand';
 
 const glassCard: React.CSSProperties = {
   background: 'var(--bg-raised)',
@@ -274,7 +275,7 @@ export function PartnersAdmin() {
                         <span className="text-xs text-[var(--text-faint)]">earned</span>
                       </div>
                     </div>
-                    <CopyButton text={`https://hershymedia.com?ref=${p.code}`} />
+                    <CopyButton text={`${SITE_URL}?ref=${p.code}`} />
                   </div>
                 </div>
 

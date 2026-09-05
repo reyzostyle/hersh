@@ -21,7 +21,7 @@ function page(title: string, message: string, status: number): Response {
     `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${title}</title></head>
 <body style="margin:0;background:#0A0F1A;font-family:Helvetica,Arial,sans-serif;">
   <div style="max-width:420px;margin:15vh auto;padding:28px;background:#0E1626;border:1px solid rgba(255,255,255,0.08);border-radius:16px;text-align:center;">
-    <div style="font-size:15px;font-weight:800;letter-spacing:2px;color:#fff;margin-bottom:16px;">HERSHY</div>
+    <div style="font-size:15px;font-weight:800;letter-spacing:2px;color:#fff;margin-bottom:16px;">CHUMOKU</div>
     <p style="color:#E5EAF2;font-size:16px;margin:0 0 8px;">${title}</p>
     <p style="color:#8A94A6;font-size:14px;line-height:1.6;margin:0;">${message}</p>
   </div>

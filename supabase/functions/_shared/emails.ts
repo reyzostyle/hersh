@@ -46,7 +46,7 @@ function layout(opts: {
     <tr><td align="center">
       <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;background:${CARD};border:1px solid rgba(255,255,255,0.08);border-radius:16px;">
         <tr><td style="padding:28px 28px 8px 28px;">
-          <div style="font-family:Helvetica,Arial,sans-serif;font-size:15px;font-weight:800;letter-spacing:2px;color:#FFFFFF;">HERSHY</div>
+          <div style="font-family:Helvetica,Arial,sans-serif;font-size:15px;font-weight:800;letter-spacing:2px;color:#FFFFFF;">CHUMOKU</div>
         </td></tr>
         <tr><td style="padding:8px 28px 4px 28px;font-family:Helvetica,Arial,sans-serif;font-size:15px;line-height:1.6;color:${TEXT};">
           ${opts.body}
@@ -55,7 +55,7 @@ function layout(opts: {
           <a href="${opts.ctaUrl}" style="display:inline-block;background:${BRAND};color:#FFFFFF;font-family:Helvetica,Arial,sans-serif;font-size:15px;font-weight:700;text-decoration:none;padding:12px 22px;border-radius:10px;">${opts.ctaLabel}</a>
         </td></tr>
         <tr><td style="padding:0 28px 26px 28px;font-family:Helvetica,Arial,sans-serif;font-size:12px;line-height:1.6;color:${MUTED};border-top:1px solid rgba(255,255,255,0.07);padding-top:18px;">
-          you're getting this because you made a hershy account.
+          you're getting this because you made a chumoku account.
           <a href="${opts.unsubscribeUrl}" style="color:${MUTED};text-decoration:underline;">unsubscribe</a>
         </td></tr>
       </table>
@@ -73,7 +73,7 @@ function welcome(ctx: EmailCtx): RenderedEmail {
 
 20 credits are sitting on your account. no card, nothing to activate.
 
-quick thing worth knowing: hershy only does youtube shorts. not long-form,
+quick thing worth knowing: chumoku only does youtube shorts. not long-form,
 not podcast clips, not everything at once. that's the whole point, it's why
 it can tell you the exact second people swiped instead of handing you a
 generic content tip.
@@ -97,7 +97,7 @@ unsubscribe: ${ctx.unsubscribeUrl}`;
       body:
         p("you're in.") +
         p(`${strong('20 credits')} are sitting on your account. no card, nothing to activate.`) +
-        p(`one thing worth knowing up front: hershy only does ${strong('youtube shorts')}. not long-form, not podcast clips, not everything at once. that's the point. it's why it can name the exact second people swiped instead of handing you a generic content tip.`) +
+        p(`one thing worth knowing up front: chumoku only does ${strong('youtube shorts')}. not long-form, not podcast clips, not everything at once. that's the point. it's why it can name the exact second people swiped instead of handing you a generic content tip.`) +
         p('fastest way to see what it does is to paste a link to your last short. you get back the second people left, a score on your hook, and what to change next time.'),
     }),
   };
@@ -107,7 +107,7 @@ unsubscribe: ${ctx.unsubscribeUrl}`;
 function competitors(ctx: EmailCtx): RenderedEmail {
   const url = `${ctx.appUrl}/#pricing`;
   const text = `most "find trending ideas" tools just show you whatever is big right now.
-hershy does the opposite.
+chumoku does the opposite.
 
 you add channels in your niche, and it only surfaces the shorts that beat
 that channel's OWN average views per day. so a small channel's breakout
@@ -134,7 +134,7 @@ unsubscribe: ${ctx.unsubscribeUrl}`;
       ctaUrl: url,
       unsubscribeUrl: ctx.unsubscribeUrl,
       body:
-        p('most "trending ideas" tools show you whatever is big right now. hershy does the opposite.') +
+        p('most "trending ideas" tools show you whatever is big right now. chumoku does the opposite.') +
         p(`you add channels in your niche, and it only surfaces shorts that beat ${strong("that channel's own average views per day")}. a small channel's breakout shows up. a big channel's routine upload doesn't. that difference is the whole feature.`) +
         p('then it re-angles the idea for your niche and writes it out as a script in your voice, so you land it as your video instead of a copy.') +
         p(`one honest note: competitor tracking sits on ${strong('Plus')}. hook checks, script checks and analyzing a short all run on the free credits you already have.`),
@@ -147,7 +147,7 @@ function hookAndScript(ctx: EmailCtx): RenderedEmail {
   const text = `most shorts don't die at the end. they die around second 3.
 
 you don't have to guess at that one. paste your hook (or the whole script)
-BEFORE you film and hershy scores it, tells you where it drags, and gives
+BEFORE you film and chumoku scores it, tells you where it drags, and gives
 you three rewrites that still sound like you and not a corporate robot.
 
 script lab does the same for the full thing: it flags the weak middle and
@@ -170,7 +170,7 @@ unsubscribe: ${ctx.unsubscribeUrl}`;
       unsubscribeUrl: ctx.unsubscribeUrl,
       body:
         p("most shorts don't die at the end. they die around second 3.") +
-        p(`paste your hook, or the whole script, ${strong('before you film')}. hershy scores it, says where it drags, and gives you three rewrites that still sound like you instead of a corporate robot.`) +
+        p(`paste your hook, or the whole script, ${strong('before you film')}. chumoku scores it, says where it drags, and gives you three rewrites that still sound like you instead of a corporate robot.`) +
         p('script lab does the same for the full thing: it flags the weak middle and the CTA nobody sticks around for, while a rewrite still costs you nothing but a few minutes.') +
         p("fixing it before you shoot is the cheapest edit you'll ever make."),
     }),

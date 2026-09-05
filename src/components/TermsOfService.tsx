@@ -1,4 +1,5 @@
 import { ArrowLeftOutlineIcon as ArrowLeft } from '@solar-icons/react';
+import { SUPPORT_EMAIL } from '../lib/brand';
 
 const UPDATED = 'July 1, 2026';
 
@@ -19,7 +20,7 @@ export function TermsOfService() {
           href="/"
           className="inline-flex items-center gap-2 text-sm text-gray-400 hover:text-white transition-colors mb-8"
         >
-          <ArrowLeft className="w-4 h-4" /> Back to Hershy
+          <ArrowLeft className="w-4 h-4" /> Back to Chumoku
         </a>
 
         <div
@@ -35,14 +36,14 @@ export function TermsOfService() {
 
           <Section title="1. Acceptance of terms">
             <p>
-              By accessing or using Hershy ("the Service"), operated by Hershy Media, you agree to be bound
+              By accessing or using Chumoku ("the Service"), operated by Chumoku Media, you agree to be bound
               by these Terms of Service. If you do not agree, do not use the Service.
             </p>
           </Section>
 
           <Section title="2. The service">
             <p>
-              Hershy is a tool that helps creators analyze YouTube content to improve hooks, scripts, and
+              Chumoku is a tool that helps creators analyze YouTube content to improve hooks, scripts, and
               performance. Features, limits, and pricing may change over time. We may add, modify, or
               remove features at our discretion.
             </p>
@@ -59,7 +60,7 @@ export function TermsOfService() {
           <Section title="4. Connecting your YouTube account">
             <p>
               Some features require you to connect your YouTube account via Google OAuth. By connecting, you
-              authorize Hershy to access your YouTube data on a read-only basis as described in our{' '}
+              authorize Chumoku to access your YouTube data on a read-only basis as described in our{' '}
               <a href="/privacy" className="text-[var(--accent)] hover:underline">Privacy Policy</a>. You can
               disconnect at any time from the app settings or from your Google Account permissions.
             </p>
@@ -94,7 +95,7 @@ export function TermsOfService() {
 
           <Section title="7. Intellectual property">
             <p>
-              The Service, including its software, design, and content, is owned by Hershy Media and
+              The Service, including its software, design, and content, is owned by Chumoku Media and
               protected by applicable laws. You retain ownership of your own content and data. You grant us
               the limited rights necessary to operate the Service and provide the features you use.
             </p>
@@ -102,7 +103,7 @@ export function TermsOfService() {
 
           <Section title="8. AI-generated output">
             <p>
-              Hershy uses AI to generate analysis and recommendations. Output is provided for informational
+              Chumoku uses AI to generate analysis and recommendations. Output is provided for informational
               purposes and may be inaccurate or incomplete. You are responsible for how you use it, and we
               make no guarantee of any particular result.
             </p>
@@ -118,7 +119,7 @@ export function TermsOfService() {
 
           <Section title="10. Limitation of liability">
             <p>
-              To the maximum extent permitted by law, Hershy Media shall not be liable for any indirect,
+              To the maximum extent permitted by law, Chumoku Media shall not be liable for any indirect,
               incidental, special, consequential, or punitive damages, or any loss of profits or data,
               arising from your use of the Service.
             </p>
@@ -141,8 +142,8 @@ export function TermsOfService() {
           <Section title="13. Contact">
             <p>
               Questions about these Terms? Contact us at{' '}
-              <a href="mailto:hershymedia@gmail.com" className="text-[var(--accent)] hover:underline">
-                hershymedia@gmail.com
+              <a href={`mailto:${SUPPORT_EMAIL}`} className="text-[var(--accent)] hover:underline">
+                {SUPPORT_EMAIL}
               </a>
               .
             </p>

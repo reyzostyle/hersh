@@ -13,17 +13,17 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700;800&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet" />
-    <title>Hershy</title>
-    <meta name="description" content="A workspace for short-form creators. Send Hershy a link, a hook or a script and talk it through, keep the work in projects, and read every answer against your real YouTube retention curve." />
-    <meta property="og:title" content="Hershy - the shorts workspace" />
-    <meta property="og:description" content="A workspace for short-form creators. Send Hershy a link, a hook or a script and talk it through, keep the work in projects, and read every answer against your real YouTube retention curve." />
-    <meta property="og:url" content="https://hershymedia.com" />
+    <title>Chumoku</title>
+    <meta name="description" content="A workspace for short-form creators. Send Chumoku a link, a hook or a script and talk it through, keep the work in projects, and read every answer against your real YouTube retention curve." />
+    <meta property="og:title" content="Chumoku - the shorts workspace" />
+    <meta property="og:description" content="A workspace for short-form creators. Send Chumoku a link, a hook or a script and talk it through, keep the work in projects, and read every answer against your real YouTube retention curve." />
+    <meta property="og:url" content="https://chumoku.co" />
     <meta property="og:type" content="website" />
-    <meta property="og:image" content="https://hershymedia.com/favicon.png?v=2" />
-    <meta name="twitter:image" content="https://hershymedia.com/favicon.png?v=2" />
+    <meta property="og:image" content="https://chumoku.co/favicon.png?v=2" />
+    <meta name="twitter:image" content="https://chumoku.co/favicon.png?v=2" />
     <meta name="twitter:card" content="summary" />
-    <meta name="twitter:title" content="Hershy - the shorts workspace" />
-    <meta name="twitter:description" content="A workspace for short-form creators. Send Hershy a link, a hook or a script and talk it through, keep the work in projects, and read every answer against your real YouTube retention curve." />
+    <meta name="twitter:title" content="Chumoku - the shorts workspace" />
+    <meta name="twitter:description" content="A workspace for short-form creators. Send Chumoku a link, a hook or a script and talk it through, keep the work in projects, and read every answer against your real YouTube retention curve." />
 
     <!-- Microsoft Clarity. Loads once here rather than from a component: this
          is a single-page app, so the tag survives every client-side route
@@ -38,7 +38,11 @@
     <script type="text/javascript">
       (function () {
         var host = window.location.hostname;
-        if (host !== "hershymedia.com" && host !== "www.hershymedia.com") return;
+        // The old domain is still listed while it redirects here, so the
+        // session recording does not go dark for anyone who arrives on a link
+        // from before the rename. Drop it once nothing points at it.
+        var live = ["chumoku.co", "www.chumoku.co", "hershymedia.com", "www.hershymedia.com"];
+        if (live.indexOf(host) === -1) return;
 
         (function(c,l,a,r,i,t,y){
             c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
@@ -58,12 +62,12 @@
 {
   "@context": "https://schema.org",
   "@type": "SoftwareApplication",
-  "name": "Hershy",
-  "url": "https://hershymedia.com/",
+  "name": "Chumoku",
+  "url": "https://chumoku.co/",
   "applicationCategory": "MultimediaApplication",
   "applicationSubCategory": "Short-form video analytics",
   "operatingSystem": "Web browser",
-  "description": "A workspace for short-form video creators. Hershy watches a Short, or reads a hook or a script, and keeps answering follow-up questions about it in one conversation. Conversations and the ideas off them are filed into projects. With a connected YouTube channel it reads the creator's real audience-retention curve, so every fix is written against the seconds viewers actually left on. Shorts only.",
+  "description": "A workspace for short-form video creators. Chumoku watches a Short, or reads a hook or a script, and keeps answering follow-up questions about it in one conversation. Conversations and the ideas off them are filed into projects. With a connected YouTube channel it reads the creator's real audience-retention curve, so every fix is written against the seconds viewers actually left on. Shorts only.",
   "featureList": [
     "Analyze: send a link, a hook or a script and talk it through in one conversation until you know what to change",
     "Projects: keep each conversation, the reference video and the ideas off it in one place",
@@ -142,7 +146,7 @@
   "mainEntity": [
     {
       "@type": "Question",
-      "name": "What does Hershy actually do?",
+      "name": "What does Chumoku actually do?",
       "acceptedAnswer": {
         "@type": "Answer",
         "text": "It reads short-form video. Send it a link, a hook or a script and it watches or reads the thing and tells you what to change, then you keep talking to it until you know what to do. Connect your channel and it checks that against your real retention curve instead of guessing. Shorts only. That is the whole point."
@@ -153,7 +157,7 @@
       "name": "What happens when I connect my YouTube?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "You get your own numbers instead of an opinion. Hershy reads what YouTube Studio shows you, finds the exact seconds viewers left, and writes every fix against those timestamps. It takes two clicks, and everything else works without connecting anything."
+        "text": "You get your own numbers instead of an opinion. Chumoku reads what YouTube Studio shows you, finds the exact seconds viewers left, and writes every fix against those timestamps. It takes two clicks, and everything else works without connecting anything."
       }
     },
     {

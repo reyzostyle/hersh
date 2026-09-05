@@ -100,8 +100,8 @@ Deno.serve(async (req: Request) => {
       payment_method_types: ['card'],
       line_items: [{ price: priceId, quantity: 1 }],
       mode: 'payment',
-      success_url: 'https://hershymedia.com/?topup=success',
-      cancel_url: 'https://hershymedia.com/',
+      success_url: 'https://chumoku.co/?topup=success',
+      cancel_url: 'https://chumoku.co/',
       metadata: { userId, credits: String(packDef.credits), type: 'credit_topup' },
     });
 

@@ -42,8 +42,8 @@ Deno.serve(async (req: Request) => {
     // plan+interval -> product lookup, then that product's default_price.
     // Nothing price-related is ever trusted from the client.
     const PRODUCT_ID_ENV: Record<string, Record<string, string>> = {
-      pro: { month: 'STRIPE_PRO_MONTHLY_PRODUCT_ID', year: 'STRIPE_PRO_YEARLY_PRODUCT_ID' },       // Hershy Plus
-      agency: { month: 'STRIPE_AGENCY_MONTHLY_PRODUCT_ID', year: 'STRIPE_AGENCY_YEARLY_PRODUCT_ID' }, // Hershy Pro
+      pro: { month: 'STRIPE_PRO_MONTHLY_PRODUCT_ID', year: 'STRIPE_PRO_YEARLY_PRODUCT_ID' },       // Chumoku Plus
+      agency: { month: 'STRIPE_AGENCY_MONTHLY_PRODUCT_ID', year: 'STRIPE_AGENCY_YEARLY_PRODUCT_ID' }, // Chumoku Pro
     };
 
     const billingInterval = interval === 'year' ? 'year' : 'month';
@@ -116,8 +116,8 @@ Deno.serve(async (req: Request) => {
       payment_method_types: ['card'],
       line_items: [{ price: priceId, quantity: 1 }],
       mode: 'subscription',
-      success_url: 'https://hershymedia.com/?checkout=success',
-      cancel_url: 'https://hershymedia.com/',
+      success_url: 'https://chumoku.co/?checkout=success',
+      cancel_url: 'https://chumoku.co/',
       metadata: { userId },
     });
 

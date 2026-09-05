@@ -155,12 +155,12 @@ export async function loadThread(threadId: string): Promise<{ title: string | nu
 // Handing a thread from Projects to Analyze. Same idiom the landing page uses
 // to pass a pasted link through signup: the tab remounts on switch, so a key in
 // storage is read once on the other side and cleared.
-const OPEN_THREAD_KEY = 'hershy_open_thread';
-const OPEN_VIDEO_KEY = 'hershy_open_competitor_video';
+const OPEN_THREAD_KEY = 'chumoku_open_thread';
+const OPEN_VIDEO_KEY = 'chumoku_open_competitor_video';
 
 export function requestOpenThread(threadId: string) {
   localStorage.setItem(OPEN_THREAD_KEY, threadId);
-  window.dispatchEvent(new CustomEvent('hershy:navigate', { detail: 'analyze' }));
+  window.dispatchEvent(new CustomEvent('chumoku:navigate', { detail: 'analyze' }));
 }
 
 export function takeRequestedThread(): string | null {
@@ -171,7 +171,7 @@ export function takeRequestedThread(): string | null {
 
 export function requestOpenVideo(videoId: string) {
   localStorage.setItem(OPEN_VIDEO_KEY, videoId);
-  window.dispatchEvent(new CustomEvent('hershy:navigate', { detail: 'competitors' }));
+  window.dispatchEvent(new CustomEvent('chumoku:navigate', { detail: 'competitors' }));
 }
 
 export function takeRequestedVideo(): string | null {
