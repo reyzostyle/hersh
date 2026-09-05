@@ -316,7 +316,66 @@ function AuthModal({ initialMode, onClose, context }: {
 
 // The hero shot: the sidebar and a finished thread, exactly as Analyze renders
 // it — conversation on the ruled grid, no sheet under it.
+// What the thread plays, and how long each beat holds before the next lands.
+// The questions are the two asked most in the Discord this was built for:
+// why a video died, and whether a number is normal. Answers are short on
+// purpose - the point is that an answer arrives, not that it is exhaustive.
+const SCRIPT: { role: 'user' | 'working' | 'card' | 'answer'; text?: string; mono?: boolean; hold: number }[] = [
+  { role: 'user', text: 'youtube.com/shorts/8fLq2Xr', mono: true, hold: 1100 },
+  { role: 'working', text: 'Watching the whole thing', hold: 1900 },
+  { role: 'card', hold: 2600 },
+  { role: 'user', text: 'why did this video flop?', hold: 1200 },
+  { role: 'answer', text: 'It did not flop on the idea. 41% left before 0:03, so almost nobody saw the idea.', hold: 2600 },
+  { role: 'user', text: 'is this swipe rate ok?', hold: 1200 },
+  { role: 'answer', text: 'No. Your last five held twice as many past the first second.', hold: 3400 },
+];
+
 function AppFrame() {
+  // Plays through SCRIPT, then holds the finished thread and starts again.
+  //
+  // Paused while off screen: a loop running behind the fold is a timer nobody
+  // is watching, and on a phone it is battery spent on a frame below the
+  // scroll. Reduced motion gets the finished thread and no animation at all,
+  // which is the same information without the movement.
+  const [step, setStep] = useState(() =>
+    typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
+      ? SCRIPT.length
+      : 0,
+  );
+  const frameRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return;
+
+    let timer: ReturnType<typeof setTimeout>;
+    let visible = true;
+    // The step lives in a ref as well as in state because the next timeout is
+    // scheduled from it. Scheduling inside the setState updater looked tidier
+    // and was wrong: React is free to call an updater more than once, and each
+    // call started another timer, so several ran at once and the thread
+    // skipped beats.
+    let current = 0;
+
+    const tick = () => {
+      current = current >= SCRIPT.length ? 0 : current + 1;
+      setStep(current);
+      // Step 0 is the blank frame before it starts over, and it holds briefly.
+      // Every other beat holds for as long as the message before it needs.
+      const hold = current === 0 ? 900 : SCRIPT[current - 1].hold;
+      timer = setTimeout(() => { if (visible) tick(); }, hold);
+    };
+
+    const observer = new IntersectionObserver(([entry]) => {
+      visible = entry.isIntersecting;
+      if (visible) { clearTimeout(timer); tick(); }
+      else clearTimeout(timer);
+    }, { threshold: 0.15 });
+
+    if (frameRef.current) observer.observe(frameRef.current);
+    return () => { observer.disconnect(); clearTimeout(timer); };
+  }, []);
+
   const nav = [
     { icon: <VideoIcon className="w-3.5 h-3.5" />, label: 'Analyze', on: true },
     { icon: <Folder className="w-3.5 h-3.5" />, label: 'Projects', on: false },
@@ -326,6 +385,7 @@ function AppFrame() {
 
   return (
     <div
+      ref={frameRef}
       className="overflow-hidden"
       style={{ background: 'var(--bg-app)', border: '1px solid var(--line-strong)', borderRadius: 'var(--r-lg)' }}
     >
@@ -369,31 +429,58 @@ function AppFrame() {
                 and on a phone the card is taller than it, so without this the
                 thread spilled over the composer instead of being cropped by
                 the frame's edge. */}
-            <div className="flex-1 min-h-0 overflow-hidden space-y-3">
-              <div className="flex justify-end">
-                <span className="rounded-[14px] px-3 py-1.5 text-[11.5px] font-mono truncate max-w-[80%]" style={{ background: 'var(--bg-raised)', color: 'var(--text)' }}>
-                  youtube.com/shorts/8fLq2Xr
-                </span>
-              </div>
-
-              <p className="label-mono">Watched the whole thing</p>
-
-              <div className="p-3.5 sm:p-4" style={plate}>
-                <div className="flex items-baseline gap-1.5 mb-3">
-                  <span className="text-[26px] leading-none font-semibold tracking-tight tabular-nums" style={{ color: 'var(--text)' }}>62</span>
-                  <span className="font-mono text-[10px]" style={{ color: 'var(--text-faint)' }}>/ 100</span>
+            {/* The thread plays itself. A still screenshot of a finished
+                answer shows the output and hides the thing worth showing,
+                which is that this is a conversation: a link goes in, a review
+                comes back, and then the questions people actually ask get
+                answered without starting over.
+                Timed steps rather than a video: it is a few hundred bytes of
+                state, it stays sharp at any width, and it respects a reader
+                who has asked for less motion. */}
+            {/* justify-end, so the thread grows upward off the top edge the way
+                a real one does. Left to fill from the top, the last answer -
+                the one the whole sequence exists to deliver - was the message
+                cropped by the frame's fixed height. */}
+            <div className="flex-1 min-h-0 overflow-hidden flex flex-col justify-end space-y-3">
+              {SCRIPT.slice(0, step).map((m, i) => (
+                <div key={i} className="animate-msg-in">
+                  {m.role === 'user' ? (
+                    <div className="flex justify-end">
+                      <span
+                        className={`rounded-[14px] px-3 py-1.5 text-[11.5px] truncate max-w-[80%] ${m.mono ? 'font-mono' : ''}`}
+                        style={{ background: 'var(--bg-raised)', color: 'var(--text)' }}
+                      >
+                        {m.text}
+                      </span>
+                    </div>
+                  ) : m.role === 'working' ? (
+                    <p className="label-mono">{m.text}</p>
+                  ) : m.role === 'card' ? (
+                    <div className="p-3.5 sm:p-4" style={plate}>
+                      <div className="flex items-baseline gap-1.5 mb-3">
+                        <span className="text-[26px] leading-none font-semibold tracking-tight tabular-nums" style={{ color: 'var(--text)' }}>62</span>
+                        <span className="font-mono text-[10px]" style={{ color: 'var(--text-faint)' }}>/ 100</span>
+                      </div>
+                      <p className="text-[11.5px] leading-relaxed mb-3.5" style={{ color: 'var(--text-muted)' }}>
+                        The idea lands, the open does not. You set up a payoff the thumbnail already gave away.
+                      </p>
+                      <p className="label-mono mb-1.5">Fix</p>
+                      <ul className="space-y-1">
+                        <li className="text-[11.5px] leading-relaxed" style={{ color: 'var(--text)' }}>Cut the first 1.4s. Open on the reaction at 0:03.</li>
+                      </ul>
+                    </div>
+                  ) : (
+                    <div className="flex justify-start">
+                      <span
+                        className="rounded-[14px] px-3 py-2 text-[11.5px] leading-relaxed max-w-[88%]"
+                        style={{ background: 'var(--bg-raised)', color: 'var(--text)' }}
+                      >
+                        {m.text}
+                      </span>
+                    </div>
+                  )}
                 </div>
-                <p className="text-[11.5px] leading-relaxed mb-3.5" style={{ color: 'var(--text-muted)' }}>
-                  The idea lands, the open does not. You spend 0:00 to 0:03 setting up a payoff the thumbnail already gave away.
-                </p>
-                <p className="label-mono mb-1.5">Fix</p>
-                <ul className="space-y-1">
-                  <li className="text-[11.5px] leading-relaxed" style={{ color: 'var(--text)' }}>Cut the first 1.4s. Open on the reaction at 0:03.</li>
-                  {/* Second fix drops on a phone: at 360px of frame it is the
-                      line that gets cut in half by the crop. */}
-                  <li className="hidden sm:block text-[11.5px] leading-relaxed" style={{ color: 'var(--text)' }}>Retention falls off a cliff at 0:07, where the b-roll repeats.</li>
-                </ul>
-              </div>
+              ))}
             </div>
 
             {/* The composer, same shape as the one in the hero above it. */}
