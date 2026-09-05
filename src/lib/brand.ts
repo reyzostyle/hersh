@@ -10,7 +10,7 @@ export const SITE_URL = 'https://chumoku.co';
 // clicked: a referral URL someone types into a browser bar, a policy page
 // naming the site.
 export const SITE_HOST = 'chumoku.co';
-export const SUPPORT_EMAIL = 'hi@chumoku.co';
+export const SUPPORT_EMAIL = 'support@chumoku.co';
 
 // Browser storage outlives a deploy, so a renamed key is a user who lost
 // whatever it held. Two of these matter beyond tidiness: chumoku_ref carries the

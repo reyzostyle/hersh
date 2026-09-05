@@ -108,7 +108,10 @@ Deno.serve(async (req) => {
   const supabase = createClient(supabaseUrl, serviceKey);
 
   const resendKey = Deno.env.get('RESEND_API_KEY');
-  const from = Deno.env.get('EMAIL_FROM') || 'Rey from Chumoku <noti@chumoku.co>';
+  // The product signs these, not a person. "Rey from Hershy" was a founder
+  // voice on a drip nobody replies to, and a name in the From line is a promise
+  // of a human on the other end that this address does not keep.
+  const from = Deno.env.get('EMAIL_FROM') || 'Chumoku <noti@chumoku.co>';
   const appUrl = Deno.env.get('APP_URL') || 'https://chumoku.co';
   const functionsUrl = `${supabaseUrl}/functions/v1`;
   const dryRun = !resendKey || new URL(req.url).searchParams.get('dry_run') === '1';
