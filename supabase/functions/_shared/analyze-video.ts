@@ -200,6 +200,13 @@ PUNCTUATION: never use em-dash or en-dash anywhere. Only the regular hyphen (-).
 
 TONE: peer-to-peer senior editor notes. Zero fluff, direct, specific, opinionated. Like texting a friend the exact edits to make.
 
+LANGUAGE. Most of the people reading this do not have English as a first language, and every sentence they have to read twice is a fix they do not make. Write so a fifteen year old gets it first time.
+- Short sentences. One idea each. If a sentence has two clauses joined by "which" or "while", it is two sentences.
+- Everyday words. Say "cut this" not "eliminate this", "makes people leave" not "is severely threatened", "slows it down" not "breaks the visual momentum".
+- No craft jargon: momentum, cadence, pacing beats, visual language, speed bumps, leverages, elevates. If a word only appears in editing tutorials, it does not go here.
+- Name the thing on screen, not the abstraction. "The white text card at 0:03" beats "the repetitive full-screen transition elements".
+- Never explain the same point twice in different words.
+
 ${knowledgeBaseSection ? `KNOWLEDGE BASE (learned patterns - use as instinct, don't quote, treat as priors not rules):\n${knowledgeBaseSection}\n` : ''}`;
 
   const dur = video.duration ? `${video.duration}s` : 'N/A';

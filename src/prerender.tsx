@@ -15,6 +15,7 @@ import { AuthProvider } from './contexts/AuthContext';
 import { LandingPage } from './components/LandingPage';
 import { PrivacyPolicy } from './components/PrivacyPolicy';
 import { TermsOfService } from './components/TermsOfService';
+import { FAQS } from './lib/faq';
 
 export interface PrerenderRoute {
   path: string;
@@ -58,3 +59,8 @@ export function render(): PrerenderRoute[] {
     },
   ];
 }
+
+
+// Re-exported for scripts/prerender.mjs, which writes the FAQPage JSON-LD
+// from it so the structured data cannot drift from the page.
+export const faqs = FAQS;

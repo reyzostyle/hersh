@@ -20,6 +20,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { HeroAnalysisGate } from './HeroAnalysisGate';
 import { supabase } from '../lib/supabase';
 import { SUPPORT_EMAIL } from '../lib/brand';
+import { FAQS } from '../lib/faq';
 
 // ─── Surface ─────────────────────────────────────────────────────────────────
 // This page used to run on three bespoke `glass` objects: stacked white
@@ -571,41 +572,11 @@ const testimonials: { quote: string; name: string; on: string }[] = [
   },
 ];
 
-// Kept in sync with the FAQPage JSON-LD in index.html — an answer engine reads
-// that block, a person reads this one, and the two disagreeing is worse than
-// having neither.
-const faqs: { q: string; a: string }[] = [
-  {
-    q: 'What does Chumoku actually do?',
-    a: 'It reads short-form video. Send it a link, a hook or a script and it watches or reads the thing and tells you what to change, then you keep talking to it until you know what to do. Connect your channel and it checks that against your real retention curve instead of guessing. Shorts only. That is the whole point.',
-  },
-  {
-    q: 'What happens when I connect my YouTube?',
-    a: 'You get your own numbers instead of an opinion. Chumoku reads what YouTube Studio shows you, finds the exact seconds viewers left, and writes every fix against those timestamps. It takes two clicks, and everything else works without connecting anything.',
-  },
-  {
-    q: 'What is in it?',
-    a: 'Four surfaces. Analyze is the conversation about a video, a hook or a script. Projects keeps each conversation and the ideas off it together. Analytics is your channel and the videos you have run through it. Competitors tracks rival channels and surfaces only their outliers. One credit balance covers all four.',
-  },
-  {
-    q: 'Can I start for free?',
-    a: 'Yes. New accounts get 20 credits, no card, enough for a few videos or a handful of hook and script checks. Competitors needs a paid plan, and the free credits are one time, with no monthly refill.',
-  },
-  {
-    q: 'How does Competitors find ideas?',
-    a: "It compares every recent short from a tracked channel against that channel's own median views per day, and only surfaces the ones that clearly beat it. A big channel posting a normal video stays out; a small channel with a breakout gets in. The idea then gets rebuilt for your niche rather than copied.",
-  },
-  {
-    q: 'Can I cancel anytime?',
-    a: 'Yes, from your billing portal, and you keep access until the period you already paid for runs out. No contract, no cancellation call.',
-  },
-];
-
 function FAQSection() {
   const [open, setOpen] = useState<number | null>(0);
   return (
     <div style={{ borderTop: '1px solid var(--line)' }}>
-      {faqs.map((f, i) => (
+      {FAQS.map((f, i) => (
         <div key={f.q} style={{ borderBottom: '1px solid var(--line)' }}>
           <button
             onClick={() => setOpen(open === i ? null : i)}

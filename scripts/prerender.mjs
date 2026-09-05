@@ -6,8 +6,21 @@ import { join, dirname } from 'node:path';
 const DIST = 'dist';
 const shell = readFileSync(join(DIST, 'index.html'), 'utf8');
 
-const { render } = await import('../dist-ssr/prerender.js');
+const { render, faqs } = await import('../dist-ssr/prerender.js');
 const routes = render();
+
+// The FAQPage block in index.html is a placeholder; the real one is written
+// here from the same array the page renders, so the answer an engine quotes
+// and the answer a person reads can never disagree.
+const faqLd = JSON.stringify({
+  '@context': 'https://schema.org',
+  '@type': 'FAQPage',
+  mainEntity: faqs.map(f => ({
+    '@type': 'Question',
+    name: f.q,
+    acceptedAnswer: { '@type': 'Answer', text: f.a },
+  })),
+}, null, 2);
 
 // Swap the title and description per route, so /privacy and /terms stop
 // claiming to be the landing page in search results and link previews.
@@ -26,6 +39,14 @@ for (const route of routes) {
   }
 
   let page = retitle(shell, route.title, route.description);
+  const before = page;
+  page = page.replace(
+    /<script type="application\/ld\+json">\s*\{\s*"@context": "https:\/\/schema\.org",\s*"@type": "FAQPage"[\s\S]*?<\/script>/,
+    `<script type="application/ld+json">\n${faqLd}\n    </script>`,
+  );
+  if (page === before) {
+    throw new Error('Could not find the FAQPage block to replace - the placeholder in index.html has moved');
+  }
   page = page.replace('<div id="root"></div>', `<div id="root">${route.html}</div>`);
   if (!page.includes('id="root">')) {
     throw new Error(`Could not find the root div to fill for ${route.path}`);

@@ -101,6 +101,7 @@ A genuinely strong hook earns 80+; a generic or scrollable one MUST land below 6
   2. Curiosity Gap / Shock Stat: an open loop or surprising number that forces the watch (e.g. "How X made $100k using this 1 secret").
   3. Contrarian / Pattern Interrupt: challenges what the audience already believes (e.g. "Everything you know about X is wrong").
   Each rewrite must use the actual topic/specifics of the hook above, not a generic template with blanks filled in. In "why", name the angle and the one thing that makes THIS version pull harder than the original.
+- LANGUAGE: most readers do not have English as a first language. Short sentences, one idea each, everyday words. Say "cut this" not "eliminate this". No craft jargon (momentum, cadence, speed bumps, leverages). Name what is on screen or on the page, not the abstraction.
 - PUNCTUATION: never use em-dash (—) or en-dash (–) anywhere, only the regular hyphen (-).
 
 Return ONLY valid JSON, no markdown:
