@@ -948,12 +948,12 @@ export function LandingPage() {
               className="animate-fade-in-up font-semibold max-w-3xl"
               style={{ fontSize: 'clamp(2.1rem, 1.2rem + 3.4vw, 3.9rem)', letterSpacing: '-0.035em', lineHeight: 1.05 }}
             >
-              <span style={{ color: 'var(--text)' }}>Stop posting blind.</span>{' '}
-              <span style={{ color: 'var(--text-muted)' }}>Know why the last one flopped before you post the next.</span>
+              <span style={{ color: 'var(--text)' }}>Meet Chumoku,</span>{' '}
+              <span style={{ color: 'var(--text-muted)' }}>your AI producer.</span>
             </h1>
 
             <p className="animate-fade-in-up delay-100 text-[15px] sm:text-base leading-relaxed mt-5 mb-8 max-w-lg" style={{ color: 'var(--text-muted)' }}>
-              Paste a link. Chumoku watches the video, finds the seconds people left on, and tells you what to cut.
+              The only AI you need to grow a Shorts channel. It watches the video, not just the numbers.
             </p>
 
             {/* The only CTA above the fold, and it is the app's composer, not a
