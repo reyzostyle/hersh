@@ -529,30 +529,32 @@ function AnalyticsFrame() {
 // hub (HomePage.tsx). Someone who signs up lands on this list again, which is
 // the point: the page is not a brochure for the product, it is the product's
 // first screen with the door still shut.
+// The three moves, in the order a week actually goes. This was four tabs with
+// a sentence each - Analyze, Projects, Analytics, Competitors - which is the
+// product's own filing system, not anything the reader turned up wanting. They
+// are still the tabs inside; the page just stops asking anyone to learn them.
+//
+// One line each, and each line names a thing: a median, a hook, a second. A
+// sentence that could describe any tool describes nothing, to a reader or to a
+// crawler.
 const surfaces: { index: string; icon: React.ReactNode; label: string; desc: string }[] = [
   {
     index: '01',
-    icon: <VideoIcon className="w-[18px] h-[18px]" />,
-    label: 'Analyze',
-    desc: 'Send a link, a hook or a script and talk it through until you know what to change.',
+    icon: <Users className="w-[18px] h-[18px]" />,
+    label: 'Steal what already worked',
+    desc: 'Only the shorts that beat the channel they came from.',
   },
   {
     index: '02',
-    icon: <Folder className="w-[18px] h-[18px]" />,
-    label: 'Projects',
-    desc: 'Keep the conversation, the reference video and the ideas off it in one place.',
+    icon: <VideoIcon className="w-[18px] h-[18px]" />,
+    label: 'Make it yours',
+    desc: 'The idea comes back as your hook and your script, scored before you film.',
   },
   {
     index: '03',
     icon: <GraphUp className="w-[18px] h-[18px]" />,
-    label: 'Analytics',
-    desc: 'Your own numbers from YouTube, and the shape your last analysed videos came out at.',
-  },
-  {
-    index: '04',
-    icon: <Users className="w-[18px] h-[18px]" />,
-    label: 'Competitors',
-    desc: "Surfaces only the shorts beating a channel's own median, rebuilt for yours.",
+    label: 'Post it, then find out why',
+    desc: 'Your retention curve, the second people left, and what to cut next time.',
   },
 ];
 
@@ -1002,9 +1004,9 @@ export function LandingPage() {
         <section id="product" className={`${SECTION} py-16 sm:py-24 scroll-mt-16`}>
           <Reveal>
             <Head
-              eyebrow="The workspace"
-              title="Four surfaces, one balance."
-              sub="No long-form, no podcasts, no everything-app. They share one credit pool, so a week can go wherever the work goes."
+              eyebrow="The loop"
+              title="Steal, adapt, improve."
+              sub="One credit balance across all three."
             />
           </Reveal>
 
