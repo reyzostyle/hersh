@@ -476,6 +476,19 @@ function AnalyticsFrame() {
 
   return (
     <div className="p-4 sm:p-5" style={{ background: 'var(--bg-app)', border: '1px solid var(--line-strong)', borderRadius: 'var(--r-lg)' }}>
+      {/* The connected state, said out loud. Everything in this frame is real
+          YouTube data and there was nothing on it saying so, which is the one
+          thing that separates these numbers from numbers any tool can invent. */}
+      <div className="flex items-center gap-2 mb-4">
+        <span
+          className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium"
+          style={{ background: 'rgba(255,0,0,0.10)', border: '1px solid rgba(255,0,0,0.28)', color: '#FF4444' }}
+        >
+          <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: '#FF0000' }} />
+          YouTube connected
+        </span>
+      </div>
+
       <div className="grid grid-cols-3 gap-2.5 sm:gap-3 mb-4">
         {[
           { label: 'Views, 28d', value: '1.24M', sub: '+18%' },
@@ -1033,8 +1046,8 @@ export function LandingPage() {
           <Reveal>
             <Head
               eyebrow="Competitors"
-              title="Only what beat the channel it came from."
-              sub="Every recent short is measured against that channel's own median views per day. A big channel posting normally stays out."
+              title="Their breakouts, not their uploads."
+              sub="Ranked against that channel's own median."
             />
           </Reveal>
           <Reveal delay={60}><CompetitorsFrame /></Reveal>
@@ -1045,8 +1058,8 @@ export function LandingPage() {
           <Reveal>
             <Head
               eyebrow="Analytics"
-              title="Your real curve, not a guess at it."
-              sub="Connect the channel once and every answer is written against the seconds your viewers actually left on."
+              title="Improve on real data, not guesses."
+              sub="Connect once. Every answer reads your own retention."
             />
           </Reveal>
           <Reveal delay={60}><AnalyticsFrame /></Reveal>
