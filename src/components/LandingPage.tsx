@@ -357,9 +357,13 @@ function AppFrame() {
           </div>
         </div>
 
-        {/* The conversation, on the grid. */}
+        {/* No grid inside the frame. It used to draw its own at a 56px cell
+            while the hero draws the page's at 112px, so the two met at the
+            frame's edge without lining up on either axis - a fine mesh sitting
+            inside a coarse one, which reads as a rendering fault rather than
+            as texture. The frame is a solid panel on the page's grid now, the
+            same way a sheet sits on it inside the app. */}
         <div className="relative flex-1 min-w-0">
-          <div className="absolute inset-0 grid-surface" style={{ backgroundSize: '56px 56px' }} aria-hidden="true" />
           <div className="relative h-full flex flex-col px-4 sm:px-6 pt-5 pb-4">
             {/* overflow-hidden, not just min-h-0: the frame is a fixed height
                 and on a phone the card is taller than it, so without this the
@@ -945,7 +949,7 @@ export function LandingPage() {
               style={{ fontSize: 'clamp(2.1rem, 1.2rem + 3.4vw, 3.9rem)', letterSpacing: '-0.035em', lineHeight: 1.05 }}
             >
               <span style={{ color: 'var(--text)' }}>Stop posting blind.</span>{' '}
-              <span style={{ color: 'var(--text-muted)' }}>Every short read against your own numbers.</span>
+              <span style={{ color: 'var(--text-muted)' }}>Know why the last one flopped before you post the next.</span>
             </h1>
 
             <p className="animate-fade-in-up delay-100 text-[15px] sm:text-base leading-relaxed mt-5 mb-8 max-w-lg" style={{ color: 'var(--text-muted)' }}>
