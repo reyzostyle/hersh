@@ -13,6 +13,10 @@ interface Analysis {
   overall_assessment?: string;
   strong_spots?: string[];
   weak_spots?: string[];
+  // Only a hook check produces these: three finished hooks to use instead of
+  // the one that was sent. They are the point of running it, and the card had
+  // nowhere to put them.
+  rewrites?: { hook: string; why: string }[];
 }
 
 interface Message {
@@ -153,6 +157,25 @@ function AnalysisCard({ a, fresh, onAdvance }: { a: Analysis; fresh?: boolean; o
           <ul className="space-y-1.5">
             {a.weak_spots.map((s, i) => (
               <li key={i} className={`text-[13px] leading-relaxed ${cls}`} style={{ color: 'var(--text)', ...step((a.strong_spots?.length ?? 0) + 2 + i) }}>{s}</li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {/* A hook check ends in three finished hooks to use instead. Each gets
+          the line itself in reading weight and the reason under it in the
+          muted one, because the line is the thing being copied. */}
+      {!!a.rewrites?.length && (
+        <div className="mt-5">
+          <p className={`label-mono mb-2 ${cls}`} style={step((a.strong_spots?.length ?? 0) + (a.weak_spots?.length ?? 0) + 2)}>
+            Use instead
+          </p>
+          <ul className="space-y-3">
+            {a.rewrites.map((r, i) => (
+              <li key={i} className={cls} style={step((a.strong_spots?.length ?? 0) + (a.weak_spots?.length ?? 0) + 3 + i)}>
+                <p className="text-[13px] leading-relaxed" style={{ color: 'var(--text)' }}>{r.hook}</p>
+                {r.why && <p className="text-[12px] leading-relaxed mt-1" style={{ color: 'var(--text-faint)' }}>{r.why}</p>}
+              </li>
             ))}
           </ul>
         </div>
@@ -592,12 +615,31 @@ export function AnalysisChat() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Analysis failed');
 
-      const a: Analysis = {
-        overall_score: data.overall_score,
-        overall_assessment: data.overall_assessment,
-        strong_spots: data.strong_spots ?? [],
-        weak_spots: data.weak_spots ?? [],
-      };
+      // The two endpoints do not answer in the same shape and never have.
+      // analyze-script-text returns overall_score, overall_assessment,
+      // strong_spots and weak_spots; analyze-hook-text returns score, verdict,
+      // issues and rewrites. The client read only the script's names, so every
+      // hook check in the chat rendered an empty card - a scored result with
+      // no score, no verdict and no lines - while the same call from the old
+      // Hook Lab screen showed all of it.
+      //
+      // Normalised here rather than by renaming the function's fields: the
+      // hook shape is what HookLab reads, and its rewrites have no honest home
+      // under "Working" or "Fix" anyway.
+      const a: Analysis = kind === 'hook'
+        ? {
+            overall_score: data.score,
+            overall_assessment: data.verdict,
+            strong_spots: [],
+            weak_spots: data.issues ?? [],
+            rewrites: data.rewrites ?? [],
+          }
+        : {
+            overall_score: data.overall_score,
+            overall_assessment: data.overall_assessment,
+            strong_spots: data.strong_spots ?? [],
+            weak_spots: data.weak_spots ?? [],
+          };
       push({ role: 'assistant', content: `Read that as a ${kind}`, analysis: a, textKind: kind, source: text });
       if (tid) await persist(tid, 'assistant', `Read that as a ${kind}`, a);
       reloadUsage();
