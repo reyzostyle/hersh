@@ -123,7 +123,7 @@ Rules:
   // alternative to a paid AI coding tool". Storing it would mean a column, and
   // the value is in the model having had to write it, not in reading it back.
   const content = transcript
-    ? await callLLM(prompt, { maxTokens: 900 })
+    ? await callLLM(prompt, { maxTokens: 1400 })
     : await watchVideo(
         { fileUri: `https://www.youtube.com/watch?v=${videoId}`, mimeType: 'video/mp4' },
         prompt,
@@ -140,7 +140,29 @@ Rules:
     }
     throw new Error('No JSON in response');
   } catch {
-    return { concept: content.substring(0, 300).replace(/[—–]/g, '-'), adapted_idea: '' };
+    // The answer is JSON that did not finish - almost always because it ran
+    // into the token ceiling mid-string, so there is no closing brace for the
+    // parser to reach. What used to happen here was worse than the failure:
+    // the first 300 characters of the raw reply went into the field a creator
+    // reads, backticks, "```json" and all.
+    //
+    // Salvage the one field that matters if it is there, cut at the last
+    // sentence that finished so it does not end mid-word, and otherwise say
+    // nothing. An empty section is a section that renders as empty; a section
+    // showing someone a fenced code block is a bug they have to interpret.
+    const match = content.match(/"concept"\s*:\s*"((?:[^"\\]|\\.)*)/);
+    if (!match) return { concept: '', adapted_idea: '' };
+
+    const text = match[1]
+      .replace(/\\"/g, '"')
+      .replace(/\\n/g, ' ')
+      .replace(/[—–]/g, '-')
+      .trim();
+    const lastStop = Math.max(text.lastIndexOf('. '), text.lastIndexOf('! '), text.lastIndexOf('? '));
+    return {
+      concept: lastStop > 60 ? text.slice(0, lastStop + 1) : '',
+      adapted_idea: '',
+    };
   }
 }
 
