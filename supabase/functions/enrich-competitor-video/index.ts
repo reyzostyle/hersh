@@ -2,6 +2,7 @@ import { createClient } from 'npm:@supabase/supabase-js@2.57.4';
 import { callLLM } from '../_shared/llm.ts';
 import { loadCreditStatus, canAfford, spendCredits, CREDIT_COSTS } from '../_shared/credits.ts';
 import { loadChannelScan, channelScanBlock } from '../_shared/channel-scan.ts';
+import { loadBrain, brainBlock } from '../_shared/brain.ts';
 import { watchVideo } from '../_shared/analyze-video.ts';
 import { parseModelJson } from '../_shared/json.ts';
 
@@ -231,17 +232,27 @@ Deno.serve(async (req: Request) => {
         { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
-    // Two sources, and they are not the same thing. The four profile fields are
-    // what the creator told us; the scan is what their channel actually ships.
-    // With the toggle off, neither is sent and the read is a plain one.
-    const niche = adaptForProfile ? (profile?.channel_niche || '') : '';
-    const profileBlock = adaptForProfile
-      ? `## What they told us about their channel
+    // Two sources, and they are not the same thing. The brain is the model's
+    // own read of who they are - niche, format, voice, and the rules for
+    // remaking someone else's video here; the scan is the raw evidence it was
+    // read from, kept because a title is worth more than a description of
+    // their titles. With the toggle off, neither is sent and the read is a
+    // plain one.
+    //
+    // The four hand-typed boxes are the fallback, for accounts that have not
+    // built a brain yet. They were the only source until 2026-09-09, and they
+    // were usually empty.
+    const brain = adaptForProfile ? await loadBrain(supabase, user.id) : null;
+    const niche = adaptForProfile ? (brain?.niche || profile?.channel_niche || '') : '';
+    const profileBlock = !adaptForProfile
+      ? ''
+      : brain
+      ? brainBlock(brain)
+      : `## What they told us about their channel
 Niche: ${profile?.channel_niche || 'not set'}
 Description: ${profile?.channel_description || 'not set'}
 Audience: ${profile?.target_audience || 'not set'}
-Extra context: ${profile?.channel_context || 'not set'}`
-      : '';
+Extra context: ${profile?.channel_context || 'not set'}`;
     const scanBlock = adaptForProfile ? channelScanBlock(await loadChannelScan(supabase, user.id)) : '';
 
     const transcript = await fetchTranscript(videoId);

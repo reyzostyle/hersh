@@ -64,7 +64,7 @@ export function UsagePage() {
   return (
     <div className="sheet min-h-full max-w-5xl mx-auto px-5 sm:px-8 pt-12 sm:pt-16 pb-20">
       <div className="hidden lg:block">
-        <PageHead eyebrow="Usage" title="What you have left" subtitle="One credit balance across Analyze and Competitors." />
+        <PageHead eyebrow="Usage" title="What you have left" subtitle="One credit balance across Analyze and Ideas." />
       </div>
 
       {error && <ErrorNotice message={error} className="mb-6" />}

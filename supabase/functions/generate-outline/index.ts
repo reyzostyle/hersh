@@ -2,6 +2,7 @@ import { createClient } from 'npm:@supabase/supabase-js@2.57.4';
 import { loadCreditStatus, canAfford, spendCredits, CREDIT_COSTS } from '../_shared/credits.ts';
 import { watchVideo } from '../_shared/analyze-video.ts';
 import { loadChannelScan, channelScanBlock } from '../_shared/channel-scan.ts';
+import { loadBrain, brainBlock } from '../_shared/brain.ts';
 import { parseModelJson } from '../_shared/json.ts';
 
 const corsHeaders = {
@@ -166,7 +167,11 @@ Deno.serve(async (req: Request) => {
     }
 
     console.log('[generate-outline] Watching video for idea:', ideaId);
-    const profileBlock = `## What they told us about their channel
+    // The brain if it has been built, the four hand-typed boxes if not. See
+    // _shared/brain.ts: an outline written against an empty profile is an
+    // outline written for nobody, which is what most of these were.
+    const brain = await loadBrain(supabase, userId);
+    const profileBlock = brain ? brainBlock(brain) : `## What they told us about their channel
 Niche: ${profile?.channel_niche || 'not set'}
 Description: ${profile?.channel_description || 'not set'}
 Audience: ${profile?.target_audience || 'not set'}

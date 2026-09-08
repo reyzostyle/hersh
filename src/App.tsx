@@ -271,7 +271,7 @@ function AppContent() {
     if (!user) { setNeedsOnboarding(null); return; }
     supabase
       .from('user_tokens')
-      .select('onboarding_completed, channel_niche, channel_description')
+      .select('onboarding_completed, channel_niche, channel_description, brain')
       .eq('user_id', user.id)
       .maybeSingle()
       .then(({ data, error }) => {
@@ -279,9 +279,12 @@ function AppContent() {
         // user in onboarding — only a real "no row / not completed" does.
         if (error) { setNeedsOnboarding(false); return; }
         setNeedsOnboarding(!data?.onboarding_completed);
-        // The two fields every analysis prompt reads. Level and goal are not
-        // counted: an account carrying only those still gets a cold read.
-        setProfileEmpty(!data?.channel_niche?.trim() && !data?.channel_description?.trim());
+        // What every analysis prompt reads. A built brain settles it on its
+        // own - it IS the profile now - and the two old columns still count
+        // for accounts that typed something before the brain existed. Level
+        // alone is not enough: an account carrying only that still gets a
+        // cold read.
+        setProfileEmpty(!data?.brain && !data?.channel_niche?.trim() && !data?.channel_description?.trim());
       });
   }, [user?.id]);
 

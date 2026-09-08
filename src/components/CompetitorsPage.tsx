@@ -347,9 +347,9 @@ export function CompetitorsPage() {
   return (
     <Page className="animate-tab-in">
       <PageHead
-        eyebrow="Competitors"
-        title="What beat its own average"
-        subtitle="Finding them is free. Reading one costs a credit."
+        eyebrow="Ideas"
+        title="Steal what already worked"
+        subtitle="Shorts that beat the channel they came from, rebuilt for yours. Finding them is free, reading one costs a credit."
       />
 
       <CompetitorsFeed

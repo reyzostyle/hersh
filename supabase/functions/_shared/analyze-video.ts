@@ -1,5 +1,6 @@
 import type { AttachedImage } from './images.ts';
 import { parseModelJson } from './json.ts';
+import { brainLine, type ChannelBrain } from './brain.ts';
 
 // Shared video analysis: one Gemini call that both WATCHES the video and writes
 // the verdict. Used by analyze-with-gemini (pasted YouTube link) and
@@ -225,9 +226,14 @@ ${knowledgeBaseSection ? `KNOWLEDGE BASE (learned patterns - use as instinct, do
       : `N/A - retention data not available for this video.\nAnalyze based on the timeline, hook, and content only.`;
 
   // Don't use channel profile for external videos - they're someone else's content
-  const hasProfile = !video.is_external && (profile.channel_niche || profile.channel_description);
+  //
+  // The brain, when it has been built, replaces the three typed boxes: it is
+  // the same information written by something that also looked at their last
+  // twenty uploads. The boxes stay as the fallback for accounts without one.
+  const brain = profile.brain as ChannelBrain | null | undefined;
+  const hasProfile = !video.is_external && (brain || profile.channel_niche || profile.channel_description);
   const profileSection = hasProfile
-    ? `Niche: ${profile.channel_niche || 'N/A'}\nDescription: ${profile.channel_description || 'N/A'}${profile.channel_context ? `\nAdditional Context: ${profile.channel_context}` : ''}\n\nRELEVANCE RULE: Only tailor the analysis to this niche if THIS video's actual content clearly fits it. If the video is obviously a different topic/niche than described above, IGNORE this profile completely and analyze the video on its own merits - do not force the creator's niche onto unrelated content.`
+    ? `${brain ? brainLine(brain) : `Niche: ${profile.channel_niche || 'N/A'}\nDescription: ${profile.channel_description || 'N/A'}${profile.channel_context ? `\nAdditional Context: ${profile.channel_context}` : ''}`}\n\nRELEVANCE RULE: Only tailor the analysis to this niche if THIS video's actual content clearly fits it. If the video is obviously a different topic/niche than described above, IGNORE this profile completely and analyze the video on its own merits - do not force the creator's niche onto unrelated content.`
     : `N/A - channel profile not provided`;
 
   const prompt = `Watch and listen to this Short in full, then work through STAGE 1 and STAGE 2.

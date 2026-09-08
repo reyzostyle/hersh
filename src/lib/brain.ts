@@ -1,0 +1,40 @@
+import { getSessionToken, fetchWithRetry } from './supabase';
+
+const FUNCTIONS_URL = 'https://ezlousklksipvwuinpzq.supabase.co/functions/v1';
+
+// The model's own read of a channel, built from the level and the sentence the
+// creator wrote plus their last twenty uploads. It is what every prompt that
+// adapts something "for your channel" is written against - see
+// supabase/functions/_shared/brain.ts for the half that does the work.
+export interface ChannelBrain {
+  summary: string;
+  niche: string;
+  format: string;
+  audience: string;
+  voice: string;
+  strengths: string[];
+  watch_outs: string[];
+  adapt_rules: string[];
+  source: 'uploads' | 'stated';
+}
+
+export interface BrainResult {
+  brain: ChannelBrain | null;
+  // 'nothing_to_read' means the account has told us nothing and connected
+  // nothing. Not an error - a state the screen has a sentence for.
+  reason?: string;
+  error?: string;
+}
+
+export async function requestBrain(force = false): Promise<BrainResult> {
+  const token = await getSessionToken();
+  if (!token) return { brain: null, error: 'Not signed in' };
+  const res = await fetchWithRetry(`${FUNCTIONS_URL}/build-brain`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ force }),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) return { brain: null, error: data.error || 'Could not read your channel' };
+  return data as BrainResult;
+}

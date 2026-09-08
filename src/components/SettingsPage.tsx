@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
-import { RefreshOutlineIcon as Loader2, EyeOutlineIcon as Eye, EyeClosedOutlineIcon as EyeOff, RefreshOutlineIcon as RefreshCw, LinkOutlineIcon as Link, AltArrowDownOutlineIcon as ChevronDown, Stars2OutlineIcon as Sparkles, UserOutlineIcon as User, BoltOutlineIcon as Zap, ChatRoundOutlineIcon as MessageCircle, SquareArrowRightUpOutlineIcon as ExternalLink, TicketOutlineIcon as Ticket } from '@solar-icons/react';
+import { RefreshOutlineIcon as Loader2, EyeOutlineIcon as Eye, EyeClosedOutlineIcon as EyeOff, RefreshOutlineIcon as RefreshCw, LinkOutlineIcon as Link, AltArrowDownOutlineIcon as ChevronDown, Stars2OutlineIcon as Sparkles, UserOutlineIcon as User, BoltOutlineIcon as Zap, ChatRoundOutlineIcon as MessageCircle, SquareArrowRightUpOutlineIcon as ExternalLink, TicketOutlineIcon as Ticket, CpuBoltOutlineIcon as Brain } from '@solar-icons/react';
 import { getSessionToken, fetchWithRetry } from '../lib/supabase';
 import { PageHead } from './Page';
-import { NICHES, parseNiches, joinNiches } from '../lib/niches';
+import { requestBrain, type ChannelBrain } from '../lib/brain';
 
 function YouTubeLogo({ className }: { className?: string }) {
   return (
@@ -19,31 +19,35 @@ const glassInput: React.CSSProperties = {
   border: '1px solid rgba(255,255,255,0.1)',
 };
 
-// Grouped settings section: a collapsible glass card (collapsed by default).
-// Open state lives in SettingsPage so only one card is expanded at a time.
-function SettingsCard({ icon, iconBg, title, open, onToggle, children }: {
-  icon: React.ReactNode; iconBg: string; title: string;
+// Grouped settings section: the app's row, opened rather than followed.
+//
+// It used to be its own object - a glass card with a 2xl radius and an icon
+// tile at a size nothing else used - which is how Settings, the hub and
+// Projects ended up as three different-looking lists of the same thing. The
+// plate, the tile and the measure are now `.row` / `.row-group` (index.css),
+// shared with everything else.
+//
+// The sentence under each title is new. A row of six words told you nothing
+// about what was behind it, and the one screen where people go looking for a
+// setting is the worst place to make them open all six to find out.
+function SettingsCard({ icon, iconBg, title, subtitle, open, onToggle, children }: {
+  icon: React.ReactNode; iconBg: string; title: string; subtitle: string;
   open: boolean; onToggle: () => void; children: React.ReactNode;
 }) {
   return (
-    <div className="glass-panel rounded-2xl overflow-hidden">
-      <button
-        onClick={onToggle}
-        className="w-full flex items-center gap-3 px-4 sm:px-5 py-4 text-left"
-      >
-        <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: iconBg }}>
-          {icon}
-        </div>
-        <div className="min-w-0 flex-1">
-          <h2 className="text-white font-semibold text-sm sm:text-[15px] leading-tight">{title}</h2>
-        </div>
-        <ChevronDown className={`w-4 h-4 text-gray-500 flex-shrink-0 transition-transform duration-200 ${open ? 'rotate-180' : ''}`} />
+    <div className="row-group">
+      <button onClick={onToggle} className="row" aria-expanded={open}>
+        <span className="row-icon" style={{ background: iconBg }}>{icon}</span>
+        <span className="flex-1 min-w-0">
+          <span className="block text-[15px] font-medium" style={{ color: 'var(--text)' }}>{title}</span>
+          <span className="block text-[13px] leading-relaxed mt-0.5" style={{ color: 'var(--text-muted)' }}>{subtitle}</span>
+        </span>
+        <ChevronDown
+          className="w-4 h-4 flex-shrink-0 row-chevron"
+          style={{ color: 'var(--text-faint)', transform: open ? 'rotate(180deg)' : 'none' }}
+        />
       </button>
-      {open && (
-        <div className="px-4 sm:px-5 pb-5 pt-1">
-          {children}
-        </div>
-      )}
+      {open && <div className="row-group-body">{children}</div>}
     </div>
   );
 }
@@ -96,15 +100,23 @@ export function SettingsPage() {
   const [disconnecting, setDisconnecting] = useState(false);
   const [confirmDisconnect, setConfirmDisconnect] = useState(false);
 
-  // Channel context state
-  const [channelNiche, setChannelNiche] = useState('');
+  // Channel context state. Niche and audience are no longer typed by anyone -
+  // the brain derives them and writes them back to the same columns, which is
+  // what keeps competitor search working for accounts that never filled them
+  // in. See supabase/functions/_shared/brain.ts.
   const [channelDescription, setChannelDescription] = useState('');
-  const [targetAudience, setTargetAudience] = useState('');
   const [creatorLevel, setCreatorLevel] = useState('intermediate');
+
+  // The brain
+  const [brain, setBrain] = useState<ChannelBrain | null>(null);
+  const [brainAt, setBrainAt] = useState<string | null>(null);
+  const [brainBuilding, setBrainBuilding] = useState(false);
+  const [brainError, setBrainError] = useState('');
   const [loading, setLoading] = useState(true);
   const [contextSaving, setContextSaving] = useState(false);
   const [contextSaved, setContextSaved] = useState(false);
   const [contextError, setContextError] = useState('');
+  const [loadFailed, setLoadFailed] = useState(false);
 
   // Password state
   const [currentPassword, setCurrentPassword] = useState('');
@@ -172,12 +184,16 @@ export function SettingsPage() {
 
     (async () => {
       try {
-        const { data } = await supabase
+        const { data, error } = await supabase
           .from('user_tokens')
-          .select('updated_at, access_token, plan, youtube_channel_name, youtube_channel_thumbnail, channel_niche, channel_description, target_audience, creator_level')
+          .select('updated_at, access_token, plan, youtube_channel_name, youtube_channel_thumbnail, channel_description, creator_level, brain, brain_at')
           .eq('user_id', user.id)
           .maybeSingle();
         if (cancelled) return;
+        // A failed read leaves every field at its empty default, and Save
+        // would then write those empties over a profile that is perfectly
+        // fine. Say so and refuse to save instead.
+        if (error) setLoadFailed(true);
 
         setYoutubeStatus(data?.access_token
           ? {
@@ -190,10 +206,10 @@ export function SettingsPage() {
         const nextPlan = data?.plan || 'free';
         setPlan(nextPlan);
         try { localStorage.setItem(PLAN_CACHE_KEY, nextPlan); } catch { /* private mode */ }
-        setChannelNiche(data?.channel_niche || '');
         setChannelDescription(data?.channel_description || '');
-        setTargetAudience(data?.target_audience || '');
         setCreatorLevel(data?.creator_level || 'intermediate');
+        setBrain((data?.brain as ChannelBrain) ?? null);
+        setBrainAt(data?.brain_at ?? null);
       } catch {
         if (!cancelled) {
           setYoutubeStatus({ connected: false });
@@ -237,6 +253,11 @@ export function SettingsPage() {
     }
   };
 
+  // One button, two things: the two fields go to the row, and the brain is
+  // rebuilt off them. Saving a profile and then having to notice a second
+  // control that makes the profile count would be a trap - the whole point of
+  // cutting this screen down to two fields is that there is nothing left to
+  // get wrong.
   const saveContext = async () => {
     setContextSaving(true);
     setContextError('');
@@ -245,23 +266,39 @@ export function SettingsPage() {
       .select('user_id')
       .eq('user_id', user?.id)
       .maybeSingle();
+    const patch = { channel_description: channelDescription, creator_level: creatorLevel };
     let err;
     if (existing) {
       ({ error: err } = await supabase
         .from('user_tokens')
-        .update({ channel_niche: channelNiche, channel_description: channelDescription, target_audience: targetAudience, creator_level: creatorLevel })
+        .update(patch)
         .eq('user_id', user?.id));
     } else {
       ({ error: err } = await supabase
         .from('user_tokens')
-        .insert({ user_id: user?.id, channel_niche: channelNiche, channel_description: channelDescription, target_audience: targetAudience, creator_level: creatorLevel, access_token: '', refresh_token: '' }));
+        .insert({ user_id: user?.id, ...patch, access_token: '', refresh_token: '' }));
     }
     setContextSaving(false);
     if (err) {
       setContextError('Failed to save: ' + err.message);
-    } else {
-      setContextSaved(true);
-      setTimeout(() => setContextSaved(false), 2500);
+      return;
+    }
+    setContextSaved(true);
+    setTimeout(() => setContextSaved(false), 2500);
+    buildBrain(true);
+  };
+
+  const buildBrain = async (force: boolean) => {
+    setBrainBuilding(true);
+    setBrainError('');
+    const result = await requestBrain(force);
+    setBrainBuilding(false);
+    if (result.error) { setBrainError(result.error); return; }
+    if (result.brain) {
+      setBrain(result.brain);
+      setBrainAt(new Date().toISOString());
+    } else if (result.reason === 'nothing_to_read') {
+      setBrainError('Nothing to read yet. Say a line about yourself above, or connect your channel.');
     }
   };
 
@@ -304,126 +341,81 @@ export function SettingsPage() {
     }
   };
 
+  // The same 10px between cards that the hub and Projects use between rows -
+  // they are the same object now, so they stack the same way.
   return (
-    <div className="sheet min-h-full max-w-5xl mx-auto px-5 sm:px-8 pt-12 sm:pt-16 pb-20 space-y-4">
+    <div className="sheet min-h-full max-w-5xl mx-auto px-5 sm:px-8 pt-12 sm:pt-16 pb-20 space-y-2.5">
 
       <div className="hidden lg:block">
         <PageHead eyebrow="Settings" title="Your account" subtitle="Your channel profile, your connections, and your subscription." />
       </div>
 
       {/* ── Channel profile ── */}
+      {/* Two fields, and neither of them can be filled in wrongly.
+          It was five: a level, a niche picked from twelve chips or typed, a
+          description, and an audience. Every one of them was a chance to
+          describe the channel you mean to run rather than the one you run, and
+          a wrong profile is worse than an empty one - it steers every adapted
+          idea at a channel that does not exist. Most people left them blank
+          anyway. What the prompts need is derived from these two plus the
+          uploads: see the brain below. */}
       <SettingsCard
         {...cardProps('profile')}
-        icon={<Sparkles className="w-4 h-4 text-[var(--accent)]" />}
+        icon={<Sparkles className="w-[18px] h-[18px] text-[var(--accent)]" />}
         iconBg="rgba(var(--accent-rgb),0.12)"
         title="Channel profile"
+        subtitle="Where you are, and anything you want us to know."
       >
         {loading ? (
           <Loader2 className="w-4 h-4 text-gray-500 animate-spin" />
         ) : (
           <div className="space-y-4">
             <div>
-              <FieldLabel>Creator level</FieldLabel>
-              <select
-                value={creatorLevel}
-                onChange={e => setCreatorLevel(e.target.value)}
-                className="glass-field w-full px-4 py-2.5 rounded-lg text-white text-sm focus:outline-none transition-colors appearance-none cursor-pointer"
-                style={{ ...glassInput, backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 14px center' }}
-                onFocus={e => { e.currentTarget.style.borderColor = 'var(--accent)'; }}
-                onBlur={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)'; }}
-              >
+              <FieldLabel>Where you are</FieldLabel>
+              <div className="flex flex-wrap gap-2">
                 {CREATOR_LEVELS.map(l => (
-                  <option key={l.value} value={l.value} style={{ background: 'rgb(var(--surface-rgb))' }}>{l.label}</option>
+                  <button
+                    key={l.value}
+                    type="button"
+                    className="chip"
+                    data-on={creatorLevel === l.value}
+                    onClick={() => setCreatorLevel(l.value)}
+                  >
+                    {l.label}
+                  </button>
                 ))}
-              </select>
-              <p className="mt-1.5 text-xs text-gray-600">{CREATOR_LEVELS.find(l => l.value === creatorLevel)?.hint}</p>
-            </div>
-
-            <div>
-              <FieldLabel>Channel niche</FieldLabel>
-              {/* The same chips as onboarding, because everyone who signed up
-                  before this list existed typed something free-form, and a
-                  typed niche is a user with nothing to benchmark them against.
-                  This is where they can pick one without redoing onboarding.
-                  The text field stays for anyone genuinely outside the list. */}
-              <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 mb-2.5">
-                {NICHES.map(n => {
-                  const picked = parseNiches(channelNiche);
-                  const active = picked.includes(n);
-                  const atCap = picked.length >= 3 && !active;
-                  return (
-                    <button
-                      key={n}
-                      type="button"
-                      disabled={atCap}
-                      onClick={() => setChannelNiche(joinNiches(
-                        active ? picked.filter(p => p !== n) : [...picked, n],
-                      ))}
-                      className="w-full px-2 py-1.5 rounded-full text-sm text-center whitespace-nowrap transition-all disabled:opacity-40"
-                      style={{
-                        border: `1px solid ${active ? 'var(--accent)' : 'rgba(255,255,255,0.08)'}`,
-                        background: active ? 'rgba(var(--accent-rgb),0.12)' : 'rgba(255,255,255,0.03)',
-                        color: active ? '#fff' : '#cbd5e1',
-                      }}
-                    >
-                      {n}
-                    </button>
-                  );
-                })}
               </div>
-              <input
-                type="text"
-                value={channelNiche}
-                onChange={e => setChannelNiche(e.target.value)}
-                placeholder="Or type it, if none of these fit"
-                className="glass-field w-full px-4 py-2.5 rounded-lg text-white placeholder-gray-600 text-sm focus:outline-none transition-colors"
-                style={glassInput}
-                onFocus={e => { e.currentTarget.style.borderColor = 'var(--accent)'; }}
-                onBlur={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)'; }}
-              />
+              <p className="mt-2 text-xs" style={{ color: 'var(--text-faint)' }}>
+                {CREATOR_LEVELS.find(l => l.value === creatorLevel)?.hint}
+              </p>
             </div>
 
             <div>
-              <FieldLabel>About the channel</FieldLabel>
+              <FieldLabel>Anything worth knowing</FieldLabel>
               <textarea
                 value={channelDescription}
                 onChange={e => setChannelDescription(e.target.value)}
-                placeholder="What's your channel about? Content style, format, tone."
+                placeholder="Whatever you want us to know - what you make, who it is for, what you are trying to fix. A sentence is enough."
                 rows={3}
                 className="glass-field w-full px-4 py-3 rounded-lg text-white placeholder-gray-600 text-sm focus:outline-none resize-none leading-relaxed transition-colors"
                 style={glassInput}
                 onFocus={e => { e.currentTarget.style.borderColor = 'var(--accent)'; }}
                 onBlur={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)'; }}
               />
+              <p className="mt-2 text-xs" style={{ color: 'var(--text-faint)' }}>
+                There is no wrong answer here. Whatever you leave out is read off your uploads.
+              </p>
             </div>
 
-            {/* Onboarding has asked for this since it was written and saved it
-                to target_audience, but this screen had no field for it, so the
-                second thing anyone typed on that step went into the database
-                and was never seen again. It is not decoration either: it goes
-                into the prompt in generate-outline and enrich-competitor-video.
-
-                The description's placeholder used to say "and target audience",
-                which is why one field looked like it covered both. */}
-            <div>
-              <FieldLabel>Target audience</FieldLabel>
-              <textarea
-                value={targetAudience}
-                onChange={e => setTargetAudience(e.target.value)}
-                placeholder="Who are you making it for?"
-                rows={2}
-                className="glass-field w-full px-4 py-3 rounded-lg text-white placeholder-gray-600 text-sm focus:outline-none resize-none leading-relaxed transition-colors"
-                style={glassInput}
-                onFocus={e => { e.currentTarget.style.borderColor = 'var(--accent)'; }}
-                onBlur={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)'; }}
-              />
-            </div>
-
-            {contextError && <p className="text-red-400 text-sm">{contextError}</p>}
+            {(contextError || loadFailed) && (
+              <p className="text-red-400 text-sm">
+                {contextError || 'Could not read your profile just now, so saving is off to avoid writing over it. Reload the page.'}
+              </p>
+            )}
 
             <button
               onClick={saveContext}
-              disabled={contextSaving}
+              disabled={contextSaving || loadFailed}
               className="w-full py-2.5 text-white rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
               style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.12)' }}
             >
@@ -433,12 +425,34 @@ export function SettingsPage() {
         )}
       </SettingsCard>
 
+      {/* ── The brain ── */}
+      <SettingsCard
+        {...cardProps('brain')}
+        /* Not the process green, however tempting on an icon called brain:
+           green in this product means something is running or something
+           worked, and spending it on a permanent tile is exactly how a colour
+           with one meaning stops having one. */
+        icon={<Brain className="w-[18px] h-[18px]" style={{ color: 'var(--text)' }} />}
+        iconBg="rgba(255,255,255,0.05)"
+        title="Chumoku brain"
+        subtitle="What we worked out about your channel, and what every idea is written against."
+      >
+        <BrainCard
+          brain={brain}
+          builtAt={brainAt}
+          loading={brainBuilding}
+          error={brainError}
+          onBuild={() => buildBrain(true)}
+        />
+      </SettingsCard>
+
       {/* ── YouTube account ── */}
       <SettingsCard
         {...cardProps('youtube')}
-        icon={<YouTubeLogo className="w-4 h-4 text-red-500" />}
+        icon={<YouTubeLogo className="w-[18px] h-[18px] text-red-500" />}
         iconBg="rgba(255,0,0,0.1)"
         title="YouTube account"
+        subtitle="Your own numbers, your own videos, and a read of what you publish."
       >
         {youtubeStatus === null ? (
           <Loader2 className="w-4 h-4 text-gray-500 animate-spin" />
@@ -526,9 +540,10 @@ export function SettingsPage() {
       {/* ── Account ── */}
       <SettingsCard
         {...cardProps('account')}
-        icon={<User className="w-4 h-4 text-gray-300" />}
+        icon={<User className="w-[18px] h-[18px] text-gray-300" />}
         iconBg="rgba(255,255,255,0.07)"
         title="Account"
+        subtitle="The email you signed in with, and your password."
       >
         <div className="space-y-5">
           <div>
@@ -589,9 +604,10 @@ export function SettingsPage() {
       {plan && plan !== 'free' && (
         <SettingsCard
           {...cardProps('subscription')}
-          icon={<Zap className="w-4 h-4 text-[var(--accent)]" />}
+          icon={<Zap className="w-[18px] h-[18px] text-[var(--accent)]" />}
           iconBg="rgba(var(--accent-rgb),0.12)"
           title="Subscription"
+          subtitle="What you are on, and how to change it."
         >
           {/* Plan summary with an accent badge — distinct from the other cards */}
           <div className="rounded-xl px-4 py-3.5 flex items-center justify-between gap-3" style={{ background: 'rgba(var(--accent-rgb),0.06)', border: '1px solid rgba(var(--accent-rgb),0.18)' }}>
@@ -654,9 +670,10 @@ export function SettingsPage() {
       {/* ── Support ── */}
       <SettingsCard
         {...cardProps('support')}
-        icon={<MessageCircle className="w-4 h-4 text-[#5865F2]" />}
+        icon={<MessageCircle className="w-[18px] h-[18px] text-[#5865F2]" />}
         iconBg="rgba(88,101,242,0.12)"
         title="Support"
+        subtitle="Where to reach us, and what to send so it can be answered."
       >
         <a
           href="https://discord.gg/N8S6C95Ry2"
@@ -673,9 +690,10 @@ export function SettingsPage() {
       {/* ── Redeem code ── */}
       <SettingsCard
         {...cardProps('redeem')}
-        icon={<Ticket className="w-4 h-4 text-amber-400" />}
+        icon={<Ticket className="w-[18px] h-[18px] text-amber-400" />}
         iconBg="rgba(251,191,36,0.12)"
         title="Redeem code"
+        subtitle="A code from Discord or a partner goes in here."
       >
         <div className="flex items-center gap-2">
           <input
@@ -704,6 +722,85 @@ export function SettingsPage() {
         )}
       </SettingsCard>
 
+    </div>
+  );
+}
+
+// ─── The brain, on screen ────────────────────────────────────────────────────
+// The profile the model wrote, shown to the person it is about.
+//
+// It could have stayed invisible - nothing in the product needs the creator to
+// read it. But a profile that silently steers every adapted idea, that nobody
+// can see and nobody can correct, is the same trap as the four boxes it
+// replaced, only harder to argue with. Shown, it is checkable: if it has the
+// channel wrong, the fix is a line in the box above and a rebuild.
+function BrainCard({ brain, builtAt, loading, error, onBuild }: {
+  brain: ChannelBrain | null;
+  builtAt: string | null;
+  loading: boolean;
+  error: string;
+  onBuild: () => void;
+}) {
+  const Field = ({ label, value }: { label: string; value: string }) =>
+    value ? (
+      <div>
+        <FieldLabel>{label}</FieldLabel>
+        <p className="text-sm leading-relaxed" style={{ color: 'var(--text-muted)' }}>{value}</p>
+      </div>
+    ) : null;
+
+  const List = ({ label, items }: { label: string; items: string[] }) =>
+    items?.length ? (
+      <div>
+        <FieldLabel>{label}</FieldLabel>
+        <ul className="space-y-1.5">
+          {items.map((x, i) => (
+            <li key={i} className="text-sm leading-relaxed flex gap-2" style={{ color: 'var(--text-muted)' }}>
+              <span style={{ color: 'var(--text-faint)' }}>-</span>
+              <span>{x}</span>
+            </li>
+          ))}
+        </ul>
+      </div>
+    ) : null;
+
+  return (
+    <div className="space-y-4">
+      {brain ? (
+        <>
+          <p className="text-sm leading-relaxed" style={{ color: 'var(--text)' }}>{brain.summary}</p>
+          <Field label="Niche" value={brain.niche} />
+          <Field label="Format" value={brain.format} />
+          <Field label="Audience" value={brain.audience} />
+          <Field label="Voice" value={brain.voice} />
+          <List label="What already works" items={brain.strengths} />
+          <List label="What we will not suggest" items={brain.watch_outs} />
+          <List label="How ideas get remade for you" items={brain.adapt_rules} />
+          <p className="text-xs" style={{ color: 'var(--text-faint)' }}>
+            {brain.source === 'uploads'
+              ? 'Read off your last uploads and what you wrote.'
+              : 'Written from what you wrote. Connect your channel and this gets read off your real uploads instead.'}
+            {builtAt && ` Built ${new Date(builtAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}.`}
+          </p>
+        </>
+      ) : (
+        <p className="text-sm leading-relaxed" style={{ color: 'var(--text-muted)' }}>
+          Nothing here yet. Build it and every idea, outline and rewrite after that is
+          written for your channel instead of for a generic one.
+        </p>
+      )}
+
+      {error && <p className="text-red-400 text-sm">{error}</p>}
+
+      <button
+        onClick={onBuild}
+        disabled={loading}
+        className="w-full py-2.5 text-white rounded-lg text-sm font-medium transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+        style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.12)' }}
+      >
+        {loading && <Loader2 className="w-4 h-4 animate-spin" />}
+        {loading ? 'Reading your channel' : brain ? 'Rebuild' : 'Build it'}
+      </button>
     </div>
   );
 }

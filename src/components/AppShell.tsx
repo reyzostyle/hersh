@@ -37,7 +37,12 @@ const baseNavItems: NavItem[] = [
   { id: 'analyze', label: 'Analyze', icon: <VideoIcon className="w-4 h-4" /> },
   { id: 'projects', label: 'Projects', icon: <Folder className="w-4 h-4" /> },
   { id: 'analytics', label: 'Analytics', icon: <GraphUp className="w-4 h-4" /> },
-  { id: 'competitors', label: 'Competitors', icon: <Users className="w-4 h-4" /> },
+  // Labelled Ideas, id still `competitors` - same rule as Affiliate below:
+  // the id is persisted in state, dispatched on the navigate channel and
+  // matched in the DB, and renaming an identifier to match a caption is how
+  // those quietly come apart. Nobody knew what Competitors was a list OF;
+  // what the tab produces is ideas.
+  { id: 'competitors', label: 'Ideas', icon: <Users className="w-4 h-4" /> },
   { id: 'usage', label: 'Usage', icon: <BarChart2 className="w-4 h-4" /> },
   { id: 'upgrade', label: 'Upgrade', icon: <Zap className="w-4 h-4" />, highlight: true },
   { id: 'settings', label: 'Settings', icon: <Settings className="w-4 h-4" /> },

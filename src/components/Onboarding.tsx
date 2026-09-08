@@ -1,21 +1,31 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
-import { RefreshOutlineIcon as Loader2, ArrowLeftOutlineIcon as ArrowLeft, ArrowRightOutlineIcon as ArrowRight, DollarOutlineIcon as DollarSign, FireOutlineIcon as Flame, GraphUpOutlineIcon as TrendingUp, CupOutlineIcon as Trophy, LeafOutlineIcon as Sprout, RocketOutlineIcon as Rocket, BagOutlineIcon as ShoppingBag } from '@solar-icons/react';
+import { RefreshOutlineIcon as Loader2, ArrowLeftOutlineIcon as ArrowLeft, ArrowRightOutlineIcon as ArrowRight, CupOutlineIcon as Trophy, LeafOutlineIcon as Sprout, RocketOutlineIcon as Rocket } from '@solar-icons/react';
 import { Youtube, Check } from './BrandIcons';
-import { NICHES as NICHE_PRESETS } from '../lib/niches';
+import { requestBrain } from '../lib/brain';
 
 const STORAGE_KEY = 'chumoku_onboarding';
 
+// Two questions, and neither of them can be answered wrongly.
+//
+// It used to be five: level, a niche picked from twelve chips, a goal, a
+// description and an audience. Three of those asked someone who has not opened
+// the product yet to classify their own channel, and the answers were either
+// blank or aspirational - which is worse, because everything the model later
+// wrote "for your channel" was written for the channel they described rather
+// than the one they run.
+//
+// A level and a couple of sentences is all anyone can get right on day one.
+// Everything the prompts actually need - niche, format, voice, audience - is
+// derived from those plus their real uploads once, at the end of this flow:
+// see src/lib/brain.ts.
 interface Answers {
   level: string;
-  niche: string;
-  goal: string;
   description: string;
-  audience: string;
 }
 
-const EMPTY: Answers = { level: '', niche: '', goal: '', description: '', audience: '' };
+const EMPTY: Answers = { level: '', description: '' };
 
 const LEVELS = [
   { id: 'beginner', label: 'Beginner', desc: 'Just starting out or under a few thousand followers', icon: Sprout },
@@ -23,19 +33,8 @@ const LEVELS = [
   { id: 'advanced', label: 'Advanced', desc: 'Established creator optimizing for scale', icon: Trophy },
 ];
 
-const GOALS = [
-  { id: 'grow', label: 'Grow my audience', icon: TrendingUp },
-  { id: 'monetize', label: 'Monetize my content', icon: DollarSign },
-  { id: 'viral', label: 'Go viral', icon: Flame },
-  { id: 'sell', label: 'Sell a product or service', icon: ShoppingBag },
-];
-
-const GOAL_IDS = GOALS.map(g => g.id);
-
-
-
 // content steps (welcome is index 0, not counted in the progress bar)
-const TOTAL_STEPS = 5;
+const TOTAL_STEPS = 3;
 
 const accent = 'var(--accent)';
 // The label on a filled button. The accent is white, so `text-white` on top of
@@ -66,7 +65,10 @@ export function Onboarding({ onDone }: { onDone: () => void }) {
       if (raw) {
         const parsed = JSON.parse(raw);
         if (parsed.answers) setAnswers({ ...EMPTY, ...parsed.answers });
-        if (typeof parsed.step === 'number') setStep(parsed.step);
+        // Clamped: a half-finished onboarding saved before this flow was cut
+        // from five steps to two comes back pointing at a step that no longer
+        // renders, and the screen would be blank with a Finish button on it.
+        if (typeof parsed.step === 'number') setStep(Math.min(Math.max(parsed.step, 0), TOTAL_STEPS));
       }
     } catch { /* ignore */ }
 
@@ -123,10 +125,7 @@ export function Onboarding({ onDone }: { onDone: () => void }) {
 
     const profile: Record<string, unknown> = { onboarding_completed: true };
     if (answers.level) profile.creator_level = answers.level;
-    if (answers.niche.trim()) profile.channel_niche = answers.niche.trim();
-    if (answers.goal) profile.goal = answers.goal;
     if (answers.description.trim()) profile.channel_description = answers.description.trim();
-    if (answers.audience.trim()) profile.target_audience = answers.audience.trim();
 
     // A stale session makes every write fail with an opaque error; refresh
     // first so a long-idle tab can still finish onboarding.
@@ -147,6 +146,14 @@ export function Onboarding({ onDone }: { onDone: () => void }) {
     setSaving(false);
     if (err) { setError(`Could not save (${err.message}). Try again, or sign out below and log back in.`); return; }
     localStorage.removeItem(STORAGE_KEY);
+
+    // Read the channel now, while they walk into the product. Not awaited:
+    // it takes a few seconds, it can fail (no channel connected, model
+    // trouble), and neither of those is a reason to hold someone on a
+    // finished form. It shows up in Settings under Chumoku brain, and
+    // anything that needs it before then falls back to what they typed.
+    requestBrain(true).catch(() => { /* Settings has a rebuild button */ });
+
     onDone();
   };
 
@@ -182,7 +189,7 @@ export function Onboarding({ onDone }: { onDone: () => void }) {
           <div className="text-center">
             <h1 className="text-2xl font-bold text-white mb-3 text-balance">Welcome to Chumoku</h1>
             <p className="text-gray-400 text-sm leading-relaxed mb-8 text-balance max-w-sm mx-auto">
-              Answer a few quick questions so every analysis and idea is tailored to your channel. Takes under a minute.
+              Two questions and a connection, so every idea and every rewrite is for your channel rather than a generic one. Takes under a minute.
             </p>
             <button onClick={next} className="w-full py-3 rounded-xl font-semibold flex items-center justify-center gap-2" style={{ background: accent, color: onAccent }}>
               Let&apos;s go <ArrowRight className="w-4 h-4" />
@@ -195,7 +202,7 @@ export function Onboarding({ onDone }: { onDone: () => void }) {
 
         {/* ── Level ── */}
         {step === 1 && (
-          <StepShell title="What's your level?" subtitle="So advice matches where you are.">
+          <StepShell title="Where are you at?" subtitle="So advice lands at your level instead of everyone's.">
             <div className="space-y-3">
               {LEVELS.map(l => {
                 const Icon = l.icon;
@@ -215,68 +222,15 @@ export function Onboarding({ onDone }: { onDone: () => void }) {
           </StepShell>
         )}
 
-        {/* ── Niche ── */}
-        {step === 2 && (() => {
-          // Multi-select up to 3: the niche string is the comma-joined list, so
-          // chips and free typing stay in sync (typed text counts as a part too).
-          const parts = answers.niche.split(',').map(p => p.trim()).filter(Boolean);
-          const atCap = parts.length >= 3;
-          const toggle = (n: string) => {
-            const has = parts.includes(n);
-            if (!has && atCap) return;
-            const nextParts = has ? parts.filter(p => p !== n) : [...parts, n];
-            set({ niche: nextParts.join(', ') });
-          };
-          return (
-            <StepShell title="What's your niche?" subtitle="Pick up to 3 or type your own.">
-              {/* Fixed grid (12 presets = 3×4 mobile, 4×3 desktop) so a wrap
-                  never strands a single chip on its own row */}
-              <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 mb-4">
-                {NICHE_PRESETS.map(n => {
-                  const active = parts.includes(n);
-                  const dimmed = !active && atCap;
-                  return (
-                    <button key={n} onClick={() => toggle(n)} className="w-full px-2 py-1.5 rounded-full text-sm text-center whitespace-nowrap transition-all"
-                      style={{ ...cardBase, borderColor: active ? accent : 'rgba(255,255,255,0.08)', background: active ? 'rgba(var(--accent-rgb),0.12)' : cardBase.background, color: active ? '#fff' : '#cbd5e1', opacity: dimmed ? 0.4 : 1, cursor: dimmed ? 'default' : 'pointer' }}>
-                      {n}
-                    </button>
-                  );
-                })}
-              </div>
-              <input
-                value={answers.niche}
-                onChange={e => set({ niche: e.target.value })}
-                placeholder="Or describe your niche…"
-                className="w-full px-4 py-3 rounded-xl text-white text-sm focus:outline-none"
-                style={{ ...cardBase }}
-                onFocus={e => { e.currentTarget.style.borderColor = accent; }}
-                onBlur={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)'; }}
-              />
-            </StepShell>
-          );
-        })()}
-
-        {/* ── Goal ── */}
-        {step === 3 && (
-          <StepShell title="What's your main goal?" subtitle="We'll prioritize what gets you there.">
-            <div className="grid grid-cols-2 gap-3 mb-4">
-              {GOALS.map(g => {
-                const Icon = g.icon;
-                const active = answers.goal === g.id;
-                return (
-                  <button key={g.id} onClick={() => set({ goal: g.id })} className="flex flex-col items-start gap-3 p-4 rounded-2xl text-left transition-all"
-                    style={{ ...cardBase, borderColor: active ? accent : 'rgba(255,255,255,0.08)', background: active ? 'rgba(var(--accent-rgb),0.08)' : cardBase.background }}>
-                    <Icon className="w-5 h-5" style={{ color: active ? accent : '#94a3b8' }} />
-                    <span className="text-white font-medium text-sm text-balance">{g.label}</span>
-                  </button>
-                );
-              })}
-            </div>
-            <input
-              value={GOAL_IDS.includes(answers.goal) ? '' : answers.goal}
-              onChange={e => set({ goal: e.target.value })}
-              placeholder="Or write your own goal…"
-              className="w-full px-4 py-3 rounded-xl text-white text-sm focus:outline-none"
+        {/* ── About ── */}
+        {step === 2 && (
+          <StepShell title="Anything worth knowing?" subtitle="A sentence is plenty. There is no wrong answer here.">
+            <textarea
+              value={answers.description}
+              onChange={e => set({ description: e.target.value })}
+              placeholder="What you make, who it is for, what you are trying to fix. Or nothing at all - the rest gets read off your uploads."
+              rows={4}
+              className="w-full px-4 py-3 rounded-xl text-white text-sm focus:outline-none resize-none leading-relaxed"
               style={{ ...cardBase }}
               onFocus={e => { e.currentTarget.style.borderColor = accent; }}
               onBlur={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)'; }}
@@ -284,37 +238,9 @@ export function Onboarding({ onDone }: { onDone: () => void }) {
           </StepShell>
         )}
 
-        {/* ── About channel ── */}
-        {step === 4 && (
-          <StepShell title="Tell us about your channel" subtitle="Optional, but makes analysis sharper.">
-            <div className="space-y-3">
-              <textarea
-                value={answers.description}
-                onChange={e => set({ description: e.target.value })}
-                placeholder="What's your channel about? (content style, format…)"
-                rows={3}
-                className="w-full px-4 py-3 rounded-xl text-white text-sm focus:outline-none resize-none"
-                style={{ ...cardBase }}
-                onFocus={e => { e.currentTarget.style.borderColor = accent; }}
-                onBlur={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)'; }}
-              />
-              <textarea
-                value={answers.audience}
-                onChange={e => set({ audience: e.target.value })}
-                placeholder="Who's your target audience?"
-                rows={2}
-                className="w-full px-4 py-3 rounded-xl text-white text-sm focus:outline-none resize-none"
-                style={{ ...cardBase }}
-                onFocus={e => { e.currentTarget.style.borderColor = accent; }}
-                onBlur={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)'; }}
-              />
-            </div>
-          </StepShell>
-        )}
-
         {/* ── YouTube ── */}
-        {step === 5 && (
-          <StepShell title="Connect your YouTube" subtitle="Unlocks channel-aware analysis. You can skip this.">
+        {step === 3 && (
+          <StepShell title="Connect your YouTube" subtitle="This is what we read your channel from - your format, your voice, your numbers. You can skip it.">
             {ytConnected ? (
               <div className="flex items-center gap-3 p-4 rounded-2xl" style={{ ...cardBase, borderColor: 'rgba(var(--ok-rgb),0.3)', background: 'rgba(var(--ok-rgb),0.08)' }}>
                 <Check className="w-5 h-5 text-emerald-400" />

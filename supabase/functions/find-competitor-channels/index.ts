@@ -1,6 +1,7 @@
 import { createClient } from 'npm:@supabase/supabase-js@2.57.4';
 import { callLLM } from '../_shared/llm.ts';
 import { loadChannelScan } from '../_shared/channel-scan.ts';
+import { loadBrain } from '../_shared/brain.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -106,15 +107,21 @@ Deno.serve(async (req: Request) => {
     }
 
     const scan = await loadChannelScan(supabase, user.id);
-    const niche = profile?.channel_niche || '';
-    const description = profile?.channel_description || '';
+    // The brain first: "ranking, minecraft" plus a read of what the channel
+    // actually publishes makes a far better search phrase than a sentence
+    // someone typed about themselves at signup.
+    const brain = await loadBrain(supabase, user.id);
+    const niche = brain?.niche || profile?.channel_niche || '';
+    const description = brain
+      ? [brain.summary, brain.format].filter(Boolean).join(' ')
+      : (profile?.channel_description || '');
 
     // With no profile and no connected channel there is nothing to search for,
     // and a guess would burn 100 units of quota to return strangers.
     if (!scan?.videos?.length && !niche && !description) {
       return new Response(JSON.stringify({
         error: 'no_profile',
-        message: 'Fill in your niche in Settings, or connect your YouTube channel, and this can look for people making the same thing.',
+        message: 'Tell us about your channel in Settings, or connect your YouTube channel, and this can look for people making the same thing.',
       }), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 

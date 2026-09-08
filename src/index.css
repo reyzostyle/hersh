@@ -405,6 +405,101 @@ input, textarea, select {
 }
 
 
+/* ─── The row ─────────────────────────────────────────────────────────────────
+   ONE clickable object, used on every list in the product: the hub's tools,
+   the hub's chat history, a project, a settings group, and the three moves on
+   the landing page.
+
+   It replaces three different answers to the same question. The hub drew its
+   tools as hairline rules with a mono numeral, which reads as a table of
+   contents - handsome, and nobody could tell the four lines were buttons.
+   Settings drew raised cards with an icon tile, which read as pressable but
+   said nothing about what was inside. Projects drew a white filled button and
+   then hairline rules under it, so the same screen had two languages.
+
+   The row is the middle: the raised plate and icon tile from Settings, the
+   title-plus-sentence from the hub, an arrow saying it goes somewhere. It is
+   lifted off the page rather than ruled onto it, so the affordance is the
+   shape of the thing, not a hover state a phone will never show. */
+.row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  text-align: left;
+  padding: 14px 16px;
+  background: var(--bg-raised);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+/* A row that is only telling you something (the landing page's three moves)
+   keeps the plate and drops the hover, because nothing happens when it is
+   clicked and a control that lies about that is worse than a paragraph. */
+a.row:hover,
+button.row:hover,
+.row[role="button"]:hover {
+  background: var(--bg-raised-hover);
+  border-color: var(--line-strong);
+}
+
+/* The icon tile. Its tint is set per row where a row has an identity of its
+   own - YouTube red in Settings - and defaults to the same faint white
+   everywhere else, so a list of tools does not turn into a paint chart. */
+.row-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 11px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text-muted);
+  transition: color 0.15s ease;
+}
+a.row:hover .row-icon,
+button.row:hover .row-icon,
+.row[role="button"]:hover .row-icon { color: var(--text); }
+
+/* Where the row goes. Faint until the cursor is on the row, then it moves the
+   two pixels that say "this opens". */
+.row-arrow {
+  flex-shrink: 0;
+  color: var(--text-faint);
+  transition: color 0.15s ease, transform 0.15s ease;
+}
+a.row:hover .row-arrow,
+button.row:hover .row-arrow,
+.row[role="button"]:hover .row-arrow {
+  color: var(--text);
+  transform: translate(2px, -2px);
+}
+/* A chevron points down, not away, so it should not drift diagonally. */
+.row-chevron { transition: transform 0.2s ease; }
+
+/* A row you can open rather than follow: Settings' groups. The plate is the
+   same, the header is a row with its border removed so the group has one edge
+   rather than two, and whatever it opens sits inside the same plate - so an
+   expanded card is still one object and not a lid with a box under it. */
+.row-group {
+  background: var(--bg-raised);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  overflow: hidden;
+}
+.row-group > .row {
+  border: none;
+  border-radius: 0;
+  background: transparent;
+}
+.row-group > .row:hover { background: rgba(255, 255, 255, 0.025); }
+.row-group-body { padding: 2px 16px 18px; }
+
+/* Rows stack with air between them - the gap is what makes each one read as
+   its own object rather than as a cell in a table. */
+.row-list { display: flex; flex-direction: column; gap: 10px; }
+
 /* ─── Chips and segments ─────────────────────────────────────────────────────
    Competitors wrote its filter pills as inline rgba() eight different ways,
    so "the same control" was four slightly different greys. Two classes, both

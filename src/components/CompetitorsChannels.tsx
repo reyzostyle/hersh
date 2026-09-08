@@ -117,7 +117,7 @@ export function CompetitorsChannels({
           <span className="min-w-0">
             <span className="block text-[13px] font-medium" style={{ color: 'var(--text)' }}>Adapt for my profile</span>
             <span className="block text-[11px]" style={{ color: 'var(--text-faint)' }}>
-              Write each angle for your niche, using your channel profile in Settings
+              Write each angle for your channel, using the brain in Settings
             </span>
           </span>
         </button>

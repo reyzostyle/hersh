@@ -1,0 +1,22 @@
+-- The brain: what the model works out about a channel, once, so that every
+-- prompt after it starts from the same read.
+--
+-- The profile used to be four free-text boxes - niche, description, audience,
+-- extra context - and asking a creator to fill those in has two failure modes,
+-- both common. Most people leave them empty, so anything "adapted for your
+-- channel" was adapted for nobody. The ones who do fill them in describe the
+-- channel they mean to run, in whatever words come to hand, and a wrong
+-- profile is worse than an absent one: it actively steers every adaptation at
+-- a channel that does not exist.
+--
+-- What is left to type is a level and a couple of sentences about yourself -
+-- two things nobody can get wrong. Everything the prompts actually need is
+-- derived from those plus the uploads (channel_scan), written by the model in
+-- the shape the prompts want to read: niche, format, voice, audience, and the
+-- rules for remaking someone else's idea on this channel.
+--
+-- Cached rather than derived per request: it is one LLM call, it changes when
+-- the channel changes, and rebuilding it on every competitor breakdown would
+-- pay for it hundreds of times over.
+ALTER TABLE user_tokens ADD COLUMN IF NOT EXISTS brain jsonb;
+ALTER TABLE user_tokens ADD COLUMN IF NOT EXISTS brain_at timestamptz;

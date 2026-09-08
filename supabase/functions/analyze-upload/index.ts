@@ -2,6 +2,7 @@ import { createClient } from 'npm:@supabase/supabase-js@2.57.4';
 import { loadCreditStatus, canAfford, spendCredits, CREDIT_COSTS } from '../_shared/credits.ts';
 import { analyzeVideo } from '../_shared/analyze-video.ts';
 import { parseImages } from '../_shared/images.ts';
+import { loadBrain } from '../_shared/brain.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -118,6 +119,7 @@ Deno.serve(async (req: Request) => {
       console.log('[analyze-upload] File ACTIVE, analyzing...');
 
       const profile = {
+        brain: await loadBrain(supabase, userId),
         channel_niche: tokenRow?.channel_niche || '',
         channel_description: tokenRow?.channel_description || '',
         channel_context: tokenRow?.channel_context || '',

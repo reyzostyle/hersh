@@ -114,6 +114,84 @@ export function Panel({
   );
 }
 
+// ─── The row ─────────────────────────────────────────────────────────────────
+// Every list of things you can open is one of these: a tool on the hub, a
+// conversation, a project, a settings group. The look is in `.row` (index.css)
+// so the landing page can use the same object without importing the app.
+//
+// It comes in two shapes because of one HTML rule: a button cannot contain a
+// button. A row with no inline controls IS the button; a row that carries
+// rename and delete is a plate with a role, and the controls inside it stop the
+// click from reaching the plate. Both render identically.
+export function Row({
+  icon,
+  iconStyle,
+  title,
+  subtitle,
+  meta,
+  actions,
+  arrow,
+  onClick,
+  className = '',
+}: {
+  icon?: React.ReactNode;
+  iconStyle?: React.CSSProperties;
+  title: React.ReactNode;
+  subtitle?: React.ReactNode;
+  // Right-aligned and quiet — a date, a count, a plan. Sits before the arrow.
+  meta?: React.ReactNode;
+  // Controls that belong to the row rather than to the page.
+  actions?: React.ReactNode;
+  arrow?: React.ReactNode;
+  onClick?: () => void;
+  className?: string;
+}) {
+  const body = (
+    <>
+      {icon && <span className="row-icon" style={iconStyle}>{icon}</span>}
+      <span className="flex-1 min-w-0">
+        <span className="block text-[15px] font-medium truncate" style={{ color: 'var(--text)' }}>{title}</span>
+        {subtitle && (
+          <span className="block text-[13px] leading-relaxed mt-0.5" style={{ color: 'var(--text-muted)' }}>
+            {subtitle}
+          </span>
+        )}
+      </span>
+      {meta && <span className="flex-shrink-0 font-mono text-[11px]" style={{ color: 'var(--text-faint)' }}>{meta}</span>}
+      {arrow}
+    </>
+  );
+
+  if (!actions) {
+    return (
+      <button onClick={onClick} className={`row ${className}`}>
+        {body}
+      </button>
+    );
+  }
+
+  return (
+    <div
+      className={`row ${className}`}
+      {...(onClick ? {
+        onClick,
+        role: 'button',
+        tabIndex: 0,
+        onKeyDown: (e: React.KeyboardEvent) => {
+          if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick(); }
+        },
+      } : {})}
+    >
+      {body}
+      {/* The controls are inside the plate, so a click on one would otherwise
+          also open the row it sits on. */}
+      <span className="flex items-center gap-1 flex-shrink-0" onClick={e => e.stopPropagation()}>
+        {actions}
+      </span>
+    </div>
+  );
+}
+
 // A single measured number. Label above in mono, value in the display weight,
 // an optional movement line under it in the one colour the app has.
 export function Tile({ label, value, sub }: { label: string; value: string; sub?: string }) {

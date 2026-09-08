@@ -2,6 +2,7 @@ import { createClient } from 'npm:@supabase/supabase-js@2.57.4';
 import { callLLM } from '../_shared/llm.ts';
 import { parseImages } from '../_shared/images.ts';
 import { loadCreditStatus, canAfford, spendCredits, CREDIT_COSTS } from '../_shared/credits.ts';
+import { loadBrain, brainLine } from '../_shared/brain.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -196,6 +197,9 @@ Deno.serve(async (req: Request) => {
       .select('channel_niche, channel_description, target_audience, creator_level')
       .eq('user_id', user.id)
       .maybeSingle();
+    // The brain in its short form - four lines, not the whole block. A
+    // follow-up runs on under a thousand tokens of input by design.
+    const brain = await loadBrain(supabase, user.id);
 
     // ── Load the thread, if there is one ─────────────────────────────────────
     // Scoped to its owner here rather than trusted from the body.
@@ -254,7 +258,10 @@ Deno.serve(async (req: Request) => {
       overall_score?: number; overall_assessment?: string;
       strong_spots?: string[]; weak_spots?: string[];
     };
-    const block = profileBlock(profile);
+    const level = profile?.creator_level ? `Level: ${profile.creator_level}` : '';
+    const block = brain
+      ? [brainLine(brain), level].filter(Boolean).join('\n')
+      : profileBlock(profile);
     const reviewBlock = analysis
       ? `${earlierReviews ? `(${earlierReviews} earlier ${earlierReviews === 1 ? 'video was' : 'videos were'} reviewed in this thread. The one below is the latest.)\n\n` : ''}## The review you gave
 Score: ${a.overall_score ?? 'n/a'} out of 100

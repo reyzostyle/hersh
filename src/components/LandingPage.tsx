@@ -321,7 +321,7 @@ function AppFrame() {
     { icon: <VideoIcon className="w-3.5 h-3.5" />, label: 'Analyze', on: true },
     { icon: <Folder className="w-3.5 h-3.5" />, label: 'Projects', on: false },
     { icon: <GraphUp className="w-3.5 h-3.5" />, label: 'Analytics', on: false },
-    { icon: <Users className="w-3.5 h-3.5" />, label: 'Competitors', on: false },
+    { icon: <Users className="w-3.5 h-3.5" />, label: 'Ideas', on: false },
   ];
 
   return (
@@ -577,7 +577,7 @@ const testimonials: { quote: string; name: string; on: string }[] = [
   {
     quote: 'added 4 competitors yesterday and the tool literally picked out the exact 2 shorts that blew up on their channels lol',
     name: 'alexvfx',
-    on: 'Competitors',
+    on: 'Ideas',
   },
   {
     quote: 're-wrote the first 5 seconds based on the prompt, retention actually stayed flat through the intro',
@@ -658,7 +658,7 @@ const pricingPlans: Plan[] = [
     // render as the bold rows and features as the ticked ones, and this is the
     // one line that separates paid from the free trial (enforced server-side
     // in fetch-competitor-ideas / generate-outline, not just hidden in the UI).
-    quotas: ['300 credits a month', 'Competitors unlocked'],
+    quotas: ['300 credits a month', 'Ideas unlocked'],
     breakdown: [
       { amount: '60', label: 'videos' },
       { amount: '150', label: 'hooks' },
@@ -670,7 +670,7 @@ const pricingPlans: Plan[] = [
   },
   {
     name: 'Pro', monthlyPrice: 19.99, yearlyMonthlyPrice: 12.99, yearlyTotal: 155.99,
-    quotas: ['Unlimited credits', 'Competitors unlocked'],
+    quotas: ['Unlimited credits', 'Ideas unlocked'],
     features: ['Everything in Plus', 'Highest fair-use ceiling'],
     cta: 'Get Pro', highlight: true,
   },
@@ -1012,8 +1012,8 @@ export function LandingPage() {
         </header>
 
         {/* ── Product ─────────────────────────────────────────────────────────
-            The hub's list, verbatim: same four rows, same numbering, same
-            hairlines. Signing up lands you on this screen again. */}
+            The hub's list, verbatim: the same rows, the same plates.
+            Signing up lands you on this screen again. */}
         <section id="product" className={`${SECTION} py-16 sm:py-24 scroll-mt-16`}>
           <Reveal>
             <Head
@@ -1023,17 +1023,22 @@ export function LandingPage() {
             />
           </Reveal>
 
+          {/* The app's `.row`, and deliberately not a button: these three
+              describe the week, they do not go anywhere. Same plate, same icon
+              tile, same measure as the hub someone lands on after signing up -
+              the numeral stays here because these are a sequence, which is the
+              one place a numeral earns its keep. */}
           <Reveal delay={60}>
-            <div style={{ borderTop: '1px solid var(--line)' }}>
+            <div className="row-list">
               {surfaces.map(s => (
-                <div key={s.label} className="flex items-start gap-5 py-5" style={{ borderBottom: '1px solid var(--line)' }}>
-                  <span className="font-mono text-[11px] pt-1 w-6 flex-shrink-0 tabular-nums" style={{ color: 'var(--text-faint)' }}>
-                    {s.index}
-                  </span>
-                  <span className="pt-0.5 flex-shrink-0" style={{ color: 'var(--text-muted)' }}>{s.icon}</span>
+                <div key={s.label} className="row items-start sm:items-center">
+                  <span className="row-icon">{s.icon}</span>
                   <span className="flex-1 min-w-0">
-                    <span className="block text-[15px] font-medium mb-1" style={{ color: 'var(--text)' }}>{s.label}</span>
-                    <span className="block text-[13px] leading-relaxed text-balance" style={{ color: 'var(--text-muted)' }}>{s.desc}</span>
+                    <span className="block text-[15px] font-medium" style={{ color: 'var(--text)' }}>{s.label}</span>
+                    <span className="block text-[13px] leading-relaxed mt-0.5 text-balance" style={{ color: 'var(--text-muted)' }}>{s.desc}</span>
+                  </span>
+                  <span className="font-mono text-[11px] flex-shrink-0 tabular-nums self-start sm:self-center" style={{ color: 'var(--text-faint)' }}>
+                    {s.index}
                   </span>
                 </div>
               ))}
@@ -1045,7 +1050,7 @@ export function LandingPage() {
         <section className={`${SECTION} pb-16 sm:pb-24`}>
           <Reveal>
             <Head
-              eyebrow="Competitors"
+              eyebrow="Ideas"
               title="Their breakouts, not their uploads."
               sub="Ranked against that channel's own median."
             />
@@ -1119,7 +1124,7 @@ export function LandingPage() {
             >
               <span className="text-[13.5px] font-medium" style={{ color: 'var(--text)' }}>Free</span>
               <span className="text-[13.5px]" style={{ color: 'var(--text-muted)' }}>20 credits, one time, no card</span>
-              <span className="label-mono sm:ml-auto">No Competitors</span>
+              <span className="label-mono sm:ml-auto">No Ideas tab</span>
             </div>
           </Reveal>
         </section>

@@ -13,7 +13,7 @@ import {
   type Project, type ProjectThread,
 } from '../lib/projects';
 import { formatDate, type CompetitorIdea } from '../lib/competitors';
-import { Page, PageHead, Panel, Section, Empty, Loading, EditActions } from './Page';
+import { Page, PageHead, Panel, Section, Empty, Loading, EditActions, Row } from './Page';
 
 // A project is a grouping, not a container: nothing has to live in one, and
 // deleting one never takes the work with it. It exists because a conversation,
@@ -155,46 +155,36 @@ export function ProjectsPage() {
           No projects yet. Make one when a video is worth coming back to.
         </Empty>
       ) : (
-        <div className="animate-tab-in" style={{ borderTop: '1px solid var(--line)' }}>
+        <div className="row-list animate-tab-in">
           {projects.map(p => {
             const c = counts[p.id] ?? { threads: 0, ideas: 0 };
-            return (
-              <div key={p.id} className="flex items-center gap-2" style={{ borderBottom: '1px solid var(--line)' }}>
-                {renamingId === p.id ? (
-                  <div className="flex-1 min-w-0 flex items-center gap-4 py-4">
-                    <Folder className="w-[18px] h-[18px] flex-shrink-0" style={{ color: 'var(--text-faint)' }} />
-                    <input
-                      autoFocus
-                      value={draft}
-                      onChange={e => setDraft(e.target.value)}
-                      onBlur={() => commitRename(p)}
-                      onKeyDown={e => {
-                        if (e.key === 'Enter') commitRename(p);
-                        if (e.key === 'Escape') setRenamingId(null);
-                      }}
-                      maxLength={60}
-                      className="flex-1 min-w-0 bg-transparent text-[15px] font-medium focus:outline-none"
-                      style={{ color: 'var(--text)', borderBottom: '1px solid var(--line-strong)' }}
-                    />
-                    <EditActions onSave={() => commitRename(p)} onCancel={() => setRenamingId(null)} />
-                  </div>
-                ) : (
-                  <button
-                    onClick={() => setOpenId(p.id)}
-                    className="flex-1 min-w-0 flex items-center gap-4 py-4 text-left"
-                  >
-                    <Folder className="w-[18px] h-[18px] flex-shrink-0" style={{ color: 'var(--text-faint)' }} />
-                    <span className="flex-1 min-w-0">
-                      <span className="block text-[15px] font-medium truncate" style={{ color: 'var(--text)' }}>{p.name}</span>
-                      <span className="block font-mono text-[11px] mt-0.5" style={{ color: 'var(--text-faint)' }}>
-                        {c.threads} {c.threads === 1 ? 'chat' : 'chats'} · {c.ideas} {c.ideas === 1 ? 'idea' : 'ideas'}
-                        {p.notes ? ' · notes' : ''}
-                      </span>
-                    </span>
-                  </button>
-                )}
-
-                <div className={`flex items-center gap-1 flex-shrink-0 ${renamingId === p.id ? 'hidden' : ''}`}>
+            const meta = `${c.threads} ${c.threads === 1 ? 'chat' : 'chats'} · ${c.ideas} ${c.ideas === 1 ? 'idea' : 'ideas'}${p.notes ? ' · notes' : ''}`;
+            return renamingId === p.id ? (
+              <div key={p.id} className="row">
+                <span className="row-icon"><Folder className="w-[18px] h-[18px]" /></span>
+                <input
+                  autoFocus
+                  value={draft}
+                  onChange={e => setDraft(e.target.value)}
+                  onBlur={() => commitRename(p)}
+                  onKeyDown={e => {
+                    if (e.key === 'Enter') commitRename(p);
+                    if (e.key === 'Escape') setRenamingId(null);
+                  }}
+                  maxLength={60}
+                  className="flex-1 min-w-0 bg-transparent text-[15px] font-medium focus:outline-none"
+                  style={{ color: 'var(--text)', borderBottom: '1px solid var(--line-strong)' }}
+                />
+                <EditActions onSave={() => commitRename(p)} onCancel={() => setRenamingId(null)} />
+              </div>
+            ) : (
+              <Row
+                key={p.id}
+                icon={<Folder className="w-[18px] h-[18px]" />}
+                title={p.name}
+                meta={meta}
+                onClick={() => setOpenId(p.id)}
+                actions={<>
                   <button
                     onClick={() => { setDraft(p.name); setRenamingId(p.id); }}
                     title="Rename"
@@ -211,8 +201,8 @@ export function ProjectsPage() {
                   >
                     <Trash2 className="w-4 h-4" />
                   </button>
-                </div>
-              </div>
+                </>}
+              />
             );
           })}
         </div>
@@ -370,30 +360,25 @@ function ProjectDetail({ project, onBack, onRenamed, onDeleted }: {
                 No chats filed here yet. Save one from Analyze once it has said something worth keeping.
               </Empty>
             ) : (
-              <div style={{ borderTop: '1px solid var(--line)' }}>
+              <div className="row-list">
                 {threads.map(t => (
-                  <div key={t.id} className="flex items-center gap-3 group" style={{ borderBottom: '1px solid var(--line)' }}>
-                    <button
-                      onClick={() => requestOpenThread(t.id)}
-                      className="flex-1 min-w-0 flex items-center gap-4 py-3.5 text-left"
-                    >
-                      <Chat className="w-4 h-4 flex-shrink-0" style={{ color: 'var(--text-faint)' }} />
-                      <span className="flex-1 min-w-0 text-[14px] truncate" style={{ color: 'var(--text)' }}>
-                        {t.title || 'Untitled conversation'}
-                      </span>
-                      <span className="font-mono text-[11px] flex-shrink-0" style={{ color: 'var(--text-faint)' }}>
-                        {formatDate(t.updated_at)}
-                      </span>
-                    </button>
-                    <button
-                      onClick={() => unfileThread(t.id)}
-                      title="Take out of this project (the chat stays)"
-                      className="p-1 flex-shrink-0 transition-colors hover:text-[var(--text)]"
-                      style={{ color: 'var(--text-faint)' }}
-                    >
-                      <Unfile className="w-4 h-4" />
-                    </button>
-                  </div>
+                  <Row
+                    key={t.id}
+                    icon={<Chat className="w-[18px] h-[18px]" />}
+                    title={t.title || 'Untitled conversation'}
+                    meta={formatDate(t.updated_at)}
+                    onClick={() => requestOpenThread(t.id)}
+                    actions={
+                      <button
+                        onClick={() => unfileThread(t.id)}
+                        title="Take out of this project (the chat stays)"
+                        className="p-1 flex-shrink-0 transition-colors hover:text-[var(--text)]"
+                        style={{ color: 'var(--text-faint)' }}
+                      >
+                        <Unfile className="w-4 h-4" />
+                      </button>
+                    }
+                  />
                 ))}
               </div>
             )}
@@ -402,7 +387,7 @@ function ProjectDetail({ project, onBack, onRenamed, onDeleted }: {
           <Section label="Saved ideas">
             {ideas.length === 0 ? (
               <Empty icon={<Bookmark className="w-7 h-7" style={{ color: 'var(--text-faint)' }} />}>
-                Nothing filed here from Competitors yet.
+                Nothing filed here from Ideas yet.
               </Empty>
             ) : (
               <div className="space-y-2">

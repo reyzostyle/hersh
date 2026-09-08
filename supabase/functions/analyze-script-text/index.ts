@@ -2,6 +2,7 @@ import { createClient } from 'npm:@supabase/supabase-js@2.57.4';
 import { callLLM } from '../_shared/llm.ts';
 import { loadCreditStatus, canAfford, spendCredits, CREDIT_COSTS } from '../_shared/credits.ts';
 import { parseModelJson } from '../_shared/json.ts';
+import { loadBrain, brainLine } from '../_shared/brain.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -78,14 +79,18 @@ Deno.serve(async (req: Request) => {
     // ── Build prompt ──────────────────────────────────────────────────────────
     // Per-script context, when provided, OVERRIDES the channel profile from settings.
     const hasContext = context && typeof context === 'string' && context.trim();
+    const brainText = hasContext ? '' : brainLine(await loadBrain(supabase, userId));
     const profile = (hasContext
       ? [
           `Creator context: ${context.trim()}`,
           tokenRow?.creator_level && `Creator level: ${tokenRow.creator_level}`,
         ]
       : [
-          tokenRow?.channel_niche && `Channel niche: ${tokenRow.channel_niche}`,
-          tokenRow?.channel_description && `Channel description: ${tokenRow.channel_description}`,
+          // The brain in short form, or the two typed boxes for an account
+          // that has not built one. See _shared/brain.ts.
+          brainText,
+          !brainText && tokenRow?.channel_niche && `Channel niche: ${tokenRow.channel_niche}`,
+          !brainText && tokenRow?.channel_description && `Channel description: ${tokenRow.channel_description}`,
           tokenRow?.creator_level && `Creator level: ${tokenRow.creator_level}`,
         ]
     ).filter(Boolean).join('\n');
