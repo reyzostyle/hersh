@@ -35,4 +35,4 @@ Allow: /
 User-agent: Applebot-Extended
 Allow: /
 
-Sitemap: https://hershymedia.com/sitemap.xml
+Sitemap: https://chumoku.co/sitemap.xml

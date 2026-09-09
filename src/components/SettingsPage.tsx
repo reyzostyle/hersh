@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
-import { RefreshOutlineIcon as Loader2, EyeOutlineIcon as Eye, EyeClosedOutlineIcon as EyeOff, RefreshOutlineIcon as RefreshCw, LinkOutlineIcon as Link, AltArrowDownOutlineIcon as ChevronDown, Stars2OutlineIcon as Sparkles, UserOutlineIcon as User, BoltOutlineIcon as Zap, ChatRoundOutlineIcon as MessageCircle, SquareArrowRightUpOutlineIcon as ExternalLink, TicketOutlineIcon as Ticket, CpuBoltOutlineIcon as Brain } from '@solar-icons/react';
+import { RefreshOutlineIcon as Loader2, EyeOutlineIcon as Eye, EyeClosedOutlineIcon as EyeOff, RefreshOutlineIcon as RefreshCw, LinkOutlineIcon as Link, AltArrowDownOutlineIcon as ChevronDown, Stars2OutlineIcon as Sparkles, UserOutlineIcon as User, BoltOutlineIcon as Zap, ChatRoundOutlineIcon as MessageCircle, SquareArrowRightUpOutlineIcon as ExternalLink, TicketOutlineIcon as Ticket, CpuBoltOutlineIcon as Brain, HandShakeOutlineIcon as Handshake, ArrowRightUpOutlineIcon as ArrowUpRight } from '@solar-icons/react';
 import { getSessionToken, fetchWithRetry } from '../lib/supabase';
-import { PageHead } from './Page';
+
 import { requestBrain, type ChannelBrain } from '../lib/brain';
+import { displayNameOf } from '../lib/user';
+import { PageHead, Row } from './Page';
 
 function YouTubeLogo({ className }: { className?: string }) {
   return (
@@ -118,6 +120,14 @@ export function SettingsPage() {
   const [contextError, setContextError] = useState('');
   const [loadFailed, setLoadFailed] = useState(false);
 
+  // Display name. Lives on the auth user rather than in a column of our own:
+  // Google already puts a real name there at sign-in, so most accounts have one
+  // without ever opening this field, and no migration was needed to read it.
+  const [displayName, setDisplayName] = useState('');
+  const [nameSaving, setNameSaving] = useState(false);
+  const [nameSaved, setNameSaved] = useState(false);
+  const [nameError, setNameError] = useState('');
+
   // Password state
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
@@ -178,6 +188,10 @@ export function SettingsPage() {
   // Subscription card (gated on `plan`) could land noticeably after the rest.
   // The context columns were split off as a guard against their not existing;
   // they have been guaranteed by migrations for a while now.
+  useEffect(() => {
+    setDisplayName(displayNameOf(user));
+  }, [user?.id]);
+
   useEffect(() => {
     if (!user?.id) return;
     let cancelled = false;
@@ -300,6 +314,16 @@ export function SettingsPage() {
     } else if (result.reason === 'nothing_to_read') {
       setBrainError('Nothing to read yet. Say a line about yourself above, or connect your channel.');
     }
+  };
+
+  const saveDisplayName = async () => {
+    setNameSaving(true);
+    setNameError('');
+    const { error: err } = await supabase.auth.updateUser({ data: { display_name: displayName.trim() } });
+    setNameSaving(false);
+    if (err) { setNameError(err.message); return; }
+    setNameSaved(true);
+    setTimeout(() => setNameSaved(false), 2500);
   };
 
   const changePassword = async () => {
@@ -546,6 +570,38 @@ export function SettingsPage() {
         subtitle="The email you signed in with, and your password."
       >
         <div className="space-y-5">
+          {/* The hub used to greet people by the part of their email before the
+              @, which is how someone ends up being called kirill.dev2024 every
+              time they open the product. */}
+          <div>
+            <FieldLabel>Name</FieldLabel>
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={displayName}
+                onChange={e => setDisplayName(e.target.value)}
+                placeholder="What we should call you"
+                maxLength={40}
+                className="glass-field flex-1 min-w-0 px-4 py-2.5 rounded-lg text-white placeholder-gray-600 text-sm focus:outline-none transition-colors"
+                style={glassInput}
+                onFocus={e => { e.currentTarget.style.borderColor = 'var(--accent)'; }}
+                onBlur={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)'; }}
+              />
+              <button
+                onClick={saveDisplayName}
+                disabled={nameSaving || !displayName.trim()}
+                className="px-4 py-2.5 text-white rounded-lg text-sm font-medium transition-colors disabled:opacity-40 flex-shrink-0"
+                style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.12)' }}
+              >
+                {nameSaving ? 'Saving...' : nameSaved ? 'Saved!' : 'Save'}
+              </button>
+            </div>
+            {nameError && <p className="text-red-400 text-sm mt-2">{nameError}</p>}
+            <p className="mt-2 text-xs" style={{ color: 'var(--text-faint)' }}>
+              Used where the product speaks to you, starting with the hub.
+            </p>
+          </div>
+
           <div>
             <FieldLabel>Email</FieldLabel>
             <div className="px-4 py-2.5 rounded-lg text-gray-400 text-sm truncate" style={glassInput}>
@@ -666,6 +722,19 @@ export function SettingsPage() {
           {cancelError && <p className="mt-2 text-red-400 text-xs">{cancelError}</p>}
         </SettingsCard>
       )}
+
+      {/* ── Affiliate ── */}
+      {/* A door, not a drawer. The page behind it is a claim flow, a link, a
+          stats table and a payout form - too much to unfold inside a settings
+          card, and it used to hold a permanent slot in the sidebar next to the
+          four tools for something nobody opens daily. */}
+      <Row
+        icon={<Handshake className="w-[18px] h-[18px]" />}
+        title="Affiliate"
+        subtitle="Your link, who signed up through it, and what it has paid."
+        arrow={<ArrowUpRight className="w-4 h-4 row-arrow" />}
+        onClick={() => window.dispatchEvent(new CustomEvent('chumoku:navigate', { detail: 'partners' }))}
+      />
 
       {/* ── Support ── */}
       <SettingsCard

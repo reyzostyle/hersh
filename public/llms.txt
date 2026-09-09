@@ -1,12 +1,12 @@
-# Hershy
+# Chumoku
 
-> A workspace for short-form video creators. Hershy watches a Short, or reads a
+> A workspace for short-form video creators. Chumoku watches a Short, or reads a
 > hook or a script, and keeps answering follow-up questions about it in one
 > conversation. The work is filed into projects, and a connected YouTube channel
 > gives every answer the creator's real audience-retention curve to sit on.
 > Shorts only.
 
-Hershy is aimed at people making vertical short-form video (YouTube Shorts,
+Chumoku is aimed at people making vertical short-form video (YouTube Shorts,
 TikTok, Reels). It is not a general video editor and it does not generate video.
 What separates it from a chat wrapper is that a connected YouTube channel gives
 it the creator's own audience-retention data, so its feedback is tied to real
@@ -31,16 +31,24 @@ the script.
 - Projects: folders holding a conversation, the video it was about, and the ideas
   saved off it. A conversation filed into a project reopens where it was left.
 - Analytics: the creator's own YouTube numbers, alongside the retention curves of
-  the videos they have run through Hershy.
-- Competitors: tracks rival channels and surfaces only the Shorts that clearly
-  beat that channel's own median views per day, then rebuilds the idea for the
-  user's niche instead of copying it.
+  the videos they have run through Chumoku.
+- Ideas: tracks rival channels and surfaces only the Shorts that clearly beat
+  that channel's own median views per day, then rebuilds the idea for the user's
+  own channel instead of copying it.
+- Chumoku brain: the profile of the creator's channel, written by the model
+  rather than typed into a form. One click reads their last twenty uploads,
+  alongside the one thing they were asked to type (their level and a sentence
+  about themselves), and works out their niche, their format, their voice, who
+  watches, what already works on that channel, what to avoid at their scale, and
+  the rules for remaking someone else's video on it. Every other surface is
+  written against it, which is what makes an adapted idea specific to a channel
+  rather than to a niche. It costs nothing and is rebuilt on demand.
 
 ## Pricing
 
 - Free: 20 credits, no card required, one time with no monthly refill. Enough for
-  a few videos or several hook and script checks. Competitors requires a paid
-  plan.
+  a few videos or several hook and script checks. The Ideas tab requires a paid
+  plan; Chumoku brain is free on every plan.
 - Plus: $9.99 per month, or $119.99 per year. 300 credits per month.
 - Pro: $19.99 per month, or $155.99 per year (an effective $12.99 per month).
   Unlimited credits under a fair-use ceiling.
@@ -51,6 +59,6 @@ A video costs 5 credits, a script check 3, a hook check 2, a follow-up message 1
 
 ## Links
 
-- Home: https://hershymedia.com/
-- Privacy policy: https://hershymedia.com/privacy
-- Terms of service: https://hershymedia.com/terms
+- Home: https://chumoku.co/
+- Privacy policy: https://chumoku.co/privacy
+- Terms of service: https://chumoku.co/terms

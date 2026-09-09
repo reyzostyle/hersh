@@ -12,7 +12,7 @@
 export const FAQS: { q: string; a: string }[] = [
   {
     q: 'What does Chumoku do?',
-    a: 'It watches your Short and tells you what to fix. Paste a link, a hook or a script, and you get a score, the exact seconds to change, and a conversation you can keep asking questions in. YouTube Shorts only.',
+    a: 'It watches your Short and tells you what to fix. Paste a link, a hook or a script, and you get a score, the exact seconds to change, and a conversation you can keep asking questions in. It is built for YouTube Shorts and nothing else.',
   },
   {
     q: 'Is it free?',
@@ -25,6 +25,10 @@ export const FAQS: { q: string; a: string }[] = [
   {
     q: 'Does it work for TikTok or Instagram Reels?',
     a: 'No. YouTube Shorts only, on purpose. That is what lets it point at the second people swiped instead of handing you general advice.',
+  },
+  {
+    q: 'What is Chumoku brain?',
+    a: 'It is the profile of your channel that Chumoku writes for you. One click reads your last uploads and works out your niche, your format, your voice, who watches and what to avoid, so every idea, hook and outline after that is written for your channel instead of a generic one. There is no form to fill in beyond your level and a sentence about yourself.',
   },
   {
     q: 'How does it find competitor ideas?',

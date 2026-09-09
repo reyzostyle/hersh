@@ -6,6 +6,7 @@ import { Page, PageHead, Section, EditActions, Row } from './Page';
 import { listRecentThreads, deleteThread, renameThread, requestOpenThread, fileThread, listProjects, createProject, type RecentThread, type Project } from '../lib/projects';
 import { SaveToProjectModal } from './SaveToProjectModal';
 import { formatDate } from '../lib/competitors';
+import { displayNameOf, isNewAccount } from '../lib/user';
 
 interface HomePageProps {
   onNavigate: (tab: NavTab) => void;
@@ -52,15 +53,21 @@ const tools: Tool[] = [
 
 export function HomePage({ onNavigate }: HomePageProps) {
   const { user } = useAuth();
-  const name = user?.email?.split('@')[0] ?? '';
+  // The name they chose in Settings, or the one Google handed over, before the
+  // part of their email in front of the @ - see lib/user.ts.
+  const name = displayNameOf(user);
+  // Someone who signed up ten minutes ago has nothing to come back to.
+  const fresh = isNewAccount(user);
   const visibleTools = tools.filter(t => !HIDDEN_TABS.includes(t.id));
 
   return (
     <Page>
       <PageHead
         eyebrow="Workspace"
-        title={name ? `Welcome back, ${name}` : 'Welcome back'}
-        subtitle="Pick a tool and get to work."
+        title={`${fresh ? 'Welcome' : 'Welcome back'}${name ? `, ${name}` : ''}`}
+        subtitle={fresh
+          ? 'Start with Analyze. Paste a link to a Short and see what comes back.'
+          : 'Pick a tool and get to work.'}
       />
 
       {/* Raised rows rather than ruled ones. The hairline version read as a

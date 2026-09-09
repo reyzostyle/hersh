@@ -1,5 +1,5 @@
 import { useState, useEffect, createContext, useContext, useRef } from 'react';
-import { GraphUpOutlineIcon as GraphUp, FolderOutlineIcon as Folder, SettingsOutlineIcon as Settings, LogoutOutlineIcon as LogOut, HamburgerMenuOutlineIcon as Menu, CloseCircleOutlineIcon as X, BoltOutlineIcon as Zap, UsersGroupRoundedOutlineIcon as Users, HandShakeOutlineIcon as Handshake, ChartSquareOutlineIcon as BarChart2, SidebarMinimalisticOutlineIcon as PanelLeftClose, SidebarMinimalisticOutlineIcon as PanelLeftOpen, VideocameraOutlineIcon as VideoIcon, WidgetOutlineIcon as HubIcon } from '@solar-icons/react';
+import { GraphUpOutlineIcon as GraphUp, FolderOutlineIcon as Folder, SettingsOutlineIcon as Settings, LogoutOutlineIcon as LogOut, HamburgerMenuOutlineIcon as Menu, CloseCircleOutlineIcon as X, BoltOutlineIcon as Zap, UsersGroupRoundedOutlineIcon as Users, ChartSquareOutlineIcon as BarChart2, SidebarMinimalisticOutlineIcon as PanelLeftClose, SidebarMinimalisticOutlineIcon as PanelLeftOpen, VideocameraOutlineIcon as VideoIcon, WidgetOutlineIcon as HubIcon } from '@solar-icons/react';
 import { useAuth } from '../contexts/AuthContext';
 
 export const MobileHeaderContext = createContext<{
@@ -48,19 +48,20 @@ const baseNavItems: NavItem[] = [
   { id: 'settings', label: 'Settings', icon: <Settings className="w-4 h-4" /> },
 ];
 
-// Label only. The tab id stays 'partners': it is persisted in state, dispatched
-// on the navigate channel and matched against referral_codes, and renaming an
-// identifier to match a caption is how those quietly come apart.
-//
-// Everyone sees it. It used to be gated on `isAdmin || isPartner`, which meant
-// the only people who could reach the affiliate page were the ones who already
-// had a link - the screen behind it is a pitch with a one-click claim, written
-// for exactly the people the gate was hiding it from. A referral programme
-// nobody can find does not recruit anyone.
-const partnersItem: NavItem = { id: 'partners', label: 'Affiliate', icon: <Handshake className="w-4 h-4" /> };
-
 // Labels for tabs with no sidebar entry, used only for the mobile header title.
-const TAB_LABELS: Partial<Record<NavTab, string>> = { home: 'Chumoku', 'affiliate-admin': 'Affiliate partners' };
+//
+// Affiliate is one of them now. It is a page you visit once, claim a link on,
+// and come back to when you wonder what it has made - which is the same shape
+// as a setting, not the same shape as Analyze. It sat in the sidebar next to
+// the four tools and took a permanent slot for something nobody uses daily;
+// Settings now carries the door to it. The tab id stays 'partners' either way:
+// it is persisted in state, dispatched on the navigate channel and matched
+// against referral_codes.
+const TAB_LABELS: Partial<Record<NavTab, string>> = {
+  home: 'Chumoku',
+  partners: 'Affiliate',
+  'affiliate-admin': 'Affiliate partners',
+};
 
 const SIDEBAR_COLLAPSED_KEY = 'chumoku_sidebar_collapsed';
 
@@ -88,14 +89,9 @@ export function AppShell({ activeTab, onTabChange, children }: AppShellProps) {
     return () => el.removeEventListener('touchmove', onTouchMove);
   }, []);
 
-  // Affiliate sits directly above Upgrade. This used to cost a referral_codes
-  // query on every mount for every non-admin, purely to decide whether to draw
-  // one row; the row is unconditional now, so the query is gone with it.
-  const navItems = baseNavItems
-    .flatMap(item => (item.id === 'upgrade' ? [partnersItem, item] : [item]))
-    .filter(item => !HIDDEN_TABS.includes(item.id));
+  const navItems = baseNavItems.filter(item => !HIDDEN_TABS.includes(item.id));
 
-  const BOTTOM_TAB_IDS: NavTab[] = ['partners', 'usage', 'upgrade', 'settings'];
+  const BOTTOM_TAB_IDS: NavTab[] = ['usage', 'upgrade', 'settings'];
   const topNavItems = navItems.filter(item => !BOTTOM_TAB_IDS.includes(item.id));
   const bottomNavItems = navItems.filter(item => BOTTOM_TAB_IDS.includes(item.id));
 

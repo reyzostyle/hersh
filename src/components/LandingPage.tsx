@@ -12,6 +12,8 @@ import {
   VideocameraOutlineIcon as VideoIcon,
   FolderOutlineIcon as Folder,
   GraphUpOutlineIcon as GraphUp,
+  GraphUpOutlineIcon as TrendingUp,
+  CpuBoltOutlineIcon as Brain,
   UsersGroupRoundedOutlineIcon as Users,
   HamburgerMenuOutlineIcon as Menu,
 } from '@solar-icons/react';
@@ -21,6 +23,7 @@ import { HeroAnalysisGate } from './HeroAnalysisGate';
 import { supabase } from '../lib/supabase';
 import { SUPPORT_EMAIL } from '../lib/brand';
 import { FAQS } from '../lib/faq';
+import { readLastEmail, forgetLastEmail } from '../lib/user';
 
 // ─── Surface ─────────────────────────────────────────────────────────────────
 // This page used to run on three bespoke `glass` objects: stacked white
@@ -129,7 +132,11 @@ function AuthModal({ initialMode, onClose, context }: {
   context?: { title: string; sub: string };
 }) {
   const [mode, setMode] = useState<'login' | 'signup' | 'forgot'>(initialMode);
-  const [email, setEmail] = useState('');
+  // Signing back in as yourself is the common case, so the form starts knowing
+  // who you were. Signing up is not: a second account on the same browser
+  // begins empty, or the field would be arguing with the person filling it in.
+  const [remembered, setRemembered] = useState(() => readLastEmail());
+  const [email, setEmail] = useState(() => (initialMode === 'login' ? readLastEmail() : ''));
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -264,6 +271,23 @@ function AuthModal({ initialMode, onClose, context }: {
         ) : (
           <>
             <form onSubmit={handleSubmit} className="space-y-3 mb-4">
+              {/* Recognised, not assumed. Nothing is signed in until a password
+                  or Google says so; this only saves typing an address you have
+                  typed before, and the way out sits next to it rather than
+                  three screens away. */}
+              {mode === 'login' && remembered && email === remembered && (
+                <div className="flex items-center gap-2 text-[12px]" style={{ color: 'var(--text-faint)' }}>
+                  <span className="truncate">Last signed in as {remembered}</span>
+                  <button
+                    type="button"
+                    onClick={() => { forgetLastEmail(); setRemembered(''); setEmail(''); setPassword(''); }}
+                    className="flex-shrink-0 underline transition-colors hover:text-[var(--text)]"
+                    style={{ color: 'var(--text-muted)' }}
+                  >
+                    Use another account
+                  </button>
+                </div>
+              )}
               <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="Email" required {...fieldProps} />
               <input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="Password" required {...fieldProps} />
               {mode === 'login' && (
@@ -294,7 +318,14 @@ function AuthModal({ initialMode, onClose, context }: {
             </button>
 
             <div className="mt-5 text-center">
-              <button onClick={() => { setMode(mode === 'login' ? 'signup' : 'login'); setError(''); }}
+              <button onClick={() => {
+                const next = mode === 'login' ? 'signup' : 'login';
+                setMode(next);
+                setError('');
+                // A remembered address belongs on the sign-in form, not on the
+                // one making a new account.
+                setEmail(next === 'login' ? remembered : '');
+              }}
                 className="text-[13px] transition-colors hover:text-[var(--text)]" style={{ color: 'var(--text-muted)' }}>
                 {mode === 'login' ? "Don't have an account? Sign up" : 'Already have an account? Sign in'}
               </button>
@@ -411,6 +442,51 @@ function AppFrame() {
   );
 }
 
+// The brain, as the Settings card actually renders it: a paragraph the creator
+// can check, then the fields every prompt downstream reads. Shown rather than
+// described, because "it builds a profile of your channel" sounds like every
+// onboarding form ever written, and the difference is that nobody fills this in.
+function BrainFrame() {
+  const fields = [
+    { k: 'Niche', v: 'ranking, gaming' },
+    { k: 'Format', v: '30 to 45s, no face, gameplay under big on-screen text, one tier a beat' },
+    { k: 'Audience', v: 'teens on mobile, watching for the take they disagree with' },
+  ];
+  return (
+    <div className="overflow-hidden" style={{ background: 'var(--bg-app)', border: '1px solid var(--line-strong)', borderRadius: 'var(--r-lg)' }}>
+      <div className="flex items-center gap-3 px-4 sm:px-5 py-3.5" style={{ borderBottom: '1px solid var(--line)' }}>
+        <span className="row-icon"><Brain className="w-[18px] h-[18px]" /></span>
+        <span className="flex-1 min-w-0">
+          <span className="block text-[14px] font-medium" style={{ color: 'var(--text)' }}>Chumoku brain</span>
+          <span className="block text-[12px] mt-0.5" style={{ color: 'var(--text-muted)' }}>Read off your last 20 uploads.</span>
+        </span>
+      </div>
+
+      <div className="px-4 sm:px-5 py-4 space-y-4">
+        <p className="text-[13px] leading-relaxed" style={{ color: 'var(--text)' }}>
+          You post ranking shorts on mobile games, three or four a week, no face and no voiceover.
+          The ones that land are the ones where the ranking is an argument rather than a list.
+        </p>
+        {fields.map(f => (
+          <div key={f.k}>
+            <p className="label-mono mb-1">{f.k}</p>
+            <p className="text-[12.5px] leading-relaxed" style={{ color: 'var(--text-muted)' }}>{f.v}</p>
+          </div>
+        ))}
+        <div>
+          <p className="label-mono mb-1.5">How ideas get remade for you</p>
+          {['Keep the argument, drop anything that needs a face on camera.',
+            'Never pitch a format that only works at ten times their views.'].map(x => (
+            <p key={x} className="text-[12.5px] leading-relaxed flex gap-2" style={{ color: 'var(--text-muted)' }}>
+              <span style={{ color: 'var(--text-faint)' }}>-</span>{x}
+            </p>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // Competitors: the feed only ever shows shorts that beat the channel's own
 // median views per day, so the multiple is the whole card, the same way it is
 // in CompetitorsFeed.
@@ -432,16 +508,24 @@ function CompetitorsFrame() {
       </div>
       <div className="px-4 sm:px-5">
         {rows.map((r, i) => (
-          <div key={r.title} className="flex items-center gap-4 py-3.5" style={i < rows.length - 1 ? { borderBottom: '1px solid var(--line)' } : undefined}>
-            <div className="w-9 h-12 sm:w-10 sm:h-14 rounded-[6px] flex-shrink-0" style={{ background: 'var(--bg-raised-hover)', border: '1px solid var(--line)' }} />
+          <div key={r.title} className="flex items-center gap-3 sm:gap-4 py-3.5" style={i < rows.length - 1 ? { borderBottom: '1px solid var(--line)' } : undefined}>
+            {/* The multiple, in the same green pill the real card carries.
+                There used to be an empty rounded rectangle here standing in for
+                a thumbnail, which the feed does not have and never did - so the
+                one thing the frame said about the product was that its images
+                had failed to load. */}
+            <span
+              className="flex items-center gap-1 font-mono text-[11px] px-1.5 py-0.5 rounded flex-shrink-0 tabular-nums"
+              style={{ background: 'rgba(var(--process-rgb),0.12)', color: 'var(--process)' }}
+            >
+              <TrendingUp className="w-3 h-3" />
+              {r.mult}
+            </span>
             <div className="flex-1 min-w-0">
-              <p className="label-mono mb-1">{r.ch}</p>
               <p className="text-[12.5px] truncate" style={{ color: 'var(--text)' }}>{r.title}</p>
+              <p className="label-mono mt-1">{r.ch}</p>
             </div>
-            <div className="text-right flex-shrink-0">
-              <p className="font-mono text-[13px] tabular-nums" style={{ color: 'var(--process)' }}>{r.mult}</p>
-              <p className="font-mono text-[10px] mt-0.5" style={{ color: 'var(--text-faint)' }}>{r.vpd}</p>
-            </div>
+            <p className="font-mono text-[10px] flex-shrink-0 tabular-nums" style={{ color: 'var(--text-faint)' }}>{r.vpd}</p>
           </div>
         ))}
       </div>
@@ -616,7 +700,10 @@ function FAQSection() {
             style={{ gridTemplateRows: open === i ? '1fr' : '0fr' }}
           >
             <div className="overflow-hidden">
-              <p className="text-[14px] leading-relaxed pb-4 pr-8 max-w-2xl" style={{ color: 'var(--text-muted)' }}>{f.a}</p>
+              {/* textWrap pretty, so the last line of an answer never comes
+                  out as one orphan word under a full-width paragraph. The
+                  first answer used to end on "only." alone on its own row. */}
+              <p className="text-[14px] leading-relaxed pb-4 pr-8 max-w-2xl" style={{ color: 'var(--text-muted)', textWrap: 'pretty' }}>{f.a}</p>
             </div>
           </div>
         </div>
@@ -1056,6 +1143,21 @@ export function LandingPage() {
             />
           </Reveal>
           <Reveal delay={60}><CompetitorsFrame /></Reveal>
+        </section>
+
+        {/* ── The brain ───────────────────────────────────────────────────── */}
+        {/* Sits directly under Ideas because it is the answer to the obvious
+            objection: an idea "adapted for your channel" is worth nothing if
+            the tool does not know the channel. */}
+        <section className={`${SECTION} pb-16 sm:pb-24`}>
+          <Reveal>
+            <Head
+              eyebrow="Chumoku brain"
+              title="It reads your channel. You don't describe it."
+              sub="One click on your last 20 uploads, and every idea after that is written for yours."
+            />
+          </Reveal>
+          <Reveal delay={60}><BrainFrame /></Reveal>
         </section>
 
         {/* ── Analytics ───────────────────────────────────────────────────── */}

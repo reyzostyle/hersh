@@ -493,8 +493,33 @@ button.row:hover .row-arrow,
   border-radius: 0;
   background: transparent;
 }
-.row-group > .row:hover { background: rgba(255, 255, 255, 0.025); }
+.row-group:hover { border-color: var(--line-strong); }
+.row-group > .row:hover { background: rgba(255, 255, 255, 0.02); }
 .row-group-body { padding: 2px 16px 18px; }
+
+/* Pressing a row should look like pressing it, not like the browser painting
+   over it. Two things were happening at once: mobile Safari and Chrome paint a
+   grey block on tap (`-webkit-tap-highlight-color`), and a clicked button keeps
+   focus afterwards, so the desktop focus ring stayed on the card until you
+   clicked somewhere else - which is what read as "it highlights weirdly and
+   does not go away".
+
+   So: no tap block, no ring on a mouse click, a real ring for anyone arriving
+   by keyboard (:focus-visible fires for tab, not for a click), and a small
+   press state of its own so the row still answers the finger. */
+.row, .row-group > .row {
+  -webkit-tap-highlight-color: transparent;
+  outline: none;
+}
+.row:focus { outline: none; }
+.row:focus-visible {
+  outline: 2px solid var(--line-strong);
+  outline-offset: 2px;
+}
+a.row:active,
+button.row:active,
+.row[role="button"]:active { background: var(--bg-raised-hover); }
+.row-group > .row:active { background: rgba(255, 255, 255, 0.04); }
 
 /* Rows stack with air between them - the gap is what makes each one read as
    its own object rather than as a cell in a table. */

@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { supabase } from '../lib/supabase';
 import { User } from '@supabase/supabase-js';
+import { rememberLastEmail } from '../lib/user';
 
 interface AuthContextType {
   user: User | null;
@@ -27,7 +28,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
 
     supabase.auth.getSession()
-      .then(({ data: { session } }) => finish(session))
+      .then(({ data: { session } }) => { rememberLastEmail(session?.user?.email); finish(session); })
       .catch(() => finish(null));
 
     // Fallback: if getSession() hangs (e.g. navigator.locks contention across
@@ -37,6 +38,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null);
       setLoading(false);
+      // Every way in lands here - password, Google, a confirmation link - so
+      // this is the one place that has to remember who it was. See lib/user.ts
+      // for why it is an email and not a session.
+      rememberLastEmail(session?.user?.email);
     });
 
     return () => { clearTimeout(timeout); subscription.unsubscribe(); };
