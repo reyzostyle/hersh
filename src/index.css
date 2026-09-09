@@ -525,6 +525,20 @@ button.row:active,
    its own object rather than as a cell in a table. */
 .row-list { display: flex; flex-direction: column; gap: 10px; }
 
+/* The brain graph on the landing page: the uploads it read, breathing.
+   Only the outer dots move, and slowly. A graph where everything pulses is a
+   screensaver; a few points coming up and going down reads as something that is
+   still thinking. */
+@keyframes brainPulse {
+  0%, 100% { opacity: 0.35; }
+  50%      { opacity: 1; }
+}
+.brain-dot { animation: brainPulse 5s ease-in-out infinite; }
+
+@media (prefers-reduced-motion: reduce) {
+  .brain-dot { animation: none; opacity: 0.7; }
+}
+
 /* ─── Chips and segments ─────────────────────────────────────────────────────
    Competitors wrote its filter pills as inline rgba() eight different ways,
    so "the same control" was four slightly different greys. Two classes, both

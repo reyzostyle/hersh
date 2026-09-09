@@ -6,6 +6,7 @@ import {
 } from '../lib/competitors';
 import { listProjects, touchProject, takeRequestedVideo, type Project } from '../lib/projects';
 import { CompetitorsFeed } from './CompetitorsFeed';
+import { useBackLayer } from '../lib/navigation';
 import { CompetitorVideoView } from './CompetitorVideoView';
 import { FindCompetitorsModal } from './FindCompetitorsModal';
 import { Page, PageHead, Loading } from './Page';
@@ -302,6 +303,12 @@ export function CompetitorsPage() {
     await ruleOn(visible, false);
     setClearing(false);
   };
+
+  // A video opened over the feed owns a history entry, so the back gesture
+  // closes it instead of leaving the tab. Keyed on the id rather than on the
+  // item it resolves to, because that is computed below the loading branch and
+  // a hook cannot live under an early return.
+  useBackLayer(!!openVideoId, () => setOpenVideoId(null));
 
   if (initialLoading) {
     return (

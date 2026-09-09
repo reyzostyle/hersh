@@ -1,4 +1,4 @@
-import { RefreshOutlineIcon as Loader2, CloseCircleOutlineIcon as Cancel } from '@solar-icons/react';
+import { RefreshOutlineIcon as Loader2, CloseCircleOutlineIcon as Cancel, AltArrowLeftOutlineIcon as ArrowLeft } from '@solar-icons/react';
 import { Check } from './BrandIcons';
 
 // ─── Page primitives ─────────────────────────────────────────────────────────
@@ -77,6 +77,27 @@ export function PageHead({
         </p>
       )}
     </header>
+  );
+}
+
+// The way out of a screen you went into.
+//
+// Three screens had written their own version of this line and a fourth
+// (Affiliate) had none at all, because it used to be a sidebar tab and a
+// sidebar tab needs no way back. It is opened from Settings now, and a page you
+// can enter but not leave is the oldest bug in navigation.
+//
+// The browser's own Back works everywhere too - see lib/navigation.ts - but a
+// visible control is not the same thing as a gesture: it says where back goes.
+export function BackLink({ label, onClick }: { label: string; onClick: () => void }) {
+  return (
+    <button
+      onClick={onClick}
+      className="flex items-center gap-1.5 mb-6 text-[13px] transition-colors hover:text-[var(--text)]"
+      style={{ color: 'var(--text-muted)' }}
+    >
+      <ArrowLeft className="w-4 h-4" /> {label}
+    </button>
   );
 }
 

@@ -442,10 +442,102 @@ function AppFrame() {
   );
 }
 
-// The brain, as the Settings card actually renders it: a paragraph the creator
-// can check, then the fields every prompt downstream reads. Shown rather than
-// described, because "it builds a profile of your channel" sounds like every
-// onboarding form ever written, and the difference is that nobody fills this in.
+// The graph the brain is, before it is words.
+//
+// Laid out once at module scope from a fixed seed, never from Math.random: the
+// landing page is prerendered at build time and hydrated in the browser, and a
+// layout that comes out different in those two passes is a hydration mismatch
+// that flickers on first paint.
+//
+// The jitter is the point. A clean radial diagram of four spokes reads as a
+// corporate slide; the same four with their angles and distances knocked about
+// reads as something that was found rather than drawn, which is what the thing
+// actually is.
+const BRAIN_GRAPH = (() => {
+  let seed = 20260909;
+  // Numerical Recipes' LCG. Any deterministic generator would do - this one is
+  // three operations and needs no dependency.
+  const rnd = () => ((seed = (seed * 1664525 + 1013904223) % 4294967296) / 4294967296);
+  const jitter = (n: number) => (rnd() - 0.5) * n;
+
+  const CX = 200, CY = 150;
+  // Four quadrants rather than four points of the compass. Nothing sits
+  // directly above or below the middle, which leaves the vertical axis clear
+  // for the centre's own label - with evenly spaced spokes it landed on one.
+  const BASE = [-2.42, -0.72, 0.72, 2.42];
+  const hubs = ['voice', 'niche', 'format', 'audience'].map((label, i) => {
+    const a = BASE[i] + jitter(0.22);
+    const r = 96 + jitter(20);
+    return { label, x: CX + Math.cos(a) * r, y: CY + Math.sin(a) * r * 0.72, a };
+  });
+
+  // Twenty-odd leaves for twenty-odd uploads, fanned outward from their hub so
+  // the graph thins toward its edge instead of ending on a circle.
+  const leaves: { x: number; y: number; hub: number; delay: number }[] = [];
+  hubs.forEach((h, hi) => {
+    const n = 5 + Math.floor(rnd() * 2);
+    for (let k = 0; k < n; k++) {
+      const a = h.a + (k - (n - 1) / 2) * (0.40 + jitter(0.10)) + jitter(0.16);
+      const r = 40 + rnd() * 34;
+      leaves.push({ x: h.x + Math.cos(a) * r, y: h.y + Math.sin(a) * r * 0.78, hub: hi, delay: rnd() * 5 });
+    }
+  });
+
+  return { CX, CY, hubs, leaves };
+})();
+
+function BrainGraph() {
+  const { CX, CY, hubs, leaves } = BRAIN_GRAPH;
+  // The viewBox is cropped to what the layout actually draws (measured in the
+  // browser: x 62-356, y 52-253) plus an even margin, so the graph fills its
+  // half of the plate instead of floating in a box of empty grid.
+  return (
+    <svg viewBox="48 36 322 232" className="w-full h-auto" aria-hidden="true">
+      <g stroke="var(--line-strong)" strokeWidth="1" fill="none">
+        {leaves.map((l, i) => (
+          <line key={`l${i}`} x1={hubs[l.hub].x} y1={hubs[l.hub].y} x2={l.x} y2={l.y} opacity="0.55" />
+        ))}
+        {hubs.map(h => <line key={`h${h.label}`} x1={CX} y1={CY} x2={h.x} y2={h.y} />)}
+      </g>
+
+      {leaves.map((l, i) => (
+        <circle key={`d${i}`} className="brain-dot" cx={l.x} cy={l.y} r="2.6"
+                fill="var(--text-faint)" style={{ animationDelay: `${l.delay.toFixed(2)}s` }} />
+      ))}
+
+      {hubs.map(h => (
+        <g key={h.label}>
+          <circle cx={h.x} cy={h.y} r="5" fill="var(--text-muted)" />
+          {/* Pushed outward along its own spoke, and anchored to whichever side
+              that is, so a label never crosses a line running back to the
+              middle however the jitter lands. */}
+          <text
+            x={h.x + Math.cos(h.a) * 13}
+            y={h.y + Math.sin(h.a) * 13 + 3.5}
+            textAnchor={Math.cos(h.a) > 0 ? 'start' : 'end'}
+            style={{ fill: 'var(--text-muted)', fontFamily: "'Geist Mono', ui-monospace, monospace", fontSize: 9.5, letterSpacing: '0.08em', textTransform: 'uppercase' }}
+          >
+            {h.label}
+          </text>
+        </g>
+      ))}
+
+      <circle cx={CX} cy={CY} r="17" fill="rgba(255,255,255,0.06)" />
+      <circle cx={CX} cy={CY} r="7.5" fill="var(--text)" />
+      <text
+        x={CX} y={CY + 34} textAnchor="middle"
+        style={{ fill: 'var(--text)', fontFamily: "'Geist Mono', ui-monospace, monospace", fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase' }}
+      >
+        your channel
+      </text>
+    </svg>
+  );
+}
+
+// The brain: the graph on one side, the same thing resolved into sentences on
+// the other. Shown rather than described, because "it builds a profile of your
+// channel" sounds like every onboarding form ever written, and the difference
+// is that nobody fills this one in.
 function BrainFrame() {
   const fields = [
     { k: 'Niche', v: 'ranking, gaming' },
@@ -453,16 +545,25 @@ function BrainFrame() {
     { k: 'Audience', v: 'teens on mobile, watching for the take they disagree with' },
   ];
   return (
-    <div className="overflow-hidden" style={{ background: 'var(--bg-app)', border: '1px solid var(--line-strong)', borderRadius: 'var(--r-lg)' }}>
-      <div className="flex items-center gap-3 px-4 sm:px-5 py-3.5" style={{ borderBottom: '1px solid var(--line)' }}>
-        <span className="row-icon"><Brain className="w-[18px] h-[18px]" /></span>
-        <span className="flex-1 min-w-0">
-          <span className="block text-[14px] font-medium" style={{ color: 'var(--text)' }}>Chumoku brain</span>
-          <span className="block text-[12px] mt-0.5" style={{ color: 'var(--text-muted)' }}>Read off your last 20 uploads.</span>
-        </span>
+    <div className="overflow-hidden grid lg:grid-cols-[minmax(0,0.95fr)_minmax(0,1fr)]"
+         style={{ background: 'var(--bg-app)', border: '1px solid var(--line-strong)', borderRadius: 'var(--r-lg)' }}>
+      {/* The graph sits on the app's own grid, which is the one place on this
+          page besides the hero where that texture belongs: it is a field of
+          points, and a field of points needs ground. */}
+      <div className="grid-surface flex items-center justify-center p-5 sm:p-7 lg:border-r"
+           style={{ borderColor: 'var(--line)', borderBottom: '1px solid var(--line)' }}>
+        <BrainGraph />
       </div>
 
-      <div className="px-4 sm:px-5 py-4 space-y-4">
+      <div className="p-5 sm:p-7 space-y-4">
+        <div className="flex items-center gap-3">
+          <span className="row-icon"><Brain className="w-[18px] h-[18px]" /></span>
+          <span className="min-w-0">
+            <span className="block text-[14px] font-medium" style={{ color: 'var(--text)' }}>Chumoku brain</span>
+            <span className="block text-[12px] mt-0.5" style={{ color: 'var(--text-muted)' }}>Read off your last 20 uploads.</span>
+          </span>
+        </div>
+
         <p className="text-[13px] leading-relaxed" style={{ color: 'var(--text)' }}>
           You post ranking shorts on mobile games, three or four a week, no face and no voiceover.
           The ones that land are the ones where the ranking is an argument rather than a list.
@@ -1153,8 +1254,8 @@ export function LandingPage() {
           <Reveal>
             <Head
               eyebrow="Chumoku brain"
-              title="It reads your channel. You don't describe it."
-              sub="One click on your last 20 uploads, and every idea after that is written for yours."
+              title="It reads your channel."
+              sub="One click, and you never describe it again."
             />
           </Reveal>
           <Reveal delay={60}><BrainFrame /></Reveal>

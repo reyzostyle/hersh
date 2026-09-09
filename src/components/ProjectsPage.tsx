@@ -14,6 +14,7 @@ import {
 } from '../lib/projects';
 import { formatDate, type CompetitorIdea } from '../lib/competitors';
 import { Page, PageHead, Panel, Section, Empty, Loading, EditActions, Row } from './Page';
+import { useBackLayer } from '../lib/navigation';
 
 // A project is a grouping, not a container: nothing has to live in one, and
 // deleting one never takes the work with it. It exists because a conversation,
@@ -98,6 +99,10 @@ export function ProjectsPage() {
   };
 
   const open = projects.find(p => p.id === openId) ?? null;
+  // Same as the video view in Ideas: while a project is open it holds a history
+  // entry, so the back gesture closes it instead of leaving Projects.
+  useBackLayer(!!open, () => { setOpenId(null); load(); });
+
   if (open) {
     return (
       <ProjectDetail

@@ -8,7 +8,7 @@ import {
 import { Check } from './BrandIcons';
 import { useAuth } from '../contexts/AuthContext';
 import { getSessionToken, fetchWithRetry } from '../lib/supabase';
-import { Page, PageHead, Panel, Section, Loading } from './Page';
+import { Page, PageHead, Panel, Section, Loading, BackLink } from './Page';
 import { ErrorNotice } from './ErrorNotice';
 import { SITE_HOST } from '../lib/brand';
 
@@ -108,6 +108,7 @@ function Pitch({ onClaimed }: { onClaimed: () => void }) {
 
   return (
     <Page className="animate-tab-in">
+      <BackLink label="Settings" onClick={() => window.dispatchEvent(new CustomEvent('chumoku:navigate', { detail: 'settings' }))} />
       <PageHead
         eyebrow="Affiliate"
         title="Earn 30% of everyone you bring"
@@ -247,6 +248,7 @@ function Dashboard({ stats, onChanged }: { stats: PartnerStats; onChanged: () =>
 
   return (
     <Page className="animate-tab-in">
+      <BackLink label="Settings" onClick={() => window.dispatchEvent(new CustomEvent('chumoku:navigate', { detail: 'settings' }))} />
       <PageHead
         eyebrow="Affiliate"
         title="Your affiliate link"

@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { markInitialTab, pushTab, tabFromState } from '../lib/navigation';
 import { AppShell, NavTab, HIDDEN_TABS } from './AppShell';
 import { HomePage } from './HomePage';
 import { AnalysisChat } from './AnalysisChat';
@@ -34,14 +35,46 @@ export function Dashboard() {
     () => (localStorage.getItem('chumoku_pending_video_url') ? 'analyze' : 'home')
   );
 
+  // Every tab change is a history entry, so the phone's edge swipe, the
+  // trackpad's two-finger swipe, the mouse's back button and the browser's own
+  // arrow all step back through the product instead of leaving it. See
+  // lib/navigation.ts.
+  //
+  // The ref is read rather than the state because AppShell both calls
+  // onTabChange and announces the same move on the navigate channel: without a
+  // value that updates synchronously, one click would push two entries and Back
+  // would need pressing twice.
+  const tabRef = useRef(activeTab);
+  const navigate = useCallback((tab: NavTab) => {
+    if (tab === tabRef.current) return;
+    tabRef.current = tab;
+    pushTab(tab);
+    setActiveTab(tab);
+  }, []);
+
+  useEffect(() => { markInitialTab(tabRef.current); }, []);
+
+  useEffect(() => {
+    const onPop = (e: PopStateEvent) => {
+      const tab = tabFromState(e);
+      // An entry with no tab on it is a view that was open on top of one - it
+      // belongs to whichever screen pushed it, and that screen closes itself.
+      if (!tab || !isTabReachable(tab)) return;
+      tabRef.current = tab as NavTab;
+      setActiveTab(tab as NavTab);
+    };
+    window.addEventListener('popstate', onPop);
+    return () => window.removeEventListener('popstate', onPop);
+  }, []);
+
   useEffect(() => {
     const handler = (e: Event) => {
       const tab = (e as CustomEvent).detail as NavTab;
-      if (tab && isTabReachable(tab)) setActiveTab(tab);
+      if (tab && isTabReachable(tab)) navigate(tab);
     };
     window.addEventListener('chumoku:navigate', handler);
     return () => window.removeEventListener('chumoku:navigate', handler);
-  }, []);
+  }, [navigate]);
 
   // Handle return from Notion OAuth (callback redirects to /?notion=connected|error)
   useEffect(() => {
@@ -49,15 +82,15 @@ export function Dashboard() {
     const notion = params.get('notion');
     if (!notion) return;
     import('../lib/toast').then(({ showToast }) => {
-      if (notion === 'connected') { showToast('Notion connected ✓'); setActiveTab('settings'); }
+      if (notion === 'connected') { showToast('Notion connected ✓'); navigate('settings'); }
       else showToast('Notion connection failed', 'error');
     });
     window.history.replaceState({}, '', window.location.pathname);
-  }, []);
+  }, [navigate]);
 
   return (
-    <AppShell activeTab={activeTab} onTabChange={setActiveTab}>
-      {activeTab === 'home' && <HomePage onNavigate={setActiveTab} />}
+    <AppShell activeTab={activeTab} onTabChange={navigate}>
+      {activeTab === 'home' && <HomePage onNavigate={navigate} />}
       {activeTab === 'analyze' && <AnalysisChat />}
       {activeTab === 'projects' && <ProjectsPage />}
       {activeTab === 'analytics' && <AnalyticsPage />}
