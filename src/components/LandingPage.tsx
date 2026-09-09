@@ -461,54 +461,78 @@ const BRAIN_GRAPH = (() => {
   const jitter = (n: number) => (rnd() - 0.5) * n;
 
   const CX = 200, CY = 150;
-  // Four quadrants rather than four points of the compass. Nothing sits
-  // directly above or below the middle, which leaves the vertical axis clear
-  // for the centre's own label - with evenly spaced spokes it landed on one.
+  // Four quadrants rather than four points of the compass, so nothing sits
+  // directly above or below the middle.
   const BASE = [-2.42, -0.72, 0.72, 2.42];
   const hubs = ['voice', 'niche', 'format', 'audience'].map((label, i) => {
-    const a = BASE[i] + jitter(0.22);
-    const r = 96 + jitter(20);
+    const a = BASE[i] + jitter(0.3);
+    const r = 92 + jitter(26);
     return { label, x: CX + Math.cos(a) * r, y: CY + Math.sin(a) * r * 0.72, a };
   });
 
-  // Twenty-odd leaves for twenty-odd uploads, fanned outward from their hub so
-  // the graph thins toward its edge instead of ending on a circle.
-  const leaves: { x: number; y: number; hub: number; delay: number }[] = [];
-  hubs.forEach((h, hi) => {
-    const n = 5 + Math.floor(rnd() * 2);
+  // The uploads. Fanned outward from their hub, at their own distances, and
+  // some of them carry one or two of their own - a graph where every branch
+  // stops at the same depth reads as a diagram of a graph rather than as one.
+  const nodes: { x: number; y: number; r: number; delay: number }[] = [];
+  const links: { x1: number; y1: number; x2: number; y2: number; faint: boolean }[] = [];
+
+  hubs.forEach(h => {
+    const n = 4 + Math.floor(rnd() * 3);
     for (let k = 0; k < n; k++) {
-      const a = h.a + (k - (n - 1) / 2) * (0.40 + jitter(0.10)) + jitter(0.16);
-      const r = 40 + rnd() * 34;
-      leaves.push({ x: h.x + Math.cos(a) * r, y: h.y + Math.sin(a) * r * 0.78, hub: hi, delay: rnd() * 5 });
+      const a = h.a + (k - (n - 1) / 2) * (0.40 + jitter(0.14)) + jitter(0.2);
+      const r = 36 + rnd() * 36;
+      const x = h.x + Math.cos(a) * r;
+      const y = h.y + Math.sin(a) * r * 0.78;
+      nodes.push({ x, y, r: 2.2 + rnd() * 1.4, delay: rnd() * 5 });
+      links.push({ x1: h.x, y1: h.y, x2: x, y2: y, faint: true });
+
+      // A third of them branch again, close in and at a shallow angle, so the
+      // outer edge of the graph frays instead of ending on a circle.
+      if (rnd() < 0.34) {
+        const a2 = a + jitter(0.9);
+        const r2 = 14 + rnd() * 18;
+        const x2 = x + Math.cos(a2) * r2;
+        const y2 = y + Math.sin(a2) * r2 * 0.8;
+        nodes.push({ x: x2, y: y2, r: 1.8 + rnd(), delay: rnd() * 5 });
+        links.push({ x1: x, y1: y, x2, y2, faint: true });
+      }
     }
   });
 
-  return { CX, CY, hubs, leaves };
+  // Two loops between neighbouring hubs. Nothing about a channel is a clean
+  // tree - the format is half of what the voice is - and two closed paths are
+  // the difference between a diagram and a network.
+  links.push({ x1: hubs[0].x, y1: hubs[0].y, x2: hubs[3].x, y2: hubs[3].y, faint: true });
+  links.push({ x1: hubs[1].x, y1: hubs[1].y, x2: hubs[2].x, y2: hubs[2].y, faint: true });
+
+  hubs.forEach(h => links.push({ x1: CX, y1: CY, x2: h.x, y2: h.y, faint: false }));
+
+  return { CX, CY, hubs, nodes, links };
 })();
 
 function BrainGraph() {
-  const { CX, CY, hubs, leaves } = BRAIN_GRAPH;
-  // The viewBox is cropped to what the layout actually draws (measured in the
-  // browser: x 62-356, y 52-253) plus an even margin, so the graph fills its
-  // half of the plate instead of floating in a box of empty grid.
+  const { CX, CY, hubs, nodes, links } = BRAIN_GRAPH;
+  // The viewBox is cropped to what the layout actually draws plus an even
+  // margin, so the graph fills its half of the plate instead of floating in a
+  // box of empty grid.
   return (
-    <svg viewBox="48 36 322 232" className="w-full h-auto" aria-hidden="true">
-      <g stroke="var(--line-strong)" strokeWidth="1" fill="none">
-        {leaves.map((l, i) => (
-          <line key={`l${i}`} x1={hubs[l.hub].x} y1={hubs[l.hub].y} x2={l.x} y2={l.y} opacity="0.55" />
+    <svg viewBox="34 28 348 250" className="w-full h-auto" aria-hidden="true">
+      <g stroke="var(--line-strong)" fill="none">
+        {links.map((l, i) => (
+          <line key={i} x1={l.x1} y1={l.y1} x2={l.x2} y2={l.y2}
+                strokeWidth={l.faint ? 1 : 1.2} opacity={l.faint ? 0.5 : 1} />
         ))}
-        {hubs.map(h => <line key={`h${h.label}`} x1={CX} y1={CY} x2={h.x} y2={h.y} />)}
       </g>
 
-      {leaves.map((l, i) => (
-        <circle key={`d${i}`} className="brain-dot" cx={l.x} cy={l.y} r="2.6"
-                fill="var(--text-faint)" style={{ animationDelay: `${l.delay.toFixed(2)}s` }} />
+      {nodes.map((n, i) => (
+        <circle key={i} className="brain-dot" cx={n.x} cy={n.y} r={n.r}
+                fill="var(--text-faint)" style={{ animationDelay: `${n.delay.toFixed(2)}s` }} />
       ))}
 
       {hubs.map(h => (
         <g key={h.label}>
           <circle cx={h.x} cy={h.y} r="5" fill="var(--text-muted)" />
-          {/* Pushed outward along its own spoke, and anchored to whichever side
+          {/* Pushed outward along its own spoke and anchored to whichever side
               that is, so a label never crosses a line running back to the
               middle however the jitter lands. */}
           <text
@@ -522,13 +546,16 @@ function BrainGraph() {
         </g>
       ))}
 
-      <circle cx={CX} cy={CY} r="17" fill="rgba(255,255,255,0.06)" />
-      <circle cx={CX} cy={CY} r="7.5" fill="var(--text)" />
+      {/* The middle is the biggest node and nothing else. It had a glow behind
+          it and its name underneath in a larger face, which turned a point in a
+          network into a hero graphic - the one thing on the page that looked
+          generated rather than drawn. It is labelled like every other node now. */}
+      <circle cx={CX} cy={CY} r="7" fill="var(--text)" />
       <text
-        x={CX} y={CY + 34} textAnchor="middle"
-        style={{ fill: 'var(--text)', fontFamily: "'Geist Mono', ui-monospace, monospace", fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase' }}
+        x={CX} y={CY + 20} textAnchor="middle"
+        style={{ fill: 'var(--text)', fontFamily: "'Geist Mono', ui-monospace, monospace", fontSize: 9.5, letterSpacing: '0.08em', textTransform: 'uppercase' }}
       >
-        your channel
+        you
       </text>
     </svg>
   );
@@ -541,8 +568,8 @@ function BrainGraph() {
 function BrainFrame() {
   const fields = [
     { k: 'Niche', v: 'ranking, gaming' },
-    { k: 'Format', v: '30 to 45s, no face, gameplay under big on-screen text, one tier a beat' },
-    { k: 'Audience', v: 'teens on mobile, watching for the take they disagree with' },
+    { k: 'Format', v: '30 to 45s, no face, gameplay under big on-screen text' },
+    { k: 'Audience', v: 'teens on mobile, there for the take they disagree with' },
   ];
   return (
     <div className="overflow-hidden grid lg:grid-cols-[minmax(0,0.95fr)_minmax(0,1fr)]"
@@ -564,14 +591,17 @@ function BrainFrame() {
           </span>
         </div>
 
-        <p className="text-[13px] leading-relaxed" style={{ color: 'var(--text)' }}>
+        {/* textWrap pretty everywhere there is a sentence in here. On a phone
+            this column is the full width of the screen and every one of these
+            was leaving a single word alone on its last line. */}
+        <p className="text-[13px] leading-relaxed" style={{ color: 'var(--text)', textWrap: 'pretty' }}>
           You post ranking shorts on mobile games, three or four a week, no face and no voiceover.
-          The ones that land are the ones where the ranking is an argument rather than a list.
+          The ones that land are where the ranking is an argument, not a list.
         </p>
         {fields.map(f => (
           <div key={f.k}>
             <p className="label-mono mb-1">{f.k}</p>
-            <p className="text-[12.5px] leading-relaxed" style={{ color: 'var(--text-muted)' }}>{f.v}</p>
+            <p className="text-[12.5px] leading-relaxed" style={{ color: 'var(--text-muted)', textWrap: 'pretty' }}>{f.v}</p>
           </div>
         ))}
         <div>
@@ -579,7 +609,8 @@ function BrainFrame() {
           {['Keep the argument, drop anything that needs a face on camera.',
             'Never pitch a format that only works at ten times their views.'].map(x => (
             <p key={x} className="text-[12.5px] leading-relaxed flex gap-2" style={{ color: 'var(--text-muted)' }}>
-              <span style={{ color: 'var(--text-faint)' }}>-</span>{x}
+              <span style={{ color: 'var(--text-faint)' }}>-</span>
+              <span style={{ textWrap: 'pretty' }}>{x}</span>
             </p>
           ))}
         </div>

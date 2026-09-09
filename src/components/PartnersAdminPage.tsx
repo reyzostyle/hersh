@@ -1,4 +1,4 @@
-import { Page, PageHead } from './Page';
+import { Page, PageHead, BackLink } from './Page';
 import { PartnersAdmin } from './PartnersAdmin';
 
 // The partner-management list, on its own hidden tab.
@@ -10,6 +10,7 @@ import { PartnersAdmin } from './PartnersAdmin';
 export function PartnersAdminPage() {
   return (
     <Page className="animate-tab-in">
+      <BackLink label="Settings" onClick={() => window.dispatchEvent(new CustomEvent('chumoku:navigate', { detail: 'settings' }))} />
       <PageHead
         eyebrow="Admin"
         title="Affiliate partners"

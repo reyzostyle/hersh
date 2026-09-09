@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { RefreshOutlineIcon as Loader2 } from '@solar-icons/react';
 import { useAuth } from '../contexts/AuthContext';
 import { getSessionToken, fetchWithRetry } from '../lib/supabase';
+import { BackLink } from './Page';
 
 const ADMIN_EMAIL = 'reyzostyle@gmail.com';
 
@@ -123,6 +124,9 @@ export function AdminPage() {
 
   return (
     <div className="sheet min-h-full max-w-5xl mx-auto px-5 sm:px-8 pt-12 sm:pt-16 pb-20 space-y-3">
+      {/* Reached by typing a code in Settings, and until now there was no way
+          out of it but the sidebar - which does not list this tab. */}
+      <BackLink label="Settings" onClick={() => window.dispatchEvent(new CustomEvent('chumoku:navigate', { detail: 'settings' }))} />
       <div className="hidden sm:block mb-6">
         <h1 className="text-2xl font-bold text-white mb-1">Growth</h1>
         <p className="text-sm text-gray-500">Live numbers across every Chumoku account. Only you can see this.</p>

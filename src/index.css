@@ -493,8 +493,24 @@ button.row:hover .row-arrow,
   border-radius: 0;
   background: transparent;
 }
-.row-group:hover { border-color: var(--line-strong); }
-.row-group > .row:hover { background: rgba(255, 255, 255, 0.02); }
+/* The whole plate answers the press, not the strip you happened to press on.
+   Painting the header's own background lit a band across the top of an opened
+   card and left the rest of it dark, which is what made a settings card look
+   broken when you clicked it. `:has` moves the state to the group, so hover and
+   press cover every pixel inside the border. */
+.row-group:has(> .row:hover) {
+  background: var(--bg-raised-hover);
+  border-color: var(--line-strong);
+}
+/* An open card stops reacting to hover: the pointer is on its way to a field
+   inside it, and lighting the whole plate while someone types in it is noise. */
+.row-group:has(> .row[aria-expanded="true"]) {
+  background: var(--bg-raised);
+  border-color: var(--line-strong);
+}
+/* Last, so that a press answers even on an open card - that press is the one
+   that closes it, and a control that does nothing while held feels dead. */
+.row-group:has(> .row:active) { background: rgba(255, 255, 255, 0.05); }
 .row-group-body { padding: 2px 16px 18px; }
 
 /* Pressing a row should look like pressing it, not like the browser painting
@@ -519,7 +535,6 @@ button.row:hover .row-arrow,
 a.row:active,
 button.row:active,
 .row[role="button"]:active { background: var(--bg-raised-hover); }
-.row-group > .row:active { background: rgba(255, 255, 255, 0.04); }
 
 /* Rows stack with air between them - the gap is what makes each one read as
    its own object rather than as a cell in a table. */

@@ -6,7 +6,7 @@ import { getSessionToken, fetchWithRetry } from '../lib/supabase';
 
 import { requestBrain, type ChannelBrain } from '../lib/brain';
 import { displayNameOf } from '../lib/user';
-import { PageHead, Row } from './Page';
+import { PageHead, Row, Loading } from './Page';
 
 function YouTubeLogo({ className }: { className?: string }) {
   return (
@@ -367,12 +367,22 @@ export function SettingsPage() {
 
   // The same 10px between cards that the hub and Projects use between rows -
   // they are the same object now, so they stack the same way.
+  // The whole list waits for the one query behind it and then arrives at once.
+  // Before, each card decided for itself when it was ready: the profile spun
+  // inside its own card, YouTube spun inside its, and Subscription did not
+  // exist until `plan` landed - so opening Settings was three or four things
+  // appearing at different moments and pushing each other down the page. They
+  // all come from a single row in a single request; there was never a reason
+  // for them to arrive separately.
   return (
-    <div className="sheet min-h-full max-w-5xl mx-auto px-5 sm:px-8 pt-12 sm:pt-16 pb-20 space-y-2.5">
+    <div className="sheet min-h-full max-w-5xl mx-auto px-5 sm:px-8 pt-12 sm:pt-16 pb-20">
 
       <div className="hidden lg:block">
         <PageHead eyebrow="Settings" title="Your account" subtitle="Your channel profile, your connections, and your subscription." />
       </div>
+
+      {loading ? <Loading /> : (
+      <div className="space-y-2.5 animate-fade-in">
 
       {/* ── Channel profile ── */}
       {/* Two fields, and neither of them can be filled in wrongly.
@@ -390,9 +400,7 @@ export function SettingsPage() {
         title="Channel profile"
         subtitle="Where you are, and anything you want us to know."
       >
-        {loading ? (
-          <Loader2 className="w-4 h-4 text-gray-500 animate-spin" />
-        ) : (
+        {(
           <div className="space-y-4">
             <div>
               <FieldLabel>Where you are</FieldLabel>
@@ -564,8 +572,8 @@ export function SettingsPage() {
       {/* ── Account ── */}
       <SettingsCard
         {...cardProps('account')}
-        icon={<User className="w-[18px] h-[18px] text-gray-300" />}
-        iconBg="rgba(255,255,255,0.07)"
+        icon={<User className="w-[18px] h-[18px]" style={{ color: 'var(--text)' }} />}
+        iconBg="rgba(255,255,255,0.05)"
         title="Account"
         subtitle="The email you signed in with, and your password."
       >
@@ -660,8 +668,13 @@ export function SettingsPage() {
       {plan && plan !== 'free' && (
         <SettingsCard
           {...cardProps('subscription')}
-          icon={<Zap className="w-[18px] h-[18px] text-[var(--accent)]" />}
-          iconBg="rgba(var(--accent-rgb),0.12)"
+          /* Amber, the colour this product already uses for the one thing
+             that is about money - the Upgrade link in the sidebar. Not the
+             process green: green here means something is running or something
+             worked (a connected account, a finished bar), and spending it on a
+             permanent tile is how a colour with one meaning stops having one. */
+          icon={<Zap className="w-[18px] h-[18px]" style={{ color: 'var(--upgrade)' }} />}
+          iconBg="rgba(245,196,81,0.12)"
           title="Subscription"
           subtitle="What you are on, and how to change it."
         >
@@ -759,8 +772,8 @@ export function SettingsPage() {
       {/* ── Redeem code ── */}
       <SettingsCard
         {...cardProps('redeem')}
-        icon={<Ticket className="w-[18px] h-[18px] text-amber-400" />}
-        iconBg="rgba(251,191,36,0.12)"
+        icon={<Ticket className="w-[18px] h-[18px]" style={{ color: 'var(--upgrade)' }} />}
+        iconBg="rgba(245,196,81,0.12)"
         title="Redeem code"
         subtitle="A code from Discord or a partner goes in here."
       >
@@ -790,7 +803,8 @@ export function SettingsPage() {
           </p>
         )}
       </SettingsCard>
-
+      </div>
+      )}
     </div>
   );
 }
