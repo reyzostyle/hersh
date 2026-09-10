@@ -331,7 +331,12 @@ export function SettingsPage() {
     if (newPassword.length < 6) { setPwError('New password must be at least 6 characters'); return; }
     setPwSaving(true);
     setPwError('');
-    const { error: signInErr } = await supabase.auth.signInWithPassword({ email: user?.email, password: currentPassword });
+    // Re-authenticating needs an address to re-authenticate. There is always
+    // one on a signed-in account, but the session type does not promise it,
+    // and a password change is the wrong place to send `undefined` and find
+    // out what the API makes of it.
+    if (!user?.email) { setPwSaving(false); setPwError('Could not confirm your account'); return; }
+    const { error: signInErr } = await supabase.auth.signInWithPassword({ email: user.email, password: currentPassword });
     if (signInErr) { setPwSaving(false); setPwError('Current password is incorrect'); return; }
     const { error: err } = await supabase.auth.updateUser({ password: newPassword });
     setPwSaving(false);

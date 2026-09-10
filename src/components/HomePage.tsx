@@ -1,9 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { VideocameraOutlineIcon as VideoIcon, FolderOutlineIcon as Folder, UsersGroupRoundedOutlineIcon as Users, GraphUpOutlineIcon as GraphUp, ArrowRightUpOutlineIcon as ArrowUpRight, ChatRoundOutlineIcon as Chat, CloseCircleOutlineIcon as Remove, PenOutlineIcon as Pen, FolderOutlineIcon as FolderIcon } from '@solar-icons/react';
 import { useAuth } from '../contexts/AuthContext';
 import { NavTab, HIDDEN_TABS } from './AppShell';
 import { Page, PageHead, Section, EditActions, Row } from './Page';
-import { listRecentThreads, deleteThread, renameThread, requestOpenThread, fileThread, listProjects, createProject, type RecentThread, type Project } from '../lib/projects';
+import { listRecentThreads, deleteThread, renameThread, requestOpenThread, fileThread, listProjects, createProject, peekHistoryRequest, clearHistoryRequest, type RecentThread, type Project } from '../lib/projects';
 import { SaveToProjectModal } from './SaveToProjectModal';
 import { formatDate } from '../lib/competitors';
 import { displayNameOf, isNewAccount } from '../lib/user';
@@ -99,9 +99,18 @@ const HISTORY_NOTE = 'Every analysis you have run. Open one to pick the conversa
 // uncluttered surface in the product into a dashboard. The hub, meanwhile, was
 // three links that also exist in the sidebar - it had nothing of its own to
 // show. Now it shows the work.
+
+// Eight was the whole list, and the note over it said "every analysis you have
+// run" - true of the table, not of what was on screen. The ninth conversation
+// was unreachable from anywhere in the product.
+const PREVIEW_COUNT = 8;
+const HISTORY_LIMIT = 200;
+
 function RecentChats() {
   const [threads, setThreads] = useState<RecentThread[]>([]);
   const [loaded, setLoaded] = useState(false);
+  const [showAll, setShowAll] = useState(false);
+  const sectionRef = useRef<HTMLDivElement>(null);
   const [renamingId, setRenamingId] = useState<string | null>(null);
   const [draft, setDraft] = useState('');
   // Projects load only when the picker is opened - most conversations are
@@ -109,9 +118,21 @@ function RecentChats() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [filing, setFiling] = useState<RecentThread | null>(null);
 
+  // Analyze sends people here by pressing History, which is a request to see
+  // this section rather than the tools above it. Arriving that way opens the
+  // full list and scrolls to it; arriving normally leaves the hub as it was.
+  const [wanted] = useState(peekHistoryRequest);
+
   useEffect(() => {
-    listRecentThreads().then(setThreads).finally(() => setLoaded(true));
+    clearHistoryRequest();
+    listRecentThreads(HISTORY_LIMIT).then(setThreads).finally(() => setLoaded(true));
+    if (wanted) setShowAll(true);
   }, []);
+
+  useEffect(() => {
+    if (!wanted || !loaded || !threads.length) return;
+    sectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, [wanted, loaded, threads.length]);
 
   const remove = async (id: string) => {
     setThreads(prev => prev.filter(t => t.id !== id));
@@ -149,6 +170,7 @@ function RecentChats() {
 
   if (!loaded) {
     return (
+      <div ref={sectionRef}>
       <Section label="Chat history" note={HISTORY_NOTE}>
         <div className="row-list">
           {[0, 1, 2].map(i => (
@@ -160,8 +182,11 @@ function RecentChats() {
           ))}
         </div>
       </Section>
+      </div>
     );
   }
+
+  const shown = showAll ? threads : threads.slice(0, PREVIEW_COUNT);
 
   return (
     // "Recent" named when they happened, not what they are, and the rules
@@ -169,9 +194,18 @@ function RecentChats() {
     // of every conversation in the account. It says what it is now, with a
     // line under the label saying what pressing one does - and the rows are
     // the same plate as everything else on the page.
-    <Section label="Chat history" note={HISTORY_NOTE}>
+    <div ref={sectionRef}>
+    <Section
+      label="Chat history"
+      note={HISTORY_NOTE}
+      action={threads.length > PREVIEW_COUNT && (
+        <button onClick={() => setShowAll(v => !v)} className="chip">
+          {showAll ? 'Show less' : `Show all ${threads.length}`}
+        </button>
+      )}
+    >
       <div className="row-list">
-        {threads.map(t => (
+        {shown.map(t => (
           renamingId === t.id ? (
             <div key={t.id} className="row">
               <span className="row-icon"><Chat className="w-[18px] h-[18px]" /></span>
@@ -252,5 +286,6 @@ function RecentChats() {
         />
       )}
     </Section>
+    </div>
   );
 }

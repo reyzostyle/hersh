@@ -36,15 +36,24 @@ export async function getSessionToken(): Promise<string | null> {
 // is a real answer, not a blip, and is returned as-is on the first try.
 const RETRYABLE_STATUS = new Set([502, 503, 504]);
 
+// An abort is the one failure that must never be retried: the user pressed
+// stop, and fetch throwing AbortError is that press arriving, not a blip. Left
+// to the retry loop it would wait 800ms and send the whole request again -
+// twice - which is the opposite of what stop means.
+export const isAbort = (e: unknown) =>
+  e instanceof DOMException ? e.name === 'AbortError' : (e as { name?: string })?.name === 'AbortError';
+
 export async function fetchWithRetry(input: RequestInfo | URL, init?: RequestInit, retries = 2): Promise<Response> {
   let lastError: unknown;
   for (let attempt = 0; attempt <= retries; attempt++) {
     if (attempt > 0) await new Promise(r => setTimeout(r, attempt * 800));
+    if (init?.signal?.aborted) throw new DOMException('Aborted', 'AbortError');
     try {
       const res = await fetch(input, init);
       if (res.ok || !RETRYABLE_STATUS.has(res.status) || attempt === retries) return res;
       lastError = new Error(`HTTP ${res.status}`);
     } catch (e) {
+      if (isAbort(e)) throw e;
       lastError = e;
       if (attempt === retries) throw e;
     }

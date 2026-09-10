@@ -95,6 +95,9 @@ export interface ThreadMessage {
   // The scored reply, when the message carries one.
   // deno-lint-ignore no-explicit-any
   analysis: any | null;
+  // Storage paths of the screenshots sent with this message, if any. Signed
+  // into URLs by signChatImages before the thread renders them.
+  images?: string[] | null;
   created_at: string;
 }
 
@@ -137,9 +140,15 @@ export async function deleteThread(id: string): Promise<void> {
 }
 
 export async function loadThreadMessages(threadId: string): Promise<ThreadMessage[]> {
+  // select('*') rather than a column list on purpose: `images` is added by a
+  // migration that is applied by hand against this project (see the note on
+  // db push in the repo's history), so the client has to keep working on a
+  // database that does not have the column yet. A named column that does not
+  // exist fails the whole query and takes thread loading down with it; a star
+  // just comes back without it, and `images` reads as undefined.
   const { data, error } = await supabase
     .from('chat_messages')
-    .select('id, role, content, analysis, created_at')
+    .select('*')
     .eq('thread_id', threadId)
     .order('created_at', { ascending: true });
   if (error) { console.error('[projects] loadThreadMessages', error); return []; }
@@ -167,6 +176,31 @@ export function takeRequestedThread(): string | null {
   const id = localStorage.getItem(OPEN_THREAD_KEY);
   if (id) localStorage.removeItem(OPEN_THREAD_KEY);
   return id;
+}
+
+// Analyze sends people here to find an older conversation. The hub already
+// lists every thread with rename, delete and filing on it, so Analyze does not
+// need a list of its own - it needs a door. This is the door: the flag says
+// "you came looking for history", and the hub scrolls to it rather than making
+// them find it under the tools.
+const WANT_HISTORY_KEY = 'chumoku_want_history';
+
+export function requestHistory() {
+  localStorage.setItem(WANT_HISTORY_KEY, '1');
+  window.dispatchEvent(new CustomEvent('chumoku:navigate', { detail: 'home' }));
+}
+
+// Read and clear are separate on purpose. The flag is read during render (so
+// the section can open expanded on its first paint rather than jumping open
+// afterwards), and StrictMode renders every component twice in development - a
+// read that also cleared would come back true once and false once, from the
+// same mount. Clearing belongs in the effect, which is allowed to have effects.
+export function peekHistoryRequest(): boolean {
+  return !!localStorage.getItem(WANT_HISTORY_KEY);
+}
+
+export function clearHistoryRequest(): void {
+  localStorage.removeItem(WANT_HISTORY_KEY);
 }
 
 export function requestOpenVideo(videoId: string) {

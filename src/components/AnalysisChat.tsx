@@ -1,9 +1,19 @@
 import { useState, useRef, useEffect, useMemo } from 'react';
-import { AddOutlineIcon as Plus, ArrowUpOutlineIcon as ArrowUp, RefreshOutlineIcon as Loader2, CloseCircleOutlineIcon as X, ClapperboardOpenOutlineIcon as Film, GalleryOutlineIcon as ImageIcon, FolderOutlineIcon as FolderIcon } from '@solar-icons/react';
-import { supabase, getSessionToken, getUserId, fetchWithRetry } from '../lib/supabase';
+import {
+  AddOutlineIcon as Plus, ArrowUpOutlineIcon as ArrowUp,
+  CloseCircleOutlineIcon as X, ClapperboardOpenOutlineIcon as Film, GalleryOutlineIcon as ImageIcon,
+  FolderOutlineIcon as FolderIcon, CopyOutlineIcon as Copy, HistoryOutlineIcon as History,
+  StopOutlineIcon as Stop, RestartOutlineIcon as Restart, PenNewSquareOutlineIcon as NewChat,
+} from '@solar-icons/react';
+import { Check } from './BrandIcons';
+import { supabase, getSessionToken, getUserId, fetchWithRetry, isAbort } from '../lib/supabase';
 import { ErrorNotice } from './ErrorNotice';
 import { useUsage, CREDIT_COSTS } from '../lib/useUsage';
-import { listProjects, createProject, fileThread, loadThread, loadThreadMessages, takeRequestedThread, type Project } from '../lib/projects';
+import {
+  listProjects, createProject, fileThread, loadThread, loadThreadMessages, takeRequestedThread,
+  requestHistory, type Project,
+} from '../lib/projects';
+import { uploadChatImages, signChatImages } from '../lib/chatImages';
 import { SaveToProjectModal } from './SaveToProjectModal';
 
 const FN = 'https://ezlousklksipvwuinpzq.supabase.co/functions/v1';
@@ -33,9 +43,10 @@ interface Message {
   // text it decided it about. Enough to run the other one from a click.
   textKind?: 'hook' | 'script';
   source?: string;
-  // Screenshots sent with this message, as data URLs, for the bubble to show.
-  // Not persisted: the thread keeps "[screenshot]" and the answer, so a
-  // reopened conversation has the reasoning without the pictures.
+  // Screenshots sent with this message, ready to render: data URLs while the
+  // message is live, signed storage URLs once it comes back out of the
+  // database. The files themselves go to the chat-images bucket, so a reopened
+  // conversation still has the evidence the answer was about.
   images?: string[];
 }
 
@@ -66,6 +77,9 @@ const MAX_IMAGE_MB = 5;
 const MAX_IMAGES = 4;
 
 const isImage = (f: File) => IMAGE_TYPES.includes(f.type);
+
+// How tall the composer is allowed to grow before it scrolls instead.
+const MAX_COMPOSER_PX = 200;
 
 const validateFile = (f: File): string => {
   if (isImage(f)) {
@@ -102,6 +116,116 @@ const formatSize = (bytes: number) => {
   return `${(bytes / 1024).toFixed(0)} KB`;
 };
 
+// A message that carried screenshots was stored with a "[screenshot]" tag in
+// front of it, because the pictures themselves were not kept and the thread
+// needed some record that they had been sent. They are kept now, so the tag is
+// the caption on a photograph that is right there.
+const stripShotTag = (s: string) => s.replace(/^\[\d*\s*screenshots?\]\s*/i, '');
+
+// ─── Failures ────────────────────────────────────────────────────────────────
+
+// Three kinds, because three different things have gone wrong and only one of
+// them is ours.
+//
+//   input   - they sent something this cannot take (a 400, a file too big).
+//             Their move, said plainly, no apology and no Discord link.
+//   credits - the balance ran out (a 403). Nothing is broken; there is a price
+//             and a button.
+//   server  - everything else. Ours to fix, and worth another try.
+//
+// Before this there was one `error` string and every one of them rendered as
+// ErrorNotice: "Something went wrong on our end, send this to our Discord."
+// Being told to file a bug report because a script was 200 characters too long
+// is the product blaming itself for reading its own rules.
+type FailKind = 'input' | 'credits' | 'server';
+
+interface Failure {
+  kind: FailKind;
+  message: string;
+  // Set on the failures worth another attempt. Re-runs the exact call that
+  // failed without putting the message on screen a second time.
+  retry?: () => void;
+}
+
+class RunError extends Error {
+  kind: FailKind;
+  constructor(kind: FailKind, message: string) {
+    super(message);
+    this.kind = kind;
+  }
+}
+
+// 403 is the credit gate in every function here; 400 and 413 are the input
+// checks. Anything else answered badly or did not answer.
+const failOf = (status: number, message: string): RunError =>
+  new RunError(status === 403 ? 'credits' : status === 400 || status === 413 ? 'input' : 'server', message);
+
+const asFailure = (e: unknown, retry?: () => void): Failure => {
+  const message = e instanceof Error ? e.message : 'Something went wrong';
+  const kind = e instanceof RunError ? e.kind : 'server';
+  // A retry is offered only where trying again could plausibly work. Sending
+  // the same too-long script again is not a fix, and neither is spending
+  // credits that are already gone.
+  return { kind, message, retry: kind === 'server' ? retry : undefined };
+};
+
+// ─── Surviving a tab switch ──────────────────────────────────────────────────
+
+// Module scope, deliberately: it outlives the component, which unmounts every
+// time the sidebar moves to another tab, and it dies with the page, which is
+// exactly the rule asked for. Step out to Ideas and back and the conversation
+// is where it was; reload, or come back to the site tomorrow, and Analyze
+// opens clean.
+//
+// localStorage would keep it too well - it would greet every visit with last
+// week's half-finished thread - and sessionStorage survives a reload, which is
+// the one thing this must not do.
+interface SessionCache {
+  messages: Message[];
+  threadId: string | null;
+  threadProject: Project | null;
+}
+let session: SessionCache | null = null;
+
+// ─── Small parts ─────────────────────────────────────────────────────────────
+
+// Copying is the whole point of half of what this screen produces. Three
+// rewritten hooks that have to be retyped by hand off the screen are three
+// suggestions; with this they are three hooks.
+function CopyButton({ text, title = 'Copy', className = '' }: { text: string; title?: string; className?: string }) {
+  const [copied, setCopied] = useState(false);
+
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    } catch { /* clipboard unavailable - the text is still selectable */ }
+  };
+
+  return (
+    <button
+      onClick={copy}
+      title={title}
+      aria-label={title}
+      className={`p-1.5 rounded-lg transition-colors hover:text-[var(--text)] ${className}`}
+      style={{ color: copied ? 'var(--text)' : 'var(--text-faint)' }}
+    >
+      {copied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+    </button>
+  );
+}
+
+// The review as something that can live outside this page - in a doc, in a
+// message to an editor. Same order it is read in on screen.
+const analysisAsText = (a: Analysis) => [
+  a.overall_score != null ? `${a.overall_score}/100` : '',
+  a.overall_assessment ?? '',
+  a.strong_spots?.length ? `Working\n${a.strong_spots.map(s => `- ${s}`).join('\n')}` : '',
+  a.weak_spots?.length ? `Fix\n${a.weak_spots.map(s => `- ${s}`).join('\n')}` : '',
+  a.rewrites?.length ? `Use instead\n${a.rewrites.map(r => `- ${r.hook}${r.why ? ` (${r.why})` : ''}`).join('\n')}` : '',
+].filter(Boolean).join('\n\n');
+
 // The scored reply. It is a message in the thread rather than a panel over it,
 // so the conversation that follows has something to point at.
 // `fresh` means this review just landed rather than being loaded out of a saved
@@ -123,12 +247,15 @@ function AnalysisCard({ a, fresh, onAdvance }: { a: Analysis; fresh?: boolean; o
 
   return (
     <div className="rounded-2xl p-5 sm:p-6" style={{ background: 'var(--bg-raised)', border: '1px solid var(--line)' }}>
-      {score != null && (
-        <div className="flex items-baseline gap-2 mb-4">
-          <span className="text-4xl font-semibold tracking-tight" style={{ color: 'var(--text)' }}>{score}</span>
-          <span className="font-mono text-[11px]" style={{ color: 'var(--text-faint)' }}>/ 100</span>
-        </div>
-      )}
+      <div className="flex items-start justify-between gap-3 mb-4">
+        {score != null ? (
+          <div className="flex items-baseline gap-2">
+            <span className="text-4xl font-semibold tracking-tight" style={{ color: 'var(--text)' }}>{score}</span>
+            <span className="font-mono text-[11px]" style={{ color: 'var(--text-faint)' }}>/ 100</span>
+          </div>
+        ) : <span />}
+        <CopyButton text={analysisAsText(a)} title="Copy this review" className="-mr-1.5 -mt-1" />
+      </div>
 
       {a.overall_assessment && (
         /* --text, not --text-muted. Same call as the chat answers: this is the
@@ -164,7 +291,8 @@ function AnalysisCard({ a, fresh, onAdvance }: { a: Analysis; fresh?: boolean; o
 
       {/* A hook check ends in three finished hooks to use instead. Each gets
           the line itself in reading weight and the reason under it in the
-          muted one, because the line is the thing being copied. */}
+          muted one, because the line is the thing being copied - and now it
+          can be, one press per hook. */}
       {!!a.rewrites?.length && (
         <div className="mt-5">
           <p className={`label-mono mb-2 ${cls}`} style={step((a.strong_spots?.length ?? 0) + (a.weak_spots?.length ?? 0) + 2)}>
@@ -172,9 +300,12 @@ function AnalysisCard({ a, fresh, onAdvance }: { a: Analysis; fresh?: boolean; o
           </p>
           <ul className="space-y-3">
             {a.rewrites.map((r, i) => (
-              <li key={i} className={cls} style={step((a.strong_spots?.length ?? 0) + (a.weak_spots?.length ?? 0) + 3 + i)}>
-                <p className="text-[13px] leading-relaxed" style={{ color: 'var(--text)' }}>{r.hook}</p>
-                {r.why && <p className="text-[12px] leading-relaxed mt-1" style={{ color: 'var(--text-faint)' }}>{r.why}</p>}
+              <li key={i} className={`flex items-start gap-2 ${cls}`} style={step((a.strong_spots?.length ?? 0) + (a.weak_spots?.length ?? 0) + 3 + i)}>
+                <div className="flex-1 min-w-0">
+                  <p className="text-[13px] leading-relaxed" style={{ color: 'var(--text)' }}>{r.hook}</p>
+                  {r.why && <p className="text-[12px] leading-relaxed mt-1" style={{ color: 'var(--text-faint)' }}>{r.why}</p>}
+                </div>
+                <CopyButton text={r.hook} title="Copy this hook" className="flex-shrink-0 -mt-1" />
               </li>
             ))}
           </ul>
@@ -212,7 +343,7 @@ const STAGES: Record<string, string[]> = {
 
 const STAGE_MS = 3800;
 
-function Working({ kind }: { kind: keyof typeof STAGES }) {
+function Working({ kind, onStop }: { kind: keyof typeof STAGES; onStop: () => void }) {
   const stages = STAGES[kind] ?? STAGES.video;
   const [at, setAt] = useState(0);
   const [shown, setShown] = useState(true);
@@ -236,15 +367,23 @@ function Working({ kind }: { kind: keyof typeof STAGES }) {
     return () => { clearInterval(t); clearTimeout(swap); };
   }, [kind]);
 
+  // Stop sits next to the line that says what is happening, not only under the
+  // composer, because this is where the eye already is during the minute a
+  // video takes.
   return (
-    <p className="animate-msg-in text-[14px] font-medium" aria-live="polite">
-      <span
-        className="text-working inline-block transition-opacity duration-200"
-        style={{ opacity: shown ? 1 : 0 }}
-      >
-        {stages[at]}
-      </span>
-    </p>
+    <div className="animate-msg-in flex items-center gap-3">
+      <p className="text-[14px] font-medium" aria-live="polite">
+        <span
+          className="text-working inline-block transition-opacity duration-200"
+          style={{ opacity: shown ? 1 : 0 }}
+        >
+          {stages[at]}
+        </span>
+      </p>
+      <button onClick={onStop} className="chip" title="Stop this run">
+        <Stop className="w-3.5 h-3.5" /> Stop
+      </button>
+    </div>
   );
 }
 
@@ -308,14 +447,42 @@ function RevealText({ text, onAdvance }: { text: string; onAdvance: () => void }
   );
 }
 
+// The four things this screen takes, as four things to press.
+//
+// "What are we looking at?" over an empty box is a good question and a bad
+// brief: nothing on the screen said a hook could go in it, or a script, or a
+// screenshot of Studio, so the box got links and nothing else. Two of these
+// also settle the routing by saying the word out loud - a paragraph that opens
+// and pays off is the one call the router can reasonably get wrong, and
+// "Check this script:" removes the guess.
+const STARTERS: { label: string; prefill?: string; pick?: boolean }[] = [
+  { label: 'Score a hook', prefill: 'Score this hook:\n' },
+  { label: 'Check a script', prefill: 'Check this script:\n' },
+  { label: 'Read my Studio screenshot', pick: true },
+  { label: 'Why did my last short flop?', prefill: 'Why did my last short flop?' },
+];
+
 export function AnalysisChat() {
-  const [messages, setMessages] = useState<Message[]>([]);
-  const [threadId, setThreadId] = useState<string | null>(null);
+  // Lazily seeded from the session cache, not restored in an effect: an effect
+  // would render the empty hero for one frame first, and coming back to a tab
+  // should look like returning to it rather than like it reloading.
+  const [messages, setMessages] = useState<Message[]>(
+    () => session?.messages.map(m => ({ ...m, fresh: false })) ?? [],
+  );
+  const [threadId, setThreadId] = useState<string | null>(() => session?.threadId ?? null);
+  const [threadProject, setThreadProject] = useState<Project | null>(() => session?.threadProject ?? null);
   const [composer, setComposer] = useState('');
   const [busy, setBusy] = useState(false);
   // Which pipeline is running, so the working line can name its actual stages.
   const [busyKind, setBusyKind] = useState<keyof typeof STAGES>('video');
-  const [error, setError] = useState('');
+  const [failure, setFailure] = useState<Failure | null>(null);
+  // Set when a run was stopped by hand, cleared by the next send. Its own state
+  // rather than a Failure: nothing went wrong.
+  const [stopped, setStopped] = useState(false);
+  // Opening a saved conversation is not a run, so it gets no stage line and no
+  // stop button - but the screen still has to say it is doing something rather
+  // than showing the empty hero for the length of two queries.
+  const [opening, setOpening] = useState(false);
   // A list, not one. A video and the screenshot of its retention curve are one
   // message, and so are two screenshots of the same channel.
   const [files, setFiles] = useState<File[]>([]);
@@ -327,11 +494,13 @@ export function AnalysisChat() {
   // Projects load only when the picker is opened - most threads are never filed.
   const [projects, setProjects] = useState<Project[]>([]);
   const [filingOpen, setFilingOpen] = useState(false);
-  const [threadProject, setThreadProject] = useState<Project | null>(null);
 
   const fileRef = useRef<HTMLInputElement>(null);
   const endRef = useRef<HTMLDivElement>(null);
   const taRef = useRef<HTMLTextAreaElement>(null);
+  // The run in flight, so Stop has something to pull on. One at a time by
+  // construction: the composer is disabled while a run is going.
+  const abortRef = useRef<AbortController | null>(null);
 
   // Instant, not smooth, when called from the reveal: a smooth scroll retriggered
   // every 28ms never settles, and the page ends up crawling behind the text.
@@ -339,12 +508,59 @@ export function AnalysisChat() {
 
   useEffect(() => { endRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages, busy]);
 
+  // Kept in module scope so a tab switch does not throw the conversation away.
+  // An empty screen is remembered as nothing at all, which is what makes New
+  // stay new: leaving a cleared state cached would restore it on the way back.
+  useEffect(() => {
+    session = messages.length || threadId ? { messages, threadId, threadProject } : null;
+  }, [messages, threadId, threadProject]);
+
+  // Everything a saved conversation needs to come back: the messages, the
+  // project it is filed under, and signed URLs for the screenshots that went
+  // into it. One signing call covers the whole thread rather than one per
+  // message.
+  const openThread = async (id: string) => {
+    abortRef.current?.abort();
+    abortRef.current = null;
+    setOpening(true);
+    setBusy(false);
+    setFailure(null);
+    setStopped(false);
+    try {
+      const [rows, thread] = await Promise.all([loadThreadMessages(id), loadThread(id)]);
+      const signed = await signChatImages(rows.flatMap(r => r.images ?? []));
+
+      setThreadId(id);
+      setMessages(rows.map(r => {
+        const shots = (r.images ?? []).map(p => signed[p]).filter(Boolean);
+        return {
+          id: r.id,
+          role: r.role,
+          content: shots.length ? stripShotTag(r.content) : r.content,
+          analysis: r.analysis ?? null,
+          images: shots.length ? shots : undefined,
+        };
+      }));
+
+      if (thread?.project_id) {
+        const all = await listProjects();
+        setThreadProject(all.find(p => p.id === thread.project_id) ?? null);
+        setProjects(all);
+      } else {
+        setThreadProject(null);
+      }
+    } finally {
+      setOpening(false);
+    }
+  };
+
   // What this screen opens with, decided once on mount.
   //
   // Two things can be waiting, both one-shot handoffs cleared as they are read:
   // a conversation filed in a project that was just clicked, and a link pasted
   // on the landing page before signing up. An explicit click wins if somehow
-  // both are set.
+  // both are set, and either beats whatever the session cache is holding -
+  // asking for a specific thread is asking to leave the current one.
   //
   // The pending link was HookAnalysis's job, and when Analyze became a
   // conversation nothing took it over. So the one path the entire hero exists
@@ -359,29 +575,7 @@ export function AnalysisChat() {
     // credits twice.
     if (pending) localStorage.removeItem('chumoku_pending_video_url');
 
-    if (requested) {
-      (async () => {
-        setBusy(true);
-        const [rows, thread] = await Promise.all([
-          loadThreadMessages(requested),
-          loadThread(requested),
-        ]);
-        setThreadId(requested);
-        setMessages(rows.map(r => ({
-          id: r.id,
-          role: r.role,
-          content: r.content,
-          analysis: r.analysis ?? null,
-        })));
-        if (thread?.project_id) {
-          const all = await listProjects();
-          setThreadProject(all.find(p => p.id === thread.project_id) ?? null);
-          setProjects(all);
-        }
-        setBusy(false);
-      })();
-      return;
-    }
+    if (requested) { openThread(requested); return; }
 
     if (!pending) return;
     const videoId = extractVideoId(pending);
@@ -391,21 +585,22 @@ export function AnalysisChat() {
     else setComposer(pending);
   }, []);
 
-  // Grows with the text the way a chat input should, up to a ceiling.
-  useEffect(() => {
-    const ta = taRef.current;
-    if (!ta) return;
-    ta.style.height = 'auto';
-    ta.style.height = Math.min(ta.scrollHeight, 200) + 'px';
-  }, [composer]);
-
   const push = (m: Omit<Message, 'id'>) => setMessages(prev => [...prev, { ...m, id: uid(), fresh: true }]);
 
-  const persist = async (tid: string, role: 'user' | 'assistant', content: string, analysis?: Analysis) => {
+  const persist = async (
+    tid: string, role: 'user' | 'assistant', content: string,
+    analysis?: Analysis, imagePaths?: string[],
+  ) => {
     const userId = await getUserId();
     if (!userId) return;
+    // `images` is only sent when there are some. The column is added by a
+    // migration applied by hand against this project, and an insert naming a
+    // column that does not exist fails - so an ordinary message keeps working
+    // on a database that has not had the migration yet, and screenshots start
+    // being kept the moment it does.
     await supabase.from('chat_messages').insert({
       thread_id: tid, user_id: userId, role, content, analysis: analysis ?? null,
+      ...(imagePaths?.length ? { images: imagePaths } : {}),
     });
   };
 
@@ -417,11 +612,64 @@ export function AnalysisChat() {
     return data?.id ?? null;
   };
 
-  const runAnalysis = async (videoId: string, shots: File[], context: string, shownText: string) => {
-    setBusyKind('video');
+  // Every run starts here: one controller, the previous failure cleared, and a
+  // signal that Stop can pull.
+  const beginRun = (kind: keyof typeof STAGES) => {
+    abortRef.current?.abort();
+    const controller = new AbortController();
+    abortRef.current = controller;
+    setBusyKind(kind);
     setBusy(true);
-    setError('');
-    push({ role: 'user', content: shownText });
+    setFailure(null);
+    setStopped(false);
+    return controller.signal;
+  };
+
+  const endRun = (controller?: AbortSignal) => {
+    // Only the run that is still the current one clears the flag. A stop
+    // followed immediately by a new send must not have the old run's finally
+    // block turn the new one's spinner off.
+    if (!controller || abortRef.current?.signal === controller) {
+      abortRef.current = null;
+      setBusy(false);
+    }
+  };
+
+  // Aborting the request stops the answer arriving; it does not reach into the
+  // edge function and stop it finishing. So this says what it can honestly say
+  // and then reloads the balance, rather than promising a refund it does not
+  // control.
+  const stop = () => {
+    abortRef.current?.abort();
+    abortRef.current = null;
+    setBusy(false);
+    setStopped(true);
+    reloadUsage();
+  };
+
+  // The thread is over, not deleted. It is already in the database and already
+  // in the hub's history, so New is a clean screen rather than a loss.
+  const newChat = () => {
+    abortRef.current?.abort();
+    abortRef.current = null;
+    session = null;
+    setMessages([]);
+    setThreadId(null);
+    setThreadProject(null);
+    setFiles([]);
+    setComposer('');
+    setFailure(null);
+    setStopped(false);
+    setBusy(false);
+    setOpening(false);
+  };
+
+  const runAnalysis = async (
+    videoId: string, shots: File[], context: string, shownText: string,
+    { pushed = false, stored = false }: { pushed?: boolean; stored?: boolean } = {},
+  ) => {
+    const signal = beginRun('video');
+    if (!pushed) push({ role: 'user', content: shownText });
 
     let title = '';
     try {
@@ -429,23 +677,29 @@ export function AnalysisChat() {
       if (r.ok) title = (await r.json()).title ?? '';
     } catch { /* title is a nicety, not a requirement */ }
 
+    // Stop pressed while the title was being fetched. Bail before a thread is
+    // opened for it: an empty conversation in the history is a record of
+    // something that never happened.
+    if (signal.aborted) { endRun(signal); return; }
+
     // Reuse the thread if the conversation already started - a question can
     // come before the first link now, and starting a second thread here would
     // orphan everything said up to this point.
     const tid = threadId ?? await startThread(title || shownText.slice(0, 60));
     setThreadId(tid);
-    if (tid) await persist(tid, 'user', shownText);
+    if (tid && !stored) await persist(tid, 'user', shownText);
 
     try {
       const token = await getSessionToken();
-      if (!token) throw new Error('Not authenticated');
+      if (!token) throw new RunError('server', 'Not authenticated');
       const res = await fetchWithRetry(`${FN}/analyze-with-gemini`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({ videoId, videoContext: context, images: await toImageParts(shots) }),
+        signal,
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Analysis failed');
+      if (!res.ok) throw failOf(res.status, data.error || 'Analysis failed');
 
       const a: Analysis = {
         overall_score: data.analysis?.hook_analysis?.overall_score,
@@ -478,9 +732,11 @@ export function AnalysisChat() {
       if (tid && context.trim()) await routeMessage(context.trim(), { silent: true, tid });
 
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Analysis failed');
+      if (isAbort(e)) return;
+      reloadUsage();
+      setFailure(asFailure(e, () => runAnalysis(videoId, shots, context, shownText, { pushed: true, stored: true })));
     } finally {
-      setBusy(false);
+      endRun(signal);
     }
   };
 
@@ -495,29 +751,33 @@ export function AnalysisChat() {
   // been attaching files to a submit() that only ever read the textarea, so the
   // plate showed the name, the send button stayed disabled, and the file went
   // nowhere. This is the wire that was missing, not new machinery.
-  const runUpload = async (f: File, shots: File[], context: string, shownText: string) => {
-    setBusyKind('uploading');
-    setBusy(true);
-    setError('');
-    push({ role: 'user', content: shownText });
+  const runUpload = async (
+    f: File, shots: File[], context: string, shownText: string,
+    { pushed = false, stored = false }: { pushed?: boolean; stored?: boolean } = {},
+  ) => {
+    const signal = beginRun('uploading');
+    if (!pushed) push({ role: 'user', content: shownText });
 
     const title = f.name.replace(/\.[^.]+$/, '');
     const tid = threadId ?? await startThread(title || f.name);
     setThreadId(tid);
-    if (tid) await persist(tid, 'user', shownText);
+    if (tid && !stored) await persist(tid, 'user', shownText);
 
     try {
       const token = await getSessionToken();
-      if (!token) throw new Error('Not authenticated');
+      if (!token) throw new RunError('server', 'Not authenticated');
       const mimeType = f.type || 'video/mp4';
 
       const sessionRes = await fetchWithRetry(`${FN}/get-upload-url`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({ fileName: f.name, fileSize: f.size, mimeType }),
+        signal,
       });
-      const session = await sessionRes.json();
-      if (!sessionRes.ok || !session.uploadUrl) throw new Error(session.error || 'Could not start the upload');
+      const uploadSession = await sessionRes.json();
+      if (!sessionRes.ok || !uploadSession.uploadUrl) {
+        throw failOf(sessionRes.status, uploadSession.error || 'Could not start the upload');
+      }
 
       // Plain fetch, not fetchWithRetry: the body is the file. Retrying a
       // failed send means pushing every byte again, twice over a bad
@@ -527,14 +787,17 @@ export function AnalysisChat() {
         headers: {
           Authorization: `Bearer ${token}`,
           'Content-Type': mimeType,
-          'X-Upload-Url': session.uploadUrl,
+          'X-Upload-Url': uploadSession.uploadUrl,
           'X-Upload-Offset': '0',
           'X-Is-Last': 'true',
         },
         body: f,
+        signal,
       });
       const uploaded = await uploadRes.json();
-      if (!uploadRes.ok || !uploaded.geminiFileName) throw new Error(uploaded.error || 'Upload failed');
+      if (!uploadRes.ok || !uploaded.geminiFileName) {
+        throw failOf(uploadRes.status, uploaded.error || 'Upload failed');
+      }
 
       // The bytes are over. What is left is the wait a link gets, so the stage
       // line switches to the stages that are now actually running.
@@ -550,9 +813,10 @@ export function AnalysisChat() {
           mimeType,
           images: await toImageParts(shots),
         }),
+        signal,
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Analysis failed');
+      if (!res.ok) throw failOf(res.status, data.error || 'Analysis failed');
 
       const a: Analysis = {
         overall_score: data.analysis?.hook_analysis?.overall_score,
@@ -575,17 +839,16 @@ export function AnalysisChat() {
       if (tid && context.trim()) await routeMessage(context.trim(), { silent: true, tid });
 
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Analysis failed');
+      if (isAbort(e)) return;
+      reloadUsage();
+      setFailure(asFailure(e, () => runUpload(f, shots, context, shownText, { pushed: true, stored: true })));
     } finally {
-      setBusy(false);
+      endRun(signal);
     }
   };
 
   // Hook Lab and Script Lab used to be their own tabs. Same functions, same
   // credits, now answered in the thread so the follow-ups work on them too.
-  // `pushed` is set when the router already put the message on screen: it
-  // decided this was a hook rather than a question, and the bubble went up
-  // before that was known.
   // `pushed`  - the message is already on screen (the router put it there).
   // `stored`  - it is already in the database too, so do not write it twice.
   // They are separate because the router leaves the bubble on screen without
@@ -595,9 +858,7 @@ export function AnalysisChat() {
     text: string,
     { pushed = false, stored = false }: { pushed?: boolean; stored?: boolean } = {},
   ) => {
-    setBusyKind(kind);
-    setBusy(true);
-    setError('');
+    const signal = beginRun(kind);
     if (!pushed) push({ role: 'user', content: text });
 
     const tid = threadId ?? await startThread(text.slice(0, 60));
@@ -606,14 +867,15 @@ export function AnalysisChat() {
 
     try {
       const token = await getSessionToken();
-      if (!token) throw new Error('Not authenticated');
+      if (!token) throw new RunError('server', 'Not authenticated');
       const res = await fetchWithRetry(`${FN}/analyze-${kind}-text`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
         body: JSON.stringify(kind === 'hook' ? { hook: text, context: '' } : { script: text, context: '' }),
+        signal,
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Analysis failed');
+      if (!res.ok) throw failOf(res.status, data.error || 'Analysis failed');
 
       // The two endpoints do not answer in the same shape and never have.
       // analyze-script-text returns overall_score, overall_assessment,
@@ -649,9 +911,11 @@ export function AnalysisChat() {
       window.dispatchEvent(new CustomEvent('chumoku:analysis-done'));
 
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Analysis failed');
+      if (isAbort(e)) return;
+      reloadUsage();
+      setFailure(asFailure(e, () => runTextAnalysis(kind, text, { pushed: true, stored: true })));
     } finally {
-      setBusy(false);
+      endRun(signal);
     }
   };
 
@@ -672,30 +936,29 @@ export function AnalysisChat() {
   // this closure yet.
   const routeMessage = async (
     text: string,
-    { silent = false, tid, images, previews }: {
+    { silent = false, tid, images, previews, shots }: {
       silent?: boolean; tid?: string | null;
-      images?: { mimeType: string; base64: string }[]; previews?: string[];
+      images?: { mimeType: string; base64: string }[]; previews?: string[]; shots?: File[];
     } = {},
   ) => {
     const thread = tid ?? threadId;
     // Vague until the server says otherwise - see STAGES.question. With a
     // review already on screen the call still classifies, but it is reading
     // that review to do it, so the line can say so.
-    setBusyKind(images?.length ? 'screenshot' : hasResult ? 'followup' : 'question');
-    setBusy(true);
-    setError('');
+    const signal = beginRun(images?.length ? 'screenshot' : hasResult ? 'followup' : 'question');
     if (!silent) push({ role: 'user', content: text, images: previews });
 
     try {
       const token = await getSessionToken();
-      if (!token) throw new Error('Not authenticated');
+      if (!token) throw new RunError('server', 'Not authenticated');
       const res = await fetchWithRetry(`${FN}/chat-followup`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({ threadId: thread, question: text, images }),
+        signal,
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Could not read that');
+      if (!res.ok) throw failOf(res.status, data.error || 'Could not read that');
 
       if (data.intent === 'hook' || data.intent === 'script') {
         // Hands off with the bubble already on screen. runTextAnalysis takes
@@ -709,24 +972,56 @@ export function AnalysisChat() {
       // The server only persists into a thread that already exists, because
       // until now there was nothing worth keeping. A question can open a
       // conversation, so this is where that thread gets made.
-      if (!thread) {
-        const opened = await startThread(text.slice(0, 60) || 'Screenshot');
+      const opened = thread ?? await startThread(text.slice(0, 60) || 'Screenshot');
+      if (!thread && opened) {
         setThreadId(opened);
-        if (opened) {
-          const tag = (images?.length ?? 0) > 1 ? `[${images!.length} screenshots]` : '[screenshot]';
-          await persist(opened, 'user', images?.length ? `${tag} ${text}`.trim() : text);
-          await persist(opened, 'assistant', data.answer);
-        }
+        // Tagged the same way chat-followup tags it when it does the writing,
+        // so both paths store the same shape. The tag is still worth writing
+        // now that the pictures are kept: keeping them can fail (an older
+        // database has no bucket), and the transcript should say a screenshot
+        // was sent either way. stripShotTag takes it back off whenever the
+        // images did survive.
+        const tag = (images?.length ?? 0) > 1 ? `[${images!.length} screenshots]` : '[screenshot]';
+        await persist(opened, 'user', images?.length ? `${tag} ${text}`.trim() : text);
+        await persist(opened, 'assistant', data.answer);
       }
+
+      // The screenshots are kept once the message they belong to exists. On a
+      // thread the server wrote into, that row is the newest user message -
+      // it was inserted moments ago by the call that just returned, and
+      // nothing else writes into a thread while a run is in flight.
+      if (opened && shots?.length) await keepShots(opened, shots);
+
       reloadUsage();
     } catch (e) {
+      if (isAbort(e)) return;
       // No falling back to the old length heuristic. Guessing "hook" on a
       // failed route is the exact behaviour being fixed, and it would spend
       // their credits to do the wrong thing. fetchWithRetry has already
       // ridden out anything transient by the time this runs.
-      setError(e instanceof Error ? e.message : 'Could not read that');
+      reloadUsage();
+      setFailure(asFailure(e, () => routeMessage(text, { silent: true, tid, images, previews, shots })));
     } finally {
-      setBusy(false);
+      endRun(signal);
+    }
+  };
+
+  // Files the screenshots against the user message they were sent with. All of
+  // it fails soft: the bucket and the column are added by a migration applied
+  // by hand, and a conversation must not break on a database that has not had
+  // it yet - it simply keeps behaving as it did, with the pictures living only
+  // as long as the tab.
+  const keepShots = async (tid: string, shots: File[]) => {
+    try {
+      const paths = await uploadChatImages(tid, shots);
+      if (!paths.length) return;
+      const { data } = await supabase
+        .from('chat_messages').select('id')
+        .eq('thread_id', tid).eq('role', 'user')
+        .order('created_at', { ascending: false }).limit(1);
+      if (data?.[0]) await supabase.from('chat_messages').update({ images: paths }).eq('id', data[0].id);
+    } catch (e) {
+      console.error('[chat] keeping screenshots', e);
     }
   };
 
@@ -737,14 +1032,17 @@ export function AnalysisChat() {
     try {
       previews = await Promise.all(shots.map(readDataUrl));
     } catch {
-      setError(shots.length > 1 ? 'Could not read those screenshots.' : 'Could not read that screenshot.');
+      setFailure({
+        kind: 'input',
+        message: shots.length > 1 ? 'Could not read those screenshots.' : 'Could not read that screenshot.',
+      });
       return;
     }
     const images = shots.map((f, i) => ({
       mimeType: f.type,
       base64: previews[i].slice(previews[i].indexOf(',') + 1),
     }));
-    await routeMessage(text, { images, previews });
+    await routeMessage(text, { images, previews, shots });
   };
 
   // Reading the same text the other way.
@@ -786,9 +1084,27 @@ export function AnalysisChat() {
   // places, rather than the same test written twice.
   const hasResult = messages.some(m => m.analysis);
 
+  // What the next send will cost, as far as it can be known before it is sent.
+  //
+  // A video is 5 whether it is linked or uploaded. Everything else goes to the
+  // router first, which charges a follow-up, and a hook or a script then costs
+  // its own price on top - so a plain message is quoted at its floor rather
+  // than at a guess. The floor is what the gate below needs: it is the point
+  // at which a send cannot even be attempted.
+  const nextCost = (() => {
+    const text = composer.trim();
+    if (files.some(f => !isImage(f))) return CREDIT_COSTS.video_analysis;
+    const url = text.match(/https?:\/\/\S+/)?.[0] ?? text;
+    if (text && extractVideoId(url)) return CREDIT_COSTS.video_analysis;
+    return CREDIT_COSTS.chat_followup;
+  })();
+
+  const left = usage ? Math.max(0, usage.creditsLimit - usage.creditsUsed) : null;
+  const broke = left != null && left < nextCost;
+
   const submit = () => {
     const text = composer.trim();
-    if (busy) return;
+    if (busy || broke) return;
 
     // The attachments split into at most one video and the screenshots around
     // it. A video is the thing being reviewed; screenshots are evidence about
@@ -804,6 +1120,7 @@ export function AnalysisChat() {
 
     setFiles([]);
     setComposer('');
+    setStopped(false);
 
     // Two rules, no exceptions to either. A link means watch that video. Every
     // other message is put to the model to be identified.
@@ -854,24 +1171,54 @@ export function AnalysisChat() {
     setFilingOpen(false);
   };
 
-  const empty = messages.length === 0;
+  const startWith = (s: typeof STARTERS[number]) => {
+    if (s.pick) { fileRef.current?.click(); return; }
+    setComposer(s.prefill ?? '');
+    // Focus after the value lands, and put the caret at the end - a prefill
+    // that puts the cursor in front of the text it just wrote is a prefill
+    // fighting whoever types next.
+    requestAnimationFrame(() => {
+      const ta = taRef.current;
+      if (!ta) return;
+      ta.focus();
+      ta.setSelectionRange(ta.value.length, ta.value.length);
+    });
+  };
 
-  // What the next send will cost. Analyze took over Hook Lab and Script Lab and
-  // then grew an open-ended conversation on top, so "one analysis, one charge"
-  // stopped being true: a thread can run all afternoon. Every message is
-  // billed, and the price of the next one is on screen before it is sent
-  // rather than discovered afterwards on the Usage tab.
-  const left = usage ? Math.max(0, usage.creditsLimit - usage.creditsUsed) : null;
+  const empty = messages.length === 0 && !opening;
 
+  // What the next send costs, on screen before it is sent rather than
+  // discovered afterwards on the Usage tab. Analyze took over Hook Lab and
+  // Script Lab and then grew an open-ended conversation on top, so "one
+  // analysis, one charge" stopped being true: a thread can run all afternoon.
   const priceLine = hasResult
     ? `${CREDIT_COSTS.chat_followup} credit a message`
     : `${CREDIT_COSTS.video_analysis} credits a video, ${CREDIT_COSTS.script_check} a script, ${CREDIT_COSTS.hook_check} a hook, ${CREDIT_COSTS.chat_followup} a question`;
 
+  // The balance is checked here, not only by the edge function. Finding out
+  // the account is empty AFTER watching a stage line count through four steps
+  // is the same information delivered at the worst possible moment.
   const Price = () => (
-    <p className="label-mono mt-2.5 text-center">
-      {priceLine}
-      {left != null && ` · ${left} left`}
-    </p>
+    broke ? (
+      <p className="label-mono mt-2.5 text-center">
+        <span style={{ color: 'var(--text)' }}>
+          {left} left, {nextCost} needed
+        </span>
+        {' · '}
+        <button
+          onClick={() => window.dispatchEvent(new CustomEvent('chumoku:navigate', { detail: 'upgrade' }))}
+          className="underline underline-offset-2 hover:opacity-80"
+          style={{ color: 'var(--text)' }}
+        >
+          Get more
+        </button>
+      </p>
+    ) : (
+      <p className="label-mono mt-2.5 text-center">
+        {priceLine}
+        {left != null && ` · ${left} left`}
+      </p>
+    )
   );
 
   // No sheet here. Analyze is the one tab AppShell rules with the grid, and a
@@ -879,27 +1226,62 @@ export function AnalysisChat() {
   // like anything. The conversation sits on the grid directly.
   return (
     <div className="h-full flex flex-col">
+      {/* History is a door, not a drawer. The hub already lists every
+          conversation with rename, delete and filing on each one; a second
+          list in here would be the same work twice and would put a sidebar
+          back on the one screen that is meant to be open space. */}
+      <div className="flex-shrink-0 flex items-center justify-end gap-2 px-5 pt-4">
+        <button onClick={requestHistory} className="chip" title="All your conversations">
+          <History className="w-3.5 h-3.5" /> History
+        </button>
+        {!empty && (
+          <button onClick={newChat} className="chip" title="Start a new conversation">
+            <NewChat className="w-3.5 h-3.5" /> New
+          </button>
+        )}
+      </div>
+
       {empty ? (
-        <div className="flex-1 flex flex-col items-center justify-center px-5">
+        <div className="flex-1 flex flex-col items-center justify-center px-5 pb-10">
           <p className="label-mono mb-4">Analyze</p>
           <h1 className="display mb-8 text-center" style={{ color: 'var(--text)' }}>What are we looking at?</h1>
           <div className="w-full max-w-2xl">
             <Composer
-              value={composer} onChange={setComposer} onSubmit={submit} busy={busy}
-              files={files} setFiles={setFiles} onFileError={setError} fileRef={fileRef} taRef={taRef}
+              value={composer} onChange={setComposer} onSubmit={submit} onStop={stop}
+              busy={busy} blocked={broke}
+              files={files} setFiles={setFiles} onFileError={m => setFailure(m ? { kind: 'input', message: m } : null)}
+              fileRef={fileRef} taRef={taRef}
               placeholder="Paste a link, a hook or a script, or just ask"
             />
             <Price />
+
+            {/* The box took links and nothing else because nothing on the
+                screen said it took anything else. */}
+            <div className="mt-5 flex flex-wrap justify-center gap-2">
+              {STARTERS.map(s => (
+                <button key={s.label} onClick={() => startWith(s)} className="chip">
+                  {s.label}
+                </button>
+              ))}
+            </div>
+
             {/* The hero had nowhere to say no. Nothing could fail here before -
                 a send left this screen immediately - but a file can be turned
                 down before it is ever sent. */}
-            {error && <div className="mt-4"><ErrorNotice message={error} /></div>}
+            {failure && <div className="mt-4"><FailureNotice failure={failure} onDismiss={() => setFailure(null)} /></div>}
           </div>
         </div>
       ) : (
         <>
           <div className="flex-1 overflow-y-auto">
-            <div className="max-w-2xl mx-auto px-5 py-8 space-y-6">
+            <div className="max-w-2xl mx-auto px-5 pt-4 pb-8 space-y-6">
+              {opening && !messages.length && (
+                <div className="space-y-3">
+                  <div className="h-3 w-32 rounded skeleton ml-auto" />
+                  <div className="h-24 rounded-2xl skeleton" />
+                </div>
+              )}
+
               {messages.map(m => (
                 m.role === 'user' ? (
                   <div key={m.id} className={`flex justify-end ${m.fresh ? 'animate-msg-in' : ''}`}>
@@ -953,7 +1335,7 @@ export function AnalysisChat() {
                      --text, not --text-muted: this is the answer, the thing on
                      the screen worth reading, and muted is the weight for the
                      labels and captions around it. */
-                  <div key={m.id} className={`flex justify-start ${m.fresh ? 'animate-msg-in' : ''}`}>
+                  <div key={m.id} className={`flex flex-col items-start gap-1 ${m.fresh ? 'animate-msg-in' : ''}`}>
                     <div
                       className="max-w-[85%] rounded-2xl px-4 py-2.5 text-[14px] leading-relaxed whitespace-pre-line break-words"
                       style={{ background: 'var(--bg-raised)', color: 'var(--text)' }}
@@ -962,13 +1344,23 @@ export function AnalysisChat() {
                         ? <RevealText text={m.content} onAdvance={scrollToEnd} />
                         : m.content}
                     </div>
+                    <CopyButton text={m.content} title="Copy this answer" className="-ml-1" />
                   </div>
                 )
               ))}
 
-              {busy && <Working kind={busyKind} />}
+              {busy && <Working kind={busyKind} onStop={stop} />}
 
-              {error && <ErrorNotice message={error} />}
+              {/* Aborting the request is all the browser can do; the function
+                  on the other end finishes on its own clock. Saying "stopped,
+                  nothing charged" would be a refund this cannot promise. */}
+              {stopped && !busy && (
+                <p className="text-[13px]" style={{ color: 'var(--text-faint)' }}>
+                  Stopped. If the run had already finished, it may still have been charged.
+                </p>
+              )}
+
+              {failure && <FailureNotice failure={failure} onDismiss={() => setFailure(null)} />}
               <div ref={endRef} />
             </div>
           </div>
@@ -986,8 +1378,10 @@ export function AnalysisChat() {
                 </button>
               )}
               <Composer
-                value={composer} onChange={setComposer} onSubmit={submit} busy={busy}
-                files={files} setFiles={setFiles} onFileError={setError} fileRef={fileRef} taRef={taRef}
+                value={composer} onChange={setComposer} onSubmit={submit} onStop={stop}
+                busy={busy} blocked={broke}
+                files={files} setFiles={setFiles} onFileError={m => setFailure(m ? { kind: 'input', message: m } : null)}
+                fileRef={fileRef} taRef={taRef}
                 placeholder={hasResult ? 'Ask about the fixes, or send another link' : 'Ask anything, or send a link'}
               />
               <Price />
@@ -1015,10 +1409,51 @@ export function AnalysisChat() {
   );
 }
 
+// A failure said in the register it belongs to. Only the third of these is the
+// red "our fault, send it to Discord" plate, because only the third of them is.
+function FailureNotice({ failure, onDismiss }: { failure: Failure; onDismiss: () => void }) {
+  if (failure.kind === 'credits') {
+    return (
+      <div className="rounded-xl px-4 py-3 flex items-center justify-between gap-3 flex-wrap"
+           style={{ background: 'var(--bg-raised)', border: '1px solid var(--line)' }}>
+        <p className="text-[13px]" style={{ color: 'var(--text)' }}>{failure.message}</p>
+        <button
+          onClick={() => window.dispatchEvent(new CustomEvent('chumoku:navigate', { detail: 'upgrade' }))}
+          className="btn-primary text-[13px] px-3 py-1.5"
+        >
+          Get more credits
+        </button>
+      </div>
+    );
+  }
+
+  if (failure.kind === 'input') {
+    return (
+      <div className="rounded-xl px-4 py-3 flex items-center justify-between gap-3 flex-wrap"
+           style={{ background: 'var(--bg-raised)', border: '1px solid var(--line)' }}>
+        <p className="text-[13px]" style={{ color: 'var(--text)' }}>{failure.message}</p>
+        <button onClick={onDismiss} className="chip">Dismiss</button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-2">
+      <ErrorNotice message={failure.message} />
+      {failure.retry && (
+        <button onClick={failure.retry} className="chip">
+          <Restart className="w-3.5 h-3.5" /> Try again
+        </button>
+      )}
+    </div>
+  );
+}
+
 function Composer({
-  value, onChange, onSubmit, busy, files, setFiles, onFileError, fileRef, taRef, placeholder,
+  value, onChange, onSubmit, onStop, busy, blocked, files, setFiles, onFileError, fileRef, taRef, placeholder,
 }: {
-  value: string; onChange: (v: string) => void; onSubmit: () => void; busy: boolean;
+  value: string; onChange: (v: string) => void; onSubmit: () => void; onStop: () => void;
+  busy: boolean; blocked: boolean;
   files: File[]; setFiles: React.Dispatch<React.SetStateAction<File[]>>;
   onFileError: (msg: string) => void;
   fileRef: React.RefObject<HTMLInputElement>; taRef: React.RefObject<HTMLTextAreaElement>;
@@ -1029,6 +1464,35 @@ function Composer({
   // straight after Cmd+Shift+4, and going through Finder to fetch it back off
   // the desktop is the long way round the thing they are trying to ask.
   const [dragging, setDragging] = useState(false);
+
+  // Grows with the text the way a chat input should, up to a ceiling.
+  const fit = () => {
+    const ta = taRef.current;
+    if (!ta) return;
+    ta.style.height = 'auto';
+    ta.style.height = Math.min(ta.scrollHeight, MAX_COMPOSER_PX) + 'px';
+  };
+
+  useEffect(fit, [value, files.length]);
+
+  // The first measurement lands before the layout has given this element its
+  // width. At 40px wide an empty placeholder wraps to twenty lines, the
+  // ceiling wins, and the composer opens 200px tall - then stays that way,
+  // because nothing re-measures it until the first keystroke. It is the first
+  // thing on the screen and it was the wrong shape every single time.
+  //
+  // So it is measured again once there is a layout to measure: on the next
+  // frame, once the webfont has swapped in (Geist changes the line box), and
+  // whenever the window changes width.
+  useEffect(() => {
+    const raf = requestAnimationFrame(fit);
+    document.fonts?.ready.then(fit).catch(() => {});
+    window.addEventListener('resize', fit);
+    return () => {
+      cancelAnimationFrame(raf);
+      window.removeEventListener('resize', fit);
+    };
+  }, []);
 
   const accept = (incoming: File | null | undefined | FileList): boolean => {
     if (!incoming) return false;
@@ -1133,11 +1597,23 @@ function Composer({
                 className="w-8 h-8 rounded-full flex items-center justify-center" style={{ color: 'var(--text-muted)' }}>
           <Plus className="w-[18px] h-[18px]" />
         </button>
-        <button onClick={onSubmit} disabled={busy || (!value.trim() && !files.length)} title="Send"
-                className="w-8 h-8 rounded-full flex items-center justify-center transition-opacity disabled:opacity-25"
-                style={{ background: 'var(--accent)', color: 'var(--on-accent)' }}>
-          {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : <ArrowUp className="w-[18px] h-[18px]" />}
-        </button>
+        {/* One button, two jobs, and the second one is the whole point: a
+            minute of watching used to end only when it ended. A spinner here
+            said "wait" and offered nothing to press; this says "stop" and
+            means it. */}
+        {busy ? (
+          <button onClick={onStop} title="Stop"
+                  className="w-8 h-8 rounded-full flex items-center justify-center"
+                  style={{ background: 'var(--accent)', color: 'var(--on-accent)' }}>
+            <Stop className="w-[18px] h-[18px]" />
+          </button>
+        ) : (
+          <button onClick={onSubmit} disabled={blocked || (!value.trim() && !files.length)} title="Send"
+                  className="w-8 h-8 rounded-full flex items-center justify-center transition-opacity disabled:opacity-25"
+                  style={{ background: 'var(--accent)', color: 'var(--on-accent)' }}>
+            <ArrowUp className="w-[18px] h-[18px]" />
+          </button>
+        )}
       </div>
     </div>
   );
