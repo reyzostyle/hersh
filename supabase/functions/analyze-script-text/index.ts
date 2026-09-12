@@ -1,14 +1,11 @@
+import { corsHeaders } from '../_shared/http.ts';
 import { createClient } from 'npm:@supabase/supabase-js@2.57.4';
 import { callLLM } from '../_shared/llm.ts';
 import { loadCreditStatus, canAfford, spendCredits, CREDIT_COSTS } from '../_shared/credits.ts';
 import { parseModelJson } from '../_shared/json.ts';
 import { loadBrain, brainLine } from '../_shared/brain.ts';
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Client-Info, Apikey',
-};
+const CORS = corsHeaders({ methods: 'POST, OPTIONS' });
 
 const ADMIN_EMAIL = 'reyzostyle@gmail.com';
 const MAX_SCRIPT_CHARS = 5000;
@@ -25,12 +22,12 @@ const stripDashes = (s: unknown): unknown => {
 };
 
 Deno.serve(async (req: Request) => {
-  if (req.method === 'OPTIONS') return new Response(null, { status: 200, headers: corsHeaders });
+  if (req.method === 'OPTIONS') return new Response(null, { status: 200, headers: CORS });
 
   try {
     const authHeader = req.headers.get('Authorization');
     if (!authHeader?.startsWith('Bearer ')) {
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: corsHeaders });
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: CORS });
     }
     const token = authHeader.replace('Bearer ', '');
 
@@ -39,17 +36,17 @@ Deno.serve(async (req: Request) => {
     // Verify the JWT signature via the auth server (never trust a decoded-only token)
     const { data: { user }, error: authErr } = await supabase.auth.getUser(token);
     if (authErr || !user) {
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: corsHeaders });
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: CORS });
     }
     const userId = user.id;
     const isAdmin = (user.email || '') === ADMIN_EMAIL;
 
     const { script, context } = await req.json();
     if (!script || typeof script !== 'string' || !script.trim()) {
-      return new Response(JSON.stringify({ error: 'script text required' }), { status: 400, headers: corsHeaders });
+      return new Response(JSON.stringify({ error: 'script text required' }), { status: 400, headers: CORS });
     }
     if (script.length > MAX_SCRIPT_CHARS) {
-      return new Response(JSON.stringify({ error: `Script too long (max ${MAX_SCRIPT_CHARS} chars)` }), { status: 400, headers: corsHeaders });
+      return new Response(JSON.stringify({ error: `Script too long (max ${MAX_SCRIPT_CHARS} chars)` }), { status: 400, headers: CORS });
     }
 
     // ── Usage / plan (shared credit pool — see _shared/credits.ts) ────────────
@@ -66,7 +63,7 @@ Deno.serve(async (req: Request) => {
       const message = creditStatus.plan === 'agency'
         ? "You've hit this month's fair-use credit limit. Contact us if you need more."
         : "You've used all your credits this month. Upgrade for more.";
-      return new Response(JSON.stringify({ error: message }), { status: 403, headers: corsHeaders });
+      return new Response(JSON.stringify({ error: message }), { status: 403, headers: CORS });
     }
 
     // ── Knowledge base (learned patterns), same as video Analysis ──────────────
@@ -174,15 +171,15 @@ Respond with valid JSON only:
     try {
       result = parseModelJson(content);
     } catch {
-      return new Response(JSON.stringify({ error: 'Could not parse analysis. Try again.' }), { status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      return new Response(JSON.stringify({ error: 'Could not parse analysis. Try again.' }), { status: 502, headers: { ...CORS, 'Content-Type': 'application/json' } });
     }
     result = stripDashes(result);
 
     await spendCredits(supabase, userId, creditStatus, cost);
 
-    return new Response(JSON.stringify(result), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    return new Response(JSON.stringify(result), { status: 200, headers: { ...CORS, 'Content-Type': 'application/json' } });
   } catch (error) {
     console.error('[analyze-script-text] Error:', error);
-    return new Response(JSON.stringify({ error: error instanceof Error ? error.message : 'Internal server error' }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    return new Response(JSON.stringify({ error: error instanceof Error ? error.message : 'Internal server error' }), { status: 500, headers: { ...CORS, 'Content-Type': 'application/json' } });
   }
 });

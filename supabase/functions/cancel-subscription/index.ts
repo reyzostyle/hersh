@@ -1,17 +1,15 @@
+import { corsHeaders } from '../_shared/http.ts';
 import Stripe from 'npm:stripe@14.21.0';
 import { createClient } from 'npm:@supabase/supabase-js@2';
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
+const CORS = corsHeaders({ headers: 'authorization, x-client-info, apikey, content-type' });
 
 Deno.serve(async (req) => {
-  if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
+  if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS });
 
   try {
     const authHeader = req.headers.get('Authorization');
-    if (!authHeader) return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: corsHeaders });
+    if (!authHeader) return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: CORS });
 
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL')!,
@@ -19,7 +17,7 @@ Deno.serve(async (req) => {
     );
 
     const { data: { user }, error: authError } = await supabase.auth.getUser(authHeader.replace('Bearer ', ''));
-    if (authError || !user) return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: corsHeaders });
+    if (authError || !user) return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: CORS });
 
     const { data: tokenRow } = await supabase
       .from('user_tokens')
@@ -28,11 +26,11 @@ Deno.serve(async (req) => {
       .maybeSingle();
 
     if (!tokenRow?.stripe_subscription_id) {
-      return new Response(JSON.stringify({ error: 'No active subscription found' }), { status: 400, headers: corsHeaders });
+      return new Response(JSON.stringify({ error: 'No active subscription found' }), { status: 400, headers: CORS });
     }
 
     if (tokenRow.plan === 'free') {
-      return new Response(JSON.stringify({ error: 'No active subscription' }), { status: 400, headers: corsHeaders });
+      return new Response(JSON.stringify({ error: 'No active subscription' }), { status: 400, headers: CORS });
     }
 
     const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY')!, { apiVersion: '2024-06-20' });
@@ -42,9 +40,9 @@ Deno.serve(async (req) => {
       cancel_at_period_end: true,
     });
 
-    return new Response(JSON.stringify({ success: true }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    return new Response(JSON.stringify({ success: true }), { headers: { ...CORS, 'Content-Type': 'application/json' } });
   } catch (err) {
     console.error('[cancel-subscription]', err);
-    return new Response(JSON.stringify({ error: String(err) }), { status: 500, headers: corsHeaders });
+    return new Response(JSON.stringify({ error: String(err) }), { status: 500, headers: CORS });
   }
 });

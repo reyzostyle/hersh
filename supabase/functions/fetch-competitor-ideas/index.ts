@@ -1,10 +1,7 @@
+import { corsHeaders } from '../_shared/http.ts';
 import { createClient } from 'npm:@supabase/supabase-js@2.57.4';
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Client-Info, Apikey',
-};
+const CORS = corsHeaders({ methods: 'GET, POST, PUT, DELETE, OPTIONS' });
 
 // Refreshes the competitor video POOL. Nothing here reads a transcript, calls a
 // model or spends a credit - it is public YouTube data and arithmetic.
@@ -194,7 +191,7 @@ async function fetchChannelPool(
 
 Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') {
-    return new Response(null, { status: 200, headers: corsHeaders });
+    return new Response(null, { status: 200, headers: CORS });
   }
 
   try {
@@ -209,14 +206,14 @@ Deno.serve(async (req: Request) => {
 
     const authHeader = req.headers.get('Authorization');
     if (!authHeader?.startsWith('Bearer ')) {
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: corsHeaders });
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: CORS });
     }
 
     let userId: string;
     try {
       userId = await getUserIdFromToken(supabase, authHeader.replace('Bearer ', ''));
     } catch {
-      return new Response(JSON.stringify({ error: 'Invalid token' }), { status: 401, headers: corsHeaders });
+      return new Response(JSON.stringify({ error: 'Invalid token' }), { status: 401, headers: CORS });
     }
 
     // No plan gate: building the pool is YouTube reads and arithmetic, it costs
@@ -242,7 +239,7 @@ Deno.serve(async (req: Request) => {
 
     if (!channels || channels.length === 0) {
       return new Response(JSON.stringify({ success: true, videos: [], refreshed: 0 }),
-        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+        { status: 200, headers: { ...CORS, 'Content-Type': 'application/json' } });
     }
 
     const channelIds = channels.map((c: any) => c.channel_id);
@@ -327,13 +324,13 @@ Deno.serve(async (req: Request) => {
             ? 'Already up to date. Competitor channels refresh at most once an hour.'
             : undefined,
       }),
-      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      { status: 200, headers: { ...CORS, 'Content-Type': 'application/json' } }
     );
   } catch (error) {
     console.error('[fetch-competitor-ideas] Error:', error);
     return new Response(
       JSON.stringify({ error: error instanceof Error ? error.message : 'Internal server error' }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      { status: 500, headers: { ...CORS, 'Content-Type': 'application/json' } }
     );
   }
 });

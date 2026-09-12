@@ -1,10 +1,7 @@
+import { corsHeaders } from '../_shared/http.ts';
 import { createClient } from 'npm:@supabase/supabase-js@2.57.4';
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'GET, POST, PUT, PATCH, DELETE, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Client-Info, Apikey',
-};
+const CORS = corsHeaders({ methods: 'GET, POST, PUT, PATCH, DELETE, OPTIONS' });
 
 const ADMIN_EMAIL = 'reyzostyle@gmail.com';
 
@@ -20,11 +17,11 @@ const RESERVED_CODES = new Set([
 ]);
 
 Deno.serve(async (req: Request) => {
-  if (req.method === 'OPTIONS') return new Response(null, { status: 200, headers: corsHeaders });
+  if (req.method === 'OPTIONS') return new Response(null, { status: 200, headers: CORS });
 
   const authHeader = req.headers.get('Authorization');
   if (!authHeader?.startsWith('Bearer ')) {
-    return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: corsHeaders });
+    return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: CORS });
   }
 
   const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
@@ -42,7 +39,7 @@ Deno.serve(async (req: Request) => {
     if (error || !user) throw new Error('invalid token');
     authUser = user;
   } catch {
-    return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: corsHeaders });
+    return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: CORS });
   }
   const isAdmin = authUser.email === ADMIN_EMAIL;
 
@@ -56,13 +53,13 @@ Deno.serve(async (req: Request) => {
       if (!/^[a-z0-9][a-z0-9_-]{2,23}$/.test(raw)) {
         return new Response(
           JSON.stringify({ error: 'Use 3-24 characters: letters, numbers, dashes or underscores.' }),
-          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+          { status: 400, headers: { ...CORS, 'Content-Type': 'application/json' } },
         );
       }
       if (RESERVED_CODES.has(raw)) {
         return new Response(
           JSON.stringify({ error: 'That one is taken. Try another.' }),
-          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+          { status: 400, headers: { ...CORS, 'Content-Type': 'application/json' } },
         );
       }
 
@@ -71,7 +68,7 @@ Deno.serve(async (req: Request) => {
       if (existing) {
         return new Response(
           JSON.stringify({ error: `You already have a link: ${existing.code}` }),
-          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+          { status: 400, headers: { ...CORS, 'Content-Type': 'application/json' } },
         );
       }
 
@@ -83,19 +80,19 @@ Deno.serve(async (req: Request) => {
       if (error) {
         // 23505 is the unique violation on either the code or the one-per-owner index
         const msg = error.code === '23505' ? 'That one is taken. Try another.' : error.message;
-        return new Response(JSON.stringify({ error: msg }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+        return new Response(JSON.stringify({ error: msg }), { status: 400, headers: { ...CORS, 'Content-Type': 'application/json' } });
       }
-      return new Response(JSON.stringify({ ok: true, code: raw }), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      return new Response(JSON.stringify({ ok: true, code: raw }), { status: 200, headers: { ...CORS, 'Content-Type': 'application/json' } });
     }
 
     const { code, partner_name, owner_email } = body;
-    if (!code || !partner_name) return new Response(JSON.stringify({ error: 'code and partner_name required' }), { status: 400, headers: corsHeaders });
+    if (!code || !partner_name) return new Response(JSON.stringify({ error: 'code and partner_name required' }), { status: 400, headers: CORS });
 
     let owner_user_id: string | null = null;
     if (owner_email) {
       const { data: users } = await supabase.auth.admin.listUsers();
       const found = users?.users?.find((u: any) => u.email === owner_email);
-      if (!found) return new Response(JSON.stringify({ error: `No user found with email: ${owner_email}` }), { status: 400, headers: corsHeaders });
+      if (!found) return new Response(JSON.stringify({ error: `No user found with email: ${owner_email}` }), { status: 400, headers: CORS });
       owner_user_id = found.id;
     }
 
@@ -105,15 +102,15 @@ Deno.serve(async (req: Request) => {
       commission_percent: 50,
       owner_user_id,
     });
-    if (error) return new Response(JSON.stringify({ error: error.message }), { status: 400, headers: corsHeaders });
-    return new Response(JSON.stringify({ ok: true }), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    if (error) return new Response(JSON.stringify({ error: error.message }), { status: 400, headers: CORS });
+    return new Response(JSON.stringify({ ok: true }), { status: 200, headers: { ...CORS, 'Content-Type': 'application/json' } });
   }
 
   // ── PUT: partner saves their own payout details ────────────────────────
   if (req.method === 'PUT') {
     const { payout_method, payout_details, payout_in_credits } = await req.json();
     if (payout_method && payout_method !== 'paypal') {
-      return new Response(JSON.stringify({ error: 'Payouts go out by PayPal' }), { status: 400, headers: corsHeaders });
+      return new Response(JSON.stringify({ error: 'Payouts go out by PayPal' }), { status: 400, headers: CORS });
     }
     const { error } = await supabase
       .from('referral_codes')
@@ -123,13 +120,13 @@ Deno.serve(async (req: Request) => {
         payout_in_credits: !!payout_in_credits,
       })
       .eq('owner_user_id', authUser.id);
-    if (error) return new Response(JSON.stringify({ error: error.message }), { status: 400, headers: corsHeaders });
-    return new Response(JSON.stringify({ ok: true }), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    if (error) return new Response(JSON.stringify({ error: error.message }), { status: 400, headers: CORS });
+    return new Response(JSON.stringify({ ok: true }), { status: 200, headers: { ...CORS, 'Content-Type': 'application/json' } });
   }
 
   // ── PATCH: assign owner email, or settle up (admin only) ─────────────
   if (req.method === 'PATCH') {
-    if (!isAdmin) return new Response(JSON.stringify({ error: 'Forbidden' }), { status: 403, headers: corsHeaders });
+    if (!isAdmin) return new Response(JSON.stringify({ error: 'Forbidden' }), { status: 403, headers: CORS });
     const body = await req.json();
 
     // Marking a partner paid. `paid_out` has existed on referral_conversions
@@ -142,19 +139,19 @@ Deno.serve(async (req: Request) => {
     // for money that may yet be refunded.
     if (body.action === 'mark_paid') {
       const code = String(body.code ?? '');
-      if (!code) return new Response(JSON.stringify({ error: 'code required' }), { status: 400, headers: corsHeaders });
+      if (!code) return new Response(JSON.stringify({ error: 'code required' }), { status: 400, headers: CORS });
 
       const { data: rows, error: readErr } = await supabase
         .from('referral_conversions')
         .select('id, commission_cents, hold_until, paid_out')
         .eq('referral_code', code);
-      if (readErr) return new Response(JSON.stringify({ error: readErr.message }), { status: 400, headers: corsHeaders });
+      if (readErr) return new Response(JSON.stringify({ error: readErr.message }), { status: 400, headers: CORS });
 
       const now = Date.now();
       const settled = (rows ?? []).filter((r: any) =>
         !r.paid_out && (!r.hold_until || new Date(r.hold_until).getTime() <= now));
       if (settled.length === 0) {
-        return new Response(JSON.stringify({ error: 'Nothing settled to pay out yet.' }), { status: 400, headers: corsHeaders });
+        return new Response(JSON.stringify({ error: 'Nothing settled to pay out yet.' }), { status: 400, headers: CORS });
       }
 
       const cents = settled.reduce((t: number, r: any) => t + (r.commission_cents || 0), 0);
@@ -162,33 +159,33 @@ Deno.serve(async (req: Request) => {
         .from('referral_conversions')
         .update({ paid_out: true })
         .in('id', settled.map((r: any) => r.id));
-      if (updErr) return new Response(JSON.stringify({ error: updErr.message }), { status: 400, headers: corsHeaders });
+      if (updErr) return new Response(JSON.stringify({ error: updErr.message }), { status: 400, headers: CORS });
 
       return new Response(JSON.stringify({ ok: true, marked: settled.length, cents }),
-        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+        { status: 200, headers: { ...CORS, 'Content-Type': 'application/json' } });
     }
 
     const { code, owner_email } = body;
-    if (!code || !owner_email) return new Response(JSON.stringify({ error: 'code and owner_email required' }), { status: 400, headers: corsHeaders });
+    if (!code || !owner_email) return new Response(JSON.stringify({ error: 'code and owner_email required' }), { status: 400, headers: CORS });
 
     const { data: users } = await supabase.auth.admin.listUsers();
     const found = users?.users?.find((u: any) => u.email === owner_email);
-    if (!found) return new Response(JSON.stringify({ error: `No user found with email: ${owner_email}` }), { status: 400, headers: corsHeaders });
+    if (!found) return new Response(JSON.stringify({ error: `No user found with email: ${owner_email}` }), { status: 400, headers: CORS });
 
     const { error } = await supabase.from('referral_codes').update({ owner_user_id: found.id }).eq('code', code);
-    if (error) return new Response(JSON.stringify({ error: error.message }), { status: 400, headers: corsHeaders });
-    return new Response(JSON.stringify({ ok: true }), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    if (error) return new Response(JSON.stringify({ error: error.message }), { status: 400, headers: CORS });
+    return new Response(JSON.stringify({ ok: true }), { status: 200, headers: { ...CORS, 'Content-Type': 'application/json' } });
   }
 
   // ── DELETE: remove partner (admin only) ─────────────────────────────────
   if (req.method === 'DELETE') {
-    if (!isAdmin) return new Response(JSON.stringify({ error: 'Forbidden' }), { status: 403, headers: corsHeaders });
+    if (!isAdmin) return new Response(JSON.stringify({ error: 'Forbidden' }), { status: 403, headers: CORS });
     const { code } = await req.json();
-    if (!code) return new Response(JSON.stringify({ error: 'code required' }), { status: 400, headers: corsHeaders });
+    if (!code) return new Response(JSON.stringify({ error: 'code required' }), { status: 400, headers: CORS });
 
     const { error } = await supabase.from('referral_codes').delete().eq('code', code);
-    if (error) return new Response(JSON.stringify({ error: error.message }), { status: 400, headers: corsHeaders });
-    return new Response(JSON.stringify({ ok: true }), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    if (error) return new Response(JSON.stringify({ error: error.message }), { status: 400, headers: CORS });
+    return new Response(JSON.stringify({ ok: true }), { status: 200, headers: { ...CORS, 'Content-Type': 'application/json' } });
   }
 
   // ── GET: fetch stats ───────────────────────────────────────────────────
@@ -232,13 +229,13 @@ Deno.serve(async (req: Request) => {
     // partner" read `data.partner`, found nothing, and showed the join-us pitch
     // to someone who joined months ago.
     const own = partners.find((p: any) => p.owner_user_id === authUser.id) ?? null;
-    return new Response(JSON.stringify({ partners, partner: own }), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    return new Response(JSON.stringify({ partners, partner: own }), { status: 200, headers: { ...CORS, 'Content-Type': 'application/json' } });
   }
 
   // Partner: find code linked to this user
   const { data: code } = await supabase.from('referral_codes').select('*').eq('owner_user_id', authUser.id).maybeSingle();
-  if (!code) return new Response(JSON.stringify({ partner: null }), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+  if (!code) return new Response(JSON.stringify({ partner: null }), { status: 200, headers: { ...CORS, 'Content-Type': 'application/json' } });
 
   const [result] = await getStats([code]);
-  return new Response(JSON.stringify({ partner: result }), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+  return new Response(JSON.stringify({ partner: result }), { status: 200, headers: { ...CORS, 'Content-Type': 'application/json' } });
 });

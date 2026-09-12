@@ -1,11 +1,8 @@
+import { corsHeaders } from '../_shared/http.ts';
 import { createClient } from 'npm:@supabase/supabase-js@2.57.4';
 import { buildBrain, loadBrain } from '../_shared/brain.ts';
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Client-Info, Apikey',
-};
+const CORS = corsHeaders({ methods: 'POST, OPTIONS' });
 
 // Builds (or rebuilds) the channel brain for the signed-in account.
 //
@@ -20,10 +17,10 @@ const corsHeaders = {
 const COOLDOWN_MS = 60 * 1000;
 
 Deno.serve(async (req: Request) => {
-  if (req.method === 'OPTIONS') return new Response(null, { status: 200, headers: corsHeaders });
+  if (req.method === 'OPTIONS') return new Response(null, { status: 200, headers: CORS });
 
   const json = (body: unknown, status = 200) =>
-    new Response(JSON.stringify(body), { status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    new Response(JSON.stringify(body), { status, headers: { ...CORS, 'Content-Type': 'application/json' } });
 
   try {
     const supabase = createClient(

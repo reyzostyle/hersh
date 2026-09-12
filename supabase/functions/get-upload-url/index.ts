@@ -1,13 +1,10 @@
+import { corsHeaders } from '../_shared/http.ts';
 import { createClient } from 'npm:@supabase/supabase-js@2.57.4';
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Client-Info, Apikey',
-};
+const CORS = corsHeaders({ methods: 'GET, POST, OPTIONS' });
 
 Deno.serve(async (req: Request) => {
-  if (req.method === 'OPTIONS') return new Response(null, { status: 200, headers: corsHeaders });
+  if (req.method === 'OPTIONS') return new Response(null, { status: 200, headers: CORS });
 
   try {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
@@ -19,7 +16,7 @@ Deno.serve(async (req: Request) => {
 
     const authHeader = req.headers.get('Authorization');
     if (!authHeader?.startsWith('Bearer ')) {
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: corsHeaders });
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: CORS });
     }
     const token = authHeader.replace('Bearer ', '');
 
@@ -30,7 +27,7 @@ Deno.serve(async (req: Request) => {
       if (error || !user) throw new Error('invalid token');
       userId = user.id;
     } catch {
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: corsHeaders });
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: CORS });
     }
 
     const { fileName, fileSize, mimeType } = await req.json();
@@ -63,13 +60,13 @@ Deno.serve(async (req: Request) => {
 
     return new Response(
       JSON.stringify({ uploadUrl }),
-      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      { status: 200, headers: { ...CORS, 'Content-Type': 'application/json' } }
     );
   } catch (error) {
     console.error('[get-upload-url] Error:', error);
     return new Response(
       JSON.stringify({ error: error instanceof Error ? error.message : 'Internal server error' }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      { status: 500, headers: { ...CORS, 'Content-Type': 'application/json' } }
     );
   }
 });

@@ -1,14 +1,11 @@
+import { corsHeaders } from '../_shared/http.ts';
 import { createClient } from 'npm:@supabase/supabase-js@2.57.4';
 import { loadCreditStatus, canAfford, spendCredits, CREDIT_COSTS } from '../_shared/credits.ts';
 import { analyzeVideo } from '../_shared/analyze-video.ts';
 import { parseImages } from '../_shared/images.ts';
 import { loadBrain } from '../_shared/brain.ts';
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Client-Info, Apikey',
-};
+const CORS = corsHeaders({ methods: 'GET, POST, PUT, DELETE, OPTIONS' });
 
 const ADMIN_EMAIL = 'reyzostyle@gmail.com';
 
@@ -21,7 +18,7 @@ function deleteGeminiFile(geminiFileName: string) {
 }
 
 Deno.serve(async (req: Request) => {
-  if (req.method === 'OPTIONS') return new Response(null, { status: 200, headers: corsHeaders });
+  if (req.method === 'OPTIONS') return new Response(null, { status: 200, headers: CORS });
 
   try {
     const supabase = createClient(
@@ -32,7 +29,7 @@ Deno.serve(async (req: Request) => {
 
     const authHeader = req.headers.get('Authorization');
     if (!authHeader?.startsWith('Bearer ')) {
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: corsHeaders });
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: CORS });
     }
     const token = authHeader.replace('Bearer ', '');
 
@@ -47,7 +44,7 @@ Deno.serve(async (req: Request) => {
       userId = u.id;
       userEmail = u.email || '';
     } catch {
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: corsHeaders });
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: CORS });
     }
 
     const { geminiFileName, videoContext, fileName, mimeType, images: rawImages } = await req.json();
@@ -55,11 +52,11 @@ Deno.serve(async (req: Request) => {
     if (imageError) {
       return new Response(
         JSON.stringify({ error: imageError }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+        { status: 400, headers: { ...CORS, 'Content-Type': 'application/json' } },
       );
     }
     if (!geminiFileName) {
-      return new Response(JSON.stringify({ error: 'geminiFileName required' }), { status: 400, headers: corsHeaders });
+      return new Response(JSON.stringify({ error: 'geminiFileName required' }), { status: 400, headers: CORS });
     }
 
     console.log(`[analyze-upload] user=${userId}, geminiFileName=${geminiFileName}`);
@@ -85,7 +82,7 @@ Deno.serve(async (req: Request) => {
           : "You've used all your credits this month. Upgrade for more.";
       return new Response(
         JSON.stringify({ error: message }),
-        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { status: 403, headers: { ...CORS, 'Content-Type': 'application/json' } }
       );
     }
 
@@ -166,7 +163,7 @@ Deno.serve(async (req: Request) => {
 
       return new Response(
         JSON.stringify({ success: true, analysis: analysisData }),
-        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { status: 200, headers: { ...CORS, 'Content-Type': 'application/json' } }
       );
     } finally {
       deleteGeminiFile(geminiFileName);
@@ -175,7 +172,7 @@ Deno.serve(async (req: Request) => {
     console.error('[analyze-upload] Error:', error);
     return new Response(
       JSON.stringify({ error: error instanceof Error ? error.message : 'Internal server error' }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      { status: 500, headers: { ...CORS, 'Content-Type': 'application/json' } }
     );
   }
 });

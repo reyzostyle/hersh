@@ -1,15 +1,12 @@
+import { corsHeaders } from '../_shared/http.ts';
 import { createClient } from 'npm:@supabase/supabase-js@2.57.4';
 import { callLLM } from '../_shared/llm.ts';
 import { parseModelJson } from '../_shared/json.ts';
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-};
+const CORS = corsHeaders({ methods: 'POST, OPTIONS', headers: 'Content-Type, Authorization' });
 
 Deno.serve(async (req: Request) => {
-  if (req.method === 'OPTIONS') return new Response(null, { status: 200, headers: corsHeaders });
+  if (req.method === 'OPTIONS') return new Response(null, { status: 200, headers: CORS });
 
   const supabase = createClient(
     Deno.env.get('SUPABASE_URL')!,
@@ -20,7 +17,7 @@ Deno.serve(async (req: Request) => {
   // Only callable by admin (check secret header)
   const secret = req.headers.get('x-admin-secret');
   if (secret !== Deno.env.get('ADMIN_SECRET')) {
-    return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: corsHeaders });
+    return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: CORS });
   }
 
   // Fetch all feedback with associated analysis
@@ -40,7 +37,7 @@ Deno.serve(async (req: Request) => {
 
   if (fbError) throw fbError;
   if (!feedbacks || feedbacks.length === 0) {
-    return new Response(JSON.stringify({ message: 'No feedback yet' }), { headers: corsHeaders });
+    return new Response(JSON.stringify({ message: 'No feedback yet' }), { headers: CORS });
   }
 
   const goodCount = feedbacks.filter(f => f.rating === 'good').length;
@@ -88,11 +85,11 @@ Extract patterns and return knowledge base entries as JSON array.`;
   try {
     if (/\[[\s\S]*\]/.test(content)) entries = parseModelJson(content, 'knowledge base', 'array');
   } catch {
-    return new Response(JSON.stringify({ error: 'Failed to parse Claude response', raw: content }), { headers: corsHeaders });
+    return new Response(JSON.stringify({ error: 'Failed to parse Claude response', raw: content }), { headers: CORS });
   }
 
   if (entries.length === 0) {
-    return new Response(JSON.stringify({ message: 'No patterns extracted yet', feedback_count: feedbacks.length }), { headers: corsHeaders });
+    return new Response(JSON.stringify({ message: 'No patterns extracted yet', feedback_count: feedbacks.length }), { headers: CORS });
   }
 
   // Upsert entries into knowledge_base
@@ -111,6 +108,6 @@ Extract patterns and return knowledge base entries as JSON array.`;
 
   return new Response(
     JSON.stringify({ success: true, entries_written: entries.length, feedback_processed: feedbacks.length }),
-    { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    { headers: { ...CORS, 'Content-Type': 'application/json' } }
   );
 });

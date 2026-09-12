@@ -1,10 +1,7 @@
+import { corsHeaders } from '../_shared/http.ts';
 import { createClient } from 'npm:@supabase/supabase-js@2.57.4';
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Client-Info, Apikey',
-};
+const CORS = corsHeaders({ methods: 'GET, POST, OPTIONS' });
 
 // Channel-level numbers for the Analytics tab. Read-only, no credits: this is
 // the user's own data coming back from Google, not a model call, and charging
@@ -25,7 +22,7 @@ async function refreshAccessToken(refreshToken: string): Promise<string> {
 }
 
 Deno.serve(async (req: Request) => {
-  if (req.method === 'OPTIONS') return new Response(null, { status: 200, headers: corsHeaders });
+  if (req.method === 'OPTIONS') return new Response(null, { status: 200, headers: CORS });
 
   try {
     const supabase = createClient(
@@ -36,11 +33,11 @@ Deno.serve(async (req: Request) => {
 
     const authHeader = req.headers.get('Authorization');
     if (!authHeader?.startsWith('Bearer ')) {
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: corsHeaders });
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: CORS });
     }
     const { data: { user }, error: authErr } = await supabase.auth.getUser(authHeader.replace('Bearer ', ''));
     if (authErr || !user) {
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: corsHeaders });
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: CORS });
     }
 
     const { data: tokenRow } = await supabase
@@ -53,7 +50,7 @@ Deno.serve(async (req: Request) => {
     // page says "connect YouTube" rather than showing a failure.
     if (!tokenRow?.access_token) {
       return new Response(JSON.stringify({ connected: false }), {
-        status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 200, headers: { ...CORS, 'Content-Type': 'application/json' },
       });
     }
 
@@ -96,11 +93,11 @@ Deno.serve(async (req: Request) => {
       totalViews: parseInt(ch?.statistics?.viewCount ?? '0'),
       videoCount: parseInt(ch?.statistics?.videoCount ?? '0'),
       views28, subsGained28, watchMinutes28,
-    }), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    }), { status: 200, headers: { ...CORS, 'Content-Type': 'application/json' } });
   } catch (error) {
     console.error('[channel-stats]', error);
     return new Response(
       JSON.stringify({ error: error instanceof Error ? error.message : 'Internal server error' }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      { status: 500, headers: { ...CORS, 'Content-Type': 'application/json' } });
   }
 });

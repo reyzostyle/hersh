@@ -1,10 +1,7 @@
+import { corsHeaders } from '../_shared/http.ts';
 import { createClient } from 'npm:@supabase/supabase-js@2.57.4';
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Client-Info, Apikey',
-};
+const CORS = corsHeaders({ methods: 'POST, OPTIONS' });
 
 // Server-side catalog — the client never sees what a code grants, only
 // whether it worked. Codes are matched case-insensitively. Credit values
@@ -42,24 +39,24 @@ async function setRankBoost(supabase: ReturnType<typeof createClient>, userId: s
 
 Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') {
-    return new Response(null, { status: 200, headers: corsHeaders });
+    return new Response(null, { status: 200, headers: CORS });
   }
 
   try {
     const authHeader = req.headers.get('Authorization');
     if (!authHeader?.startsWith('Bearer ')) {
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: corsHeaders });
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: CORS });
     }
 
     const body = await req.json().catch(() => ({}));
     const code = String(body.code || '').trim().toUpperCase();
     if (!code) {
-      return new Response(JSON.stringify({ error: 'Enter a code.' }), { status: 400, headers: corsHeaders });
+      return new Response(JSON.stringify({ error: 'Enter a code.' }), { status: 400, headers: CORS });
     }
 
     const entry = CODES[code];
     if (!entry) {
-      return new Response(JSON.stringify({ error: 'Invalid or expired code.' }), { status: 400, headers: corsHeaders });
+      return new Response(JSON.stringify({ error: 'Invalid or expired code.' }), { status: 400, headers: CORS });
     }
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
@@ -71,7 +68,7 @@ Deno.serve(async (req: Request) => {
     const token = authHeader.replace('Bearer ', '');
     const { data: { user }, error: authError } = await supabase.auth.getUser(token);
     if (authError || !user) {
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: corsHeaders });
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: CORS });
     }
 
     // One redemption per code per account — the unique constraint is the
@@ -79,7 +76,7 @@ Deno.serve(async (req: Request) => {
     const { error: insertError } = await supabase.from('redeemed_codes').insert({ user_id: user.id, code });
     if (insertError) {
       if (insertError.code === '23505') {
-        return new Response(JSON.stringify({ error: "You've already redeemed this code." }), { status: 400, headers: corsHeaders });
+        return new Response(JSON.stringify({ error: "You've already redeemed this code." }), { status: 400, headers: CORS });
       }
       throw insertError;
     }
@@ -94,13 +91,13 @@ Deno.serve(async (req: Request) => {
 
     return new Response(JSON.stringify({ success: true, message: entry.message }), {
       status: 200,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      headers: { ...CORS, 'Content-Type': 'application/json' },
     });
   } catch (error) {
     console.error('[redeem-code] Fatal error:', error);
     return new Response(
       JSON.stringify({ error: error instanceof Error ? error.message : 'Internal server error' }),
-      { status: 500, headers: corsHeaders }
+      { status: 500, headers: CORS }
     );
   }
 });

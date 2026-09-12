@@ -1,11 +1,8 @@
+import { corsHeaders } from '../_shared/http.ts';
 import { createClient } from 'npm:@supabase/supabase-js@2.57.4';
 import Stripe from 'npm:stripe@14.21.0';
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Client-Info, Apikey',
-};
+const CORS = corsHeaders({ methods: 'GET, POST, PUT, DELETE, OPTIONS' });
 
 const PRICE_TO_PLAN: Record<string, string> = {
   [Deno.env.get('STRIPE_PRO_PRICE_ID') || '']: 'pro',
@@ -81,7 +78,7 @@ async function recordReferralConversion(
 
 Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') {
-    return new Response(null, { status: 200, headers: corsHeaders });
+    return new Response(null, { status: 200, headers: CORS });
   }
 
   try {
@@ -116,7 +113,7 @@ Deno.serve(async (req: Request) => {
         console.error('[stripe-webhook] No userId in session metadata');
         return new Response(JSON.stringify({ received: true }), {
           status: 200,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          headers: { ...CORS, 'Content-Type': 'application/json' },
         });
       }
 
@@ -132,7 +129,7 @@ Deno.serve(async (req: Request) => {
         }
         return new Response(JSON.stringify({ received: true }), {
           status: 200,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          headers: { ...CORS, 'Content-Type': 'application/json' },
         });
       }
 
@@ -214,7 +211,7 @@ Deno.serve(async (req: Request) => {
       const subscriptionId = invoice.subscription as string;
       if (!subscriptionId) return new Response(JSON.stringify({ received: true }), {
         status: 200,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { ...CORS, 'Content-Type': 'application/json' },
       });
 
       const subscription = await stripe.subscriptions.retrieve(subscriptionId);
@@ -256,13 +253,13 @@ Deno.serve(async (req: Request) => {
 
     return new Response(
       JSON.stringify({ received: true }),
-      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      { status: 200, headers: { ...CORS, 'Content-Type': 'application/json' } }
     );
   } catch (error) {
     console.error('[stripe-webhook] Error:', error);
     return new Response(
       JSON.stringify({ error: error instanceof Error ? error.message : 'Internal server error' }),
-      { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      { status: 400, headers: { ...CORS, 'Content-Type': 'application/json' } }
     );
   }
 });

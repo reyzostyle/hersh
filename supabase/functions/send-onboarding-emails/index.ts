@@ -1,3 +1,4 @@
+import { corsHeaders } from '../_shared/http.ts';
 import { createClient } from 'npm:@supabase/supabase-js@2.57.4';
 import { renderStep } from '../_shared/emails.ts';
 // NOTE: the version currently deployed (via the dashboard's in-browser editor,
@@ -22,11 +23,7 @@ import { renderStep } from '../_shared/emails.ts';
 // Safe by default: with no RESEND_API_KEY set it runs in dry-run and reports
 // what it *would* send without touching the provider or the rows.
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Client-Info, Apikey',
-};
+const CORS = corsHeaders({ methods: 'POST, OPTIONS' });
 
 // One tick's worth. Resend's default limit is well above this; the cap exists
 // so a backlog drains over several ticks instead of one 10-minute request
@@ -86,12 +83,12 @@ async function sendViaResend(opts: {
 }
 
 Deno.serve(async (req) => {
-  if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
+  if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS });
 
   const cronSecret = Deno.env.get('CRON_SECRET');
   if (!cronSecret) {
     return new Response(JSON.stringify({ error: 'CRON_SECRET is not configured' }), {
-      status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      status: 500, headers: { ...CORS, 'Content-Type': 'application/json' },
     });
   }
   // Accepted from either a header (schedulers) or the Authorization bearer.
@@ -99,7 +96,7 @@ Deno.serve(async (req) => {
     || (req.headers.get('authorization') || '').replace(/^Bearer\s+/i, '');
   if (provided !== cronSecret) {
     return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-      status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      status: 401, headers: { ...CORS, 'Content-Type': 'application/json' },
     });
   }
 
@@ -127,7 +124,7 @@ Deno.serve(async (req) => {
 
   if (dueErr) {
     return new Response(JSON.stringify({ error: dueErr.message }), {
-      status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      status: 500, headers: { ...CORS, 'Content-Type': 'application/json' },
     });
   }
 
@@ -203,6 +200,6 @@ Deno.serve(async (req) => {
   }
 
   return new Response(JSON.stringify(result), {
-    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    headers: { ...CORS, 'Content-Type': 'application/json' },
   });
 });

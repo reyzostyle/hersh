@@ -1,3 +1,4 @@
+import { corsHeaders } from '../_shared/http.ts';
 import { createClient } from 'npm:@supabase/supabase-js@2.57.4';
 
 // One-click unsubscribe. Public by design: it's reached from a link in an
@@ -10,11 +11,7 @@ import { createClient } from 'npm:@supabase/supabase-js@2.57.4';
 // with no user interaction. Answering only GET would leave Gmail's native
 // unsubscribe button silently doing nothing.
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Client-Info, Apikey',
-};
+const CORS = corsHeaders({ methods: 'GET, POST, OPTIONS' });
 
 function page(title: string, message: string, status: number): Response {
   return new Response(
@@ -26,12 +23,12 @@ function page(title: string, message: string, status: number): Response {
     <p style="color:#8A94A6;font-size:14px;line-height:1.6;margin:0;">${message}</p>
   </div>
 </body></html>`,
-    { status, headers: { ...corsHeaders, 'Content-Type': 'text/html; charset=utf-8' } },
+    { status, headers: { ...CORS, 'Content-Type': 'text/html; charset=utf-8' } },
   );
 }
 
 Deno.serve(async (req) => {
-  if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
+  if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS });
 
   const token = new URL(req.url).searchParams.get('token');
   if (!token) return page('Link is missing its token', 'Nothing was changed.', 400);

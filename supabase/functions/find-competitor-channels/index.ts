@@ -1,13 +1,10 @@
+import { corsHeaders } from '../_shared/http.ts';
 import { createClient } from 'npm:@supabase/supabase-js@2.57.4';
 import { callLLM } from '../_shared/llm.ts';
 import { loadChannelScan } from '../_shared/channel-scan.ts';
 import { loadBrain } from '../_shared/brain.ts';
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Client-Info, Apikey',
-};
+const CORS = corsHeaders({ methods: 'POST, OPTIONS' });
 
 // Suggests competitor channels instead of making someone go and find five
 // YouTube URLs by hand before the tab does anything at all.
@@ -65,7 +62,7 @@ Write ONE YouTube search phrase in ENGLISH that would surface popular Shorts on 
 }
 
 Deno.serve(async (req: Request) => {
-  if (req.method === 'OPTIONS') return new Response(null, { status: 200, headers: corsHeaders });
+  if (req.method === 'OPTIONS') return new Response(null, { status: 200, headers: CORS });
 
   try {
     const ytApiKey = Deno.env.get('YOUTUBE_API_KEY');
@@ -79,11 +76,11 @@ Deno.serve(async (req: Request) => {
 
     const authHeader = req.headers.get('Authorization');
     if (!authHeader?.startsWith('Bearer ')) {
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: corsHeaders });
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: CORS });
     }
     const { data: { user }, error: authErr } = await supabase.auth.getUser(authHeader.replace('Bearer ', ''));
     if (authErr || !user) {
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: corsHeaders });
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: CORS });
     }
 
     const { data: profile } = await supabase
@@ -93,7 +90,7 @@ Deno.serve(async (req: Request) => {
 
     if ((profile?.plan || 'free') === 'free') {
       return new Response(JSON.stringify({ error: 'upgrade_required', plan_required: 'plus' }), {
-        status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 200, headers: { ...CORS, 'Content-Type': 'application/json' },
       });
     }
 
@@ -103,7 +100,7 @@ Deno.serve(async (req: Request) => {
       return new Response(JSON.stringify({
         error: 'rate_limited',
         message: 'Auto-find runs once a day. Add a channel by URL in the meantime.',
-      }), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      }), { status: 200, headers: { ...CORS, 'Content-Type': 'application/json' } });
     }
 
     const scan = await loadChannelScan(supabase, user.id);
@@ -122,7 +119,7 @@ Deno.serve(async (req: Request) => {
       return new Response(JSON.stringify({
         error: 'no_profile',
         message: 'Tell us about your channel in Settings, or connect your YouTube channel, and this can look for people making the same thing.',
-      }), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      }), { status: 200, headers: { ...CORS, 'Content-Type': 'application/json' } });
     }
 
     const query = await buildQuery(scan, niche, description);
@@ -187,7 +184,7 @@ Deno.serve(async (req: Request) => {
       await supabase.from('user_tokens')
         .update({ competitor_find_at: new Date().toISOString() }).eq('user_id', user.id);
       return new Response(JSON.stringify({ success: true, query, channels: [] }),
-        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+        { status: 200, headers: { ...CORS, 'Content-Type': 'application/json' } });
     }
 
     // One more read for the names, avatars and sizes the picker shows.
@@ -228,12 +225,12 @@ Deno.serve(async (req: Request) => {
       .update({ competitor_find_at: new Date().toISOString() }).eq('user_id', user.id);
 
     return new Response(JSON.stringify({ success: true, query, channels }),
-      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      { status: 200, headers: { ...CORS, 'Content-Type': 'application/json' } });
   } catch (error) {
     console.error('[find-competitor-channels]', error);
     return new Response(
       JSON.stringify({ error: error instanceof Error ? error.message : 'Internal server error' }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      { status: 500, headers: { ...CORS, 'Content-Type': 'application/json' } }
     );
   }
 });

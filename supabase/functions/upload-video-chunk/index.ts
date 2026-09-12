@@ -1,24 +1,21 @@
+import { corsHeaders } from '../_shared/http.ts';
 import { createClient } from 'npm:@supabase/supabase-js@2.57.4';
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Client-Info, Apikey, X-Upload-Url, X-Upload-Offset, X-Is-Last',
-};
+const CORS = corsHeaders({ methods: 'POST, OPTIONS', headers: 'Content-Type, Authorization, X-Client-Info, Apikey, X-Upload-Url, X-Upload-Offset, X-Is-Last' });
 
 Deno.serve(async (req: Request) => {
-  if (req.method === 'OPTIONS') return new Response(null, { status: 200, headers: corsHeaders });
+  if (req.method === 'OPTIONS') return new Response(null, { status: 200, headers: CORS });
 
   try {
     // Require a valid signed JWT (previously this function had no auth at all)
     const authHeader = req.headers.get('Authorization');
     if (!authHeader?.startsWith('Bearer ')) {
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: corsHeaders });
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: CORS });
     }
     const supabase = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
     const { data: { user }, error: authErr } = await supabase.auth.getUser(authHeader.replace('Bearer ', ''));
     if (authErr || !user) {
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: corsHeaders });
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: CORS });
     }
 
     const uploadUrl = req.headers.get('X-Upload-Url');
@@ -27,14 +24,14 @@ Deno.serve(async (req: Request) => {
     const contentLength = req.headers.get('Content-Length') || '0';
 
     if (!uploadUrl) {
-      return new Response(JSON.stringify({ error: 'Missing X-Upload-Url header' }), { status: 400, headers: corsHeaders });
+      return new Response(JSON.stringify({ error: 'Missing X-Upload-Url header' }), { status: 400, headers: CORS });
     }
 
     // SSRF guard: only allow forwarding to Google upload endpoints, never an arbitrary URL.
     let parsedUrl: URL;
     try { parsedUrl = new URL(uploadUrl); } catch { parsedUrl = null as any; }
     if (!parsedUrl || parsedUrl.protocol !== 'https:' || !parsedUrl.hostname.endsWith('.googleapis.com')) {
-      return new Response(JSON.stringify({ error: 'Invalid upload URL' }), { status: 400, headers: corsHeaders });
+      return new Response(JSON.stringify({ error: 'Invalid upload URL' }), { status: 400, headers: CORS });
     }
 
     const command = isLast ? 'upload, finalize' : 'upload';
@@ -63,19 +60,19 @@ Deno.serve(async (req: Request) => {
       console.log(`[upload-video-chunk] Done, geminiFileName=${geminiFileName}`);
       return new Response(
         JSON.stringify({ success: true, geminiFileName }),
-        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { status: 200, headers: { ...CORS, 'Content-Type': 'application/json' } }
       );
     }
 
     return new Response(
       JSON.stringify({ success: true }),
-      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      { status: 200, headers: { ...CORS, 'Content-Type': 'application/json' } }
     );
   } catch (error) {
     console.error('[upload-video-chunk] Error:', error);
     return new Response(
       JSON.stringify({ error: error instanceof Error ? error.message : 'Internal server error' }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      { status: 500, headers: { ...CORS, 'Content-Type': 'application/json' } }
     );
   }
 });

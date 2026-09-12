@@ -1,10 +1,7 @@
+import { corsHeaders } from '../_shared/http.ts';
 import { createClient } from 'npm:@supabase/supabase-js@2.57.4';
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Client-Info, Apikey',
-};
+const CORS = corsHeaders({ methods: 'GET, POST, PUT, DELETE, OPTIONS' });
 
 // Verifies the JWT signature via the auth server (not just decoding it) and
 // returns the authenticated user id. Throws on any invalid/forged token.
@@ -106,7 +103,7 @@ async function searchChannelByHandle(handle: string, ytApiKey: string): Promise<
 
 Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') {
-    return new Response(null, { status: 200, headers: corsHeaders });
+    return new Response(null, { status: 200, headers: CORS });
   }
 
   try {
@@ -121,7 +118,7 @@ Deno.serve(async (req: Request) => {
 
     const authHeader = req.headers.get('Authorization');
     if (!authHeader?.startsWith('Bearer ')) {
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: corsHeaders });
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: CORS });
     }
     const token = authHeader.replace('Bearer ', '');
 
@@ -129,7 +126,7 @@ Deno.serve(async (req: Request) => {
     try {
       userId = await getUserIdFromToken(supabase, token);
     } catch {
-      return new Response(JSON.stringify({ error: 'Invalid token' }), { status: 401, headers: corsHeaders });
+      return new Response(JSON.stringify({ error: 'Invalid token' }), { status: 401, headers: CORS });
     }
 
     // Competitors is no longer Plus-only. What the plan buys here is how many
@@ -144,7 +141,7 @@ Deno.serve(async (req: Request) => {
 
     const { channelUrl } = await req.json();
     if (!channelUrl) {
-      return new Response(JSON.stringify({ error: 'channelUrl is required' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      return new Response(JSON.stringify({ error: 'channelUrl is required' }), { status: 400, headers: { ...CORS, 'Content-Type': 'application/json' } });
     }
 
     // Check existing channel count
@@ -162,7 +159,7 @@ Deno.serve(async (req: Request) => {
             : 'You can track up to 5 competitor channels. Remove one to add another.',
           plan_required: userPlan === 'free' ? 'plus' : undefined,
         }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { status: 400, headers: { ...CORS, 'Content-Type': 'application/json' } }
       );
     }
 
@@ -183,7 +180,7 @@ Deno.serve(async (req: Request) => {
 
     return new Response(
       JSON.stringify({ success: true, channel: inserted }),
-      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      { status: 200, headers: { ...CORS, 'Content-Type': 'application/json' } }
     );
   } catch (error) {
     console.error('[add-competitor-channel] Error:', error);
@@ -194,7 +191,7 @@ Deno.serve(async (req: Request) => {
         : JSON.stringify(error);
     return new Response(
       JSON.stringify({ error: msg }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      { status: 500, headers: { ...CORS, 'Content-Type': 'application/json' } }
     );
   }
 });

@@ -1,14 +1,11 @@
+import { corsHeaders } from '../_shared/http.ts';
 import { createClient } from 'npm:@supabase/supabase-js@2.57.4';
 import { callLLM } from '../_shared/llm.ts';
 import { parseImages } from '../_shared/images.ts';
 import { loadCreditStatus, canAfford, spendCredits, CREDIT_COSTS } from '../_shared/credits.ts';
 import { loadBrain, brainLine } from '../_shared/brain.ts';
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Client-Info, Apikey',
-};
+const CORS = corsHeaders({ methods: 'POST, OPTIONS' });
 
 const ADMIN_EMAIL = 'reyzostyle@gmail.com';
 
@@ -141,7 +138,7 @@ function splitRouted(raw: string): { intent: 'question' | 'hook' | 'script'; ans
 }
 
 Deno.serve(async (req: Request) => {
-  if (req.method === 'OPTIONS') return new Response(null, { status: 200, headers: corsHeaders });
+  if (req.method === 'OPTIONS') return new Response(null, { status: 200, headers: CORS });
 
   try {
     const supabase = createClient(
@@ -152,11 +149,11 @@ Deno.serve(async (req: Request) => {
 
     const authHeader = req.headers.get('Authorization');
     if (!authHeader?.startsWith('Bearer ')) {
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: corsHeaders });
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: CORS });
     }
     const { data: { user }, error: authErr } = await supabase.auth.getUser(authHeader.replace('Bearer ', ''));
     if (authErr || !user) {
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: corsHeaders });
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: CORS });
     }
 
     // threadId is optional now: the first message of a conversation can be a
@@ -169,7 +166,7 @@ Deno.serve(async (req: Request) => {
     if (imageError) {
       return new Response(
         JSON.stringify({ error: imageError }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+        { status: 400, headers: { ...CORS, 'Content-Type': 'application/json' } },
       );
     }
 
@@ -177,7 +174,7 @@ Deno.serve(async (req: Request) => {
     // the picture. Text stays required when there is nothing else to look at.
     const hasImage = images.length > 0;
     if (!question?.trim() && !hasImage) {
-      return new Response(JSON.stringify({ error: 'question required' }), { status: 400, headers: corsHeaders });
+      return new Response(JSON.stringify({ error: 'question required' }), { status: 400, headers: CORS });
     }
 
     const isAdmin = user.email === ADMIN_EMAIL;
@@ -188,7 +185,7 @@ Deno.serve(async (req: Request) => {
     if (!canAfford(creditStatus, CREDIT_COSTS.chat_followup, isAdmin)) {
       return new Response(
         JSON.stringify({ error: 'Your credits are used up. Upgrade to keep going.' }),
-        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+        { status: 403, headers: { ...CORS, 'Content-Type': 'application/json' } },
       );
     }
 
@@ -210,7 +207,7 @@ Deno.serve(async (req: Request) => {
       const { data: thread } = await supabase
         .from('chat_threads').select('id').eq('id', threadId).eq('user_id', user.id).maybeSingle();
       if (!thread) {
-        return new Response(JSON.stringify({ error: 'Thread not found' }), { status: 404, headers: corsHeaders });
+        return new Response(JSON.stringify({ error: 'Thread not found' }), { status: 404, headers: CORS });
       }
       const { data: messages } = await supabase
         .from('chat_messages')
@@ -295,7 +292,7 @@ ${(a.weak_spots ?? []).map(s => `- ${s}`).join('\n') || '- none noted'}
     // billed twice for one message would be indefensible.
     if (intent !== 'question') {
       return new Response(JSON.stringify({ intent }), {
-        status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 200, headers: { ...CORS, 'Content-Type': 'application/json' },
       });
     }
 
@@ -313,13 +310,13 @@ ${(a.weak_spots ?? []).map(s => `- ${s}`).join('\n') || '- none noted'}
     await persist(clean);
     await spendCredits(supabase, user.id, creditStatus, CREDIT_COSTS.chat_followup);
     return new Response(JSON.stringify({ intent: 'question', answer: clean }), {
-      status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      status: 200, headers: { ...CORS, 'Content-Type': 'application/json' },
     });
   } catch (error) {
     console.error('[chat-followup]', error);
     return new Response(
       JSON.stringify({ error: error instanceof Error ? error.message : 'Internal server error' }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+      { status: 500, headers: { ...CORS, 'Content-Type': 'application/json' } },
     );
   }
 });

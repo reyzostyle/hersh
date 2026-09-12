@@ -1,3 +1,4 @@
+import { corsHeaders } from '../_shared/http.ts';
 import { createClient } from 'npm:@supabase/supabase-js@2.57.4';
 import { callLLM } from '../_shared/llm.ts';
 import { loadCreditStatus, canAfford, spendCredits, CREDIT_COSTS } from '../_shared/credits.ts';
@@ -6,11 +7,7 @@ import { loadBrain, brainBlock } from '../_shared/brain.ts';
 import { watchVideo } from '../_shared/analyze-video.ts';
 import { parseModelJson } from '../_shared/json.ts';
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Client-Info, Apikey',
-};
+const CORS = corsHeaders({ methods: 'POST, OPTIONS' });
 
 // Reads one competitor video properly: pulls the transcript and has the model
 // say what the idea actually is and how it would work on this creator's
@@ -168,7 +165,7 @@ Rules:
 }
 
 Deno.serve(async (req: Request) => {
-  if (req.method === 'OPTIONS') return new Response(null, { status: 200, headers: corsHeaders });
+  if (req.method === 'OPTIONS') return new Response(null, { status: 200, headers: CORS });
 
   try {
     const supabase = createClient(
@@ -179,16 +176,16 @@ Deno.serve(async (req: Request) => {
 
     const authHeader = req.headers.get('Authorization');
     if (!authHeader?.startsWith('Bearer ')) {
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: corsHeaders });
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: CORS });
     }
     const { data: { user }, error: authErr } = await supabase.auth.getUser(authHeader.replace('Bearer ', ''));
     if (authErr || !user) {
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: corsHeaders });
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: CORS });
     }
 
     const { videoId, adaptForProfile = true } = await req.json();
     if (!videoId || typeof videoId !== 'string') {
-      return new Response(JSON.stringify({ error: 'videoId required' }), { status: 400, headers: corsHeaders });
+      return new Response(JSON.stringify({ error: 'videoId required' }), { status: 400, headers: CORS });
     }
 
     const { data: profile } = await supabase
@@ -204,7 +201,7 @@ Deno.serve(async (req: Request) => {
       .eq('user_id', user.id).eq('video_id', videoId).maybeSingle();
     if (existing?.concept) {
       return new Response(JSON.stringify({ success: true, idea: existing, charged: 0 }),
-        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+        { status: 200, headers: { ...CORS, 'Content-Type': 'application/json' } });
     }
 
     // The video has to be in the pool of a channel this user tracks. Without
@@ -214,14 +211,14 @@ Deno.serve(async (req: Request) => {
       .from('competitor_videos').select('*').eq('video_id', videoId).maybeSingle();
     if (!pooled) {
       return new Response(JSON.stringify({ error: 'That video is not in your feed.' }),
-        { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+        { status: 404, headers: { ...CORS, 'Content-Type': 'application/json' } });
     }
     const { data: tracked } = await supabase
       .from('competitor_channels').select('id')
       .eq('user_id', user.id).eq('channel_id', pooled.channel_id).maybeSingle();
     if (!tracked) {
       return new Response(JSON.stringify({ error: 'That video is not in your feed.' }),
-        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+        { status: 403, headers: { ...CORS, 'Content-Type': 'application/json' } });
     }
 
     const isAdmin = user.email === 'reyzostyle@gmail.com';
@@ -229,7 +226,7 @@ Deno.serve(async (req: Request) => {
     const cost = CREDIT_COSTS.competitor_idea;
     if (!canAfford(creditStatus, cost, isAdmin)) {
       return new Response(JSON.stringify({ error: 'limit_reached' }),
-        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+        { status: 200, headers: { ...CORS, 'Content-Type': 'application/json' } });
     }
 
     // Two sources, and they are not the same thing. The brain is the model's
@@ -285,12 +282,12 @@ Extra context: ${profile?.channel_context || 'not set'}`;
     await spendCredits(supabase, user.id, creditStatus, cost);
 
     return new Response(JSON.stringify({ success: true, idea, charged: cost }),
-      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      { status: 200, headers: { ...CORS, 'Content-Type': 'application/json' } });
   } catch (error) {
     console.error('[enrich-competitor-video]', error);
     return new Response(
       JSON.stringify({ error: error instanceof Error ? error.message : 'Internal server error' }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      { status: 500, headers: { ...CORS, 'Content-Type': 'application/json' } }
     );
   }
 });

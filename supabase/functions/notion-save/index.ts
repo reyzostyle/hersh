@@ -1,10 +1,7 @@
+import { corsHeaders } from '../_shared/http.ts';
 import { createClient } from 'npm:@supabase/supabase-js@2.57.4';
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Client-Info, Apikey',
-};
+const CORS = corsHeaders({ methods: 'POST, OPTIONS' });
 
 const NOTION_VERSION = '2022-06-28';
 
@@ -36,24 +33,24 @@ function textToBlocks(text: string) {
 }
 
 Deno.serve(async (req: Request) => {
-  if (req.method === 'OPTIONS') return new Response(null, { status: 200, headers: corsHeaders });
+  if (req.method === 'OPTIONS') return new Response(null, { status: 200, headers: CORS });
 
   try {
     const authHeader = req.headers.get('Authorization');
     if (!authHeader?.startsWith('Bearer ')) {
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: corsHeaders });
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: CORS });
     }
     const supabase = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
     const { data: { user }, error: authErr } = await supabase.auth.getUser(authHeader.replace('Bearer ', ''));
     if (authErr || !user) {
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: corsHeaders });
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: CORS });
     }
     const userId = user.id;
 
     // Paid plans only
     const { data: planRow } = await supabase.from('user_tokens').select('plan').eq('user_id', userId).maybeSingle();
     if ((planRow?.plan || 'free') === 'free') {
-      return new Response(JSON.stringify({ error: 'upgrade_required' }), { status: 403, headers: corsHeaders });
+      return new Response(JSON.stringify({ error: 'upgrade_required' }), { status: 403, headers: CORS });
     }
 
     // Connection + token
@@ -63,7 +60,7 @@ Deno.serve(async (req: Request) => {
       .eq('user_id', userId)
       .maybeSingle();
     if (!conn?.access_token) {
-      return new Response(JSON.stringify({ error: 'not_connected' }), { status: 400, headers: corsHeaders });
+      return new Response(JSON.stringify({ error: 'not_connected' }), { status: 400, headers: CORS });
     }
     const token = conn.access_token;
 
@@ -93,7 +90,7 @@ Deno.serve(async (req: Request) => {
         const pageSearch = await notion(token, 'search', { filter: { value: 'page', property: 'object' } });
         const parentPage = (pageSearch.results || [])[0];
         if (!parentPage) {
-          return new Response(JSON.stringify({ error: 'no_page', message: 'Grant the integration access to at least one Notion page, then try again.' }), { status: 400, headers: corsHeaders });
+          return new Response(JSON.stringify({ error: 'no_page', message: 'Grant the integration access to at least one Notion page, then try again.' }), { status: 400, headers: CORS });
         }
         const created = await notion(token, 'databases', {
           parent: { type: 'page_id', page_id: parentPage.id },
@@ -128,9 +125,9 @@ Deno.serve(async (req: Request) => {
       children,
     });
 
-    return new Response(JSON.stringify({ ok: true }), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    return new Response(JSON.stringify({ ok: true }), { status: 200, headers: { ...CORS, 'Content-Type': 'application/json' } });
   } catch (error) {
     console.error('[notion-save] Error:', error);
-    return new Response(JSON.stringify({ error: error instanceof Error ? error.message : 'Internal error' }), { status: 500, headers: corsHeaders });
+    return new Response(JSON.stringify({ error: error instanceof Error ? error.message : 'Internal error' }), { status: 500, headers: CORS });
   }
 });

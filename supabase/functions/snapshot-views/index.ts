@@ -1,10 +1,7 @@
+import { corsHeaders } from '../_shared/http.ts';
 import { createClient } from 'npm:@supabase/supabase-js@2.57.4';
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, Authorization, x-admin-secret',
-};
+const CORS = corsHeaders({ methods: 'POST, OPTIONS', headers: 'Content-Type, Authorization, x-admin-secret' });
 
 // How long a video is worth sampling. Views keep arriving after a week, but not
 // fast enough for the rate to say anything, and every id in the batch costs
@@ -27,10 +24,10 @@ const MAX_VIDEOS = 500;
 // running it twice in a minute writes two samples a minute apart, which is
 // harmless, and the rate function ignores gaps under ten minutes.
 Deno.serve(async (req: Request) => {
-  if (req.method === 'OPTIONS') return new Response(null, { status: 200, headers: corsHeaders });
+  if (req.method === 'OPTIONS') return new Response(null, { status: 200, headers: CORS });
 
   if (req.headers.get('x-admin-secret') !== Deno.env.get('ADMIN_SECRET')) {
-    return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: corsHeaders });
+    return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: CORS });
   }
 
   try {
@@ -61,7 +58,7 @@ Deno.serve(async (req: Request) => {
 
     if (!ids.length) {
       return new Response(JSON.stringify({ sampled: 0, note: 'nothing recent to sample' }), {
-        status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 200, headers: { ...CORS, 'Content-Type': 'application/json' },
       });
     }
 
@@ -113,13 +110,13 @@ Deno.serve(async (req: Request) => {
     console.log(`[snapshot-views] asked ${ids.length}, wrote ${rows.length}, missing ${missing}`);
     return new Response(
       JSON.stringify({ sampled: rows.length, asked: ids.length, missing, captured_at: capturedAt }),
-      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+      { status: 200, headers: { ...CORS, 'Content-Type': 'application/json' } },
     );
   } catch (error) {
     console.error('[snapshot-views]', error);
     return new Response(
       JSON.stringify({ error: error instanceof Error ? error.message : 'Internal server error' }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+      { status: 500, headers: { ...CORS, 'Content-Type': 'application/json' } },
     );
   }
 });
