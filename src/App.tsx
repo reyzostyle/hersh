@@ -5,6 +5,8 @@ import { Onboarding } from './components/Onboarding';
 import { OnboardingOffer } from './components/OnboardingOffer';
 import { PrivacyPolicy } from './components/PrivacyPolicy';
 import { TermsOfService } from './components/TermsOfService';
+import { GuidePage, GuidesIndex } from './components/GuidePage';
+import { guideBySlug } from './lib/guides';
 import { RefreshOutlineIcon as Loader2 } from '@solar-icons/react';
 import { useEffect, useState } from 'react';
 import { supabase, getSessionToken } from './lib/supabase';
@@ -318,6 +320,14 @@ function AppContent() {
   // open these while logged out).
   if (window.location.pathname === '/privacy') return <PrivacyPolicy />;
   if (window.location.pathname === '/terms') return <TermsOfService />;
+  // Public writing. Matched before the auth check for the same reason Privacy
+  // and Terms are: these pages exist to be read by people who are not signed
+  // in, and by crawlers that never will be.
+  if (window.location.pathname === '/guides') return <GuidesIndex />;
+  if (window.location.pathname.startsWith('/guides/')) {
+    const guide = guideBySlug(window.location.pathname.replace('/guides/', '').replace(/\/$/, ''));
+    if (guide) return <GuidePage guide={guide} />;
+  }
 
   if (loading) {
     return (

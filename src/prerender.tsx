@@ -15,6 +15,8 @@ import { AuthProvider } from './contexts/AuthContext';
 import { LandingPage } from './components/LandingPage';
 import { PrivacyPolicy } from './components/PrivacyPolicy';
 import { TermsOfService } from './components/TermsOfService';
+import { GuidePage, GuidesIndex } from './components/GuidePage';
+import { GUIDES } from './lib/guides';
 import { FAQS } from './lib/faq';
 
 export interface PrerenderRoute {
@@ -22,6 +24,11 @@ export interface PrerenderRoute {
   title: string;
   description: string;
   html: string;
+  /** Extra structured data for this route, replacing the shell's FAQ block. */
+  jsonLd?: unknown;
+  /** Sitemap hints. Defaults are fine for most pages. */
+  changefreq?: string;
+  priority?: string;
 }
 
 // AuthProvider is included because the landing page's sign-in form reads it.
@@ -31,6 +38,43 @@ const wrap = (node: JSX.Element) =>
   renderToStaticMarkup(<AuthProvider>{node}</AuthProvider>);
 
 export function render(): PrerenderRoute[] {
+  const guideRoutes: PrerenderRoute[] = GUIDES.map(g => ({
+    path: `/guides/${g.slug}`,
+    title: `${g.title} - Chumoku`,
+    description: g.description,
+    html: wrap(<GuidePage guide={g} />),
+    changefreq: 'monthly',
+    priority: '0.8',
+    // Article plus the page's own questions, both pointing at the Organization
+    // declared in index.html. The shell's FAQPage carries the LANDING page's
+    // questions, which on a guide would be answers to questions the page does
+    // not ask - so it is replaced here rather than inherited.
+    jsonLd: {
+      '@context': 'https://schema.org',
+      '@graph': [
+        {
+          '@type': 'Article',
+          '@id': `https://chumoku.co/guides/${g.slug}#article`,
+          headline: g.h1,
+          description: g.description,
+          dateModified: g.updated,
+          author: { '@id': 'https://chumoku.co/#organization' },
+          publisher: { '@id': 'https://chumoku.co/#organization' },
+          mainEntityOfPage: `https://chumoku.co/guides/${g.slug}`,
+          about: 'YouTube Shorts',
+        },
+        {
+          '@type': 'FAQPage',
+          mainEntity: g.faq.map(f => ({
+            '@type': 'Question',
+            name: f.q,
+            acceptedAnswer: { '@type': 'Answer', text: f.a },
+          })),
+        },
+      ],
+    },
+  }));
+
   return [
     {
       // title and description here OVERWRITE the ones in index.html for this
@@ -63,6 +107,16 @@ export function render(): PrerenderRoute[] {
       description: 'The terms covering use of Chumoku, billing, credits and cancellation.',
       html: wrap(<TermsOfService />),
     },
+    {
+      path: '/guides',
+      title: 'Shorts guides - Chumoku',
+      description:
+        'How short-form video actually holds people, written for the people making it. Hooks, retention curves and why Shorts get swiped.',
+      html: wrap(<GuidesIndex />),
+      changefreq: 'monthly',
+      priority: '0.7',
+    },
+    ...guideRoutes,
   ];
 }
 

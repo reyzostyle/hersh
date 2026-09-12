@@ -1423,6 +1423,11 @@ export function LandingPage() {
               <a href={`mailto:${SUPPORT_EMAIL}`} className="flex items-center gap-1.5 transition-colors hover:text-[var(--text)]" style={{ color: 'var(--text-muted)' }}>
                 <Mail className="w-3.5 h-3.5" />{SUPPORT_EMAIL}
               </a>
+              {/* Linked from the site's most-crawled page, because a page
+                  nothing links to is a page a crawler reaches late or never.
+                  The sitemap lists them; an internal link is what gets them
+                  read. */}
+              <a href="/guides" className="transition-colors hover:text-[var(--text)]" style={{ color: 'var(--text-muted)' }}>Guides</a>
               <a href="/privacy" className="transition-colors hover:text-[var(--text)]" style={{ color: 'var(--text-muted)' }}>Privacy</a>
               <a href="/terms" className="transition-colors hover:text-[var(--text)]" style={{ color: 'var(--text-muted)' }}>Terms</a>
               {/* The other half of the sameAs in index.html. Those three
