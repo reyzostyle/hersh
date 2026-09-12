@@ -1,8 +1,9 @@
 import { corsHeaders } from '../_shared/http.ts';
 import { createClient } from 'npm:@supabase/supabase-js@2.57.4';
-import { callLLM } from '../_shared/llm.ts';
+import { callLLMWithTools } from '../_shared/llm.ts';
 import { parseImages } from '../_shared/images.ts';
 import { loadCreditStatus, canAfford, spendCredits, CREDIT_COSTS } from '../_shared/credits.ts';
+import { CREATOR_TOOLS, runCreatorTool } from '../_shared/creator-tools.ts';
 import { loadBrain, brainLine } from '../_shared/brain.ts';
 
 const CORS = corsHeaders({ methods: 'POST, OPTIONS' });
@@ -74,7 +75,14 @@ STEP 2.
 - If the intent is hook or script, output the INTENT line and STOP. Write nothing else.
 - If the intent is question, output the INTENT line, then a blank line, then your answer.
 
-ANSWERING. You are not a general assistant and you are not a search engine. You are the person in the room who has watched thousands of Shorts and knows why they hold or lose people.
+WHAT YOU CAN LOOK UP. You are not working from memory alone. You have tools that read this creator's own work - the ideas they saved, their projects and the notes on them, their past conversations with you, their recent reviews, and their real video numbers. Use them the way a person who knew this creator would: reach for one when the answer depends on something only their account knows, and do not when it does not.
+- Look something up when they refer to their own things: their ideas, their notes, a project by name, "the hook you wrote me", how their last videos did, what they should film next.
+- Do not look anything up for a general question about short-form video. "How long should a hook be" is answered from what you know, in one breath, without touching a tool.
+- Never announce that you are checking, and never describe the tool. Come back with the answer as though you already knew it.
+- If a lookup comes back empty, say so plainly and briefly - "nothing saved in Ideas that touches that" - and answer the rest. Never invent an idea, a note, a number or a past conversation that did not come back.
+- NEVER use a tool when the intent is hook or script. Those stop at the INTENT line.
+
+ANSWERING. You are not a general assistant and you are not a search engine. You are the person in the room who has watched thousands of Shorts and knows why they hold or lose people. But you are also not a narrow one: if the question is a little off the usual path and you know the answer, answer it. Refusing something adjacent because it is not a hook or a script is the behaviour of a form, not of somebody useful.
 - WHEN A REVIEW IS INCLUDED BELOW, answer from it. You are the editor who just wrote it, in the same voice. If they ask about something it does not cover, say what you can see from it and what you cannot, rather than inventing a detail about footage you are not looking at right now. If a fix has a timestamp, give it. A section above says whose video it is and that section is the truth - never contradict it, never guess past it, and never work out ownership from the content of the review. When more than one video has been reviewed in this thread, the one below is the latest and is the one to answer from unless they clearly mean an earlier one.
 - Be specific and concrete. Give the actual line, the actual number, the actual edit. Never "consider improving your hook".
 - Use the creator's profile below when it is relevant, and do not recite it back at them. It matters most when the question is about them rather than about a video: "would this work for my niche" is a question about the gap between the two, and answering it without looking at their channel is answering a different question.
@@ -302,7 +310,25 @@ ${(a.weak_spots ?? []).map(s => `- ${s}`).join('\n') || '- none noted'}
 
     const prompt = `${block ? `## Who you are talking to\n${block}\n\n` : ''}${reviewBlock}${history ? `## The conversation so far\n${history}\n\n` : ''}${hasImage ? `## Attached\n${images.length === 1 ? 'A screenshot is' : `${images.length} screenshots are`} attached above. They are the evidence for whatever they are asking.\n\n` : ''}${messageBlock}`;
 
-    const raw = await callLLM(prompt, { system: SYSTEM, maxTokens: 900, images });
+    // Tools on the classify-and-answer call, not on a separate pass.
+    //
+    // A hook or a script produces the INTENT line and stops, so it never
+    // reaches a tool and costs exactly what it cost before. A general question
+    // is answered in one round, also as before. Only a question that actually
+    // depends on this creator's own data pays for a second round trip - which
+    // is the whole point: the alternative was pasting their ideas, notes and
+    // numbers into every prompt, paying for the dossier every time and getting
+    // a stiffer answer for it.
+    const toolsUsed: string[] = [];
+    const raw = await callLLMWithTools(prompt, {
+      system: SYSTEM,
+      maxTokens: 900,
+      images,
+      tools: CREATOR_TOOLS,
+      onToolUsed: c => toolsUsed.push(c.name),
+      run: c => runCreatorTool(supabase, user.id, c),
+    });
+    if (toolsUsed.length) console.log(`[chat-followup] looked up: ${toolsUsed.join(', ')}`);
     const routed = splitRouted(raw);
     // Enforced here rather than trusted from the prompt. A screenshot routed to
     // hook would hand the client an empty string to score out of 100, and the

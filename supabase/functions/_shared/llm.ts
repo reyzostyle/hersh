@@ -168,3 +168,141 @@ function extractText(provider: string, data: any): string {
       return '';
   }
 }
+
+// ─── Tools ───────────────────────────────────────────────────────────────────
+
+// The same model, allowed to go and look something up before it answers.
+//
+// The alternative was pasting the creator's ideas, notes, projects and numbers
+// into every prompt. That makes the answer rigid - a fixed block of context
+// shapes every reply whether it is relevant or not - and it pays for the whole
+// dossier on "how long should a hook be". Here the model decides: a question
+// about their own stuff costs a second round trip, a general question costs
+// exactly what it costs today. Verified against the live model before this was
+// built: it calls the tool for "which of my saved ideas are about minecraft?"
+// and answers "how long should a hook be" without touching one.
+//
+// Google only, on purpose. Tool calling is three different protocols across the
+// three providers, and writing the other two blind - against models nobody here
+// has tested this path on - is how you ship a silent downgrade. The others
+// throw, loudly, naming the fix.
+
+export interface ToolSpec {
+  name: string;
+  description: string;
+  /** Google's schema dialect: types are uppercase (STRING, OBJECT, ARRAY). */
+  parameters: Record<string, unknown>;
+}
+
+export interface ToolCall {
+  name: string;
+  args: Record<string, unknown>;
+}
+
+export interface LLMToolOptions extends LLMCallOptions {
+  tools: ToolSpec[];
+  /** Runs the tool and returns whatever should go back to the model. */
+  run: (call: ToolCall) => Promise<unknown>;
+  /** Ceiling on round trips, so a confused model cannot bill someone forever. */
+  maxRounds?: number;
+  /** Called once per tool the model actually used, for logging and pricing. */
+  onToolUsed?: (call: ToolCall) => void;
+}
+
+const DEFAULT_MAX_ROUNDS = 3;
+
+export async function callLLMWithTools(prompt: string, opts: LLMToolOptions): Promise<string> {
+  const provider = Deno.env.get('ANALYSIS_PROVIDER') || 'anthropic';
+  const model = Deno.env.get('ANALYSIS_MODEL') || 'claude-sonnet-5';
+
+  if (provider !== 'google') {
+    throw new Error(
+      `Tool calling is implemented for the google provider only, and ANALYSIS_PROVIDER is "${provider}". ` +
+      `Either set ANALYSIS_PROVIDER=google or use callLLM, which works on all three.`,
+    );
+  }
+
+  const apiKey = Deno.env.get('GEMINI_API_KEY');
+  if (!apiKey) throw new Error('GEMINI_API_KEY not configured');
+
+  const isFlashLite = /flash-lite/i.test(model);
+  const isPlainFlash = /flash/i.test(model) && !isFlashLite;
+
+  // deno-lint-ignore no-explicit-any
+  const contents: any[] = [{
+    role: 'user',
+    parts: opts.images?.length
+      ? [
+          ...opts.images.map(im => ({ inline_data: { mime_type: im.mimeType, data: im.base64 } })),
+          { text: prompt },
+        ]
+      : [{ text: prompt }],
+  }];
+
+  const body = () => JSON.stringify({
+    ...(opts.system ? { systemInstruction: { parts: [{ text: opts.system }] } } : {}),
+    tools: [{ functionDeclarations: opts.tools }],
+    contents,
+    generationConfig: {
+      maxOutputTokens: isFlashLite || isPlainFlash ? opts.maxTokens : opts.maxTokens * 4,
+      ...(isPlainFlash ? { thinkingConfig: { thinkingBudget: 0 } } : {}),
+    },
+  });
+
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+  const maxRounds = opts.maxRounds ?? DEFAULT_MAX_ROUNDS;
+
+  for (let round = 0; round < maxRounds; round++) {
+    let response: Response | null = null;
+    for (let attempt = 0; attempt < RETRIES; attempt++) {
+      if (attempt > 0) await new Promise(r => setTimeout(r, attempt * 3000));
+      response = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: body(),
+      });
+      if (response.ok || !RETRYABLE_STATUS.has(response.status)) break;
+    }
+    if (!response) throw new Error(`${provider}/${model}: no response`);
+    if (!response.ok) {
+      throw new Error(`${provider}/${model} error (${response.status}): ${await response.text()}`);
+    }
+
+    const data = await response.json();
+    const content = data?.candidates?.[0]?.content;
+    // deno-lint-ignore no-explicit-any
+    const parts: any[] = content?.parts ?? [];
+    const calls = parts.filter(p => p.functionCall).map(p => p.functionCall as ToolCall);
+
+    if (!calls.length) {
+      return parts.find(p => p.text)?.text || '';
+    }
+
+    // The model's turn goes back VERBATIM. Gemini 3.x rejects a rebuilt
+    // functionCall part - "missing a thought_signature" - because the signature
+    // rides on the part and has to return with it. Reconstructing the call from
+    // its name and args, which is the obvious thing to write, fails with a 400
+    // on the very next request.
+    contents.push(content);
+
+    const responses = [];
+    for (const call of calls) {
+      opts.onToolUsed?.(call);
+      let result: unknown;
+      try {
+        result = await opts.run({ name: call.name, args: call.args ?? {} });
+      } catch (e) {
+        // A failed lookup is an answer too. Telling the model the tool broke
+        // lets it say so or work around it; throwing here loses the whole reply
+        // over one query.
+        result = { error: e instanceof Error ? e.message : 'lookup failed' };
+      }
+      responses.push({ functionResponse: { name: call.name, response: { result } } });
+    }
+    contents.push({ role: 'user', parts: responses });
+  }
+
+  // Out of rounds with no prose. Better an honest empty string, which the
+  // caller already handles, than a half-finished tool transcript.
+  return '';
+}
