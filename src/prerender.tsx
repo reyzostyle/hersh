@@ -38,10 +38,16 @@ export function render(): PrerenderRoute[] {
       // already: index.html was updated for the current product and the live
       // page still served "AI toolkit for short-form content" in its title,
       // because this is the copy that actually reaches the crawler.
+      // The title carries the category on purpose. Searching the brand name
+      // returns a Japanese timber company, and "the shorts workspace" does not
+      // tell a search result or an answer engine which industry this is - the
+      // nouns that separate them are "video" and "creators". The description
+      // opens "Chumoku is a ..." for the same reason: that is the sentence an
+      // answer engine lifts when asked what Chumoku is.
       path: '/',
-      title: 'Chumoku - the shorts workspace',
+      title: 'Chumoku - short-form video analysis for creators',
       description:
-        'A workspace for short-form creators. Send Chumoku a link, a hook or a script and talk it through, keep the work in projects, and read every answer against your real YouTube retention curve.',
+        'Chumoku is a short-form video tool for creators. Send it a link, a hook or a script and talk it through, keep the work in projects, and read every answer against your real YouTube retention curve.',
       html: wrap(<LandingPage />),
     },
     {

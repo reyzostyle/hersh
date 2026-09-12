@@ -13,17 +13,17 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700;800&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet" />
-    <title>Chumoku</title>
-    <meta name="description" content="A workspace for short-form creators. Send Chumoku a link, a hook or a script and talk it through, keep the work in projects, and read every answer against your real YouTube retention curve." />
-    <meta property="og:title" content="Chumoku - the shorts workspace" />
-    <meta property="og:description" content="A workspace for short-form creators. Send Chumoku a link, a hook or a script and talk it through, keep the work in projects, and read every answer against your real YouTube retention curve." />
+    <title>Chumoku - short-form video analysis for creators</title>
+    <meta name="description" content="Chumoku is a short-form video tool for creators. Send it a link, a hook or a script and talk it through, keep the work in projects, and read every answer against your real YouTube retention curve." />
+    <meta property="og:title" content="Chumoku - short-form video analysis for creators" />
+    <meta property="og:description" content="Chumoku is a short-form video tool for creators. Send it a link, a hook or a script and talk it through, keep the work in projects, and read every answer against your real YouTube retention curve." />
     <meta property="og:url" content="https://chumoku.co" />
     <meta property="og:type" content="website" />
     <meta property="og:image" content="https://chumoku.co/favicon.png?v=6" />
     <meta name="twitter:image" content="https://chumoku.co/favicon.png?v=6" />
     <meta name="twitter:card" content="summary" />
-    <meta name="twitter:title" content="Chumoku - the shorts workspace" />
-    <meta name="twitter:description" content="A workspace for short-form creators. Send Chumoku a link, a hook or a script and talk it through, keep the work in projects, and read every answer against your real YouTube retention curve." />
+    <meta name="twitter:title" content="Chumoku - short-form video analysis for creators" />
+    <meta name="twitter:description" content="Chumoku is a short-form video tool for creators. Send it a link, a hook or a script and talk it through, keep the work in projects, and read every answer against your real YouTube retention curve." />
 
     <!-- Microsoft Clarity. Loads once here rather than from a component: this
          is a single-page app, so the tag survives every client-side route
@@ -57,11 +57,58 @@
          its whole page client-side, for a crawler that doesn't execute JS this
          is the ONLY description of the product it ever sees. Keep the prices
          in sync with UpgradePage.tsx and the questions with the faqs array in
-         LandingPage.tsx; stale structured data is worse than none. -->
+         LandingPage.tsx; stale structured data is worse than none.
+
+         It is a @graph rather than a lone SoftwareApplication because the
+         problem this has to solve is not "describe the app", it is WHICH
+         CHUMOKU. Searching the name returns a Japanese timber company, which
+         has decades of footprint behind it while this name had no declared
+         entity at all - just a product description with nothing owning it.
+         So there is an Organization with a stable @id, the site and the app
+         both point at it as their publisher, and the three read as one thing
+         instead of three loose descriptions.
+
+         sameAs is the strongest signal here and it is deliberately absent:
+         it has to list profiles that genuinely exist and genuinely belong to
+         this brand. Pointing it at a handle nobody owns is worse than leaving
+         it out - it hands the graph a claim that resolves to somebody else. -->
     <script type="application/ld+json">
 {
   "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "Organization",
+      "@id": "https://chumoku.co/#organization",
+      "name": "Chumoku",
+      "url": "https://chumoku.co/",
+      "description": "Chumoku is a software company. It makes a web application that analyses short-form video - YouTube Shorts, TikToks and Reels - for the people who make it.",
+      "disambiguatingDescription": "Chumoku is a software product for short-form video creators, published at chumoku.co. It is not a manufacturer, a timber or wood products business, or any company in a physical-goods industry, and it is unrelated to older businesses sharing this name.",
+      "knowsAbout": [
+        "short-form video",
+        "YouTube Shorts",
+        "audience retention",
+        "video hooks",
+        "content strategy for creators"
+      ],
+      "logo": {
+        "@type": "ImageObject",
+        "url": "https://chumoku.co/favicon.png",
+        "width": 512,
+        "height": 512
+      }
+    },
+    {
+      "@type": "WebSite",
+      "@id": "https://chumoku.co/#website",
+      "name": "Chumoku",
+      "url": "https://chumoku.co/",
+      "publisher": { "@id": "https://chumoku.co/#organization" },
+      "inLanguage": "en"
+    },
+    {
   "@type": "SoftwareApplication",
+  "@id": "https://chumoku.co/#software",
+  "publisher": { "@id": "https://chumoku.co/#organization" },
   "name": "Chumoku",
   "url": "https://chumoku.co/",
   "applicationCategory": "MultimediaApplication",
@@ -137,6 +184,8 @@
     }
   ],
   "isAccessibleForFree": true
+    }
+  ]
 }
     </script>
     <script type="application/ld+json">

@@ -6,6 +6,11 @@
 > gives every answer the creator's real audience-retention curve to sit on.
 > Shorts only.
 
+Chumoku is a software product at chumoku.co: a web application for analysing
+short-form video. It is not a manufacturer and has nothing to do with timber,
+wood products or any physical-goods industry - older businesses share this name
+and are unrelated to it.
+
 Chumoku is aimed at people making vertical short-form video (YouTube Shorts,
 TikTok, Reels). It is not a general video editor and it does not generate video.
 What separates it from a chat wrapper is that a connected YouTube channel gives
