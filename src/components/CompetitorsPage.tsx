@@ -60,7 +60,16 @@ export function CompetitorsPage() {
       setProjects(projectData);
       setUserPlan(planData?.plan || 'free');
 
-      const mappedChannels = (channelData || []).map((c: any) => ({
+      // The table has carried both spellings of these two columns since the
+      // competitor tables were reshaped, so a row can arrive under either one.
+      // The raw shape says that out loud instead of hiding it behind `any`,
+      // which also means TypeScript catches it when the older pair is finally
+      // dropped.
+      type RawChannel = Omit<CompetitorChannel, 'channel_name' | 'channel_thumbnail'> & {
+        channel_name?: string | null; channel_title?: string | null;
+        channel_thumbnail?: string | null; thumbnail_url?: string | null;
+      };
+      const mappedChannels: CompetitorChannel[] = ((channelData || []) as RawChannel[]).map(c => ({
         ...c,
         channel_name: c.channel_name ?? c.channel_title ?? null,
         channel_thumbnail: c.channel_thumbnail ?? c.thumbnail_url ?? null,
@@ -75,7 +84,7 @@ export function CompetitorsPage() {
         const { data: poolData } = await supabase
           .from('competitor_videos')
           .select('*')
-          .in('channel_id', mappedChannels.map((c: any) => c.channel_id))
+          .in('channel_id', mappedChannels.map(c => c.channel_id))
           .order('outlier_score', { ascending: false, nullsFirst: false });
         setPool(poolData || []);
       } else {
@@ -234,7 +243,7 @@ export function CompetitorsPage() {
       return;
     }
     // Swap the optimistic rows for the real ones, so they carry a real id.
-    const saved = new Map((data ?? []).map((r: any) => [r.video_id, r as CompetitorIdea]));
+    const saved = new Map(((data ?? []) as CompetitorIdea[]).map(r => [r.video_id, r]));
     setIdeas(prev => prev.map(i => saved.get(i.video_id) ?? i));
   };
 

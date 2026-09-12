@@ -1,10 +1,9 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Youtube } from './BrandIcons';
-import { supabase, getSessionToken, getUserId, fetchWithRetry } from '../lib/supabase';
+import { FUNCTIONS_URL, supabase, getSessionToken, getUserId, fetchWithRetry } from '../lib/supabase';
 import { ErrorNotice } from './ErrorNotice';
 import { Page, PageHead, Panel, Tile, Section, Empty, Loading } from './Page';
 
-const FN = 'https://ezlousklksipvwuinpzq.supabase.co/functions/v1';
 const REFRESH_MS = 60_000;
 
 interface Stats {
@@ -115,7 +114,7 @@ export function AnalyticsPage() {
     try {
       const token = await getSessionToken();
       if (!token) return;
-      const res = await fetchWithRetry(`${FN}/channel-stats`, { headers: { Authorization: `Bearer ${token}` } });
+      const res = await fetchWithRetry(`${FUNCTIONS_URL}/channel-stats`, { headers: { Authorization: `Bearer ${token}` } });
       if (!res.ok) throw new Error('channel-stats unavailable');
       setStats(await res.json());
       setFailed(false);
@@ -127,14 +126,22 @@ export function AnalyticsPage() {
         .from('analyses').select('hook_analysis').eq('user_id', userId)
         .order('created_at', { ascending: false }).limit(20);
 
-      const breakdowns = (rows ?? [])
-        .map((r: any) => r.hook_analysis?.score_breakdown)
-        .filter(Boolean);
+      // The shape this reads out of the `hook_analysis` jsonb column. Named
+      // rather than left as `any`: the four keys below are the radar's axes,
+      // and a typo in one of them used to be a silent zero on the chart.
+      type Breakdown = { hook?: number; retention?: number; payoff?: number; delivery?: number };
+      type AnalysisRow = { hook_analysis?: { overall_score?: number; score_breakdown?: Breakdown | null } | null };
+
+      const breakdowns = ((rows ?? []) as AnalysisRow[])
+        .map(r => r.hook_analysis?.score_breakdown)
+        .filter((b): b is Breakdown => !!b);
       setSampleSize(breakdowns.length);
       if (breakdowns.length) {
-        const avg = (k: string, max: number) =>
-          Math.round((breakdowns.reduce((s: number, b: any) => s + (b[k] ?? 0), 0) / breakdowns.length) / max * 100);
-        const scores = (rows ?? []).map((r: any) => r.hook_analysis?.overall_score).filter((n: number) => n != null);
+        const avg = (k: keyof Breakdown, max: number) =>
+          Math.round((breakdowns.reduce((s, b) => s + (b[k] ?? 0), 0) / breakdowns.length) / max * 100);
+        const scores = ((rows ?? []) as AnalysisRow[])
+          .map(r => r.hook_analysis?.overall_score)
+          .filter((n): n is number => n != null);
         const reach = scores.length ? Math.round(scores.reduce((a: number, b: number) => a + b, 0) / scores.length) : 0;
         setRadar([avg('hook', 30), avg('retention', 25), avg('payoff', 25), avg('delivery', 20), reach]);
       }

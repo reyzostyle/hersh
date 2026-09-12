@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { RefreshOutlineIcon as Loader2 } from '@solar-icons/react';
 import { useAuth } from '../contexts/AuthContext';
-import { getSessionToken, fetchWithRetry } from '../lib/supabase';
+import { FUNCTIONS_URL, getSessionToken, fetchWithRetry } from '../lib/supabase';
 import { BackLink } from './Page';
 
 const ADMIN_EMAIL = 'reyzostyle@gmail.com';
@@ -76,7 +76,7 @@ export function AdminPage() {
     (async () => {
       try {
         const token = await getSessionToken();
-        const res = await fetchWithRetry('https://ezlousklksipvwuinpzq.supabase.co/functions/v1/admin-stats', {
+        const res = await fetchWithRetry(`${FUNCTIONS_URL}/admin-stats`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         const data = await res.json();

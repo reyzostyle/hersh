@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { getSessionToken, fetchWithRetry } from '../lib/supabase';
+import { FUNCTIONS_URL, getSessionToken, fetchWithRetry } from '../lib/supabase';
 import { BoltOutlineIcon as Zap, RefreshOutlineIcon as Loader2 } from '@solar-icons/react';
 import { Check } from './BrandIcons';
 import { ErrorNotice } from './ErrorNotice';
@@ -80,7 +80,7 @@ export function UpgradePage() {
       const token = await getSessionToken();
       if (!token) { setError('Not authenticated'); setCheckingOut(null); return; }
       const res = await fetchWithRetry(
-        `https://ezlousklksipvwuinpzq.supabase.co/functions/v1/create-checkout-session`,
+        `${FUNCTIONS_URL}/create-checkout-session`,
         {
           method: 'POST',
           headers: {

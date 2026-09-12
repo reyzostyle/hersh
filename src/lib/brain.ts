@@ -1,6 +1,5 @@
-import { getSessionToken, fetchWithRetry } from './supabase';
+import { FUNCTIONS_URL, getSessionToken, fetchWithRetry } from './supabase';
 
-const FUNCTIONS_URL = 'https://ezlousklksipvwuinpzq.supabase.co/functions/v1';
 
 // The model's own read of a channel, built from the level and the sentence the
 // creator wrote plus their last twenty uploads. It is what every prompt that
@@ -20,6 +19,10 @@ export interface ChannelBrain {
 
 export interface BrainResult {
   brain: ChannelBrain | null;
+  // The server refused to rebuild because the last build was under a minute
+  // ago, and handed back the stored one instead. Not an error - the screen
+  // says so rather than pretending a rebuild happened.
+  cached?: boolean;
   // 'nothing_to_read' means the account has told us nothing and connected
   // nothing. Not an error - a state the screen has a sentence for.
   reason?: string;

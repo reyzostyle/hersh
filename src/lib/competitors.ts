@@ -1,11 +1,10 @@
-import { fetchWithRetry } from './supabase';
+import { FUNCTIONS_URL, fetchWithRetry } from './supabase';
 
 // Types and helpers shared by every Competitors surface (the feed grid, the
 // detail drawer, the Scripts workspace, the channel manager). They live here
 // rather than in a component so the drawer can reuse the card's generation
 // logic without the two files importing each other in a cycle.
 
-const SUPABASE_FUNCTIONS_URL = 'https://ezlousklksipvwuinpzq.supabase.co/functions/v1';
 
 export interface CompetitorChannel {
   id: string;
@@ -69,7 +68,7 @@ export function formatDate(dateStr: string | null): string {
 }
 
 export async function callFunction(endpoint: string, token: string, body?: object): Promise<Response> {
-  return fetchWithRetry(`${SUPABASE_FUNCTIONS_URL}/${endpoint}`, {
+  return fetchWithRetry(`${FUNCTIONS_URL}/${endpoint}`, {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${token}`,

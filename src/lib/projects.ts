@@ -88,13 +88,30 @@ export async function fileThread(threadId: string, projectId: string | null): Pr
 // since the table was created. A thread could be filed into a project, listed
 // by title, and never opened again - the product was keeping a record only it
 // could see.
+// The scored reply, as it is stored in the `analysis` jsonb column and as the
+// chat renders it. It lived only inside AnalysisChat, so the row coming back
+// out of the database was typed `any` and the two could drift without anything
+// saying so - which is how the hook endpoint's fields went unread for a while
+// and every hook check rendered an empty card.
+//
+// Every field is optional because the column holds whatever the run that wrote
+// it produced, including rows written before a field existed.
+export interface ThreadAnalysis {
+  overall_score?: number;
+  overall_assessment?: string;
+  strong_spots?: string[];
+  weak_spots?: string[];
+  // Only a hook check produces these: three finished hooks to use instead of
+  // the one that was sent.
+  rewrites?: { hook: string; why: string }[];
+}
+
 export interface ThreadMessage {
   id: string;
   role: 'user' | 'assistant';
   content: string;
   // The scored reply, when the message carries one.
-  // deno-lint-ignore no-explicit-any
-  analysis: any | null;
+  analysis: ThreadAnalysis | null;
   // Storage paths of the screenshots sent with this message, if any. Signed
   // into URLs by signChatImages before the thread renders them.
   images?: string[] | null;

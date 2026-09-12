@@ -6,28 +6,21 @@ import {
   StopOutlineIcon as Stop, RestartOutlineIcon as Restart, PenNewSquareOutlineIcon as NewChat,
 } from '@solar-icons/react';
 import { Check } from './BrandIcons';
-import { supabase, getSessionToken, getUserId, fetchWithRetry, isAbort } from '../lib/supabase';
+import { FUNCTIONS_URL, supabase, getSessionToken, getUserId, fetchWithRetry, isAbort } from '../lib/supabase';
 import { ErrorNotice } from './ErrorNotice';
 import { useUsage, CREDIT_COSTS } from '../lib/useUsage';
 import {
   listProjects, createProject, fileThread, loadThread, loadThreadMessages, takeRequestedThread,
-  requestHistory, type Project,
+  requestHistory, type Project, type ThreadAnalysis,
 } from '../lib/projects';
 import { uploadChatImages, signChatImages } from '../lib/chatImages';
 import { SaveToProjectModal } from './SaveToProjectModal';
 
-const FN = 'https://ezlousklksipvwuinpzq.supabase.co/functions/v1';
 
-interface Analysis {
-  overall_score?: number;
-  overall_assessment?: string;
-  strong_spots?: string[];
-  weak_spots?: string[];
-  // Only a hook check produces these: three finished hooks to use instead of
-  // the one that was sent. They are the point of running it, and the card had
-  // nowhere to put them.
-  rewrites?: { hook: string; why: string }[];
-}
+// Defined next to the table it is stored in - see lib/projects.ts. The chat
+// used to declare its own copy, so a row read back out of the database was
+// typed `any` and nothing checked that the two still agreed.
+type Analysis = ThreadAnalysis;
 
 interface Message {
   id: string;
@@ -692,7 +685,7 @@ export function AnalysisChat() {
     try {
       const token = await getSessionToken();
       if (!token) throw new RunError('server', 'Not authenticated');
-      const res = await fetchWithRetry(`${FN}/analyze-with-gemini`, {
+      const res = await fetchWithRetry(`${FUNCTIONS_URL}/analyze-with-gemini`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({ videoId, videoContext: context, images: await toImageParts(shots) }),
@@ -768,7 +761,7 @@ export function AnalysisChat() {
       if (!token) throw new RunError('server', 'Not authenticated');
       const mimeType = f.type || 'video/mp4';
 
-      const sessionRes = await fetchWithRetry(`${FN}/get-upload-url`, {
+      const sessionRes = await fetchWithRetry(`${FUNCTIONS_URL}/get-upload-url`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({ fileName: f.name, fileSize: f.size, mimeType }),
@@ -782,7 +775,7 @@ export function AnalysisChat() {
       // Plain fetch, not fetchWithRetry: the body is the file. Retrying a
       // failed send means pushing every byte again, twice over a bad
       // connection, which is slower than telling them it did not go.
-      const uploadRes = await fetch(`${FN}/upload-video-chunk`, {
+      const uploadRes = await fetch(`${FUNCTIONS_URL}/upload-video-chunk`, {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${token}`,
@@ -803,7 +796,7 @@ export function AnalysisChat() {
       // line switches to the stages that are now actually running.
       setBusyKind('upload');
 
-      const res = await fetchWithRetry(`${FN}/analyze-upload`, {
+      const res = await fetchWithRetry(`${FUNCTIONS_URL}/analyze-upload`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -868,7 +861,7 @@ export function AnalysisChat() {
     try {
       const token = await getSessionToken();
       if (!token) throw new RunError('server', 'Not authenticated');
-      const res = await fetchWithRetry(`${FN}/analyze-${kind}-text`, {
+      const res = await fetchWithRetry(`${FUNCTIONS_URL}/analyze-${kind}-text`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
         body: JSON.stringify(kind === 'hook' ? { hook: text, context: '' } : { script: text, context: '' }),
@@ -951,7 +944,7 @@ export function AnalysisChat() {
     try {
       const token = await getSessionToken();
       if (!token) throw new RunError('server', 'Not authenticated');
-      const res = await fetchWithRetry(`${FN}/chat-followup`, {
+      const res = await fetchWithRetry(`${FUNCTIONS_URL}/chat-followup`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({ threadId: thread, question: text, images }),

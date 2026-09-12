@@ -7,7 +7,9 @@ import { supabase } from './supabase';
 // between edge functions and the client). Free's allowance is a ONE-TIME
 // grant (see credits.ts's loadCreditStatus) — that's the entire free tier,
 // no separate trial mechanism. See credits.ts for how these numbers were
-// picked (worst-case $ budget, compressed real-cost ratios).
+// picked (worst-case $ budget, compressed real-cost ratios) — and for why the
+// dollar figures written down there are stale by roughly 4.4x since the model
+// moved off Claude Sonnet.
 export const CREDIT_LIMITS: Record<string, number> = { free: 20, pro: 300, agency: 1000 };
 export const CREDIT_COSTS = {
   video_analysis: 5,

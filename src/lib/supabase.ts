@@ -1,9 +1,35 @@
 import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl = 'https://ezlousklksipvwuinpzq.supabase.co';
-const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV6bG91c2tsa3NpcHZ3dWlucHpxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM2ODk3MTAsImV4cCI6MjA4OTI2NTcxMH0.r_z3gUdUkwBYph5igLxr2O_qD4K9morPVQwm0fuSsrg';
+// The project, in one place. It was spelled out in twelve files under four
+// different names - FN, FN_BASE, FUNCTIONS_URL, SUPABASE_FUNCTIONS_URL - plus
+// eight more copies inline in a fetch call, which is eighteen places to edit
+// to point this at anything else, and .env has carried the value the whole
+// time without anything reading it.
+//
+// The literal stays as the fallback rather than being deleted: prerender and
+// any build that runs without the env set must not come out pointing at
+// nothing, and the anon key is public by design - it ships in the bundle
+// either way.
+// Trimmed, and that is not defensive decoration. All four VITE_ variables in
+// this project's Vercel production environment are stored WITH A TRAILING
+// NEWLINE (verified 2026-09-12 via `vercel env pull`). Nothing noticed,
+// because the only consumer that ever read one was the OAuth client id, and it
+// goes into a URL - and the URL parser silently strips newlines.
+//
+// An anon key does not get that mercy. It is sent as an HTTP header, and the
+// Headers API throws on a value containing a newline, which means reading this
+// variable untrimmed takes down every request the app makes. Fix the stored
+// values too; this trim is the belt, not the answer.
+const env = (v: string | undefined) => v?.trim() || '';
+
+const supabaseUrl = env(import.meta.env.VITE_SUPABASE_URL) || 'https://ezlousklksipvwuinpzq.supabase.co';
+const supabaseAnonKey = env(import.meta.env.VITE_SUPABASE_ANON_KEY) || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV6bG91c2tsa3NpcHZ3dWlucHpxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM2ODk3MTAsImV4cCI6MjA4OTI2NTcxMH0.r_z3gUdUkwBYph5igLxr2O_qD4K9morPVQwm0fuSsrg';
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+
+// Every edge function is called as `${FUNCTIONS_URL}/<name>`. Import this
+// rather than writing the host again.
+export const FUNCTIONS_URL = `${supabaseUrl}/functions/v1`;
 
 // The signed-in user's id, without a round trip.
 //

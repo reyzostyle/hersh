@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { RefreshOutlineIcon as Loader2, AddOutlineIcon as Plus, RefreshOutlineIcon as RefreshCw, TrashBinMinimalisticOutlineIcon as Trash2, LinkOutlineIcon as Link, CopyOutlineIcon as Copy, UsersGroupRoundedOutlineIcon as Users, GraphUpOutlineIcon as TrendingUp, DollarOutlineIcon as DollarSign, CheckCircleOutlineIcon as MarkPaid } from '@solar-icons/react';
 import { Check } from './BrandIcons';
-import { getSessionToken, fetchWithRetry } from '../lib/supabase';
+import { FUNCTIONS_URL, getSessionToken, fetchWithRetry } from '../lib/supabase';
 import { Panel } from './Page';
 import { money, type PartnerStats } from './PartnersPage';
 import { SITE_URL } from '../lib/brand';
@@ -64,7 +64,7 @@ export function PartnersAdmin() {
     try {
       const token = await getSessionToken();
       if (!token) return;
-      const res = await fetchWithRetry(`https://ezlousklksipvwuinpzq.supabase.co/functions/v1/referral-stats`, {
+      const res = await fetchWithRetry(`${FUNCTIONS_URL}/referral-stats`, {
         method: 'PATCH',
         headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({ action: 'mark_paid', code: p.code }),
@@ -82,7 +82,7 @@ export function PartnersAdmin() {
     try {
       const token = await getSessionToken();
       if (!token) return;
-      const res = await fetchWithRetry(`https://ezlousklksipvwuinpzq.supabase.co/functions/v1/referral-stats`, {
+      const res = await fetchWithRetry(`${FUNCTIONS_URL}/referral-stats`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       const data = await res.json();
@@ -97,7 +97,7 @@ export function PartnersAdmin() {
     setCreating(true);
     try {
       const token = await getSessionToken();
-      const res = await fetchWithRetry(`https://ezlousklksipvwuinpzq.supabase.co/functions/v1/referral-stats`, {
+      const res = await fetchWithRetry(`${FUNCTIONS_URL}/referral-stats`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({ code: newCode.trim().toLowerCase(), partner_name: newName.trim(), owner_email: newEmail.trim() || undefined }),
@@ -122,7 +122,7 @@ export function PartnersAdmin() {
     if (!confirm(`Delete partner "${code}"? This cannot be undone.`)) return;
     try {
       const token = await getSessionToken();
-      const res = await fetchWithRetry(`https://ezlousklksipvwuinpzq.supabase.co/functions/v1/referral-stats`, {
+      const res = await fetchWithRetry(`${FUNCTIONS_URL}/referral-stats`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({ code }),
@@ -144,7 +144,7 @@ export function PartnersAdmin() {
     setAssignLoading(true);
     try {
       const token = await getSessionToken();
-      const res = await fetchWithRetry(`https://ezlousklksipvwuinpzq.supabase.co/functions/v1/referral-stats`, {
+      const res = await fetchWithRetry(`${FUNCTIONS_URL}/referral-stats`, {
         method: 'PATCH',
         headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({ code, owner_email: assignEmail.trim() }),

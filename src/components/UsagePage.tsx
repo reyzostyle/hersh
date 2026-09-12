@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { ChartSquareOutlineIcon as BarChart2, RefreshOutlineIcon as Loader2, RefreshOutlineIcon as RefreshCw, InfiniteOutlineIcon as InfinityIcon, AddOutlineIcon as Plus } from '@solar-icons/react';
 import { ErrorNotice } from './ErrorNotice';
-import { getSessionToken, fetchWithRetry } from '../lib/supabase';
+import { FUNCTIONS_URL, getSessionToken, fetchWithRetry } from '../lib/supabase';
 import { useUsage, PLAN_DISPLAY, CREDIT_COSTS } from '../lib/useUsage';
 import { PageHead } from './Page';
 
@@ -44,7 +44,7 @@ export function UsagePage() {
       const token = await getSessionToken();
       if (!token) { setBuyError('Not authenticated'); return; }
       const res = await fetchWithRetry(
-        'https://ezlousklksipvwuinpzq.supabase.co/functions/v1/create-credit-topup-session',
+        `${FUNCTIONS_URL}/create-credit-topup-session`,
         {
           method: 'POST',
           headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },

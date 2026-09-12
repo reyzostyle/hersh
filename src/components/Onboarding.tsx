@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '../lib/supabase';
+import { FUNCTIONS_URL, supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { RefreshOutlineIcon as Loader2, ArrowLeftOutlineIcon as ArrowLeft, ArrowRightOutlineIcon as ArrowRight, CupOutlineIcon as Trophy, LeafOutlineIcon as Sprout, RocketOutlineIcon as Rocket } from '@solar-icons/react';
 import { Youtube, Check } from './BrandIcons';
@@ -112,8 +112,9 @@ export function Onboarding({ onDone }: { onDone: () => void }) {
     if (!user?.id) return;
     // persist before leaving the page
     localStorage.setItem(STORAGE_KEY, JSON.stringify({ step: TOTAL_STEPS, answers }));
-    const clientId = import.meta.env.VITE_YOUTUBE_CLIENT_ID;
-    const redirectUri = `https://ezlousklksipvwuinpzq.supabase.co/functions/v1/youtube-oauth-callback`;
+    // Trimmed: the stored value carries a trailing newline (see lib/supabase.ts).
+    const clientId = import.meta.env.VITE_YOUTUBE_CLIENT_ID?.trim();
+    const redirectUri = `${FUNCTIONS_URL}/youtube-oauth-callback`;
     const scope = 'https://www.googleapis.com/auth/youtube.readonly https://www.googleapis.com/auth/yt-analytics.readonly';
     window.location.href = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=${encodeURIComponent(scope)}&access_type=offline&prompt=consent&state=${user.id}`;
   };

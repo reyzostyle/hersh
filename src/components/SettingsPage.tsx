@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '../lib/supabase';
+import { FUNCTIONS_URL, supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { RefreshOutlineIcon as Loader2, EyeOutlineIcon as Eye, EyeClosedOutlineIcon as EyeOff, RefreshOutlineIcon as RefreshCw, LinkOutlineIcon as Link, AltArrowDownOutlineIcon as ChevronDown, Stars2OutlineIcon as Sparkles, UserOutlineIcon as User, BoltOutlineIcon as Zap, ChatRoundOutlineIcon as MessageCircle, SquareArrowRightUpOutlineIcon as ExternalLink, TicketOutlineIcon as Ticket, CpuBoltOutlineIcon as Brain, HandShakeOutlineIcon as Handshake, ArrowRightUpOutlineIcon as ArrowUpRight } from '@solar-icons/react';
 import { getSessionToken, fetchWithRetry } from '../lib/supabase';
@@ -167,7 +167,7 @@ export function SettingsPage() {
     setRedeemMsg(null);
     try {
       const token = await getSessionToken();
-      const res = await fetchWithRetry('https://ezlousklksipvwuinpzq.supabase.co/functions/v1/redeem-code', {
+      const res = await fetchWithRetry(`${FUNCTIONS_URL}/redeem-code`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({ code }),
@@ -239,8 +239,9 @@ export function SettingsPage() {
 
   const connectYouTube = () => {
     if (!user?.id) return;
-    const clientId = import.meta.env.VITE_YOUTUBE_CLIENT_ID;
-    const redirectUri = `https://ezlousklksipvwuinpzq.supabase.co/functions/v1/youtube-oauth-callback`;
+    // Trimmed: the stored value carries a trailing newline (see lib/supabase.ts).
+    const clientId = import.meta.env.VITE_YOUTUBE_CLIENT_ID?.trim();
+    const redirectUri = `${FUNCTIONS_URL}/youtube-oauth-callback`;
     const scope = 'https://www.googleapis.com/auth/youtube.readonly https://www.googleapis.com/auth/yt-analytics.readonly';
     window.location.href = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=${encodeURIComponent(scope)}&access_type=offline&prompt=consent&state=${user.id}`;
   };
@@ -302,12 +303,22 @@ export function SettingsPage() {
     buildBrain(true);
   };
 
+  // `force` skips build-brain's one-minute cooldown. It exists for the moments
+  // where the input genuinely just changed - finishing onboarding, saving the
+  // sentence about yourself - and every caller was passing it, including the
+  // Rebuild button. That made the cooldown unreachable code and the button an
+  // unlimited way to spend a model call per press, for free. The button asks
+  // without it now, so pressing it twice reads the channel once.
   const buildBrain = async (force: boolean) => {
     setBrainBuilding(true);
     setBrainError('');
     const result = await requestBrain(force);
     setBrainBuilding(false);
     if (result.error) { setBrainError(result.error); return; }
+    if (result.cached) {
+      setBrainError('Rebuilt less than a minute ago. Give it a moment.');
+      return;
+    }
     if (result.brain) {
       setBrain(result.brain);
       setBrainAt(new Date().toISOString());
@@ -355,7 +366,7 @@ export function SettingsPage() {
     setCancelError('');
     try {
       const token = await getSessionToken();
-      const res = await fetchWithRetry(`https://ezlousklksipvwuinpzq.supabase.co/functions/v1/cancel-subscription`, {
+      const res = await fetchWithRetry(`${FUNCTIONS_URL}/cancel-subscription`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -363,8 +374,8 @@ export function SettingsPage() {
       if (!res.ok) throw new Error(data.error || 'Failed to cancel');
       setCancelDone(true);
       setConfirmCancel(false);
-    } catch (e: any) {
-      setCancelError(e.message);
+    } catch (e) {
+      setCancelError(e instanceof Error ? e.message : 'Failed to cancel');
     } finally {
       setCancelLoading(false);
     }
@@ -479,7 +490,7 @@ export function SettingsPage() {
           builtAt={brainAt}
           loading={brainBuilding}
           error={brainError}
-          onBuild={() => buildBrain(true)}
+          onBuild={() => buildBrain(false)}
         />
       </SettingsCard>
 

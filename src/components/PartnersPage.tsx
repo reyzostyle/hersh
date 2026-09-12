@@ -7,12 +7,11 @@ import {
 } from '@solar-icons/react';
 import { Check } from './BrandIcons';
 import { useAuth } from '../contexts/AuthContext';
-import { getSessionToken, fetchWithRetry } from '../lib/supabase';
+import { FUNCTIONS_URL, getSessionToken, fetchWithRetry } from '../lib/supabase';
 import { Page, PageHead, Panel, Section, Loading, BackLink } from './Page';
 import { ErrorNotice } from './ErrorNotice';
 import { SITE_HOST } from '../lib/brand';
 
-const FN_BASE = 'https://ezlousklksipvwuinpzq.supabase.co/functions/v1';
 
 // Live figures without a reload. Same interval and the same reasoning as the
 // Analytics tab: a page about money that only updates when you remember to
@@ -59,7 +58,7 @@ function PartnerSide({ userId }: { userId?: string }) {
     try {
       const token = await getSessionToken();
       if (!token) return;
-      const res = await fetchWithRetry(`${FN_BASE}/referral-stats`, {
+      const res = await fetchWithRetry(`${FUNCTIONS_URL}/referral-stats`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (!res.ok) { setStats(null); return; }
@@ -195,7 +194,7 @@ function ClaimLink({ onClaimed }: { onClaimed: () => void }) {
     try {
       const token = await getSessionToken();
       if (!token) return;
-      const res = await fetchWithRetry(`${FN_BASE}/referral-stats`, {
+      const res = await fetchWithRetry(`${FUNCTIONS_URL}/referral-stats`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({ code: code.trim(), self_serve: true }),
@@ -324,7 +323,7 @@ function PayoutSettings({ stats, onSaved }: { stats: PartnerStats; onSaved: () =
     try {
       const token = await getSessionToken();
       if (!token) return;
-      const res = await fetchWithRetry(`${FN_BASE}/referral-stats`, {
+      const res = await fetchWithRetry(`${FUNCTIONS_URL}/referral-stats`, {
         method: 'PUT',
         headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({ payout_method: 'paypal', payout_details: details, payout_in_credits: inCredits }),

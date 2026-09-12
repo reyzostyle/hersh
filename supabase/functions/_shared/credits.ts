@@ -14,11 +14,24 @@ export const CREDIT_LIMITS: Record<string, number> = { free: 20, pro: 300, agenc
 // Ordered by real DOLLAR cost (not raw token count — output tokens bill
 // ~8x input, so a big-input/small-output action like video is cheaper than
 // its token count suggests, and a small-input/big-output one like a hook
-// check is dearer). Real per-call costs at the 2026-08 default model:
+// check is dearer).
+//
+// THE DOLLAR FIGURES BELOW ARE FROM claude-sonnet-5 AND ARE NO LONGER WHAT
+// THIS COSTS. The model moved to google / gemini-3.5-flash-lite ($0.30/$2.50
+// per MTok against Sonnet's $2/$10) and every text action got roughly 4.4x
+// cheaper: a channel-brain build measured $0.012 on Sonnet and $0.0027 on the
+// live model. The ORDERING still holds, because every action moved to the same
+// model at once - which is why the ladder was left alone - but do not start a
+// repricing from these numbers. Re-measure first, and check which model
+// ANALYSIS_MODEL actually names before you do.
+//
+// Sonnet-era per-call costs, kept for the ratios only:
 // video ~$0.0130 (two model calls: watch + score), outline ~$0.0120 (watches
 // the competitor's video), script check ~$0.0033, hook check ~$0.0021,
 // idea ~$0.0010 (reads a free transcript, pays only for the model reading
-// it), comp script ~$0.0006. The spread is then COMPRESSED so
+// it), comp script ~$0.0006. Note that video and outline both run their watch
+// step through a SEPARATE hardcoded model list, not ANALYSIS_MODEL, so those
+// two do not scale with the rest. The spread is then COMPRESSED so
 // video doesn't read as prohibitively expensive next to everything else;
 // the resulting margin varies with usage mix, which is exactly why the
 // limits above are sized against the worst case rather than the average.
