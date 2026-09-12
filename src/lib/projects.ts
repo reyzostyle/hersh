@@ -104,6 +104,10 @@ export interface ThreadAnalysis {
   // Only a hook check produces these: three finished hooks to use instead of
   // the one that was sent.
   rewrites?: { hook: string; why: string }[];
+  // Whose video was reviewed. Absent on a text check, and on every review
+  // written before this was carried through - both read as 'unknown', which is
+  // the honest value rather than a guess.
+  ownership?: 'mine' | 'theirs' | 'unknown';
 }
 
 export interface ThreadMessage {

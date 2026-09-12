@@ -75,7 +75,7 @@ STEP 2.
 - If the intent is question, output the INTENT line, then a blank line, then your answer.
 
 ANSWERING. You are not a general assistant and you are not a search engine. You are the person in the room who has watched thousands of Shorts and knows why they hold or lose people.
-- WHEN A REVIEW IS INCLUDED BELOW, answer from it. You are the editor who just wrote it, in the same voice. If they ask about something it does not cover, say what you can see from it and what you cannot, rather than inventing a detail about footage you are not looking at right now. If a fix has a timestamp, give it. The video is not necessarily theirs - people send competitors' Shorts here too - so do not assume they made it. When more than one video has been reviewed in this thread, the one below is the latest and is the one to answer from unless they clearly mean an earlier one.
+- WHEN A REVIEW IS INCLUDED BELOW, answer from it. You are the editor who just wrote it, in the same voice. If they ask about something it does not cover, say what you can see from it and what you cannot, rather than inventing a detail about footage you are not looking at right now. If a fix has a timestamp, give it. A section above says whose video it is and that section is the truth - never contradict it, never guess past it, and never work out ownership from the content of the review. When more than one video has been reviewed in this thread, the one below is the latest and is the one to answer from unless they clearly mean an earlier one.
 - Be specific and concrete. Give the actual line, the actual number, the actual edit. Never "consider improving your hook".
 - Use the creator's profile below when it is relevant, and do not recite it back at them. It matters most when the question is about them rather than about a video: "would this work for my niche" is a question about the gap between the two, and answering it without looking at their channel is answering a different question.
 - Short by default: a few sentences, or a tight list if they asked for options. Expand only when the question genuinely needs it.
@@ -254,13 +254,36 @@ Deno.serve(async (req: Request) => {
     const a = (analysis ?? {}) as {
       overall_score?: number; overall_assessment?: string;
       strong_spots?: string[]; weak_spots?: string[];
+      ownership?: 'mine' | 'theirs' | 'unknown';
     };
+
+    // Whose video the review is about, stated as a fact.
+    //
+    // The prompt used to carry a caution - "not necessarily theirs, do not
+    // assume they made it" - with nothing behind it, so the model guessed, and
+    // it guesses "yours". Asked how to adapt someone else's Short, it
+    // congratulated the creator on a 91 they had not earned, for a video they
+    // had never made. The signal to settle it has been computed and written to
+    // the analyses row since the ownership check was built; nothing ever read
+    // it back.
+    //
+    // Reviews written before this shipped have no ownership field, and that is
+    // honestly 'unknown' rather than a reason to guess.
+    const OWNERSHIP_LINE: Record<string, string> = {
+      mine: `This video IS theirs - it is on the channel connected to this account. Talk about it as their own work: their numbers, their footage, their next upload.`,
+      theirs: `This video is NOT theirs. It is on someone else's channel and they are studying it. Never congratulate them on its score or call it their video. What they want from it is what to take and what will not transfer to their channel.`,
+      unknown: `WHOSE VIDEO THIS IS IS UNKNOWN - the check could not run, usually because no YouTube account is connected. Do not state or imply either way. Write the answer so it holds whoever made it, and if the answer genuinely turns on it, say in one line that connecting their YouTube in Settings is what settles it.`,
+    };
+    const ownershipLine = OWNERSHIP_LINE[a.ownership ?? 'unknown'];
     const level = profile?.creator_level ? `Level: ${profile.creator_level}` : '';
     const block = brain
       ? [brainLine(brain), level].filter(Boolean).join('\n')
       : profileBlock(profile);
     const reviewBlock = analysis
-      ? `${earlierReviews ? `(${earlierReviews} earlier ${earlierReviews === 1 ? 'video was' : 'videos were'} reviewed in this thread. The one below is the latest.)\n\n` : ''}## The review you gave
+      ? `${earlierReviews ? `(${earlierReviews} earlier ${earlierReviews === 1 ? 'video was' : 'videos were'} reviewed in this thread. The one below is the latest.)\n\n` : ''}## Whose video this is
+${ownershipLine}
+
+## The review you gave
 Score: ${a.overall_score ?? 'n/a'} out of 100
 ${a.overall_assessment ?? ''}
 

@@ -233,6 +233,21 @@ Deno.serve(async (req: Request) => {
       }
     }
 
+    // Whose video this is, as three states rather than two.
+    //
+    // `is_my_video` below is a boolean, so "we could not check" has always been
+    // recorded as "not theirs" - and an account with no YouTube connected can
+    // never be checked. That is half of why the chat talks about someone
+    // else's Short as though the creator made it, and it would be just as
+    // wrong in the other direction. A claim nobody verified is not a finding.
+    //
+    // Kept in the hook_analysis jsonb rather than a new column: nothing here
+    // needs a migration, and every consumer already reads that object.
+    let ownership: 'mine' | 'theirs' | 'unknown' = 'unknown';
+    // A video already synced into `videos` for this account is known-own
+    // without asking YouTube anything.
+    if (ownVideo) ownership = 'mine';
+
     // ── Own-video deep stats ────────────────────────────────────────────────
     // If this video belongs to the connected YouTube account, pull its private
     // retention curve (Analytics API) and treat it as the user's own content.
@@ -257,7 +272,11 @@ Deno.serve(async (req: Request) => {
         if (!isOwn && video.channel_id) {
           const ownChannelId = await getOwnChannelId(accessToken);
           isOwn = !!ownChannelId && ownChannelId === video.channel_id;
+          // Only a comparison that actually ran can say "theirs". If YouTube
+          // did not hand back a channel id, we still do not know.
+          if (!isOwn && ownChannelId) ownership = 'theirs';
         }
+        if (isOwn) ownership = 'mine';
 
         if (isOwn) {
           video.is_external = false;
@@ -308,7 +327,7 @@ Deno.serve(async (req: Request) => {
       .insert({
         user_id: userId,
         video_ids: [videoId],
-        hook_analysis: { overall_assessment: analysis.overall_assessment, overall_score: analysis.overall_score, score_breakdown: analysis.score_breakdown || null, title: video.title || null, source: 'youtube' },
+        hook_analysis: { overall_assessment: analysis.overall_assessment, overall_score: analysis.overall_score, score_breakdown: analysis.score_breakdown || null, title: video.title || null, source: 'youtube', ownership },
         strong_spots: analysis.strong_spots || [],
         weak_spots: analysis.weak_spots,
         new_hook_ideas: [],

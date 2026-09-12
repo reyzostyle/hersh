@@ -247,7 +247,18 @@ function AnalysisCard({ a, fresh, onAdvance }: { a: Analysis; fresh?: boolean; o
             <span className="font-mono text-[11px]" style={{ color: 'var(--text-faint)' }}>/ 100</span>
           </div>
         ) : <span />}
-        <CopyButton text={analysisAsText(a)} title="Copy this review" className="-mr-1.5 -mt-1" />
+        <div className="flex items-center gap-2">
+          {/* Whose video this was judged to be. On screen because the answers
+              that follow are built on it: if it says the wrong thing, that is
+              worth seeing here rather than discovering three replies later,
+              when the chat congratulates you on someone else's score. */}
+          {a.ownership && a.ownership !== 'unknown' && (
+            <span className="label-mono" style={{ color: 'var(--text-faint)' }}>
+              {a.ownership === 'mine' ? 'Your video' : "Not your video"}
+            </span>
+          )}
+          <CopyButton text={analysisAsText(a)} title="Copy this review" className="-mr-1.5 -mt-1" />
+        </div>
       </div>
 
       {a.overall_assessment && (
@@ -699,6 +710,11 @@ export function AnalysisChat() {
         overall_assessment: data.analysis?.hook_analysis?.overall_assessment,
         strong_spots: data.analysis?.strong_spots ?? [],
         weak_spots: data.analysis?.weak_spots ?? [],
+        // Whose video it is. Computed by the analyser since the ownership
+        // check was built, returned in this very response, and dropped on the
+        // floor by this client until now - which is why the chat could
+        // congratulate someone on a competitor's score.
+        ownership: data.analysis?.hook_analysis?.ownership ?? 'unknown',
       };
       push({ role: 'assistant', content: '', analysis: a });
       if (tid) {
@@ -816,6 +832,11 @@ export function AnalysisChat() {
         overall_assessment: data.analysis?.hook_analysis?.overall_assessment,
         strong_spots: data.analysis?.strong_spots ?? [],
         weak_spots: data.analysis?.weak_spots ?? [],
+        // Whose video it is. Computed by the analyser since the ownership
+        // check was built, returned in this very response, and dropped on the
+        // floor by this client until now - which is why the chat could
+        // congratulate someone on a competitor's score.
+        ownership: data.analysis?.hook_analysis?.ownership ?? 'unknown',
       };
       push({ role: 'assistant', content: '', analysis: a });
       if (tid) {

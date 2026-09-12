@@ -148,7 +148,7 @@ Deno.serve(async (req: Request) => {
         .insert({
           user_id: userId,
           video_ids: [],
-          hook_analysis: { overall_assessment: analysis.overall_assessment, overall_score: analysis.overall_score, score_breakdown: analysis.score_breakdown || null, title: videoTitle || null, source: 'upload' },
+          hook_analysis: { overall_assessment: analysis.overall_assessment, overall_score: analysis.overall_score, score_breakdown: analysis.score_breakdown || null, title: videoTitle || null, source: 'upload', ownership: 'mine' },
           strong_spots: analysis.strong_spots || [],
           weak_spots: analysis.weak_spots,
           new_hook_ideas: [],
