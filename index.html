@@ -68,10 +68,13 @@
          both point at it as their publisher, and the three read as one thing
          instead of three loose descriptions.
 
-         sameAs is the strongest signal here and it is deliberately absent:
-         it has to list profiles that genuinely exist and genuinely belong to
-         this brand. Pointing it at a handle nobody owns is worse than leaving
-         it out - it hands the graph a claim that resolves to somebody else. -->
+         sameAs is the strongest signal here, and every entry has to be a
+         profile that genuinely exists and genuinely belongs to this brand -
+         pointing it at a handle nobody owns hands the graph a claim that
+         resolves to a stranger. All three below were checked: each is named
+         Chumoku, and the Instagram and TikTok profiles link back to
+         chumoku.co, which is the reciprocity that makes the pairing hold.
+         Add a profile here only after confirming both halves. -->
     <script type="application/ld+json">
 {
   "@context": "https://schema.org",
@@ -95,7 +98,12 @@
         "url": "https://chumoku.co/favicon.png",
         "width": 512,
         "height": 512
-      }
+      },
+      "sameAs": [
+        "https://www.youtube.com/@chumokuhq",
+        "https://www.instagram.com/chumokuhq/",
+        "https://www.tiktok.com/@chumokuhq"
+      ]
     },
     {
       "@type": "WebSite",

@@ -1029,6 +1029,14 @@ const navLinks: { label: string; id: string }[] = [
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
+// Kept in step with the sameAs array in index.html - the two are one claim
+// made from two ends, and a profile in only one of them is half a signal.
+const SOCIALS = [
+  { label: 'YouTube', href: 'https://www.youtube.com/@chumokuhq' },
+  { label: 'Instagram', href: 'https://www.instagram.com/chumokuhq/' },
+  { label: 'TikTok', href: 'https://www.tiktok.com/@chumokuhq' },
+];
+
 export function LandingPage() {
   const [authModal, setAuthModal] = useState<null | 'login' | 'signup'>(null);
   const [heroGate, setHeroGate] = useState<string | null>(null);
@@ -1417,6 +1425,18 @@ export function LandingPage() {
               </a>
               <a href="/privacy" className="transition-colors hover:text-[var(--text)]" style={{ color: 'var(--text-muted)' }}>Privacy</a>
               <a href="/terms" className="transition-colors hover:text-[var(--text)]" style={{ color: 'var(--text-muted)' }}>Terms</a>
+              {/* The other half of the sameAs in index.html. Those three
+                  profiles already link back here, and a search engine
+                  resolving "which Chumoku is this" is looking for exactly that
+                  round trip - a claim confirmed from both ends rather than
+                  asserted by one. rel="me" is the markup for "this is also
+                  me"; it is what the reciprocal link is FOR. */}
+              {SOCIALS.map(sn => (
+                <a key={sn.label} href={sn.href} rel="me noopener noreferrer" target="_blank"
+                   className="transition-colors hover:text-[var(--text)]" style={{ color: 'var(--text-muted)' }}>
+                  {sn.label}
+                </a>
+              ))}
             </div>
           </div>
           <div className={`${SECTION} pb-10`}>
