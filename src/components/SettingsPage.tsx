@@ -5,6 +5,7 @@ import { RefreshOutlineIcon as Loader2, EyeOutlineIcon as Eye, EyeClosedOutlineI
 import { getSessionToken, fetchWithRetry } from '../lib/supabase';
 
 import { requestBrain, type ChannelBrain } from '../lib/brain';
+import { syncOwnVideos } from '../lib/ownVideos';
 import { displayNameOf } from '../lib/user';
 import { PageHead, Row, Loading } from './Page';
 
@@ -309,6 +310,11 @@ export function SettingsPage() {
   // Rebuild button. That made the cooldown unreachable code and the button an
   // unlimited way to spend a model call per press, for free. The button asks
   // without it now, so pressing it twice reads the channel once.
+  // The other moment worth syncing: this is where a channel gets connected, so
+  // a just-connected account has an empty `videos` table until something asks.
+  // syncOwnVideos throttles itself and no-ops when nothing is connected.
+  useEffect(() => { syncOwnVideos(); }, []);
+
   const buildBrain = async (force: boolean) => {
     setBrainBuilding(true);
     setBrainError('');

@@ -3,6 +3,7 @@ import { Youtube } from './BrandIcons';
 import { FUNCTIONS_URL, supabase, getSessionToken, getUserId, fetchWithRetry } from '../lib/supabase';
 import { ErrorNotice } from './ErrorNotice';
 import { Page, PageHead, Panel, Tile, Section, Empty, Loading } from './Page';
+import { syncOwnVideos } from '../lib/ownVideos';
 
 const REFRESH_MS = 60_000;
 
@@ -162,6 +163,16 @@ export function AnalyticsPage() {
     const t = setInterval(load, REFRESH_MS);
     return () => clearInterval(t);
   }, [load]);
+
+  // Pulls the creator's own uploads into `videos` if the last sync is stale.
+  //
+  // This tab is where it belongs: it is the one screen that is about their own
+  // numbers, so someone opening it is exactly the moment those numbers are
+  // worth refreshing. Nothing here waits on it - the figures on screen come
+  // from channel-stats above, and this fills the table that snapshots and
+  // every "compared to your usual" answer are built from. See lib/ownVideos.ts
+  // for why that table was nearly empty.
+  useEffect(() => { syncOwnVideos(); }, []);
 
   if (loading) {
     return (
