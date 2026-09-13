@@ -84,22 +84,50 @@ function layout(opts: {
 }
 
 const p = (s: string) => `<p style="margin:0 0 14px 0;">${s}</p>`;
-const strong = (s: string) => `<strong style="color:#FFFFFF;">${s}</strong>`;
+const strong = (s: string) => `<strong style="color:${TEXT};font-weight:600;">${s}</strong>`;
+
+// A headline, so the mail opens with a statement instead of the first line of a
+// paragraph. Same job as the display type at the top of a page in the app.
+const h = (s: string) =>
+  `<p style="margin:0 0 16px 0;font-size:21px;line-height:1.3;font-weight:600;color:${TEXT};letter-spacing:-0.2px;">${s}</p>`;
+
+// A piece of the product, not a description of it.
+//
+// Every one of these emails was prose ABOUT what comes back. Showing the thing
+// itself - the score, in the mono face it is set in on screen, with one real
+// fix under it - does the same work in a quarter of the words and looks like
+// the tool rather than like a newsletter about the tool.
+const specimen = (score: string, line: string) => `
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 18px 0;background:${BG};border:1px solid ${LINE};border-radius:12px;">
+  <tr><td style="padding:16px 18px;">
+    <div style="font-family:'Geist Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:26px;font-weight:600;color:${TEXT};line-height:1;">${score}<span style="font-size:12px;color:${FAINT};font-weight:400;"> / 100</span></div>
+    <div style="margin-top:10px;font-size:13px;line-height:1.6;color:${MUTED};">${line}</div>
+  </td></tr>
+</table>`;
 
 // Step 1 — immediately on signup.
+//
+// The one job here is to stop this reading as another AI chat box. The thing
+// that is not true of a chat box is that this one has read their channel, so
+// that is what the mail leads on, and the first action asks for the link that
+// makes it true.
 function welcome(ctx: EmailCtx): RenderedEmail {
-  const text = `you're in.
+  const text = `you're in. 20 credits are on your account, no card, nothing to activate.
 
-20 credits are sitting on your account. no card, nothing to activate.
+chumoku only does short-form. not long-form, not podcast clips, not
+everything at once. that is why it can name the second people left instead
+of handing you a generic content tip.
 
-quick thing worth knowing: chumoku only does youtube shorts. not long-form,
-not podcast clips, not everything at once. that's the whole point, it's why
-it can tell you the exact second people swiped instead of handing you a
-generic content tip.
+paste a link to your last short and it watches the whole thing, then tells
+you what to change in the edit. something like:
 
-fastest way to see what it actually does: paste a link to your last short.
-you get back the second people left, a score on your hook, and what to
-change next time.
+  62 / 100
+  the open repeats what the thumbnail already gave away. cut to the
+  reveal at 0:11 and let the video explain itself backwards.
+
+after that you can just talk to it. ask why a video flopped, hand it a hook
+to score, or ask it to write the next script. it answers against your
+channel, not against short-form in general.
 
 analyze your first short: ${ctx.appUrl}
 
@@ -109,20 +137,65 @@ unsubscribe: ${ctx.unsubscribeUrl}`;
     subject: "you're in. 20 credits are on your account",
     text,
     html: layout({
-      preheader: 'paste your last short and see where people actually left',
+      preheader: 'paste your last short and see the second people left',
       ctaLabel: 'analyze my first short',
       ctaUrl: ctx.appUrl,
       unsubscribeUrl: ctx.unsubscribeUrl,
       body:
-        p("you're in.") +
-        p(`${strong('20 credits')} are sitting on your account. no card, nothing to activate.`) +
-        p(`one thing worth knowing up front: chumoku only does ${strong('youtube shorts')}. not long-form, not podcast clips, not everything at once. that's the point. it's why it can name the exact second people swiped instead of handing you a generic content tip.`) +
-        p('fastest way to see what it does is to paste a link to your last short. you get back the second people left, a score on your hook, and what to change next time.'),
+        h("you're in.") +
+        p(`${strong('20 credits')} are on your account. no card, nothing to activate.`) +
+        p(`chumoku only does ${strong('short-form')}. not long-form, not podcast clips, not everything at once. that is why it can name the second people left instead of handing you a generic content tip.`) +
+        p('paste a link to your last short. it watches the whole thing and comes back with something like this:') +
+        specimen('62', 'the open repeats what the thumbnail already gave away. cut to the reveal at 0:11 and let the video explain itself backwards.') +
+        p('then you can just talk to it. ask why a video flopped, hand it a hook to score, or ask it to write the next script. it answers against your channel, not against short-form in general.'),
     }),
   };
 }
 
 // Step 2 — +24h.
+//
+// The old version of this sold "script lab", a tab that no longer exists, and
+// stopped at scoring. Scoring is half of it now: it will write the thing.
+function hookAndScript(ctx: EmailCtx): RenderedEmail {
+  const text = `most shorts do not die at the end. they die around second three.
+
+you do not have to guess at that one. paste a hook, or the whole script,
+BEFORE you film. chumoku scores it, says exactly where it drags, and hands
+back openings that still sound like you.
+
+  41 / 100
+  it states a fact. nothing in it is a reason to keep watching.
+
+and it works the other way round. ask it to write one and it will, against
+your channel: your format, your length, the way you actually talk. "write
+me a script about ranking minecraft mobs" gets you the lines, in order,
+not advice about how to write them.
+
+fixing this before you shoot is the cheapest edit you will ever make.
+
+check a hook: ${ctx.appUrl}
+
+unsubscribe: ${ctx.unsubscribeUrl}`;
+
+  return {
+    subject: 'your first 3 seconds decide the whole video',
+    text,
+    html: layout({
+      preheader: 'score the hook before you film, not after it flops',
+      ctaLabel: 'check a hook',
+      ctaUrl: ctx.appUrl,
+      unsubscribeUrl: ctx.unsubscribeUrl,
+      body:
+        h('most shorts die around second three.') +
+        p(`paste a hook, or the whole script, ${strong('before you film')}. chumoku scores it and says exactly where it drags.`) +
+        specimen('41', 'it states a fact. nothing in it is a reason to keep watching.') +
+        p(`and it works the other way round. ${strong('ask it to write one')} and it will, against your channel: your format, your length, the way you actually talk. "write me a script about ranking minecraft mobs" gets you the lines, in order, not advice about how to write them.`) +
+        p('fixing this before you shoot is the cheapest edit you will ever make.'),
+    }),
+  };
+}
+
+// Step 3 — +3d.
 function competitors(ctx: EmailCtx): RenderedEmail {
   const url = ctx.appUrl;
   const text = `most "find trending ideas" tools just show you whatever is big right now.
@@ -139,7 +212,7 @@ your voice, so you're not copying anyone.
 finding them costs nothing. you only spend a credit on the one you decide
 to open.
 
-find your outliers: ${url}
+open ideas: ${url}
 
 unsubscribe: ${ctx.unsubscribeUrl}`;
 
@@ -160,57 +233,29 @@ unsubscribe: ${ctx.unsubscribeUrl}`;
   };
 }
 
-// Step 3 — +3d.
-function hookAndScript(ctx: EmailCtx): RenderedEmail {
-  const text = `most shorts don't die at the end. they die around second 3.
-
-you don't have to guess at that one. paste your hook (or the whole script)
-BEFORE you film and chumoku scores it, tells you where it drags, and gives
-you three rewrites that still sound like you and not a corporate robot.
-
-script lab does the same for the full thing: it flags the weak middle and
-the CTA nobody sticks around for, while a rewrite still costs you nothing
-but a few minutes.
-
-fixing this before you shoot is the cheapest edit you'll ever make.
-
-check a hook: ${ctx.appUrl}
-
-unsubscribe: ${ctx.unsubscribeUrl}`;
-
-  return {
-    subject: 'your first 3 seconds decide the whole video',
-    text,
-    html: layout({
-      preheader: 'score the hook before you film, not after it flops',
-      ctaLabel: 'check a hook',
-      ctaUrl: ctx.appUrl,
-      unsubscribeUrl: ctx.unsubscribeUrl,
-      body:
-        p("most shorts don't die at the end. they die around second 3.") +
-        p(`paste your hook, or the whole script, ${strong('before you film')}. chumoku scores it, says where it drags, and gives you three rewrites that still sound like you instead of a corporate robot.`) +
-        p('script lab does the same for the full thing: it flags the weak middle and the CTA nobody sticks around for, while a rewrite still costs you nothing but a few minutes.') +
-        p("fixing it before you shoot is the cheapest edit you'll ever make."),
-    }),
-  };
-}
-
 // Step 4 — +5d.
+//
+// The Pro line here used to say "unlimited credits", copied from the pricing
+// page, which says the same thing while credits.ts enforces a ceiling on that
+// plan. Whichever of those two is wrong is a decision, not a guess to make in
+// an email - so this mail states no number for it and sends people to the page
+// that is supposed to be the source of truth.
 function upgrade(ctx: EmailCtx): RenderedEmail {
   const url = `${ctx.appUrl}/#pricing`;
-  const text = `you've had about a week with it, so here's the honest version.
+  const text = `you have had about a week with it, so here is the honest version.
 
-the free 20 credits are a one-time grant. they don't refill monthly. once
-they're gone that's it until you upgrade.
+the free 20 credits are a one-time grant. they do not refill monthly. once
+they are gone that is it until you upgrade.
 
-Plus is $9.99/mo: 300 credits every month, plus competitor tracking, which
-is the part people actually stick around for.
-Pro is $19.99/mo: unlimited credits, for when you're posting daily or
-running more than one channel.
+Plus is $9.99 a month and gets you 300 credits plus the ideas feed, which
+is the part people stay for. Pro is $19.99 and raises the ceiling for
+posting daily or running more than one channel. the plans page has the
+current numbers on both.
 
-if you connected your youtube, the paid tiers are also where the retention
-reads get useful, because you're checking every upload instead of
-rationing.
+the part worth knowing: the more you use it, the better it gets at your
+channel specifically. it reads your uploads, remembers the ideas you kept
+and the notes you wrote, and answers against them. rationing credits is
+rationing that.
 
 see the plans: ${url}
 
@@ -225,10 +270,10 @@ unsubscribe: ${ctx.unsubscribeUrl}`;
       ctaUrl: url,
       unsubscribeUrl: ctx.unsubscribeUrl,
       body:
-        p("you've had about a week with it, so here's the honest version.") +
-        p(`the free 20 credits are a ${strong('one-time grant')}. they don't refill monthly. once they're gone that's it until you upgrade.`) +
-        p(`${strong('Plus, $9.99/mo')} gets you 300 credits a month plus competitor tracking, which is the part people actually stick around for. ${strong('Pro, $19.99/mo')} is unlimited credits, for posting daily or running more than one channel.`) +
-        p('if you connected your youtube, the paid tiers are where the retention reads get useful, because you check every upload instead of rationing.'),
+        h('the free 20 do not refill.') +
+        p(`they are a ${strong('one-time grant')}. once they are gone that is it until you upgrade.`) +
+        p(`${strong('Plus, $9.99 a month')}, gets you 300 credits plus the ideas feed, which is the part people stay for. ${strong('Pro, $19.99')}, raises the ceiling for posting daily or running more than one channel. the plans page has the current numbers on both.`) +
+        p('the part worth knowing: the more you use it, the better it gets at your channel specifically. it reads your uploads, remembers the ideas you kept and the notes you wrote, and answers against them. rationing credits is rationing that.'),
     }),
   };
 }
