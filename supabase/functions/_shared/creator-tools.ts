@@ -23,6 +23,7 @@
 // anybody asked for.
 
 import { type ToolSpec, type ToolCall } from './llm.ts';
+import { searchCreatorContent } from './embeddings.ts';
 
 // Deliberately small. Every row here is tokens the answer is paying for, and a
 // question about "my ideas" is answered as well by the eight most relevant as
@@ -88,7 +89,44 @@ export const CREATOR_TOOLS: ToolSpec[] = [
 // deno-lint-ignore no-explicit-any
 type DB = any;
 
+// Meaning first, words second.
+//
+// ILIKE finds "ideas about minecraft" and misses "what did I have about
+// sandbox games" - the same question with no word in common. Semantic search
+// closes that, and the word match stays underneath it for two reasons: the
+// migration is applied by hand, so there is a window where nothing is indexed,
+// and a brand new idea is not embedded until the next sync. Falling back beats
+// telling someone they have nothing saved when they do.
+async function searchIdeasSemantic(supabase: DB, userId: string, query: string) {
+  const matches = await searchCreatorContent(supabase, userId, query, { kinds: ['idea'], limit: LIMIT });
+  if (!matches.length) return null;
+  const { data } = await supabase
+    .from('competitor_ideas')
+    .select('id, video_title, channel_name, concept, adapted_idea, created_at')
+    .eq('user_id', userId)
+    .in('id', matches.map(m => m.ref_id));
+  // Ordered by how close the match was, not by when the row was made. The
+  // join also drops anything deleted since it was indexed, which is how an
+  // orphaned embedding stops being able to return a ghost.
+  // deno-lint-ignore no-explicit-any
+  const byId = new Map((data ?? []).map((r: any) => [r.id, r]));
+  return matches
+    .map(m => byId.get(m.ref_id))
+    .filter(Boolean)
+    // deno-lint-ignore no-explicit-any
+    .map((r: any) => ({
+      idea: clip(r.adapted_idea) ?? clip(r.concept),
+      from_video: r.video_title,
+      from_channel: r.channel_name,
+      saved: r.created_at?.slice(0, 10),
+    }));
+}
+
 async function searchIdeas(supabase: DB, userId: string, query: string) {
+  if (query?.trim()) {
+    const semantic = await searchIdeasSemantic(supabase, userId, query);
+    if (semantic?.length) return semantic;
+  }
   let q = supabase
     .from('competitor_ideas')
     .select('video_title, channel_name, concept, adapted_idea, video_views, created_at')
@@ -181,6 +219,24 @@ async function myVideos(supabase: DB, userId: string) {
 async function searchConversations(supabase: DB, userId: string, query: string) {
   const safe = (query ?? '').replace(/[%,()]/g, ' ').trim();
   if (!safe) return [];
+
+  const matches = await searchCreatorContent(supabase, userId, query, { kinds: ['message'], limit: LIMIT });
+  if (matches.length) {
+    const { data } = await supabase
+      .from('chat_messages').select('id, content, role, created_at')
+      .eq('user_id', userId).in('id', matches.map(m => m.ref_id));
+    // deno-lint-ignore no-explicit-any
+    const byId = new Map((data ?? []).map((r: any) => [r.id, r]));
+    const hits = matches.map(m => byId.get(m.ref_id)).filter(Boolean)
+      // deno-lint-ignore no-explicit-any
+      .map((m: any) => ({
+        said_by: m.role === 'user' ? 'the creator' : 'you',
+        text: clip(m.content, 300),
+        when: m.created_at?.slice(0, 10),
+      }));
+    if (hits.length) return hits;
+  }
+
   const { data } = await supabase
     .from('chat_messages').select('content, role, created_at, thread_id')
     .eq('user_id', userId).ilike('content', `%${safe}%`)

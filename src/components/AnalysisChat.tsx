@@ -180,6 +180,9 @@ interface SessionCache {
 }
 let session: SessionCache | null = null;
 
+// Whether the embedding sync has already been kicked off this page load.
+let syncedThisLoad = false;
+
 // ─── Small parts ─────────────────────────────────────────────────────────────
 
 // Copying is the whole point of half of what this screen produces. Three
@@ -511,6 +514,27 @@ export function AnalysisChat() {
   const scrollToEnd = () => endRef.current?.scrollIntoView({ behavior: 'auto', block: 'end' });
 
   useEffect(() => { endRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages, busy]);
+
+  // Keeps the creator's own work searchable by meaning, once per page load.
+  //
+  // Fire and forget, and nothing waits on it: the chat's lookup tools fall back
+  // to matching on words, so a slow or failed sync costs recall and never an
+  // answer. Module-scope flag rather than an effect guard, because this
+  // component remounts on every tab switch and once a visit is enough.
+  useEffect(() => {
+    if (syncedThisLoad) return;
+    syncedThisLoad = true;
+    (async () => {
+      try {
+        const token = await getSessionToken();
+        if (!token) return;
+        await fetch(`${FUNCTIONS_URL}/sync-embeddings`, {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        });
+      } catch { /* housekeeping - the chat works without it */ }
+    })();
+  }, []);
 
   // Kept in module scope so a tab switch does not throw the conversation away.
   // An empty screen is remembered as nothing at all, which is what makes New
