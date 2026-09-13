@@ -225,6 +225,7 @@ unsubscribe: ${ctx.unsubscribeUrl}`;
       ctaUrl: url,
       unsubscribeUrl: ctx.unsubscribeUrl,
       body:
+        h('a big channel\u2019s routine upload is not an idea.') +
         p('most "trending ideas" tools show you whatever is big right now. chumoku does the opposite.') +
         p(`you add channels in your niche, and it only surfaces shorts that beat ${strong("that channel's own average views per day")}. a small channel's breakout shows up. a big channel's routine upload doesn't. that difference is the whole feature.`) +
         p('then it re-angles the idea for your niche and writes it out as a script in your voice, so you land it as your video instead of a copy.') +
@@ -235,11 +236,15 @@ unsubscribe: ${ctx.unsubscribeUrl}`;
 
 // Step 4 — +5d.
 //
-// The Pro line here used to say "unlimited credits", copied from the pricing
-// page, which says the same thing while credits.ts enforces a ceiling on that
-// plan. Whichever of those two is wrong is a decision, not a guess to make in
-// an email - so this mail states no number for it and sends people to the page
-// that is supposed to be the source of truth.
+// Pro is unlimited under fair use, and that is not a contradiction with the
+// 1000 in credits.ts: the Terms allow "approximately 100 uses per category per
+// billing month", and 100 videos at 5 plus 100 hooks at 2 plus 100 scripts at
+// 3 is exactly 1000. The pool is the allowance, converted. On any single
+// category it is more generous than the Terms promise, not less.
+//
+// The word unlimited stays, and so does the qualifier. Selling unlimited and
+// mentioning fair use only in a document nobody opens is how a plan becomes a
+// complaint.
 function upgrade(ctx: EmailCtx): RenderedEmail {
   const url = `${ctx.appUrl}/#pricing`;
   const text = `you have had about a week with it, so here is the honest version.
@@ -248,9 +253,8 @@ the free 20 credits are a one-time grant. they do not refill monthly. once
 they are gone that is it until you upgrade.
 
 Plus is $9.99 a month and gets you 300 credits plus the ideas feed, which
-is the part people stay for. Pro is $19.99 and raises the ceiling for
-posting daily or running more than one channel. the plans page has the
-current numbers on both.
+is the part people stay for. Pro is $19.99 and is unlimited under fair use,
+for posting daily or running more than one channel.
 
 the part worth knowing: the more you use it, the better it gets at your
 channel specifically. it reads your uploads, remembers the ideas you kept
@@ -272,7 +276,7 @@ unsubscribe: ${ctx.unsubscribeUrl}`;
       body:
         h('the free 20 do not refill.') +
         p(`they are a ${strong('one-time grant')}. once they are gone that is it until you upgrade.`) +
-        p(`${strong('Plus, $9.99 a month')}, gets you 300 credits plus the ideas feed, which is the part people stay for. ${strong('Pro, $19.99')}, raises the ceiling for posting daily or running more than one channel. the plans page has the current numbers on both.`) +
+        p(`${strong('Plus, $9.99 a month')}, gets you 300 credits plus the ideas feed, which is the part people stay for. ${strong('Pro, $19.99')}, is unlimited under fair use, for posting daily or running more than one channel.`) +
         p('the part worth knowing: the more you use it, the better it gets at your channel specifically. it reads your uploads, remembers the ideas you kept and the notes you wrote, and answers against them. rationing credits is rationing that.'),
     }),
   };
