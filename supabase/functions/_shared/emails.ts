@@ -12,11 +12,28 @@
 // Each email ships a text/plain twin. That isn't politeness, it's
 // deliverability: HTML-only mail scores as spammier almost everywhere.
 
-const BRAND = '#0EA4E9';
-const BG = '#0A0F1A';
-const CARD = '#0E1626';
-const TEXT = '#E5EAF2';
-const MUTED = '#8A94A6';
+// The app's own tokens, hex-frozen. Email clients cannot read CSS variables, so
+// these are copies of :root in src/index.css and have to be updated with it.
+//
+// They were a different product's colours until now: a #0EA4E9 blue button on a
+// navy card, from before the redesign. The blue was the thing that made the app
+// look generated, and removing it was the point - white is the accent and the
+// only filled action, and green means process, never decoration. An email is
+// the first thing a new account sees, so it was the one surface still shipping
+// the look everything else stopped using.
+const ACCENT = '#FFFFFF';      // --accent
+const ON_ACCENT = '#0A0A0B';   // --on-accent
+const BG = '#121214';          // rgb(var(--surface-rgb))
+const CARD = '#17171A';        // --bg-raised-hover, a step up from the page
+const TEXT = '#ECECEC';        // --text
+const MUTED = '#9B9B9B';       // --text-muted
+const FAINT = '#6E6E6E';       // --text-faint
+const LINE = 'rgba(255,255,255,0.07)';   // --line
+
+// Geist is the app's face and is not a websafe font, so it is asked for first
+// and falls back to the system stack every client will actually have. Most will
+// render the fallback; the ones that do not look like the product.
+const FONT = "'Geist',-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif";
 
 export interface EmailCtx {
   appUrl: string;
@@ -42,21 +59,23 @@ function layout(opts: {
   <!-- Preheader: the grey line clients show next to the subject. Hidden in the
        body itself, otherwise it renders twice. -->
   <div style="display:none;max-height:0;overflow:hidden;opacity:0;">${opts.preheader}</div>
-  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${BG};padding:32px 16px;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${BG};padding:40px 16px;">
     <tr><td align="center">
-      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;background:${CARD};border:1px solid rgba(255,255,255,0.08);border-radius:16px;">
-        <tr><td style="padding:28px 28px 8px 28px;">
-          <div style="font-family:Helvetica,Arial,sans-serif;font-size:15px;font-weight:800;letter-spacing:2px;color:#FFFFFF;">CHUMOKU</div>
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;background:${CARD};border:1px solid ${LINE};border-radius:18px;">
+        <tr><td style="padding:30px 30px 6px 30px;">
+          <div style="font-family:${FONT};font-size:12px;font-weight:700;letter-spacing:2.4px;color:${MUTED};">CHUMOKU</div>
         </td></tr>
-        <tr><td style="padding:8px 28px 4px 28px;font-family:Helvetica,Arial,sans-serif;font-size:15px;line-height:1.6;color:${TEXT};">
+        <tr><td style="padding:12px 30px 4px 30px;font-family:${FONT};font-size:15px;line-height:1.65;color:${TEXT};">
           ${opts.body}
         </td></tr>
-        <tr><td style="padding:20px 28px 28px 28px;">
-          <a href="${opts.ctaUrl}" style="display:inline-block;background:${BRAND};color:#FFFFFF;font-family:Helvetica,Arial,sans-serif;font-size:15px;font-weight:700;text-decoration:none;padding:12px 22px;border-radius:10px;">${opts.ctaLabel}</a>
+        <tr><td style="padding:22px 30px 30px 30px;">
+          <!-- White, like every filled action in the app. Dark text on it, so
+               it stays legible in clients that force their own link colour. -->
+          <a href="${opts.ctaUrl}" style="display:inline-block;background:${ACCENT};color:${ON_ACCENT};font-family:${FONT};font-size:14px;font-weight:600;text-decoration:none;padding:12px 22px;border-radius:10px;">${opts.ctaLabel}</a>
         </td></tr>
-        <tr><td style="padding:0 28px 26px 28px;font-family:Helvetica,Arial,sans-serif;font-size:12px;line-height:1.6;color:${MUTED};border-top:1px solid rgba(255,255,255,0.07);padding-top:18px;">
+        <tr><td style="padding:18px 30px 26px 30px;font-family:${FONT};font-size:12px;line-height:1.6;color:${FAINT};border-top:1px solid ${LINE};">
           you're getting this because you made a chumoku account.
-          <a href="${opts.unsubscribeUrl}" style="color:${MUTED};text-decoration:underline;">unsubscribe</a>
+          <a href="${opts.unsubscribeUrl}" style="color:${FAINT};text-decoration:underline;">unsubscribe</a>
         </td></tr>
       </table>
     </td></tr>
