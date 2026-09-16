@@ -7,6 +7,8 @@ import { loadBrain } from '../_shared/brain.ts';
 
 const CORS = corsHeaders({ methods: 'GET, POST, PUT, DELETE, OPTIONS' });
 
+const MAX_SHORT_SECONDS = 180;
+
 interface RequestBody {
   videoId: string; // YouTube video ID
   videoContext?: string;
@@ -231,6 +233,18 @@ Deno.serve(async (req: Request) => {
       } else {
         video = { video_id: videoId, title: `youtube.com/watch?v=${videoId}`, views: null, likes_count: null, comment_count: null, duration: null, retention_percentage: null, average_view_duration: null, is_external: true };
       }
+    }
+
+    // Shorts only. A Short can run up to 3 minutes; anything longer is a
+    // long-form video, and the whole review (beat timeline, hook, retention
+    // score) is built for the other format. It watched a 15-minute video and
+    // scored it 94. Checked before the model call, so nothing is spent.
+    // Unknown duration (API down) goes through rather than blocking real Shorts.
+    if (video.duration && video.duration > MAX_SHORT_SECONDS) {
+      return new Response(
+        JSON.stringify({ error: 'This works on Shorts only. That video is longer than 3 minutes.' }),
+        { status: 400, headers: { ...CORS, 'Content-Type': 'application/json' } },
+      );
     }
 
     // Whose video this is, as three states rather than two.

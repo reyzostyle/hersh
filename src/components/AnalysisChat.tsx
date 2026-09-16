@@ -57,6 +57,20 @@ const uid = () => Math.random().toString(36).slice(2);
 // that fails on arrival costs the wait twice.
 const ACCEPTED_TYPES = ['video/mp4', 'video/quicktime', 'video/webm', 'video/x-msvideo'];
 const MAX_SIZE_MB = 300;
+const MAX_SHORT_SECONDS = 180;
+
+// A local file's length from its metadata. null when the browser cannot read
+// it, in which case the upload goes ahead rather than blocking a real Short.
+const videoSeconds = (f: File): Promise<number | null> =>
+  new Promise((resolve) => {
+    const url = URL.createObjectURL(f);
+    const v = document.createElement('video');
+    const done = (n: number | null) => { URL.revokeObjectURL(url); resolve(n); };
+    v.preload = 'metadata';
+    v.onloadedmetadata = () => done(Number.isFinite(v.duration) ? v.duration : null);
+    v.onerror = () => done(null);
+    v.src = url;
+  });
 
 // A screenshot is the other thing people arrive with. Someone asking why a
 // video got 0 views has the answer on their Studio screen, not in a link, and
@@ -800,6 +814,13 @@ export function AnalysisChat() {
       const token = await getSessionToken();
       if (!token) throw new RunError('server', 'Not authenticated');
       const mimeType = f.type || 'video/mp4';
+
+      // Same Shorts-only rule the link path enforces on the server, checked
+      // here before a single byte goes up.
+      const seconds = await videoSeconds(f);
+      if (seconds != null && seconds > MAX_SHORT_SECONDS) {
+        throw new RunError('input', 'This works on Shorts only. That video is longer than 3 minutes.');
+      }
 
       const sessionRes = await fetchWithRetry(`${FUNCTIONS_URL}/get-upload-url`, {
         method: 'POST',
