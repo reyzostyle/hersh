@@ -22,11 +22,15 @@ const faqLd = JSON.stringify({
   })),
 }, null, 2);
 
-// Swap the title and description per route, so /privacy and /terms stop
-// claiming to be the landing page in search results and link previews.
-const retitle = (html, title, description) =>
+// Swap the title, description and canonical URL per route, so /privacy and
+// /terms stop claiming to be the landing page in search results and link
+// previews. The canonical is what tells Google chumoku.co, not the old
+// hershymedia.com that still redirects here, is the address to index.
+const retitle = (html, title, description, path) =>
   html
     .replace(/<title>[^<]*<\/title>/, `<title>${title}</title>`)
+    .replace(/(<link rel="canonical" href=")[^"]*(")/, `$1https://chumoku.co${path}$2`)
+    .replace(/(<meta property="og:url" content=")[^"]*(")/, `$1https://chumoku.co${path}$2`)
     .replace(
       /(<meta name="description" content=")[^"]*(")/,
       `$1${description.replace(/"/g, '&quot;')}$2`,
@@ -38,7 +42,7 @@ for (const route of routes) {
     throw new Error(`Prerender produced almost nothing for ${route.path} - refusing to ship an empty page`);
   }
 
-  let page = retitle(shell, route.title, route.description);
+  let page = retitle(shell, route.title, route.description, route.path);
   const before = page;
   // A route may bring its own structured data - a guide carries an Article and
   // its own questions. Anything that does not inherits the landing page's FAQ.
