@@ -1427,7 +1427,7 @@ export function LandingPage() {
                   nothing links to is a page a crawler reaches late or never.
                   The sitemap lists them; an internal link is what gets them
                   read. */}
-              <a href="/guides" className="transition-colors hover:text-[var(--text)]" style={{ color: 'var(--text-muted)' }}>Guides</a>
+              <a href="/blog" className="transition-colors hover:text-[var(--text)]" style={{ color: 'var(--text-muted)' }}>Blog</a>
               <a href="/privacy" className="transition-colors hover:text-[var(--text)]" style={{ color: 'var(--text-muted)' }}>Privacy</a>
               <a href="/terms" className="transition-colors hover:text-[var(--text)]" style={{ color: 'var(--text-muted)' }}>Terms</a>
               {/* The other half of the sameAs in index.html. Those three

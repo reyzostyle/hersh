@@ -5,8 +5,8 @@ import { Onboarding } from './components/Onboarding';
 import { OnboardingOffer } from './components/OnboardingOffer';
 import { PrivacyPolicy } from './components/PrivacyPolicy';
 import { TermsOfService } from './components/TermsOfService';
-import { GuidePage, GuidesIndex } from './components/GuidePage';
-import { guideBySlug } from './lib/guides';
+import { BlogPost, BlogIndex } from './components/BlogPage';
+import { postBySlug } from './lib/blog';
 import { RefreshOutlineIcon as Loader2 } from '@solar-icons/react';
 import { useEffect, useState } from 'react';
 import { supabase, getSessionToken } from './lib/supabase';
@@ -323,10 +323,10 @@ function AppContent() {
   // Public writing. Matched before the auth check for the same reason Privacy
   // and Terms are: these pages exist to be read by people who are not signed
   // in, and by crawlers that never will be.
-  if (window.location.pathname === '/guides') return <GuidesIndex />;
-  if (window.location.pathname.startsWith('/guides/')) {
-    const guide = guideBySlug(window.location.pathname.replace('/guides/', '').replace(/\/$/, ''));
-    if (guide) return <GuidePage guide={guide} />;
+  if (window.location.pathname === '/blog' || window.location.pathname === '/blog/') return <BlogIndex />;
+  if (window.location.pathname.startsWith('/blog/')) {
+    const post = postBySlug(window.location.pathname.replace('/blog/', '').replace(/\/$/, ''));
+    if (post) return <BlogPost post={post} />;
   }
 
   if (loading) {

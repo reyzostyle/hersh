@@ -1,4 +1,8 @@
 {
+  "redirects": [
+    { "source": "/guides", "destination": "/blog", "permanent": true },
+    { "source": "/guides/:slug", "destination": "/blog/:slug", "permanent": true }
+  ],
   "rewrites": [
     { "source": "/(.*)", "destination": "/index.html" }
   ]

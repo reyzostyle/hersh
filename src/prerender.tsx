@@ -15,8 +15,8 @@ import { AuthProvider } from './contexts/AuthContext';
 import { LandingPage } from './components/LandingPage';
 import { PrivacyPolicy } from './components/PrivacyPolicy';
 import { TermsOfService } from './components/TermsOfService';
-import { GuidePage, GuidesIndex } from './components/GuidePage';
-import { GUIDES } from './lib/guides';
+import { BlogPost, BlogIndex } from './components/BlogPage';
+import { POSTS, postsByDate } from './lib/blog';
 import { FAQS } from './lib/faq';
 
 export interface PrerenderRoute {
@@ -38,39 +38,61 @@ const wrap = (node: JSX.Element) =>
   renderToStaticMarkup(<AuthProvider>{node}</AuthProvider>);
 
 export function render(): PrerenderRoute[] {
-  const guideRoutes: PrerenderRoute[] = GUIDES.map(g => ({
-    path: `/guides/${g.slug}`,
-    title: `${g.title} - Chumoku`,
-    description: g.description,
-    html: wrap(<GuidePage guide={g} />),
+  const SITE = 'https://chumoku.co';
+  const ORG = { '@id': `${SITE}/#organization` };
+  const BLOG_ID = `${SITE}/blog#blog`;
+
+  // Home > Blog > this post. A crawler arriving on a post from a search result
+  // has no idea what else is on this site; the breadcrumb is what tells it, and
+  // it is what search results render under the URL.
+  const crumbs = (post?: { slug: string; h1: string }) => ({
+    '@type': 'BreadcrumbList',
+    itemListElement: [
+      { '@type': 'ListItem', position: 1, name: 'Chumoku', item: `${SITE}/` },
+      { '@type': 'ListItem', position: 2, name: 'Blog', item: `${SITE}/blog` },
+      ...(post
+        ? [{ '@type': 'ListItem', position: 3, name: post.h1, item: `${SITE}/blog/${post.slug}` }]
+        : []),
+    ],
+  });
+
+  const postRoutes: PrerenderRoute[] = POSTS.map(p => ({
+    path: `/blog/${p.slug}`,
+    title: `${p.title} - Chumoku`,
+    description: p.description,
+    html: wrap(<BlogPost post={p} />),
     changefreq: 'monthly',
     priority: '0.8',
-    // Article plus the page's own questions, both pointing at the Organization
-    // declared in index.html. The shell's FAQPage carries the LANDING page's
-    // questions, which on a guide would be answers to questions the page does
-    // not ask - so it is replaced here rather than inherited.
+    // BlogPosting plus the page's own questions and its breadcrumb, all pointing
+    // at the Organization declared in index.html. The shell's FAQPage carries
+    // the LANDING page's questions, which on a post would be answers to
+    // questions the page does not ask, so it is replaced here rather than
+    // inherited.
     jsonLd: {
       '@context': 'https://schema.org',
       '@graph': [
         {
-          '@type': 'Article',
-          '@id': `https://chumoku.co/guides/${g.slug}#article`,
-          headline: g.h1,
-          description: g.description,
-          dateModified: g.updated,
-          author: { '@id': 'https://chumoku.co/#organization' },
-          publisher: { '@id': 'https://chumoku.co/#organization' },
-          mainEntityOfPage: `https://chumoku.co/guides/${g.slug}`,
+          '@type': 'BlogPosting',
+          '@id': `${SITE}/blog/${p.slug}#article`,
+          headline: p.h1,
+          description: p.description,
+          datePublished: p.published,
+          dateModified: p.updated,
+          author: ORG,
+          publisher: ORG,
+          isPartOf: { '@id': BLOG_ID },
+          mainEntityOfPage: `${SITE}/blog/${p.slug}`,
           about: 'YouTube Shorts',
         },
         {
           '@type': 'FAQPage',
-          mainEntity: g.faq.map(f => ({
+          mainEntity: p.faq.map(f => ({
             '@type': 'Question',
             name: f.q,
             acceptedAnswer: { '@type': 'Answer', text: f.a },
           })),
         },
+        crumbs(p),
       ],
     },
   }));
@@ -108,15 +130,42 @@ export function render(): PrerenderRoute[] {
       html: wrap(<TermsOfService />),
     },
     {
-      path: '/guides',
-      title: 'Shorts guides - Chumoku',
+      path: '/blog',
+      title: 'Blog - Chumoku',
       description:
         'How short-form video actually holds people, written for the people making it. Hooks, retention curves and why Shorts get swiped.',
-      html: wrap(<GuidesIndex />),
-      changefreq: 'monthly',
+      html: wrap(<BlogIndex />),
+      // Weekly, because this page changes every time a post is published, which
+      // is the only page on the site for which that is true.
+      changefreq: 'weekly',
       priority: '0.7',
+      jsonLd: {
+        '@context': 'https://schema.org',
+        '@graph': [
+          {
+            '@type': 'Blog',
+            '@id': BLOG_ID,
+            name: 'Chumoku blog',
+            description:
+              'How short-form video actually holds people, written for the people making it.',
+            url: `${SITE}/blog`,
+            publisher: ORG,
+            inLanguage: 'en',
+            blogPost: postsByDate().map(p => ({
+              '@type': 'BlogPosting',
+              '@id': `${SITE}/blog/${p.slug}#article`,
+              headline: p.h1,
+              description: p.description,
+              datePublished: p.published,
+              dateModified: p.updated,
+              url: `${SITE}/blog/${p.slug}`,
+            })),
+          },
+          crumbs(),
+        ],
+      },
     },
-    ...guideRoutes,
+    ...postRoutes,
   ];
 }
 
@@ -124,3 +173,8 @@ export function render(): PrerenderRoute[] {
 // Re-exported for scripts/prerender.mjs, which writes the FAQPage JSON-LD
 // from it so the structured data cannot drift from the page.
 export const faqs = FAQS;
+
+// Same reason: the RSS feed and the llms.txt listing of the writing are both
+// generated from this, newest first, so neither can list a post that does not
+// exist or miss one that does.
+export const posts = postsByDate();
