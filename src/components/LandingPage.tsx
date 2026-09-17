@@ -997,7 +997,7 @@ function PricingCard({ plan, interval, onSelect }: { plan: Plan; interval: Inter
           accent became white, i.e. an invisible label on the primary CTA. */}
       <button
         onClick={onSelect}
-        className="mt-auto w-full py-2.5 rounded-[var(--r-sm)] text-sm font-semibold transition-opacity hover:opacity-90"
+        className="mt-auto w-full py-2.5 rounded-full text-sm font-semibold transition-opacity hover:opacity-90"
         style={plan.highlight
           ? { background: 'var(--accent)', color: 'var(--on-accent)' }
           : { background: 'transparent', color: 'var(--text)', border: '1px solid var(--line-strong)' }}
@@ -1124,7 +1124,7 @@ export function LandingPage() {
               </button>
               <button
                 onClick={() => setAuthModal('signup')}
-                className="px-3.5 py-1.5 text-[13px] font-semibold rounded-[var(--r-sm)] whitespace-nowrap transition-opacity hover:opacity-90"
+                className="px-3.5 py-1.5 text-[13px] font-semibold rounded-full whitespace-nowrap transition-opacity hover:opacity-90"
                 style={{ background: 'var(--accent)', color: 'var(--on-accent)' }}
               >
                 Get started
@@ -1389,7 +1389,7 @@ export function LandingPage() {
               <div className="flex flex-wrap items-center gap-3">
                 <button
                   onClick={() => setAuthModal('signup')}
-                  className="inline-flex items-center gap-1.5 px-5 py-2.5 font-semibold rounded-[var(--r-sm)] text-[14px] transition-opacity hover:opacity-90"
+                  className="inline-flex items-center gap-1.5 px-5 py-2.5 font-semibold rounded-full text-[14px] transition-opacity hover:opacity-90"
                   style={{ background: 'var(--accent)', color: 'var(--on-accent)' }}
                 >
                   Get started

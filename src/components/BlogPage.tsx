@@ -71,15 +71,12 @@ function Page({ children }: { children: React.ReactNode }) {
   );
 }
 
-function Tag({ children }: { children: React.ReactNode }) {
-  return (
-    <span
-      className="text-[12px] px-2.5 py-1 rounded-full whitespace-nowrap"
-      style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid var(--line)', color: 'var(--text-muted)' }}
-    >
-      {children}
-    </span>
-  );
+// Tags were pills, which is the default badge every template ships with and
+// reads as one. They are a line of small caps now - the same .label-mono the
+// landing page uses for SHORTS ONLY and 20 FREE CREDITS, so the blog borrows a
+// label the brand already had instead of inventing a component.
+function TagLine({ tags, className }: { tags: string[]; className?: string }) {
+  return <p className={`label-mono ${className ?? ''}`}>{tags.join(' · ')}</p>;
 }
 
 function Cover({ post, className }: { post: Post; className?: string }) {
@@ -108,12 +105,14 @@ function Card({ post }: { post: Post }) {
         <h2 className="font-semibold text-[17px] leading-snug text-balance transition-opacity group-hover:opacity-80" style={{ color: 'var(--text)' }}>
           {post.h1}
         </h2>
-        <p className="text-[14px] leading-relaxed" style={{ color: 'var(--text-muted)' }}>
+        {/* Two lines, clipped. The description is written as the page's meta
+            description and has to stay whole in the <head>; on a card it is
+            there to tell you whether to click, and four lines of it turns a
+            grid of three into a wall of text. */}
+        <p className="text-[14px] leading-relaxed line-clamp-2" style={{ color: 'var(--text-muted)' }}>
           {post.description}
         </p>
-        <div className="flex flex-wrap gap-1.5 mt-auto pt-3">
-          {post.tags.map(t => <Tag key={t}>{t}</Tag>)}
-        </div>
+        <TagLine tags={post.tags} className="mt-auto pt-3" />
       </div>
     </a>
   );
@@ -155,9 +154,7 @@ export function BlogPost({ post }: { post: Post }) {
             <ArrowLeft className="w-3.5 h-3.5" /> All posts
           </a>
 
-          <p className="text-[12px] font-semibold uppercase tracking-[0.12em] mb-3" style={{ color: 'var(--text-faint)' }}>
-            {post.tags[0]}
-          </p>
+          <TagLine tags={[post.tags[0]]} className="mb-3" />
           <h1 className="font-bold text-[30px] sm:text-[40px] leading-[1.08] tracking-tight text-balance mb-4" style={{ color: 'var(--text)' }}>
             {post.h1}
           </h1>
@@ -207,9 +204,7 @@ export function BlogPost({ post }: { post: Post }) {
             </section>
           )}
 
-          <div className="flex flex-wrap gap-1.5 mt-10">
-            {post.tags.map(t => <Tag key={t}>{t}</Tag>)}
-          </div>
+          <TagLine tags={post.tags} className="mt-10" />
 
           {/* Both dates, because they mean different things to a reader deciding
               whether this is current, and the structured data carries both. */}
