@@ -443,6 +443,19 @@ button.row:hover,
   border-color: var(--line-strong);
 }
 
+/* A blog card. Same plate and same hover as .row, but it wraps a cover image,
+   so the radius has to clip and the hover cannot repaint the whole card - the
+   cover keeps its own background. */
+.blog-card {
+  background: var(--bg-raised);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  transition: border-color 0.15s ease;
+}
+.blog-card:hover {
+  border-color: var(--line-strong);
+}
+
 /* The icon tile. Its tint is set per row where a row has an identity of its
    own - YouTube red in Settings - and defaults to the same faint white
    everywhere else, so a list of tools does not turn into a paint chart. */

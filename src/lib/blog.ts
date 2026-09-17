@@ -24,6 +24,8 @@
 // deploy. The index, the sitemap, the feed and llms.txt all follow from this
 // array and are never hand-kept.
 
+import type { MotifName } from '../components/BlogCover';
+
 export interface PostSection {
   h: string;
   p: string[];
@@ -40,10 +42,22 @@ export interface Post {
   /** ISO date. Bumped whenever the text changes materially. */
   updated: string;
   /**
-   * Two or three words above the headline, saying what kind of question this
-   * answers. It is a label, not a taxonomy: no tag pages, no archives by tag.
+   * What kind of question this answers. Labels, not a taxonomy: they are read
+   * by people scanning the index, there are no tag pages and no archives, and
+   * the first one is the kicker above the headline. Two or three is plenty.
    */
-  topic: string;
+  tags: string[];
+  /**
+   * A real cover image, as a path under public/. Left out on purpose while
+   * there is no photography: BlogCover draws one from the slug instead, so a
+   * new post never ships with a hole where a picture should be.
+   */
+  cover?: string;
+  /**
+   * Which drawn cover this post gets, when the one the slug picks is not the
+   * one the post is about. Ignored when `cover` is set.
+   */
+  art?: MotifName;
   /** The one-paragraph answer, up front. An engine that quotes one block quotes this one. */
   summary: string;
   sections: PostSection[];
@@ -59,7 +73,8 @@ export const POSTS: Post[] = [
       'A Short is judged in a feed, not after a click. The reasons viewers swipe in the first two seconds, and what to change in the edit.',
     published: '2026-09-12',
     updated: '2026-09-12',
-    topic: 'Hooks',
+    tags: ['Hooks', 'Retention', 'Editing'],
+    art: 'timeline',
     summary:
       'A Short loses viewers in the first two seconds because the feed gives it no click to trade on. On long-form, the viewer chose the video from a thumbnail and a title before it started playing, so the opening gets a few seconds of patience it did not have to earn. In a Short feed there is no choosing. The video is already playing, the only two options are keep watching or swipe, and the opening frame is doing the entire job the thumbnail used to do. Most Shorts that lose people early are not badly made. They open with a wind-up, a logo, a greeting, or a restatement of what the caption already said, and every one of those spends the two seconds that decide the video.',
     sections: [
@@ -126,7 +141,8 @@ export const POSTS: Post[] = [
       'What the shapes in a Shorts audience-retention graph mean, why it can go above 100 percent, and which conclusions the curve does not support.',
     published: '2026-09-12',
     updated: '2026-09-12',
-    topic: 'Retention',
+    tags: ['Retention', 'Analytics'],
+    art: 'curve',
     summary:
       'A Shorts retention curve shows what share of viewers are still watching at each moment of the video. It is the only honest record of where a Short loses people, and it is read by shape rather than by any single number. A vertical drop at the start is an opening problem. A steady slope is normal. A bump upward means a moment is being rewatched, because Shorts loop and the loop counts. The most common mistake is reading the average percentage instead of the shape: two videos with the same average can have completely different problems, and only one of them is fixable in the edit.',
     sections: [
@@ -199,7 +215,8 @@ export const POSTS: Post[] = [
       'The difference between a hook and a first sentence, the test a hook has to pass, and the openings that reliably fail.',
     published: '2026-09-12',
     updated: '2026-09-12',
-    topic: 'Hooks',
+    tags: ['Hooks', 'Writing'],
+    art: 'grid',
     summary:
       'A hook is the opening line of a video written at an audience rather than to them, and its only job is to open a question the rest of the video closes. That is the whole test: after the first line, does the viewer want to know something they do not know yet. Most openings that fail are not badly written, they are simply statements. A statement is complete on its own, and a viewer who has already received a complete thought has no reason left to stay for the next one.',
     sections: [
@@ -266,6 +283,21 @@ export const postBySlug = (slug: string) => POSTS.find(p => p.slug === slug) ?? 
 // Sort is stable, so posts sharing a date keep their order here.
 export const postsByDate = (): Post[] =>
   [...POSTS].sort((a, b) => (a.published < b.published ? 1 : a.published > b.published ? -1 : 0));
+
+/**
+ * Roughly how long the post takes to read, in minutes, from its own words.
+ * 220 words a minute is the usual figure for reading prose on a screen. It is
+ * an estimate and it is labelled as one on the page - the point is to tell
+ * someone scanning the index whether this is two minutes or ten.
+ */
+export const readingMinutes = (post: Post): number => {
+  const text = [
+    post.summary,
+    ...post.sections.flatMap(s => [s.h, ...s.p]),
+    ...post.faq.flatMap(f => [f.q, f.a]),
+  ].join(' ');
+  return Math.max(1, Math.round(text.split(/\s+/).filter(Boolean).length / 220));
+};
 
 /** "12 September 2026". The one date format used on the page and in the index. */
 export const formatDate = (iso: string): string =>
