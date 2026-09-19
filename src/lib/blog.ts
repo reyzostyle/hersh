@@ -66,6 +66,87 @@ export interface Post {
 
 export const POSTS: Post[] = [
   {
+    slug: 'youtube-shorts-view-jail',
+    title: 'View jail on YouTube Shorts: what each view ceiling means',
+    h1: 'What view jail on Shorts actually tells you',
+    description:
+      'Shorts that keep stopping at the same view count. What the ceiling narrows the problem down to, and which of the usual explanations for it nobody can actually check.',
+    published: '2026-09-20',
+    updated: '2026-09-20',
+    tags: ['Distribution', 'Retention'],
+    art: 'feed',
+    summary:
+      'View jail is the name creators gave to a real and very common pattern: a channel\'s Shorts keep stopping near the same view count, upload after upload. It is not a penalty, it is not something YouTube has ever named, and nobody outside YouTube knows the mechanism behind it. What makes it worth paying attention to is narrower and more useful than a mechanism: the number you keep stopping at tells you which of three unrelated problems you have. Videos that never leave zero are almost always an account problem rather than a video problem. Videos that die a few thousand in were shown to people who then left. Videos that cap out while holding everyone who watched were shown, worked, and still gave the system no reason to widen the audience. Those are fixed in three different places, and the ceiling is the cheapest way to tell them apart.',
+    sections: [
+      {
+        h: 'It is an observation, not a mechanism',
+        p: [
+          'The pattern is real, and anyone who has posted Shorts for a few months recognises it. Uploads cluster around a number. Not one video stalling, which is noise, but every video landing in the same neighbourhood no matter what is in it.',
+          'What is not known is why. YouTube has never documented tiers, thresholds, or anything called view jail. The name is creator shorthand for something creators can see in their own analytics, which is a perfectly good reason for the name to exist and not a reason to treat it as a described feature.',
+          'The distinction matters because of what gets attached to the mechanism version. Pausing uploads for a set number of hours to let the system reset, deleting the videos that did badly, changing the time of day you post: all of these are guesses about internals nobody can see, passed around as procedures. The pattern is worth acting on. The folk explanations for it are not, and following one costs you the weeks you spend waiting instead of changing something.',
+          'The useful version is smaller. The ceiling is a symptom that narrows the search, the way a temperature narrows the search without naming the illness.',
+        ],
+      },
+      {
+        h: 'Stuck near zero is almost never the video',
+        p: [
+          'The symptom: a Short gets a handful of impressions or freezes under a couple of dozen views, and it happens to everything you post rather than to one upload.',
+          'When it happens to everything, the common factor is the account and the way it uploads, not the edit. The behaviours that sit behind it are the ones that look automated from the outside: several uploads a day appearing suddenly on a channel that posted weekly, re-uploads of clips with nothing done to them, scripts copied word for word off a video that worked, bulk voiceover over stock footage. None of these are judged as quality. They are matched as patterns, and the pattern they match is a bot.',
+          'What changes it is stopping the thing that looks automated - fewer uploads, with a human decision visible in each one. Not a wait of a specific length, because there is no published timer to wait out.',
+          'There is a way to tell this apart from a video that simply failed, and it takes ten seconds. A failed video gets impressions and loses people. This gets almost no impressions. Open the video in Studio and read the impressions figure before you touch the edit.',
+        ],
+      },
+      {
+        h: 'A few thousand and dead means it was watched and left',
+        p: [
+          'Here the video was shown to people. They saw it and went. This is the one ceiling where you have direct evidence about why, rather than an inference from a view count.',
+          'Open the retention curve. A near-vertical drop at the very start is an opening problem. A step partway through is a specific moment, and you can go and watch the two seconds it points at. An even decline with no steps is normal, and the video is simply longer than it had material for. [How to read a Shorts retention curve](/blog/reading-a-shorts-retention-curve) covers the shapes, and [why Shorts get swiped in the first two seconds](/blog/why-shorts-get-swiped) covers the most common one.',
+          'One caution that matters more here than anywhere else: a curve built on a few hundred views is noise with a line drawn through it. If the video barely went out, the curve is not evidence of anything yet.',
+        ],
+      },
+      {
+        h: 'A ceiling with good retention is a different problem entirely',
+        p: [
+          'The symptom: retention is fine, people finish it, the numbers inside the video are the ones you wanted, and it still stops.',
+          'At this point the video works for people who already watch this kind of thing. What it does not do is give the system any reason to try it on people who do not. It looks like the videos it is sitting next to, so the audience it can be tested on is the audience it already has.',
+          'What creators do about it is take a format that works somewhere else entirely - a speedrun breakdown, a true-crime style reconstruction, a review structure - and run their own subject through it. The point is not novelty for its own sake. It is that the video becomes recognisable to someone who has never watched your niche, while still being about the thing you make.',
+          'This is the weakest of the three sections, and it is worth saying so. "Be more distinctive" is a description of the goal, not an instruction for reaching it, and the tier where retention is already good is the one where nobody can hand you a checklist.',
+        ],
+      },
+      {
+        h: 'What the ceiling cannot tell you',
+        p: [
+          'The exact number. It moves with the size of the channel, the niche, and how long the channel has been posting. Someone else\'s thirty thousand is not your thirty thousand, and the only comparison that means anything is your own uploads against each other.',
+          'Whether you are being penalised. There is no visible penalty to read, and a low ceiling is not evidence of one. Treating it as evidence sends you looking for a punishment to appeal instead of a problem to fix.',
+          'Anything at all, on a channel with a handful of uploads. Three videos landing near the same number is three videos, not a pattern.',
+        ],
+      },
+    ],
+    faq: [
+      {
+        q: 'Is view jail something YouTube actually does?',
+        a: 'No. It is creator shorthand for a pattern visible in analytics - Shorts from the same channel repeatedly stopping near the same view count. The pattern is real and worth reading. The name is not a YouTube feature, and YouTube has never described tiers or thresholds by it or any other name.',
+      },
+      {
+        q: 'Does pausing uploads for a few days get you out of it?',
+        a: 'There is no evidence for it, and no published mechanism it could work through. What changes outcomes is changing the thing that caused the problem - the upload behaviour, the opening, or the format - rather than waiting a particular number of hours before doing the same thing again.',
+      },
+      {
+        q: 'Why do my Shorts always stop at roughly the same number?',
+        a: 'Because whatever is limiting them is the same each time. That is the useful part: a consistent ceiling points at something consistent about the channel or the videos, which is far easier to find than a one-off failure.',
+      },
+      {
+        q: 'Should I delete Shorts that did badly?',
+        a: 'There is no reason to think it helps, and it costs you the record of what happened. A video that underperformed is the only data you have about what that audience did not want.',
+      },
+      {
+        q: 'How many views does a Short need before the numbers mean anything?',
+        a: 'Enough that the retention curve is not being drawn through a handful of people. There is no official figure, but a video with a few hundred views has not been tested, and reading its curve as a verdict on the edit will send you rewriting something that was never measured.',
+      },
+    ],
+  },
+
+  {
     slug: 'why-shorts-get-swiped',
     title: 'Why YouTube Shorts get swiped in the first two seconds',
     h1: 'Why Shorts get swiped in the first two seconds',

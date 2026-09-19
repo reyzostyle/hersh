@@ -79,6 +79,31 @@ function TagLine({ tags, className }: { tags: string[]; className?: string }) {
   return <p className={`label-mono ${className ?? ''}`}>{tags.join(' · ')}</p>;
 }
 
+// Paragraphs may carry [label](/blog/slug) links. A post that sends a reader to
+// the post that answers the next question is worth more than the list at the
+// bottom: the link sits where the question is actually asked, and a crawler
+// reads it as this page vouching for that one. Deliberately only links, and
+// deliberately not a markdown renderer - the body is prose, not a document
+// format, and a half-supported one invites bullet lists into pages that read
+// better without them.
+const LINK = /\[([^\]]+)\]\(([^)]+)\)/g;
+
+function Prose({ text }: { text: string }) {
+  const parts: React.ReactNode[] = [];
+  let last = 0;
+  for (const m of text.matchAll(LINK)) {
+    if (m.index! > last) parts.push(text.slice(last, m.index));
+    parts.push(
+      <a key={m.index} href={m[2]} className="underline underline-offset-2 transition-opacity hover:opacity-70" style={{ textDecorationColor: 'var(--line-strong)' }}>
+        {m[1]}
+      </a>,
+    );
+    last = m.index! + m[0].length;
+  }
+  if (last < text.length) parts.push(text.slice(last));
+  return <>{parts}</>;
+}
+
 function Cover({ post, className }: { post: Post; className?: string }) {
   return post.cover
     ? <img src={post.cover} alt="" className={`${className} object-cover`} />
@@ -181,7 +206,7 @@ export function BlogPost({ post }: { post: Post }) {
               <div className="space-y-4">
                 {s.p.map((para, i) => (
                   <p key={i} className="text-[16px] leading-[1.75]" style={{ color: 'var(--text)', opacity: 0.86 }}>
-                    {para}
+                    <Prose text={para} />
                   </p>
                 ))}
               </div>

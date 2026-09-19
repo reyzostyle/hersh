@@ -35,6 +35,97 @@ export interface SocialDrafts {
 }
 
 export const SOCIAL: Record<string, SocialDrafts> = {
+  'youtube-shorts-view-jail': {
+    x: [
+      `Every Shorts channel hits a number it cannot get past. Same ceiling, upload after upload.
+
+Creators call it view jail. It is not a penalty, and YouTube has never named it.
+
+But the number itself is useful: it tells you which of three unrelated problems you have.`,
+
+      `Stuck near zero, on everything you post.
+
+That is almost never the video. When it happens to every upload, the common factor is the account, not the edit.
+
+Bot-shaped behaviour: several uploads a day out of nowhere, re-ups with nothing done to them, scripts copied word for word.`,
+
+      `Ten second check before you touch anything: open the video in Studio and read impressions, not views.
+
+A video that failed got impressions and lost people.
+
+A video in zero-view jail got almost no impressions. Completely different problem, completely different fix.`,
+
+      `Dies at a few thousand.
+
+This one was shown to real people and they left, which means you have actual evidence instead of a guess.
+
+Open the retention curve. Vertical drop at the start is the opening. A step in the middle is one specific moment you can go and watch.`,
+
+      `Caps out while holding everyone who watches.
+
+Hardest of the three. The video works for people already watching this kind of thing, and gives the system no reason to try it on anyone else.
+
+What works: run your subject through a format from a completely different niche.`,
+
+      `Three things the ceiling does not tell you:
+
+The number. It moves with channel size and niche. Someone else's 30k is not yours.
+
+Whether you are penalised. There is no penalty to read.
+
+Anything at all on a channel with three uploads. That is three videos, not a pattern.`,
+
+      `And the part worth being blunt about: pausing uploads for 72 hours to "let the system reset" is a guess about internals nobody can see.
+
+Costs you a week and changes nothing.
+
+Longer version:
+https://chumoku.co/blog/youtube-shorts-view-jail`,
+    ],
+    reddit: [
+      {
+        subreddit: 'r/NewTubers',
+        title: 'The view count your Shorts keep stopping at tells you which problem you have',
+        body: `Half the threads here are some version of "my Shorts get stuck at X views", and the answers are always the same general advice regardless of what X is. That is backwards. The number is the most useful thing in the post, because three completely different problems produce three different ceilings.
+
+Worth saying up front: view jail is not a thing YouTube does. There are no documented tiers and no penalty by that name. It is creator shorthand for a pattern people see in their own analytics. The pattern is real. The explanations attached to it mostly are not.
+
+**Stuck near zero, on everything you post.** Almost never the video. When it happens to every upload, the common factor is the account and how it uploads, not the edit. The behaviours behind it are the ones that look automated from outside: several uploads a day appearing suddenly on a channel that posted weekly, re-uploads with nothing done to them, scripts copied word for word off something that worked, bulk voiceover on stock footage. None of that gets judged on quality, it gets matched as a pattern, and the pattern is a bot.
+
+There is a ten second check that separates this from a video that simply failed. Open the video in Studio and read **impressions**, not views. A failed video got impressions and lost people. This gets almost no impressions. Different problem, different fix, and people rewrite hooks for weeks without ever checking which one they have.
+
+**Dies at a few thousand.** It was shown to real people and they left. This is the only ceiling where you have direct evidence instead of an inference. Open the retention curve: near-vertical drop at the very start is the opening, a step partway through is one specific moment you can go and watch, an even decline with no steps is normal and means the video was longer than its material. Do not read a curve built on a couple hundred views, that is noise with a line through it.
+
+**Caps out while holding everyone who watches.** Retention is fine, people finish it, it still stops. The video works for people already watching this kind of thing and gives nothing to suggest a wider audience. The move that helps is taking a format that works in a totally unrelated niche and running your subject through it, so it is recognisable to someone who has never watched your niche.
+
+I will be honest that this third one is the weakest section. "Be more distinctive" is the goal, not an instruction, and nobody has a checklist for it.
+
+**What the ceiling does not tell you:** the exact number (it moves with channel size and niche, someone else's 30k is not yours), whether you are penalised (there is no visible penalty, and looking for one sends you appealing instead of fixing), and anything at all on a channel with three uploads.
+
+One last thing. Pausing uploads for 48 to 72 hours to "let the system reset" gets repeated constantly and there is no evidence for it and no mechanism it could work through. It costs a week and changes nothing. If the upload behaviour was the problem, change the upload behaviour.`,
+        note: 'No links, no channel name. This one is close to sub canon in places, which helps it land but means the comments will argue about the exact thresholds - agree with them, the whole point is that the number moves per channel. Do not defend the 30k figure as if it were fixed.',
+      },
+      {
+        subreddit: 'r/PartneredYoutube',
+        title: 'Impressions vs views is the first thing to check when Shorts stall, and almost nobody checks it',
+        body: `Smaller point than the usual retention threads, but it decides which problem you are actually looking at, and I see people skip it constantly.
+
+When a Short stalls there are two completely different failures that look identical from the views column.
+
+One: it was shown and people left. Impressions are normal, views are a fraction of them, retention drops somewhere you can point at. This is a video problem and the retention curve tells you where.
+
+Two: it was barely shown at all. Impressions are almost nothing. Nothing about the edit caused that, because nobody was offered it. This is an account or upload-behaviour problem, and rewriting the hook does nothing.
+
+The first number to open is impressions, not views, and it takes ten seconds. If impressions are healthy and views are not, work on the video. If impressions never happened, the video is not the thing to work on.
+
+Things that correlate with the second case, from watching it happen to other people and once to me: upload frequency jumping suddenly, re-uploading clips with no edit, scripts lifted word for word from something that went viral, bulk-generated voiceover on stock footage. Nothing there gets judged on whether it was good. It gets matched as a shape, and the shape is automation.
+
+The thing I would push back on is the advice that always follows, which is to pause uploads for two or three days to let something reset. There is no published mechanism for that and no way to verify it. If the behaviour caused it, change the behaviour. Waiting and then repeating it is a week spent on nothing.`,
+        note: 'This sub skews to people with real analytics access and low tolerance for algorithm folklore, so the narrow verifiable point lands better than the full three-tier post. Requires monetised status to post - check you qualify. No link.',
+      },
+    ],
+  },
+
   'why-shorts-get-swiped': {
     x: [
       `A Short does not get swiped because it is bad.
