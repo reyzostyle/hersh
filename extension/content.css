@@ -1,0 +1,82 @@
+/* Sized and spaced like YouTube's own Shorts actions: a 48px round tonal
+   button with the label underneath. YouTube's theme variables are used where
+   they exist so light and dark mode both follow the page. */
+
+.chumoku-group {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.chumoku-btn {
+  all: unset;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+  width: 48px;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.chumoku-btn__circle {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--yt-spec-text-primary, #f1f1f1);
+  background: var(--yt-spec-badge-chip-background, rgba(255, 255, 255, 0.1));
+  transition: background 0.15s ease, transform 0.1s ease;
+}
+
+.chumoku-btn:hover .chumoku-btn__circle {
+  background: var(--yt-spec-button-chip-background-hover, rgba(255, 255, 255, 0.2));
+}
+
+.chumoku-btn:active .chumoku-btn__circle { transform: scale(0.94); }
+
+.chumoku-btn:focus-visible .chumoku-btn__circle {
+  outline: 2px solid var(--yt-spec-text-primary, #f1f1f1);
+  outline-offset: 2px;
+}
+
+/* Steal is the one people come for; it gets the filled treatment, the way
+   YouTube marks its own primary action. */
+.chumoku-btn--steal .chumoku-btn__circle {
+  background: var(--yt-spec-text-primary, #f1f1f1);
+  color: var(--yt-spec-base-background, #0f0f0f);
+}
+.chumoku-btn--steal:hover .chumoku-btn__circle { opacity: 0.88; }
+
+.chumoku-btn--sent .chumoku-btn__circle { opacity: 0.55; }
+
+.chumoku-btn__label {
+  font-family: "Roboto", "Arial", sans-serif;
+  font-size: 12px;
+  line-height: 18px;
+  font-weight: 400;
+  color: var(--yt-spec-text-primary, #f1f1f1);
+  white-space: nowrap;
+}
+
+/* Fallback when the action bar cannot be found: a pair pinned to the right
+   edge, on a plate so it reads over any video. */
+.chumoku-group--floating {
+  position: fixed;
+  right: 20px;
+  bottom: 96px;
+  z-index: 2200;
+  margin: 0;
+  padding: 12px 10px;
+  border-radius: 28px;
+  background: rgba(15, 15, 15, 0.72);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+.chumoku-group--floating .chumoku-btn__label { color: #f1f1f1; }

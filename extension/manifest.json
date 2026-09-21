@@ -1,0 +1,45 @@
+{
+  "manifest_version": 3,
+  "name": "Chumoku: Analyze and Steal Shorts",
+  "short_name": "Chumoku",
+  "version": "0.1.0",
+  "description": "Two buttons on every YouTube Short: Analyze why it worked, or Steal its format as an outline for your own channel.",
+  "homepage_url": "https://chumoku.co",
+  "icons": {
+    "16": "icons/icon-16.png",
+    "32": "icons/icon-32.png",
+    "48": "icons/icon-48.png",
+    "128": "icons/icon-128.png"
+  },
+  "action": {
+    "default_title": "Chumoku",
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "icons/icon-16.png",
+      "32": "icons/icon-32.png"
+    }
+  },
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+  "permissions": ["contextMenus", "activeTab"],
+  "content_scripts": [
+    {
+      "matches": ["https://www.youtube.com/*", "https://m.youtube.com/*"],
+      "js": ["content.js"],
+      "css": ["content.css"],
+      "run_at": "document_idle"
+    }
+  ],
+  "commands": {
+    "analyze": {
+      "suggested_key": { "default": "Alt+Shift+A" },
+      "description": "Analyze the Short you're watching"
+    },
+    "steal": {
+      "suggested_key": { "default": "Alt+Shift+S" },
+      "description": "Steal the format of the Short you're watching"
+    }
+  }
+}

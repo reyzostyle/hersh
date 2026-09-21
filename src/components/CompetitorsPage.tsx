@@ -9,6 +9,8 @@ import { CompetitorsFeed } from './CompetitorsFeed';
 import { CompetitorVideoView } from './CompetitorVideoView';
 import { FindCompetitorsModal } from './FindCompetitorsModal';
 import { Page, PageHead, Loading } from './Page';
+import { AnalysisProgressModal } from './AnalysisProgressModal';
+import { take, PENDING_STEAL_KEY } from '../lib/intents';
 
 // Two layers, and the difference is the whole point of this screen.
 //
@@ -44,6 +46,7 @@ export function CompetitorsPage() {
   // call as well as the refresh, and both are launched from this component.
   const [adaptForProfile, setAdaptForProfile] = useState(true);
   const [findOpen, setFindOpen] = useState(false);
+  const [stealing, setStealing] = useState(false);
 
   const loadData = useCallback(async () => {
     try {
@@ -106,6 +109,38 @@ export function CompetitorsPage() {
   useEffect(() => {
     const requested = takeRequestedVideo();
     if (requested) setOpenVideoId(requested);
+  }, []);
+
+  // A Steal pressed in the Chrome extension or chosen from the share sheet.
+  // Taken (and cleared) before anything awaits, so a double mount cannot
+  // spend the credits twice. The result is a saved idea with its outline
+  // already written, opened straight into the same view a feed video uses.
+  useEffect(() => {
+    const url = take(PENDING_STEAL_KEY);
+    if (!url) return;
+    (async () => {
+      setStealing(true);
+      setFetchError('');
+      try {
+        const token = await getSessionToken();
+        if (!token) throw new Error('Not authenticated');
+        const res = await callFunction('steal-video', token, { url });
+        const data = await res.json();
+        if (data.error === 'limit_reached') {
+          setIdeaFilter('saved');
+          setFetchError(`Stealing a format costs ${data.cost ?? 5} credits and you're out for this month.`);
+          return;
+        }
+        if (!res.ok) throw new Error(data.error || 'Could not steal that video');
+        handleIdeaUpdated(data.idea, { persist: false });
+        setIdeaFilter('saved');
+        setOpenVideoId(data.idea.video_id);
+      } catch (e) {
+        setFetchError(e instanceof Error ? e.message : 'Could not steal that video');
+      } finally {
+        setStealing(false);
+      }
+    })();
   }, []);
 
   const handleAddChannel = async (channelUrl: string) => {
@@ -312,10 +347,13 @@ export function CompetitorsPage() {
     setClearing(false);
   };
 
+  const stealModal = <AnalysisProgressModal open={stealing} mode="steal" done={false} />;
+
   if (initialLoading) {
     return (
       <Page>
         <Loading />
+        {stealModal}
       </Page>
     );
   }
@@ -388,6 +426,8 @@ export function CompetitorsPage() {
         adaptForProfile={adaptForProfile}
         onAdaptChange={setAdaptForProfile}
       />
+
+      {stealModal}
 
       {findOpen && (
         <FindCompetitorsModal

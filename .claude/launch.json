@@ -1,0 +1,75 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "hershy-dev",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": [
+        "run",
+        "dev"
+      ],
+      "port": 5173
+    },
+    {
+      "name": "hershy-preview",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": [
+        "vite",
+        "preview",
+        "--port",
+        "4173"
+      ],
+      "port": 4173
+    },
+    {
+      "name": "soundsea-frontend",
+      "runtimeExecutable": "env",
+      "runtimeArgs": [
+        "NEXT_PUBLIC_API_BASE=http://localhost:4100",
+        "npm",
+        "--prefix",
+        "music-player/frontend",
+        "run",
+        "dev",
+        "--",
+        "-p",
+        "3100"
+      ],
+      "port": 3100
+    },
+    {
+      "name": "soundsea-backend",
+      "runtimeExecutable": "env",
+      "runtimeArgs": [
+        "PORT=4100",
+        "node",
+        "music-player/backend/server.js"
+      ],
+      "port": 4100
+    },
+    {
+      "name": "soundsea-frontend-prod",
+      "runtimeExecutable": "sh",
+      "runtimeArgs": [
+        "-c",
+        "cd music-player/frontend && NEXT_PUBLIC_API_BASE=http://localhost:4100 npx next build && npx next start -p 3200"
+      ],
+      "port": 3200
+    },
+    {
+      "name": "extension-static",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": [
+        "vite",
+        "serve",
+        "extension",
+        "--port",
+        "4300",
+        "--strictPort",
+        "--config",
+        "/dev/null"
+      ],
+      "port": 4300
+    }
+  ]
+}

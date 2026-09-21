@@ -24,6 +24,7 @@ import { supabase } from '../lib/supabase';
 import { SUPPORT_EMAIL } from '../lib/brand';
 import { FAQS } from '../lib/faq';
 import { readLastEmail, forgetLastEmail } from '../lib/user';
+import { arrivedWith, peek, PENDING_ANALYZE_KEY } from '../lib/intents';
 
 // ─── Surface ─────────────────────────────────────────────────────────────────
 // This page used to run on three bespoke `glass` objects: stacked white
@@ -1040,6 +1041,19 @@ const SOCIALS = [
 export function LandingPage() {
   const [authModal, setAuthModal] = useState<null | 'login' | 'signup'>(null);
   const [heroGate, setHeroGate] = useState<string | null>(null);
+
+  // A guest who pressed Analyze or Steal in the Chrome extension, or shared a
+  // Short from their phone. They came to do one thing: an analysis starts the
+  // same gate the hero does, anything else goes straight to signup, and the
+  // pending link carries across either way.
+  useEffect(() => {
+    if (arrivedWith === 'analyze') {
+      const url = peek(PENDING_ANALYZE_KEY);
+      if (url) setHeroGate(url);
+    } else if (arrivedWith) {
+      setAuthModal('signup');
+    }
+  }, []);
   const [billingInterval, setBillingInterval] = useState<Interval>('year');
   const [heroUrl, setHeroUrl] = useState('');
   const [heroError, setHeroError] = useState('');

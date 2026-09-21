@@ -11,6 +11,8 @@ import { PartnersPage } from './PartnersPage';
 import { PartnersAdminPage } from './PartnersAdminPage';
 import { CompetitorsPage } from './CompetitorsPage';
 import { AdminPage } from './AdminPage';
+import { ShareChooser } from './ShareChooser';
+import { peek, take, PENDING_ANALYZE_KEY, PENDING_STEAL_KEY, PENDING_SHARE_KEY } from '../lib/intents';
 
 // 'admin' is intentionally reachable but has no sidebar entry (see AppShell) —
 // only reached by entering the admin code in Settings. AdminPage itself
@@ -30,9 +32,24 @@ export function Dashboard() {
   // is waiting in localStorage for AnalysisChat to pick it up — go straight
   // there instead of stranding it on the hub. This also carries the link
   // across onboarding: Dashboard mounts after it, and the key is still set.
+  // A Steal from the extension or the share sheet goes to Ideas the same way,
+  // where CompetitorsPage picks it up.
   const [activeTab, setActiveTab] = useState<NavTab>(
-    () => (localStorage.getItem('chumoku_pending_video_url') ? 'analyze' : 'home')
+    () => (peek(PENDING_ANALYZE_KEY) ? 'analyze' : peek(PENDING_STEAL_KEY) ? 'competitors' : 'home')
   );
+
+  // A link shared from a phone arrives without saying what it is for.
+  const [shared, setShared] = useState<string | null>(() => take(PENDING_SHARE_KEY));
+  const chooseShared = (action: 'analyze' | 'steal') => {
+    if (!shared) return;
+    localStorage.setItem(action === 'analyze' ? PENDING_ANALYZE_KEY : PENDING_STEAL_KEY, shared);
+    setShared(null);
+    // Both screens read their key on mount, so leave and re-enter even if the
+    // tab is already the right one.
+    const tab: NavTab = action === 'analyze' ? 'analyze' : 'competitors';
+    setActiveTab('home');
+    setTimeout(() => setActiveTab(tab), 0);
+  };
 
   useEffect(() => {
     const handler = (e: Event) => {
@@ -68,6 +85,7 @@ export function Dashboard() {
       {activeTab === 'affiliate-admin' && <PartnersAdminPage />}
       {activeTab === 'settings' && <SettingsPage />}
       {activeTab === 'admin' && <AdminPage />}
+      {shared && <ShareChooser url={shared} onChoose={chooseShared} onClose={() => setShared(null)} />}
     </AppShell>
   );
 }

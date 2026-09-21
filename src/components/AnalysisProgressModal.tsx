@@ -42,9 +42,20 @@ const SCRIPT_STAGES: Stage[] = [
   { label: 'Finding what holds it back...', duration: 2500, target: 96 },
 ];
 
+// A steal is two model passes, reading the idea and then watching the video
+// for the outline, so it runs longer than an analysis and says what it is on.
+const STEAL_STAGES: Stage[] = [
+  { label: 'Fetching the Short...', duration: 1500, target: 10 },
+  { label: 'Working out why it worked...', duration: 6000, target: 34 },
+  { label: 'Stripping it down to the format...', duration: 5000, target: 52 },
+  { label: 'Watching it frame by frame...', duration: 7000, target: 74 },
+  { label: 'Rebuilding it for your channel...', duration: 6000, target: 92 },
+  { label: 'Writing your outline...', duration: 3000, target: 98 },
+];
+
 interface Props {
   open: boolean;
-  mode: 'url' | 'upload' | 'hook' | 'script';
+  mode: 'url' | 'upload' | 'hook' | 'script' | 'steal';
   done: boolean;
   /** Divides every stage duration. The signed-out hero flow runs the same
    *  stages faster, because nothing is actually being analysed there yet. */
@@ -67,7 +78,7 @@ export function AnalysisProgressModal({ open, mode, done, speed = 1, onStagesCom
       return;
     }
 
-    const stages = mode === 'upload' ? UPLOAD_STAGES : mode === 'hook' ? HOOK_STAGES : mode === 'script' ? SCRIPT_STAGES : URL_STAGES;
+    const stages = mode === 'steal' ? STEAL_STAGES : mode === 'upload' ? UPLOAD_STAGES : mode === 'hook' ? HOOK_STAGES : mode === 'script' ? SCRIPT_STAGES : URL_STAGES;
     let elapsed = 0;
 
     stages.forEach((stage) => {
@@ -103,7 +114,7 @@ export function AnalysisProgressModal({ open, mode, done, speed = 1, onStagesCom
 
   if (!open) return null;
 
-  const title = mode === 'hook' ? 'Analyzing your hook' : mode === 'script' ? 'Analyzing your script' : 'Analyzing your Short';
+  const title = mode === 'steal' ? 'Stealing the format' : mode === 'hook' ? 'Analyzing your hook' : mode === 'script' ? 'Analyzing your script' : 'Analyzing your Short';
 
   return createPortal(
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
