@@ -21,19 +21,24 @@ export const SUPPORT_EMAIL = 'support@chumoku.co';
 // Copy across once, then drop the old name. Anyone who has not opened the app
 // since the rename still gets their value the first time they do.
 const RENAMED_KEYS: [string, string][] = [
-  ['chumoku_ref', 'chumoku_ref'],
-  ['chumoku_pending_video_url', 'chumoku_pending_video_url'],
-  ['chumoku_onboarding', 'chumoku_onboarding'],
-  ['chumoku_onboarding_offer_dismissed', 'chumoku_onboarding_offer_dismissed'],
-  ['chumoku_analyze_submode', 'chumoku_analyze_submode'],
-  ['chumoku_last_plan', 'chumoku_last_plan'],
-  ['chumoku_open_competitor_video', 'chumoku_open_competitor_video'],
-  ['chumoku_open_thread', 'chumoku_open_thread'],
-  ['chumoku_sidebar_collapsed', 'chumoku_sidebar_collapsed'],
+  ['hersh_ref', 'chumoku_ref'],
+  ['hershy_pending_video_url', 'chumoku_pending_video_url'],
+  ['hershy_onboarding', 'chumoku_onboarding'],
+  ['hershy_onboarding_offer_dismissed', 'chumoku_onboarding_offer_dismissed'],
+  ['hershy_analyze_submode', 'chumoku_analyze_submode'],
+  ['hershy_last_plan', 'chumoku_last_plan'],
+  ['hershy_open_competitor_video', 'chumoku_open_competitor_video'],
+  ['hershy_open_thread', 'chumoku_open_thread'],
+  ['hershy_sidebar_collapsed', 'chumoku_sidebar_collapsed'],
 ];
 
 export function migrateStorageKeys(): void {
   for (const [before, after] of RENAMED_KEYS) {
+    // The rename's find-and-replace once turned every pair here into the same
+    // name twice, and the removeItem below then deleted each key on every page
+    // load - the referral code included, since App.tsx writes it before this
+    // runs. A pair that maps to itself is never a migration.
+    if (before === after) continue;
     try {
       const value = localStorage.getItem(before);
       if (value === null) continue;
