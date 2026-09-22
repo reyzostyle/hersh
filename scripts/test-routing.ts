@@ -5,7 +5,7 @@
 // is allowed to be deterministic, and the one that keeps costing real credits
 // when it is wrong.
 
-import { looksLikeAWriteRequest } from '../supabase/functions/_shared/chat-prompt.ts';
+import { looksLikeAWriteRequest, SYSTEM } from '../supabase/functions/_shared/chat-prompt.ts';
 
 // Requests to write something. These must never reach a score.
 const REQUESTS = [
@@ -36,6 +36,17 @@ const NOT_REQUESTS = [
 ];
 
 let failed = 0;
+
+// The prompt itself: scoring is a tool the model calls, not a label it picks.
+// A reintroduced "INTENT:" line would put the classifier back and silently
+// disable the tools.
+if (SYSTEM.includes('INTENT:')) {
+  console.error('SYSTEM still routes by an INTENT line - scoring is a tool now');
+  failed++;
+}
+for (const tool of ['score_hook', 'score_script']) {
+  if (!SYSTEM.includes(tool)) { console.error(`SYSTEM never mentions ${tool}`); failed++; }
+}
 for (const t of REQUESTS) {
   if (!looksLikeAWriteRequest(t)) { console.error(`MISSED a request: ${t}`); failed++; }
 }

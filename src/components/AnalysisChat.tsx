@@ -36,6 +36,10 @@ interface Message {
   // text it decided it about. Enough to run the other one from a click.
   textKind?: 'hook' | 'script';
   source?: string;
+  // The small mono line above a score card ("Read that as a hook"). Separate
+  // from content since the chat started answering AND scoring in one message:
+  // content is prose to be read, this is a label on the card under it.
+  note?: string;
   // Screenshots sent with this message, ready to render: data URLs while the
   // message is live, signed storage URLs once it comes back out of the
   // database. The files themselves go to the chat-images bucket, so a reopened
@@ -581,10 +585,14 @@ export function AnalysisChat() {
       setThreadId(id);
       setMessages(rows.map(r => {
         const shots = (r.images ?? []).map(p => signed[p]).filter(Boolean);
+        // Before the chat could answer and score in one message, the label
+        // above a card WAS the message content. Read those back as labels.
+        const isLabel = !!r.analysis && /^Read that as a (hook|script)$/.test((r.content ?? '').trim());
         return {
           id: r.id,
           role: r.role,
-          content: shots.length ? stripShotTag(r.content) : r.content,
+          content: isLabel ? '' : (shots.length ? stripShotTag(r.content) : r.content),
+          note: isLabel ? r.content.trim() : undefined,
           analysis: r.analysis ?? null,
           images: shots.length ? shots : undefined,
         };
@@ -967,7 +975,7 @@ export function AnalysisChat() {
             strong_spots: data.strong_spots ?? [],
             weak_spots: data.weak_spots ?? [],
           };
-      push({ role: 'assistant', content: `Read that as a ${kind}`, analysis: a, textKind: kind, source: text });
+      push({ role: 'assistant', content: '', note: `Read that as a ${kind}`, analysis: a, textKind: kind, source: text });
       if (tid) await persist(tid, 'assistant', `Read that as a ${kind}`, a);
       reloadUsage();
       // App defers onboarding for anyone who arrived by pasting a link on the
@@ -984,8 +992,11 @@ export function AnalysisChat() {
     }
   };
 
-  // Works out what an unprompted message actually is, and answers it if it is
-  // a question.
+  // Sends the message to the chat and renders whatever comes back.
+  //
+  // There is no classifier on the other end any more. One model answers, and
+  // it can look things up in this creator's account and score a hook or a
+  // script while it does - so a reply can be prose, a score card, or both.
   //
   // There was no router before this: anything without a link went straight to
   // a hook or script check on the strength of "is it longer than 200
@@ -1025,14 +1036,36 @@ export function AnalysisChat() {
       const data = await res.json();
       if (!res.ok) throw failOf(res.status, data.error || 'Could not read that');
 
-      if (data.intent === 'hook' || data.intent === 'script') {
-        // Hands off with the bubble already on screen. runTextAnalysis takes
-        // over the busy state and the stage line from here.
-        await runTextAnalysis(data.intent, text, { pushed: !silent });
-        return;
-      }
+      // A score, when the chat decided one was wanted, arrives WITH the
+      // answer rather than instead of it. There is no second call and no
+      // second charge: scoring is something the chat did, not a branch the
+      // message fell down, so "here's my hook, and what should I post
+      // tomorrow" now gets both halves answered in one reply.
+      const scored = data.scored as { kind: 'hook' | 'script'; result: Record<string, unknown> } | undefined;
+      const card: Analysis | null = !scored ? null : scored.kind === 'hook'
+        ? {
+            overall_score: scored.result.score as number,
+            overall_assessment: scored.result.verdict as string,
+            strong_spots: [],
+            weak_spots: (scored.result.issues ?? []) as string[],
+            rewrites: (scored.result.rewrites ?? []) as Analysis['rewrites'],
+          }
+        : {
+            overall_score: scored.result.overall_score as number,
+            overall_assessment: scored.result.overall_assessment as string,
+            strong_spots: (scored.result.strong_spots ?? []) as string[],
+            weak_spots: (scored.result.weak_spots ?? []) as string[],
+          };
 
-      push({ role: 'assistant', content: data.answer });
+      push({
+        role: 'assistant',
+        content: data.answer,
+        analysis: card,
+        // Lets the "read that as a script" chip offer the other reading of the
+        // same text, exactly as it does after a manual check.
+        ...(scored ? { textKind: scored.kind, source: text } : {}),
+      });
+      if (card) window.dispatchEvent(new CustomEvent('chumoku:analysis-done'));
 
       // The server only persists into a thread that already exists, because
       // until now there was nothing worth keeping. A question can open a
@@ -1048,7 +1081,7 @@ export function AnalysisChat() {
         // images did survive.
         const tag = (images?.length ?? 0) > 1 ? `[${images!.length} screenshots]` : '[screenshot]';
         await persist(opened, 'user', images?.length ? `${tag} ${text}`.trim() : text);
-        await persist(opened, 'assistant', data.answer);
+        await persist(opened, 'assistant', data.answer, card ?? undefined);
       }
 
       // The screenshots are kept once the message they belong to exists. On a
@@ -1371,9 +1404,22 @@ export function AnalysisChat() {
                         be found; here it is the sentence answering itself.
                         Only on the newest result: offering it on an older card
                         would rewrite the middle of the conversation. */}
-                    {(m.content || m.textKind) && (
+                    {m.content && (
+                      <div className="flex flex-col items-start gap-1">
+                        <div
+                          className="max-w-[85%] rounded-2xl px-4 py-2.5 text-[14px] leading-relaxed whitespace-pre-line break-words"
+                          style={{ background: 'var(--bg-raised)', color: 'var(--text)' }}
+                        >
+                          {m.fresh
+                            ? <RevealText text={m.content} onAdvance={scrollToEnd} />
+                            : m.content}
+                        </div>
+                        <CopyButton text={m.content} title="Copy this answer" className="-ml-1" />
+                      </div>
+                    )}
+                    {(m.note || m.textKind) && (
                       <div className="flex items-center gap-3 flex-wrap">
-                        {m.content && <p className="label-mono">{m.content}</p>}
+                        {m.note && <p className="label-mono">{m.note}</p>}
                         {m.textKind && m.source && m.id === messages[messages.length - 1]?.id && (
                           <button
                             className="chip"
