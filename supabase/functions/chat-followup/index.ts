@@ -4,7 +4,7 @@ import { callLLMWithTools } from '../_shared/llm.ts';
 import { parseImages } from '../_shared/images.ts';
 import { loadCreditStatus, canAfford, spendCredits, CREDIT_COSTS } from '../_shared/credits.ts';
 import { CREATOR_TOOLS, runCreatorTool } from '../_shared/creator-tools.ts';
-import { SYSTEM } from '../_shared/chat-prompt.ts';
+import { SYSTEM, looksLikeAWriteRequest } from '../_shared/chat-prompt.ts';
 import { loadBrain, brainLine } from '../_shared/brain.ts';
 
 const CORS = corsHeaders({ methods: 'POST, OPTIONS' });
@@ -274,8 +274,28 @@ ${(a.weak_spots ?? []).map(s => `- ${s}`).join('\n') || '- none noted'}
     // Enforced here rather than trusted from the prompt. A screenshot routed to
     // hook would hand the client an empty string to score out of 100, and the
     // rule is absolute anyway: an image is always a question.
-    const intent = hasImage ? 'question' : routed.intent;
-    const answer = routed.answer;
+    let intent = hasImage ? 'question' : routed.intent;
+    let answer = routed.answer;
+
+    // The model routed a request to WRITE something into a score. It stopped
+    // at the INTENT line, so there is no answer to fall back on - ask it again
+    // with the routing already decided. A second call is worth it: the
+    // alternative is the creator paying 3 credits to be told their request is
+    // a bad script, which is what used to happen.
+    if (intent !== 'question' && looksLikeAWriteRequest(question ?? '')) {
+      console.log('[chat-followup] overriding', intent, 'to question: this is a request to write');
+      const retry = await callLLMWithTools(
+        `${prompt}\n\n## Routing already decided\nThis message is a REQUEST for you to write something, not a text for you to judge. The intent is question. Write the thing they asked for, in full, following the rules above. Start your reply with the line "INTENT: question".`,
+        {
+          system: SYSTEM, maxTokens: 2000, images,
+          tools: CREATOR_TOOLS,
+          onToolUsed: c => toolsUsed.push(c.name),
+          run: c => runCreatorTool(supabase, user.id, c),
+        },
+      );
+      intent = 'question';
+      answer = splitRouted(retry).answer;
+    }
 
     // A hook or a script is not answered here and is not charged here. The
     // client runs the real analysis next, which charges its own price - being

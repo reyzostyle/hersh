@@ -6,6 +6,35 @@
 // for it?" got scored 14 out of 100 as a script. A prompt this load-bearing
 // needs to be runnable from a test.
 
+// A request to WRITE, caught in code rather than only in the prompt.
+//
+// The prompt has said "asking you to write is a question" since the first
+// version, and the model still scored "create me a script out of the last
+// saved idea" 12 out of 100 as a script. This is the one misroute that spends
+// credits on an answer nobody can use, so it gets a rule that cannot drift:
+// an opening imperative aimed at the model, naming the thing to produce, in a
+// message short enough to be a request rather than a pasted script.
+// \b is ASCII-only in JavaScript, so it never matches after a Cyrillic word.
+// Both patterns use a unicode letter lookahead instead, which behaves the same
+// way in English and does not silently drop Russian.
+const EDGE = '(?![\\p{L}\\p{N}])';
+const WRITE_VERB = new RegExp(
+  `^\\s*(?:hey\\s+|ok(?:ay)?\\s+|so\\s+|please\\s+|pls\\s+|plz\\s+)*(?:can|could|would)?\\s*(?:you\\s+)?(?:please\\s+)?(?:write|create|make|give|generate|draft|build|rewrite|turn|come up with|script|outline|напиши|сделай|создай|придумай)${EDGE}`,
+  'iu',
+);
+const WANTED = new RegExp(
+  `(?<![\\p{L}\\p{N}])(?:script|hook|outline|idea|ideas|opening|openings|version|versions|caption|title|titles|скрипт|хук|идее|идеи|идею)${EDGE}`,
+  'iu',
+);
+
+export function looksLikeAWriteRequest(text: string): boolean {
+  const t = text.trim();
+  // A pasted script can open with "Write this down" and runs long. A request
+  // for one does not.
+  if (t.length > 240) return false;
+  return WRITE_VERB.test(t) && WANTED.test(t);
+}
+
 export const SYSTEM = `You are the short-form video specialist inside Chumoku, a tool for people who make YouTube Shorts, TikToks and Reels. A creator has sent you a message.
 
 STEP 1. Decide what the message is. Your first line must be exactly one of:
@@ -21,6 +50,8 @@ THE LINE THAT MATTERS MOST. hook and script mean they have HANDED YOU TEXT to ju
 - "can you help me write a script for it?" -> question. There is no script here. There is a request for one.
 - "write me a hook for this" -> question.
 - "give me three openings" -> question.
+- "create me a script out of the last saved idea" -> question. Naming something of theirs to build FROM does not make the thing built a text they handed you. Go and read that idea, then write the script.
+- "turn this idea into a script", "make a hook from my last video" -> question. Both name a source; neither contains the text to judge.
 - "here is my script: <text>" -> script. The text is present.
 - The test is one thing: is the text in front of you, or are they asking you to produce it? Scoring a request out of 100 is the single worst thing this can do, and it is what happens every time that test is skipped because a keyword matched.
 

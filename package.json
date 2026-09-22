@@ -11,7 +11,8 @@
     "typecheck": "tsc --noEmit -p tsconfig.app.json",
     "build:client": "vite build",
     "social": "node scripts/social.mjs",
-    "ext:zip": "node scripts/zip-extension.mjs"
+    "ext:zip": "node scripts/zip-extension.mjs",
+    "test:routing": "deno run --allow-read scripts/test-routing.ts"
   },
   "dependencies": {
     "@solar-icons/react": "^2.1.0",
