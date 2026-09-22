@@ -62,9 +62,14 @@ interface Props {
   speed?: number;
   /** Fires when the last stage has landed and the bar has stopped climbing. */
   onStagesComplete?: () => void;
+  /** 'inline' drops the backdrop and the portal and sits in the page instead.
+   *  The side panel is 400px of column next to a video: a fixed overlay there
+   *  dims and blurs whatever else the panel is holding, which reads as two
+   *  screens fighting rather than as one thing loading. */
+  variant?: 'modal' | 'inline';
 }
 
-export function AnalysisProgressModal({ open, mode, done, speed = 1, onStagesComplete }: Props) {
+export function AnalysisProgressModal({ open, mode, done, speed = 1, onStagesComplete, variant = 'modal' }: Props) {
   const [percent, setPercent] = useState(0);
   const [label, setLabel] = useState('');
   const timersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
@@ -116,46 +121,53 @@ export function AnalysisProgressModal({ open, mode, done, speed = 1, onStagesCom
 
   const title = mode === 'steal' ? 'Stealing the format' : mode === 'hook' ? 'Analyzing your hook' : mode === 'script' ? 'Analyzing your script' : 'Analyzing your Short';
 
+  const card = (
+    <div
+      className={`relative w-full max-w-sm rounded-2xl p-8 flex flex-col items-center gap-6 ${variant === 'modal' ? 'animate-scale-in' : ''}`}
+      style={{
+        background: 'rgba(var(--surface-rgb),0.98)',
+        border: '1px solid rgba(255,255,255,0.1)',
+        willChange: 'transform',
+      }}
+    >
+      <div className="w-12 h-12 rounded-2xl flex items-center justify-center" style={{ background: 'var(--bg-raised)', border: '1px solid var(--line)' }}>
+        <Sparkles className="w-5 h-5 text-[rgb(var(--wash-rgb))]" style={{ animation: 'spin 3s linear infinite' }} />
+      </div>
+
+      <div className="text-center">
+        <p className="text-white font-semibold text-sm mb-1">{title}</p>
+        <p className="text-gray-500 text-xs h-4 transition-all duration-500">{label}</p>
+      </div>
+
+      <div className="w-full">
+        <div className="w-full h-1.5 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.08)' }}>
+          <div
+            className="h-full rounded-full"
+            style={{
+              width: `${percent}%`,
+              background: 'var(--process)',
+              transition: 'width 1.2s cubic-bezier(0.4, 0, 0.2, 1)',
+            }}
+          />
+        </div>
+        <p className="text-right text-[10px] text-gray-600 mt-1.5">{percent}%</p>
+      </div>
+    </div>
+  );
+
+  // In the panel it is the only thing on screen, so it needs no dimming and
+  // nothing to sit on top of.
+  if (variant === 'inline') {
+    return <div className="h-full flex items-center justify-center p-4">{card}</div>;
+  }
+
   return createPortal(
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div
         className="absolute inset-0 bg-black/70"
         style={{ backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)' }}
       />
-      <div
-        className="relative w-full max-w-sm rounded-2xl p-8 flex flex-col items-center gap-6 animate-scale-in"
-        style={{
-          background: 'rgba(var(--surface-rgb),0.98)',
-          border: '1px solid rgba(255,255,255,0.1)',
-          willChange: 'transform',
-        }}
-      >
-        {/* Icon */}
-        <div className="w-12 h-12 rounded-2xl flex items-center justify-center" style={{ background: 'var(--bg-raised)', border: '1px solid var(--line)' }}>
-          <Sparkles className="w-5 h-5 text-[rgb(var(--wash-rgb))]" style={{ animation: 'spin 3s linear infinite' }} />
-        </div>
-
-        {/* Label */}
-        <div className="text-center">
-          <p className="text-white font-semibold text-sm mb-1">{title}</p>
-          <p className="text-gray-500 text-xs h-4 transition-all duration-500">{label}</p>
-        </div>
-
-        {/* Progress bar */}
-        <div className="w-full">
-          <div className="w-full h-1.5 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.08)' }}>
-            <div
-              className="h-full rounded-full"
-              style={{
-                width: `${percent}%`,
-                background: 'var(--process)',
-                transition: 'width 1.2s cubic-bezier(0.4, 0, 0.2, 1)',
-              }}
-            />
-          </div>
-          <p className="text-right text-[10px] text-gray-600 mt-1.5">{percent}%</p>
-        </div>
-      </div>
+      {card}
     </div>,
     document.body
   );

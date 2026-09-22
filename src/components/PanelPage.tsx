@@ -238,16 +238,7 @@ function StealRun({ url }: { url: string }) {
     return <div className="p-5"><ErrorNotice message={error} /></div>;
   }
 
-  if (!idea) {
-    return (
-      <>
-        <Centered>
-          <Loader2 className="w-6 h-6 animate-spin" style={{ color: 'var(--text-muted)' }} />
-        </Centered>
-        <AnalysisProgressModal open={running} mode="steal" done={false} />
-      </>
-    );
-  }
+  if (!idea) return <AnalysisProgressModal open={running} mode="steal" done={false} variant="inline" />;
 
   return (
     <CompetitorVideoView
