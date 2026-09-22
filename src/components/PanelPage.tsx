@@ -108,7 +108,10 @@ export function PanelPage() {
         </div>
       </header>
 
-      <div className="flex-1 min-h-0 overflow-y-auto">
+      {/* No scrolling here: the chat scrolls its own conversation and the
+          steal view scrolls its own page. A scroller wrapped around either one
+          is a second scrollbar that drags the header out of view. */}
+      <div className="flex-1 min-h-0">
         {loading ? (
           <Centered><Loader2 className="w-6 h-6 animate-spin" style={{ color: 'var(--text-muted)' }} /></Centered>
         ) : !user ? (
@@ -126,7 +129,7 @@ export function PanelPage() {
           </div>
         )}
         {user && slots.steal && (
-          <div className={`h-full ${active === 'steal' ? '' : 'hidden'}`}>
+          <div className={`h-full overflow-y-auto ${active === 'steal' ? '' : 'hidden'}`}>
             <StealRun key={slots.steal.n} url={slots.steal.url} />
           </div>
         )}

@@ -528,6 +528,12 @@ export function AnalysisChat() {
 
   const fileRef = useRef<HTMLInputElement>(null);
   const endRef = useRef<HTMLDivElement>(null);
+  // The conversation's own scroller. scrollIntoView used to do this, and it
+  // scrolls EVERY ancestor that can scroll - including AppShell's <main> and
+  // the side panel's frame - so each new message nudged the whole screen down
+  // and clipped the History / New chips and the Save to project line at the
+  // edges. Scrolling this one box moves nothing else.
+  const scrollRef = useRef<HTMLDivElement>(null);
   const taRef = useRef<HTMLTextAreaElement>(null);
   // The run in flight, so Stop has something to pull on. One at a time by
   // construction: the composer is disabled while a run is going.
@@ -535,9 +541,12 @@ export function AnalysisChat() {
 
   // Instant, not smooth, when called from the reveal: a smooth scroll retriggered
   // every 28ms never settles, and the page ends up crawling behind the text.
-  const scrollToEnd = () => endRef.current?.scrollIntoView({ behavior: 'auto', block: 'end' });
+  const scrollToEnd = (behavior: ScrollBehavior = 'auto') => {
+    const box = scrollRef.current;
+    if (box) box.scrollTo({ top: box.scrollHeight, behavior });
+  };
 
-  useEffect(() => { endRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages, busy]);
+  useEffect(() => { scrollToEnd('smooth'); }, [messages, busy]);
 
   // Keeps the creator's own work searchable by meaning, once per page load.
   //
@@ -1323,7 +1332,7 @@ export function AnalysisChat() {
   // solid panel laid over it just hid the thing that makes this screen look
   // like anything. The conversation sits on the grid directly.
   return (
-    <div className="h-full flex flex-col">
+    <div className="h-full flex flex-col overflow-hidden">
       {/* History is a door, not a drawer. The hub already lists every
           conversation with rename, delete and filing on each one; a second
           list in here would be the same work twice and would put a sidebar
@@ -1371,7 +1380,7 @@ export function AnalysisChat() {
         </div>
       ) : (
         <>
-          <div className="flex-1 overflow-y-auto">
+          <div ref={scrollRef} className="flex-1 min-h-0 overflow-y-auto">
             <div className="max-w-2xl mx-auto px-5 pt-4 pb-8 space-y-6">
               {opening && !messages.length && (
                 <div className="space-y-3">
@@ -1411,7 +1420,7 @@ export function AnalysisChat() {
                           style={{ background: 'var(--bg-raised)', color: 'var(--text)' }}
                         >
                           {m.fresh
-                            ? <RevealText text={m.content} onAdvance={scrollToEnd} />
+                            ? <RevealText text={m.content} onAdvance={() => scrollToEnd()} />
                             : m.content}
                         </div>
                         <CopyButton text={m.content} title="Copy this answer" className="-ml-1" />
@@ -1434,7 +1443,7 @@ export function AnalysisChat() {
                         )}
                       </div>
                     )}
-                    <AnalysisCard a={m.analysis} fresh={m.fresh} onAdvance={scrollToEnd} />
+                    <AnalysisCard a={m.analysis} fresh={m.fresh} onAdvance={() => scrollToEnd()} />
                   </div>
                 ) : (
                   /* On a plate, like the creator's own messages and like the
@@ -1452,7 +1461,7 @@ export function AnalysisChat() {
                       style={{ background: 'var(--bg-raised)', color: 'var(--text)' }}
                     >
                       {m.fresh
-                        ? <RevealText text={m.content} onAdvance={scrollToEnd} />
+                        ? <RevealText text={m.content} onAdvance={() => scrollToEnd()} />
                         : m.content}
                     </div>
                     <CopyButton text={m.content} title="Copy this answer" className="-ml-1" />
