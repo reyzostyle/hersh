@@ -10,7 +10,9 @@ Two buttons on every YouTube Short, in the column above Like:
 Also: right-click any Short link (Chumoku → Analyze / Steal), `Alt+Shift+A` /
 `Alt+Shift+S` on the Short you're watching, and a popup for pasting a link.
 
-Results open in Chrome's **side panel**, beside the video. `panel.html` is an iframe of
+Results open in Chrome's **side panel**, beside the video. The panel keeps one analysis
+and one steal alive at a time, with chips to switch between them, so stealing a Short you
+just analysed does not throw the conversation away. `panel.html` is an iframe of
 `chumoku.co/panel` (`src/components/PanelPage.tsx`): the real app, same session, same
 chat and idea view, so everything is saved to the account as usual. Chrome gives an
 extension's frames first-party storage on hosts in `host_permissions`, which is why the
@@ -43,7 +45,7 @@ https://chrome.google.com/webstore/devconsole ($5 one-time developer fee). Bump
 
 ### Listing copy
 
-**Name:** Chumoku: Analyze and Steal Shorts
+**Name:** Chumoku
 
 **Summary (132 chars max):** Two buttons on every YouTube Short. Analyze why it worked, or steal its format as an outline for your channel.
 

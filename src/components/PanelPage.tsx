@@ -26,6 +26,13 @@ import { ErrorNotice } from './ErrorNotice';
 type Action = 'analyze' | 'steal';
 type Request = { action: Action; url: string; n: number };
 
+// One live slot per action, so analysing a Short and then stealing it leaves
+// both on screen: the second press used to replace the first, and the
+// conversation went with it. Switching between them is a switch, not a rerun -
+// each slot keeps its own mounted component, and only a new press for that
+// action starts anything.
+type Slots = { analyze: Request | null; steal: Request | null };
+
 // Only the extension may start a paid run here. Any site can put this route in
 // an iframe; one that is not the extension gets partitioned storage (so no
 // session) and, with this check, no action either.
@@ -43,14 +50,29 @@ function initialRequest(): Request | null {
 
 export function PanelPage() {
   const { user, loading } = useAuth();
-  const [req, setReq] = useState<Request | null>(initialRequest);
+  const [slots, setSlots] = useState<Slots>(() => {
+    const first = initialRequest();
+    return { analyze: null, steal: null, ...(first ? { [first.action]: first } : {}) };
+  });
+  const [active, setActive] = useState<Action | null>(() => initialRequest()?.action ?? null);
+
+  const run = (action: Action, url: string) => {
+    setSlots(prev => {
+      const current = prev[action];
+      // The same Short pressed twice for the same thing: show what is already
+      // there rather than paying for it again.
+      if (current?.url === url) return prev;
+      return { ...prev, [action]: { action, url, n: (current?.n ?? 0) + 1 } };
+    });
+    setActive(action);
+  };
 
   useEffect(() => {
     const onMessage = (e: MessageEvent) => {
       if (e.source !== window.parent || !fromExtension(e.origin)) return;
       const d = e.data;
       if (d?.type !== 'chumoku:run' || (d.action !== 'analyze' && d.action !== 'steal') || typeof d.url !== 'string') return;
-      setReq(prev => ({ action: d.action, url: d.url, n: (prev?.n ?? 0) + 1 }));
+      run(d.action, d.url);
     };
     window.addEventListener('message', onMessage);
     window.parent?.postMessage({ type: 'chumoku:panel-ready' }, '*');
@@ -71,10 +93,19 @@ export function PanelPage() {
         <span className="flex items-center gap-2 text-[14px] font-semibold" style={{ color: 'var(--text)' }}>
           <img src="/favicon.png" alt="" className="w-5 h-5 rounded-md" /> Chumoku
         </span>
-        <a href={`${SITE_URL}/?utm_source=extension`} target="_blank" rel="noopener"
-           className="text-[12px] transition-colors hover:text-[var(--text)]" style={{ color: 'var(--text-muted)' }}>
-          Open app ↗
-        </a>
+        <div className="flex items-center gap-2">
+          {/* Only once there is a choice to make. */}
+          {slots.analyze && slots.steal && (['analyze', 'steal'] as Action[]).map(a => (
+            <button key={a} onClick={() => setActive(a)} className="chip" data-on={active === a}
+                    title={slots[a]?.url}>
+              {a === 'analyze' ? 'Analysis' : 'Steal'}
+            </button>
+          ))}
+          <a href={`${SITE_URL}/?utm_source=extension`} target="_blank" rel="noopener"
+             className="text-[12px] transition-colors hover:text-[var(--text)]" style={{ color: 'var(--text-muted)' }}>
+            Open app ↗
+          </a>
+        </div>
       </header>
 
       <div className="flex-1 min-h-0 overflow-y-auto">
@@ -82,12 +113,22 @@ export function PanelPage() {
           <Centered><Loader2 className="w-6 h-6 animate-spin" style={{ color: 'var(--text-muted)' }} /></Centered>
         ) : !user ? (
           <SignedOut />
-        ) : !req ? (
+        ) : !active ? (
           <Idle />
-        ) : req.action === 'analyze' ? (
-          <AnalyzeRun key={req.n} url={req.url} />
-        ) : (
-          <StealRun key={req.n} url={req.url} />
+        ) : null}
+
+        {/* Both slots stay mounted and the inactive one is hidden rather than
+            unmounted: a chat that is thrown away and rebuilt has lost its
+            messages, and a steal would have to be paid for twice. */}
+        {user && slots.analyze && (
+          <div className={`h-full ${active === 'analyze' ? '' : 'hidden'}`}>
+            <AnalyzeRun key={slots.analyze.n} url={slots.analyze.url} />
+          </div>
+        )}
+        {user && slots.steal && (
+          <div className={`h-full ${active === 'steal' ? '' : 'hidden'}`}>
+            <StealRun key={slots.steal.n} url={slots.steal.url} />
+          </div>
         )}
       </div>
     </div>

@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "Chumoku: Analyze and Steal Shorts",
+  "name": "Chumoku",
   "short_name": "Chumoku",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Two buttons on every YouTube Short: Analyze why it worked, or Steal its format as an outline for your own channel. Results open beside the video.",
   "homepage_url": "https://chumoku.co",
   "icons": {
