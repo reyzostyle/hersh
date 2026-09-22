@@ -194,6 +194,12 @@ interface SessionCache {
 }
 let session: SessionCache | null = null;
 
+// The side panel runs one conversation per Short: pressing Analyze on the next
+// one should start clean, not append to whatever the cache is holding.
+export function resetAnalysisSession() {
+  session = null;
+}
+
 // Whether the embedding sync has already been kicked off this page load.
 let syncedThisLoad = false;
 

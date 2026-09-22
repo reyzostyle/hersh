@@ -7,6 +7,7 @@ import { PrivacyPolicy } from './components/PrivacyPolicy';
 import { TermsOfService } from './components/TermsOfService';
 import { BlogPost, BlogIndex } from './components/BlogPage';
 import { postBySlug } from './lib/blog';
+import { PanelPage } from './components/PanelPage';
 import { RefreshOutlineIcon as Loader2 } from '@solar-icons/react';
 import { useEffect, useState } from 'react';
 import { supabase, getSessionToken } from './lib/supabase';
@@ -328,6 +329,10 @@ function AppContent() {
     const post = postBySlug(window.location.pathname.replace('/blog/', '').replace(/\/$/, ''));
     if (post) return <BlogPost post={post} />;
   }
+
+  // The Chrome extension's side panel. It draws its own signed-out and loading
+  // states, and must never fall through to the landing page or onboarding.
+  if (window.location.pathname === '/panel') return <PanelPage />;
 
   if (loading) {
     return (

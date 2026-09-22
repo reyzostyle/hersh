@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase, getSessionToken, getUserId } from '../lib/supabase';
 import {
-  callFunction, inboxItems, itemFromIdea, filterIdeas,
+  callFunction, stealVideo, inboxItems, itemFromIdea, filterIdeas,
   type CompetitorChannel, type CompetitorIdea, type FeedItem, type IdeaFilter, type PoolVideo,
 } from '../lib/competitors';
 import { listProjects, touchProject, takeRequestedVideo, type Project } from '../lib/projects';
@@ -124,17 +124,15 @@ export function CompetitorsPage() {
       try {
         const token = await getSessionToken();
         if (!token) throw new Error('Not authenticated');
-        const res = await callFunction('steal-video', token, { url });
-        const data = await res.json();
-        if (data.error === 'limit_reached') {
+        const result = await stealVideo(url, token);
+        if ('limit' in result) {
           setIdeaFilter('saved');
-          setFetchError(`Stealing a format costs ${data.cost ?? 5} credits and you're out for this month.`);
+          setFetchError(`Stealing a format costs ${result.cost} credits and you're out for this month.`);
           return;
         }
-        if (!res.ok) throw new Error(data.error || 'Could not steal that video');
-        handleIdeaUpdated(data.idea, { persist: false });
+        handleIdeaUpdated(result.idea, { persist: false });
         setIdeaFilter('saved');
-        setOpenVideoId(data.idea.video_id);
+        setOpenVideoId(result.idea.video_id);
       } catch (e) {
         setFetchError(e instanceof Error ? e.message : 'Could not steal that video');
       } finally {

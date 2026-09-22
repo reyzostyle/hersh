@@ -3,6 +3,10 @@
 
 export const APP_URL = 'https://chumoku.co';
 
+// chrome.storage.session key the background writes each press to and the side
+// panel reads it from: { action, url, id, at }.
+export const PANEL_KEY = 'panelRequest';
+
 // Any YouTube video link down to its id: /shorts/ID, watch?v=ID, youtu.be/ID.
 export function videoIdFrom(input) {
   if (!input) return null;

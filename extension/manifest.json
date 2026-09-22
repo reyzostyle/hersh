@@ -2,8 +2,8 @@
   "manifest_version": 3,
   "name": "Chumoku: Analyze and Steal Shorts",
   "short_name": "Chumoku",
-  "version": "0.1.0",
-  "description": "Two buttons on every YouTube Short: Analyze why it worked, or Steal its format as an outline for your own channel.",
+  "version": "0.2.0",
+  "description": "Two buttons on every YouTube Short: Analyze why it worked, or Steal its format as an outline for your own channel. Results open beside the video.",
   "homepage_url": "https://chumoku.co",
   "icons": {
     "16": "icons/icon-16.png",
@@ -23,23 +23,46 @@
     "service_worker": "background.js",
     "type": "module"
   },
-  "permissions": ["contextMenus", "activeTab"],
+  "permissions": [
+    "contextMenus",
+    "activeTab",
+    "sidePanel",
+    "storage"
+  ],
   "content_scripts": [
     {
-      "matches": ["https://www.youtube.com/*", "https://m.youtube.com/*"],
-      "js": ["content.js"],
-      "css": ["content.css"],
+      "matches": [
+        "https://www.youtube.com/*",
+        "https://m.youtube.com/*"
+      ],
+      "js": [
+        "content.js"
+      ],
+      "css": [
+        "content.css"
+      ],
       "run_at": "document_idle"
     }
   ],
   "commands": {
     "analyze": {
-      "suggested_key": { "default": "Alt+Shift+A" },
+      "suggested_key": {
+        "default": "Alt+Shift+A"
+      },
       "description": "Analyze the Short you're watching"
     },
     "steal": {
-      "suggested_key": { "default": "Alt+Shift+S" },
+      "suggested_key": {
+        "default": "Alt+Shift+S"
+      },
       "description": "Steal the format of the Short you're watching"
     }
-  }
+  },
+  "host_permissions": [
+    "https://chumoku.co/*"
+  ],
+  "side_panel": {
+    "default_path": "panel.html"
+  },
+  "minimum_chrome_version": "116"
 }

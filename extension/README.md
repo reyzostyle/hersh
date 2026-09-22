@@ -10,9 +10,18 @@ Two buttons on every YouTube Short, in the column above Like:
 Also: right-click any Short link (Chumoku → Analyze / Steal), `Alt+Shift+A` /
 `Alt+Shift+S` on the Short you're watching, and a popup for pasting a link.
 
-The extension holds no auth and calls no API. It only opens the app with an intent in
-the URL; the web app (`src/lib/intents.ts`) turns it into a one-shot localStorage key,
-so a signed-out user carries it through signup and onboarding.
+Results open in Chrome's **side panel**, beside the video. `panel.html` is an iframe of
+`chumoku.co/panel` (`src/components/PanelPage.tsx`): the real app, same session, same
+chat and idea view, so everything is saved to the account as usual. Chrome gives an
+extension's frames first-party storage on hosts in `host_permissions`, which is why the
+login carries over. Each press is written to `chrome.storage.session` and posted into
+the frame; `/panel` only accepts runs from a `chrome-extension://` parent.
+
+If the panel will not open (Chrome older than 116, or the call not counted as a user
+gesture), it falls back to a tab with `?analyze=` / `?steal=`, handled by
+`src/lib/intents.ts`, which also carries a signed-out user through signup.
+
+The extension itself holds no auth and calls no API.
 
 ## Try it locally
 
@@ -60,6 +69,9 @@ Built for Shorts creators posting daily in ranking, Minecraft, Roblox and commen
 **Permissions justification** (the store asks for each):
 - `contextMenus`: the right-click Analyze / Steal entries on Short links.
 - `activeTab`: the popup reads the current tab's URL to know which Short you're on.
+- `sidePanel`: results open in a panel beside the video.
+- `storage`: hands the pressed Short from the button to the panel (session only, cleared when Chrome closes).
+- Host access to chumoku.co: the panel shows the Chumoku site, signed in with your existing session.
 - Host access to youtube.com: to place the two buttons on Shorts pages.
 
 **Single purpose:** Send a YouTube Short to Chumoku for analysis or format adaptation.

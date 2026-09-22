@@ -1,10 +1,30 @@
-import { videoIdFrom, appUrlFor } from './shared.js';
+import { videoIdFrom, appUrlFor, PANEL_KEY } from './shared.js';
 
-// Opens the app on the result, next to the tab the button was pressed in, so
-// closing it lands you back on the Short you were watching.
-async function open(action, videoId, fromTab) {
-  const url = appUrlFor(action, videoId);
-  const props = { url, active: true };
+// Shows the result in the side panel, beside the video. Falls back to a tab
+// next to this one if the panel will not open (an older Chrome, or a call that
+// Chrome did not count as a user gesture).
+//
+// sidePanel.open() has to be the first thing that happens: Chrome only allows
+// it while the click that caused it is still being handled, and any await
+// before it spends that. So it is called synchronously and the request is
+// written afterwards; the panel picks it up from storage when it loads.
+function open(action, videoId, fromTab) {
+  const url = `https://www.youtube.com/shorts/${videoId}`;
+  const windowId = fromTab?.windowId;
+  let opening;
+  try {
+    opening = windowId != null ? chrome.sidePanel.open({ windowId }) : Promise.reject(new Error('no window'));
+  } catch (e) {
+    opening = Promise.reject(e);
+  }
+  chrome.storage.session.set({
+    [PANEL_KEY]: { action, url, id: crypto.randomUUID(), at: Date.now() },
+  });
+  return opening.catch(() => openTab(action, videoId, fromTab));
+}
+
+async function openTab(action, videoId, fromTab) {
+  const props = { url: appUrlFor(action, videoId), active: true };
   if (fromTab && typeof fromTab.index === 'number') {
     props.index = fromTab.index + 1;
     props.openerTabId = fromTab.id;
@@ -62,9 +82,10 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
 });
 
 // Alt+Shift+A / Alt+Shift+S on the Short you are watching.
-chrome.commands.onCommand.addListener(async (command, tab) => {
+// `tab` is passed by Chrome here, which matters: querying for it first would
+// be an await, and the panel would then refuse to open.
+chrome.commands.onCommand.addListener((command, tab) => {
   if (command !== 'analyze' && command !== 'steal') return;
-  const active = tab || (await chrome.tabs.query({ active: true, currentWindow: true }))[0];
-  const id = videoIdFrom(active?.url);
-  if (id) open(command, id, active);
+  const id = videoIdFrom(tab?.url);
+  if (id) open(command, id, tab);
 });

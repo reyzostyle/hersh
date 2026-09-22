@@ -1,4 +1,4 @@
-import { videoIdFrom } from './shared.js';
+import { videoIdFrom, appUrlFor, PANEL_KEY } from './shared.js';
 
 const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
 const tabVideo = videoIdFrom(tab?.url);
@@ -8,8 +8,19 @@ const offVideo = document.getElementById('off-video');
 const input = document.getElementById('link');
 const error = document.getElementById('link-error');
 
+// Opened from here directly rather than through the background worker: the
+// click in this popup is the user gesture sidePanel.open() needs, and it has
+// to be called before anything awaits. Same order as background.js.
 function send(action, url) {
-  chrome.runtime.sendMessage({ type: 'chumoku:open', action, url, tab }, () => window.close());
+  const id = videoIdFrom(url);
+  let opening;
+  try { opening = chrome.sidePanel.open({ windowId: tab.windowId }); } catch (e) { opening = Promise.reject(e); }
+  chrome.storage.session.set({
+    [PANEL_KEY]: { action, url: `https://www.youtube.com/shorts/${id}`, id: crypto.randomUUID(), at: Date.now() },
+  });
+  opening
+    .catch(() => chrome.tabs.create({ url: appUrlFor(action, id), index: tab.index + 1 }))
+    .finally(() => window.close());
 }
 
 if (tabVideo) {

@@ -78,6 +78,20 @@ export async function callFunction(endpoint: string, token: string, body?: objec
   });
 }
 
+// "Steal this format" on any Short, from the extension, the side panel or the
+// share sheet. One call reads the idea and writes the outline; the result is a
+// saved idea. `limit` means the credits ran out, which is a message for the
+// user, not an error.
+export type StealResult = { idea: CompetitorIdea } | { limit: true; cost: number };
+
+export async function stealVideo(url: string, token: string): Promise<StealResult> {
+  const res = await callFunction('steal-video', token, { url });
+  const data = await res.json();
+  if (data.error === 'limit_reached') return { limit: true, cost: data.cost ?? 5 };
+  if (!res.ok) throw new Error(data.error || 'Could not steal that video');
+  return { idea: data.idea as CompetitorIdea };
+}
+
 // ─── The pool ────────────────────────────────────────────────────────────────
 
 // A candidate straight off YouTube: what it is, how it did, and how far it beat

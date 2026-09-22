@@ -18,8 +18,9 @@ import { ErrorNotice } from './ErrorNotice';
 // step actually became: an outline is a document, and a 384px column with the
 // feed showing through beside it is not where you read one.
 export function CompetitorVideoView({
-  item, projects, onBack, onBreakDown, breaking, onSave, onDismiss, onFile, onUpdated,
+  item, projects, onBack, onBreakDown, breaking, onSave, onDismiss, onFile, onUpdated, backLabel = 'Feed',
 }: {
+  backLabel?: string;
   item: FeedItem;
   projects: Project[];
   onBack: () => void;
@@ -45,7 +46,7 @@ export function CompetitorVideoView({
         className="flex items-center gap-1.5 mb-6 text-[13px] transition-colors hover:text-[var(--text)]"
         style={{ color: 'var(--text-muted)' }}
       >
-        <ArrowLeft className="w-4 h-4" /> Feed
+        <ArrowLeft className="w-4 h-4" /> {backLabel}
       </button>
 
       <PageHead eyebrow={item.channel_name || 'Competitor'} title={item.video_title || 'Untitled video'} />
