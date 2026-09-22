@@ -37,8 +37,13 @@ export const CREDIT_LIMITS: Record<string, number> = { free: 20, pro: 300, agenc
 // limits above are sized against the worst case rather than the average.
 export const CREDIT_COSTS = {
   video_analysis: 5,
-  hook_check: 2,
-  script_check: 3,
+  // Both were priced when a hook check and a script check were their own
+  // screens, each a deliberate trip. They are one tool call inside an answer
+  // now (see chat-followup), the same kind of text call a question is, and
+  // charging two or three times the price of a question for the same work
+  // was the tax that made people avoid pasting anything in.
+  hook_check: 1,
+  script_check: 1,
   competitor_idea: 1,
   // Was 1, when the outline was written from the competitor's transcript. It
   // now WATCHES the video (see generate-outline), which is the same class of

@@ -1298,9 +1298,10 @@ export function AnalysisChat() {
   // discovered afterwards on the Usage tab. Analyze took over Hook Lab and
   // Script Lab and then grew an open-ended conversation on top, so "one
   // analysis, one charge" stopped being true: a thread can run all afternoon.
-  const priceLine = hasResult
-    ? `${CREDIT_COSTS.chat_followup} credit a message`
-    : `${CREDIT_COSTS.video_analysis} credits a video, ${CREDIT_COSTS.script_check} a script, ${CREDIT_COSTS.hook_check} a hook, ${CREDIT_COSTS.chat_followup} a question`;
+  // Two numbers, not four. Everything the chat does to text - answer, score a
+  // hook, score a script - is one credit; watching a video is the expensive
+  // one and is the only exception worth printing.
+  const priceLine = `${CREDIT_COSTS.chat_followup} a message, ${CREDIT_COSTS.video_analysis} a video`;
 
   // The balance is checked here, not only by the edge function. Finding out
   // the account is empty AFTER watching a stage line count through four steps

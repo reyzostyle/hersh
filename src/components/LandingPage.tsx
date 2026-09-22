@@ -868,7 +868,7 @@ interface Plan {
 // monthly rate rounded up 11c to end in .99 (Plus has no further discount
 // on top of that; Pro's yearlyMonthlyPrice is the real ~35% cut).
 // breakdown amounts are 300 credits divided by each action's real cost in
-// supabase/functions/_shared/credits.ts (video 5, hook 2, script 3,
+// supabase/functions/_shared/credits.ts (video 5, hook 1, script 1,
 // competitor items 1) — i.e. what 300 credits buys if spent entirely on
 // that one thing, not an average. Keep in sync if CREDIT_COSTS changes.
 const pricingPlans: Plan[] = [
@@ -881,8 +881,7 @@ const pricingPlans: Plan[] = [
     quotas: ['300 credits a month', 'Ideas unlocked'],
     breakdown: [
       { amount: '60', label: 'videos' },
-      { amount: '150', label: 'hooks' },
-      { amount: '100', label: 'scripts' },
+      { amount: '300', label: 'hooks or scripts' },
       { amount: '300', label: 'ideas' },
     ],
     features: ['Retention read on your own videos', 'Channel context in every answer', 'Projects and saved ideas'],
@@ -962,9 +961,10 @@ function PricingCard({ plan, interval, onSelect }: { plan: Plan; interval: Inter
       {/* Converts the credit number into what people came here to check: how
           many videos, hooks, scripts that gets them. Each figure is 300
           credits spent entirely on that one action, so this is the floor if
-          you split them, not an average. */}
+          you split them, not an average. Three columns, hardcoded: Tailwind
+          cannot see a class name built at runtime. */}
       {plan.breakdown && (
-        <div className="grid grid-cols-4 gap-px mb-5 overflow-hidden" style={{ background: 'var(--line)', border: '1px solid var(--line)', borderRadius: 'var(--r-sm)' }}>
+        <div className="grid grid-cols-3 gap-px mb-5 overflow-hidden" style={{ background: 'var(--line)', border: '1px solid var(--line)', borderRadius: 'var(--r-sm)' }}>
           {plan.breakdown.map(b => (
             <div key={b.label} className="px-2 py-2.5 text-center" style={{ background: 'var(--bg-raised)' }}>
               <span className="block font-mono text-[13px] tabular-nums" style={{ color: 'var(--text)' }}>{b.amount}</span>
