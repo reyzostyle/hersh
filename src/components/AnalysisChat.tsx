@@ -1319,9 +1319,8 @@ export function AnalysisChat() {
     )
   );
 
-  // No sheet here. Analyze is the one tab AppShell rules with the grid, and a
-  // solid panel laid over it just hid the thing that makes this screen look
-  // like anything. The conversation sits on the grid directly.
+  // Flat ground, like every other tab: the grid that used to sit behind the
+  // conversation is gone (see AppShell).
   return (
     <div className="h-full flex flex-col overflow-hidden">
       {/* History is a door, not a drawer. The hub already lists every

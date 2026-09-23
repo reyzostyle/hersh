@@ -219,9 +219,10 @@ export function AppShell({ activeTab, onTabChange, children }: AppShellProps) {
           arriving at slightly different moments - that mismatch is what read
           as jerky rather than the speed. */}
       <div className={`flex-1 flex flex-col min-w-0 relative overflow-x-hidden transition-[margin-left] duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] ${collapsed ? 'lg:ml-14' : 'lg:ml-56'}`} style={{ zIndex: 1 }}>
-        {activeTab === 'analyze' && (
-          <div className="absolute inset-0 pointer-events-none grid-surface" style={{ zIndex: 0 }} />
-        )}
+        {/* Analyze used to sit on the ruled grid. Taken off 2026-09-23: with
+            the chat full of answers it was texture behind text, and the side
+            panel never had it, so the same chat looked like two products. The
+            grid lives on the landing hero only now. */}
         <header className="lg:hidden sticky top-0 z-30 flex items-center gap-3 px-4 py-3 flex-shrink-0" style={{ borderBottom: '1px solid rgba(255,255,255,0.08)', background: 'rgba(var(--surface-rgb),0.95)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)' }}>
           <button
             onClick={() => setMobileOpen(!mobileOpen)}
