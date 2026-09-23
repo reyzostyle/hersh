@@ -10,7 +10,6 @@
 // /shorts/ pages so the extension degrades instead of disappearing.
 
 (() => {
-  const APP_URL = 'https://chumoku.co';
   const MARK = 'data-chumoku';
 
   // Kept in step with shared.js; content scripts cannot import modules.
@@ -56,19 +55,51 @@
     steal: 'Chumoku: rebuild this format as an outline for your channel',
   };
 
+  // After the extension is updated or reloaded, Chrome cuts this script off
+  // from it: the buttons stay on the page but chrome.runtime is gone until
+  // YouTube is refreshed. That used to fall back to opening the app in a new
+  // tab, silently, which read as "the side panel stopped working". Now it says
+  // what happened and offers the one-click fix.
+  const runtimeAlive = () => {
+    try { return !!(chrome.runtime && chrome.runtime.id); } catch { return false; }
+  };
+
+  function showRefreshToast() {
+    if (document.getElementById('chumoku-refresh')) return;
+    const t = document.createElement('div');
+    t.id = 'chumoku-refresh';
+    t.className = 'chumoku-toast';
+    const text = document.createElement('span');
+    text.textContent = 'Chumoku was updated. Refresh this page to use it.';
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'chumoku-toast__btn';
+    btn.textContent = 'Refresh';
+    btn.addEventListener('click', () => location.reload());
+    const close = document.createElement('button');
+    close.type = 'button';
+    close.className = 'chumoku-toast__close';
+    close.setAttribute('aria-label', 'Dismiss');
+    close.textContent = '×';
+    close.addEventListener('click', () => t.remove());
+    t.append(text, btn, close);
+    document.body.appendChild(t);
+    setTimeout(() => t.remove(), 12000);
+  }
+
   function openInApp(action) {
     const id = videoIdFrom(location.href);
     if (!id) return false;
     const url = `https://www.youtube.com/shorts/${id}`;
+    if (!runtimeAlive()) { showRefreshToast(); return false; }
     try {
       chrome.runtime.sendMessage({ type: 'chumoku:open', action, url }, () => {
-        // Swallow "receiving end does not exist" after an extension reload.
+        // Swallow "receiving end does not exist" while the worker wakes up.
         void chrome.runtime.lastError;
       });
     } catch {
-      // The extension was updated or reloaded under this page, so the runtime
-      // is gone until YouTube is refreshed. Open the app directly instead.
-      window.open(`${APP_URL}/?${action}=${encodeURIComponent(url)}&utm_source=extension`, '_blank', 'noopener');
+      showRefreshToast();
+      return false;
     }
     return true;
   }

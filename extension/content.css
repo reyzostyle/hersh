@@ -80,3 +80,28 @@
   border: 1px solid rgba(255, 255, 255, 0.1);
 }
 .chumoku-group--floating .chumoku-btn__label { color: #f1f1f1; }
+
+/* Shown when the extension was updated under an open YouTube tab. */
+.chumoku-toast {
+  position: fixed; left: 50%; bottom: 28px; transform: translateX(-50%);
+  z-index: 2300;
+  display: flex; align-items: center; gap: 12px;
+  padding: 10px 10px 10px 16px;
+  border-radius: 14px;
+  background: rgba(15, 15, 15, 0.92);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  font-family: "Roboto", "Arial", sans-serif;
+  font-size: 14px; color: #f1f1f1;
+}
+.chumoku-toast__btn {
+  all: unset; cursor: pointer;
+  padding: 7px 14px; border-radius: 999px;
+  background: #f1f1f1; color: #0f0f0f; font-weight: 500; font-size: 13px;
+}
+.chumoku-toast__close {
+  all: unset; cursor: pointer;
+  width: 24px; text-align: center; color: rgba(241, 241, 241, 0.6); font-size: 18px; line-height: 1;
+}
+.chumoku-toast__close:hover { color: #f1f1f1; }

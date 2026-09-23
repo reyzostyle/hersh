@@ -42,34 +42,18 @@ const SCRIPT_STAGES: Stage[] = [
   { label: 'Finding what holds it back...', duration: 2500, target: 96 },
 ];
 
-// A steal is two model passes, reading the idea and then watching the video
-// for the outline, so it runs longer than an analysis and says what it is on.
-const STEAL_STAGES: Stage[] = [
-  { label: 'Fetching the Short...', duration: 1500, target: 10 },
-  { label: 'Working out why it worked...', duration: 6000, target: 34 },
-  { label: 'Stripping it down to the format...', duration: 5000, target: 52 },
-  { label: 'Watching it frame by frame...', duration: 7000, target: 74 },
-  { label: 'Rebuilding it for your channel...', duration: 6000, target: 92 },
-  { label: 'Writing your outline...', duration: 3000, target: 98 },
-];
-
 interface Props {
   open: boolean;
-  mode: 'url' | 'upload' | 'hook' | 'script' | 'steal';
+  mode: 'url' | 'upload' | 'hook' | 'script';
   done: boolean;
   /** Divides every stage duration. The signed-out hero flow runs the same
    *  stages faster, because nothing is actually being analysed there yet. */
   speed?: number;
   /** Fires when the last stage has landed and the bar has stopped climbing. */
   onStagesComplete?: () => void;
-  /** 'inline' drops the backdrop and the portal and sits in the page instead.
-   *  The side panel is 400px of column next to a video: a fixed overlay there
-   *  dims and blurs whatever else the panel is holding, which reads as two
-   *  screens fighting rather than as one thing loading. */
-  variant?: 'modal' | 'inline';
 }
 
-export function AnalysisProgressModal({ open, mode, done, speed = 1, onStagesComplete, variant = 'modal' }: Props) {
+export function AnalysisProgressModal({ open, mode, done, speed = 1, onStagesComplete }: Props) {
   const [percent, setPercent] = useState(0);
   const [label, setLabel] = useState('');
   const timersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
@@ -83,7 +67,7 @@ export function AnalysisProgressModal({ open, mode, done, speed = 1, onStagesCom
       return;
     }
 
-    const stages = mode === 'steal' ? STEAL_STAGES : mode === 'upload' ? UPLOAD_STAGES : mode === 'hook' ? HOOK_STAGES : mode === 'script' ? SCRIPT_STAGES : URL_STAGES;
+    const stages = mode === 'upload' ? UPLOAD_STAGES : mode === 'hook' ? HOOK_STAGES : mode === 'script' ? SCRIPT_STAGES : URL_STAGES;
     let elapsed = 0;
 
     stages.forEach((stage) => {
@@ -119,11 +103,11 @@ export function AnalysisProgressModal({ open, mode, done, speed = 1, onStagesCom
 
   if (!open) return null;
 
-  const title = mode === 'steal' ? 'Stealing the format' : mode === 'hook' ? 'Analyzing your hook' : mode === 'script' ? 'Analyzing your script' : 'Analyzing your Short';
+  const title = mode === 'hook' ? 'Analyzing your hook' : mode === 'script' ? 'Analyzing your script' : 'Analyzing your Short';
 
   const card = (
     <div
-      className={`relative w-full max-w-sm rounded-2xl p-8 flex flex-col items-center gap-6 ${variant === 'modal' ? 'animate-scale-in' : ''}`}
+      className="relative w-full max-w-sm rounded-2xl p-8 flex flex-col items-center gap-6 animate-scale-in"
       style={{
         background: 'rgba(var(--surface-rgb),0.98)',
         border: '1px solid rgba(255,255,255,0.1)',
@@ -154,12 +138,6 @@ export function AnalysisProgressModal({ open, mode, done, speed = 1, onStagesCom
       </div>
     </div>
   );
-
-  // In the panel it is the only thing on screen, so it needs no dimming and
-  // nothing to sit on top of.
-  if (variant === 'inline') {
-    return <div className="h-full flex items-center justify-center p-4">{card}</div>;
-  }
 
   return createPortal(
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">

@@ -9,7 +9,7 @@ import { CompetitorsFeed } from './CompetitorsFeed';
 import { CompetitorVideoView } from './CompetitorVideoView';
 import { FindCompetitorsModal } from './FindCompetitorsModal';
 import { Page, PageHead, Loading } from './Page';
-import { AnalysisProgressModal } from './AnalysisProgressModal';
+import { StealProgress } from './StealProgress';
 import { take, PENDING_STEAL_KEY } from '../lib/intents';
 
 // Two layers, and the difference is the whole point of this screen.
@@ -345,13 +345,20 @@ export function CompetitorsPage() {
     setClearing(false);
   };
 
-  const stealModal = <AnalysisProgressModal open={stealing} mode="steal" done={false} />;
+  // A steal from the extension or the share sheet takes the page while it
+  // runs: the same checklist the side panel shows, not a modal over the feed.
+  if (stealing) {
+    return (
+      <Page>
+        <StealProgress />
+      </Page>
+    );
+  }
 
   if (initialLoading) {
     return (
       <Page>
         <Loading />
-        {stealModal}
       </Page>
     );
   }
@@ -424,8 +431,6 @@ export function CompetitorsPage() {
         adaptForProfile={adaptForProfile}
         onAdaptChange={setAdaptForProfile}
       />
-
-      {stealModal}
 
       {findOpen && (
         <FindCompetitorsModal
