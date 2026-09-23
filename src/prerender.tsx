@@ -111,9 +111,9 @@ export function render(): PrerenderRoute[] {
       // opens "Chumoku is a ..." for the same reason: that is the sentence an
       // answer engine lifts when asked what Chumoku is.
       path: '/',
-      title: 'Chumoku - short-form video analysis for creators',
+      title: 'Chumoku - Shorts workflow automation for creators',
       description:
-        'Chumoku is a short-form video tool for creators. Send it a link, a hook or a script and talk it through, keep the work in projects, and read every answer against your real YouTube retention curve.',
+        "Chumoku is a Shorts workflow tool for creators. It finds the idea, writes the script and tells you what to fix, using your channel's real YouTube numbers, so every Short takes less time.",
       html: wrap(<LandingPage />),
     },
     {

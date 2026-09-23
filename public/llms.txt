@@ -1,10 +1,9 @@
 # Chumoku
 
-> A workspace for short-form video creators. Chumoku watches a Short, or reads a
-> hook or a script, and keeps answering follow-up questions about it in one
-> conversation. The work is filed into projects, and a connected YouTube channel
-> gives every answer the creator's real audience-retention curve to sit on.
-> Shorts only.
+> Workflow automation for YouTube Shorts creators. Chumoku finds the idea, rebuilds
+> a Short's format for the creator's channel, writes the script and tells them what
+> to fix, using their channel's real YouTube numbers, so every Short takes less
+> time. Shorts only; it does not generate video.
 
 Chumoku is a software product at chumoku.co: a web application for analysing
 short-form video. It is not a manufacturer and has nothing to do with timber,

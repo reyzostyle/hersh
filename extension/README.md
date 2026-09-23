@@ -47,9 +47,11 @@ https://chrome.google.com/webstore/devconsole ($5 one-time developer fee). Bump
 
 **Name:** Chumoku
 
-**Summary (132 chars max):** Two buttons on every YouTube Short. Analyze why it worked, or steal its format as an outline for your channel.
+**Summary (132 chars max):** The Shorts workflow, automated. Analyze any Short or steal its format as an outline for your channel, beside the video.
 
 **Description:**
+
+Chumoku is workflow automation for YouTube Shorts creators: it finds the idea, writes the script and tells you what to fix, using your channel's real numbers. This extension puts it where you already spend the time, on YouTube.
 
 Scrolling Shorts is research. Chumoku turns it into work you can use.
 
