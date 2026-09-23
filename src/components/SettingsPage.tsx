@@ -8,6 +8,8 @@ import { requestBrain, type ChannelBrain } from '../lib/brain';
 import { syncOwnVideos } from '../lib/ownVideos';
 import { displayNameOf } from '../lib/user';
 import { PageHead, Row, Loading } from './Page';
+import { useUsage } from '../lib/useUsage';
+import { CreditsPanel, creditsLeftLine } from './CreditsPanel';
 
 function YouTubeLogo({ className }: { className?: string }) {
   return (
@@ -80,8 +82,19 @@ const PLAN_CACHE_KEY = 'chumoku_last_plan';
 export function SettingsPage() {
   const { user } = useAuth();
 
-  // Accordion: name of the single expanded card, or null when all collapsed
-  const [openCard, setOpenCard] = useState<string | null>(null);
+  // Accordion: name of the single expanded card, or null when all collapsed.
+  // Opens on Credits when something sent the user here for their balance
+  // (the old Usage tab, the chat's "Get more").
+  const [openCard, setOpenCard] = useState<string | null>(() => {
+    try {
+      if (localStorage.getItem('chumoku_open_settings') === 'credits') {
+        localStorage.removeItem('chumoku_open_settings');
+        return 'credits';
+      }
+    } catch { /* storage blocked: open nothing */ }
+    return null;
+  });
+  const { usage } = useUsage();
   const cardProps = (name: string) => ({
     open: openCard === name,
     onToggle: () => setOpenCard(c => (c === name ? null : name)),
@@ -684,6 +697,19 @@ export function SettingsPage() {
             </div>
           </div>
         </div>
+      </SettingsCard>
+
+      {/* ── Credits ── */}
+      {/* What is left, and a way to get more. The price of each action is on
+          the action; see CreditsPanel for why this is not a tab any more. */}
+      <SettingsCard
+        {...cardProps('credits')}
+        icon={<Zap className="w-[18px] h-[18px]" style={{ color: 'var(--upgrade)' }} />}
+        iconBg="rgba(245,196,81,0.12)"
+        title="Credits"
+        subtitle={creditsLeftLine(usage)}
+      >
+        <CreditsPanel usage={usage} />
       </SettingsCard>
 
       {/* ── Subscription ── (paid only) */}

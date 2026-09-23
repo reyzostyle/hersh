@@ -5,7 +5,6 @@ import { AnalysisChat } from './AnalysisChat';
 import { ProjectsPage } from './ProjectsPage';
 import { AnalyticsPage } from './AnalyticsPage';
 import { UpgradePage } from './UpgradePage';
-import { UsagePage } from './UsagePage';
 import { SettingsPage } from './SettingsPage';
 import { PartnersPage } from './PartnersPage';
 import { PartnersAdminPage } from './PartnersAdminPage';
@@ -18,7 +17,7 @@ import { peek, take, PENDING_ANALYZE_KEY, PENDING_STEAL_KEY, PENDING_SHARE_KEY }
 // only reached by entering the admin code in Settings. AdminPage itself
 // re-checks the caller's email before rendering anything or fetching data.
 // 'home' also has no nav entry: it's reached from the brand row in the sidebar.
-const VALID_TABS: NavTab[] = ['home', 'analyze', 'projects', 'analytics', 'competitors', 'usage', 'upgrade', 'partners', 'settings', 'admin', 'affiliate-admin'];
+const VALID_TABS: NavTab[] = ['home', 'analyze', 'projects', 'analytics', 'competitors', 'upgrade', 'partners', 'settings', 'admin', 'affiliate-admin'];
 
 // A tab is reachable only if it's known and not feature-flagged off.
 const isTabReachable = (t: string): t is NavTab =>
@@ -53,6 +52,13 @@ export function Dashboard() {
 
   useEffect(() => {
     const handler = (e: Event) => {
+      // 'usage' was a tab until the balance moved into Settings. Anything that
+      // still asks for it lands on the Credits card instead of nowhere.
+      if ((e as CustomEvent).detail === 'usage') {
+        try { localStorage.setItem('chumoku_open_settings', 'credits'); } catch { /* ignore */ }
+        setActiveTab('settings');
+        return;
+      }
       const tab = (e as CustomEvent).detail as NavTab;
       if (tab && isTabReachable(tab)) setActiveTab(tab);
     };
@@ -79,7 +85,6 @@ export function Dashboard() {
       {activeTab === 'projects' && <ProjectsPage />}
       {activeTab === 'analytics' && <AnalyticsPage />}
       {activeTab === 'competitors' && <CompetitorsPage />}
-      {activeTab === 'usage' && <UsagePage />}
       {activeTab === 'upgrade' && <UpgradePage />}
       {activeTab === 'partners' && <PartnersPage />}
       {activeTab === 'affiliate-admin' && <PartnersAdminPage />}

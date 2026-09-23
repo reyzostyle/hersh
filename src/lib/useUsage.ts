@@ -45,7 +45,7 @@ export interface UsageData {
 }
 
 // Shared between UpgradePage (needs current plan for the checkout grid) and
-// UsagePage (needs the full numbers) so the quota math and query live in one
+// the Credits card in Settings (needs the full numbers) so the quota math and query live in one
 // place instead of drifting between two copies.
 export function useUsage() {
   const { user } = useAuth();

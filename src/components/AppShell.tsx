@@ -1,12 +1,12 @@
 import { useState, useEffect, createContext, useRef } from 'react';
-import { GraphUpOutlineIcon as GraphUp, FolderOutlineIcon as Folder, SettingsOutlineIcon as Settings, LogoutOutlineIcon as LogOut, HamburgerMenuOutlineIcon as Menu, CloseCircleOutlineIcon as X, BoltOutlineIcon as Zap, UsersGroupRoundedOutlineIcon as Users, ChartSquareOutlineIcon as BarChart2, SidebarMinimalisticOutlineIcon as PanelLeftClose, SidebarMinimalisticOutlineIcon as PanelLeftOpen, VideocameraOutlineIcon as VideoIcon, WidgetOutlineIcon as HubIcon } from '@solar-icons/react';
+import { GraphUpOutlineIcon as GraphUp, FolderOutlineIcon as Folder, SettingsOutlineIcon as Settings, LogoutOutlineIcon as LogOut, HamburgerMenuOutlineIcon as Menu, CloseCircleOutlineIcon as X, BoltOutlineIcon as Zap, UsersGroupRoundedOutlineIcon as Users, SidebarMinimalisticOutlineIcon as PanelLeftClose, SidebarMinimalisticOutlineIcon as PanelLeftOpen, VideocameraOutlineIcon as VideoIcon, WidgetOutlineIcon as HubIcon } from '@solar-icons/react';
 import { useAuth } from '../contexts/AuthContext';
 
 export const MobileHeaderContext = createContext<{
   setRightAction: (node: React.ReactNode) => void;
 }>({ setRightAction: () => {} });
 
-export type NavTab = 'home' | 'analyze' | 'projects' | 'analytics' | 'competitors' | 'usage' | 'upgrade' | 'settings' | 'partners' | 'admin' | 'affiliate-admin';
+export type NavTab = 'home' | 'analyze' | 'projects' | 'analytics' | 'competitors' | 'upgrade' | 'settings' | 'partners' | 'admin' | 'affiliate-admin';
 
 // Feature flags: tabs hidden from ALL users (incl. admin). Kept in code so they
 // can be re-enabled instantly by removing them from this list.
@@ -43,7 +43,6 @@ const baseNavItems: NavItem[] = [
   // those quietly come apart. Nobody knew what Competitors was a list OF;
   // what the tab produces is ideas.
   { id: 'competitors', label: 'Ideas', icon: <Users className="w-4 h-4" /> },
-  { id: 'usage', label: 'Usage', icon: <BarChart2 className="w-4 h-4" /> },
   { id: 'upgrade', label: 'Upgrade', icon: <Zap className="w-4 h-4" />, highlight: true },
   { id: 'settings', label: 'Settings', icon: <Settings className="w-4 h-4" /> },
 ];
@@ -91,7 +90,7 @@ export function AppShell({ activeTab, onTabChange, children }: AppShellProps) {
 
   const navItems = baseNavItems.filter(item => !HIDDEN_TABS.includes(item.id));
 
-  const BOTTOM_TAB_IDS: NavTab[] = ['usage', 'upgrade', 'settings'];
+  const BOTTOM_TAB_IDS: NavTab[] = ['upgrade', 'settings'];
   const topNavItems = navItems.filter(item => !BOTTOM_TAB_IDS.includes(item.id));
   const bottomNavItems = navItems.filter(item => BOTTOM_TAB_IDS.includes(item.id));
 
