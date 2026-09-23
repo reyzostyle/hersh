@@ -194,24 +194,16 @@ input::placeholder { color: var(--text-faint); }
 }
 .ok { width: 6px; height: 6px; border-radius: 50%; background: var(--process); }
 
-/* The Short in tile 01. */
-.mini-short {
-  position: relative; width: 108px; height: 158px; border-radius: 16px; overflow: hidden;
-  background: radial-gradient(120% 90% at 30% 20%, #26262c 0%, #111114 60%, #0b0b0d 100%);
+/* The two buttons in tile 01. */
+.two-btns { display: flex; gap: 10px; align-items: center; }
+.pill {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 10px 16px 10px 14px; border-radius: 999px;
   border: 1px solid var(--line-strong);
+  font-size: 13.5px; font-weight: 500;
 }
-.mini-caption { position: absolute; left: 10px; right: 42px; bottom: 12px; display: flex; flex-direction: column; gap: 2px; }
-.mini-caption b { font-size: 8px; color: #f1f1f1; }
-.mini-caption span { font-size: 7.5px; line-height: 1.25; color: rgba(241, 241, 241, 0.75); }
-.mini-actions { position: absolute; right: 8px; bottom: 12px; display: flex; flex-direction: column; align-items: center; gap: 2px; }
-.mini-btn {
-  width: 26px; height: 26px; border-radius: 50%;
-  display: flex; align-items: center; justify-content: center;
-  background: rgba(255, 255, 255, 0.14); color: #f1f1f1;
-}
-.mini-btn svg { width: 13px; height: 13px; }
-.mini-btn-primary { background: #f1f1f1; color: #0f0f0f; }
-.mini-label { font-size: 6.5px; color: #f1f1f1; margin-bottom: 5px; }
+.pill svg { width: 16px; height: 16px; }
+.pill-primary { background: var(--accent); color: var(--on-accent); border-color: transparent; }
 .pulse { animation: pulse 1.8s ease-out 0.6s 3; }
 @keyframes pulse {
   0% { box-shadow: 0 0 0 0 rgba(241, 241, 241, 0.55); }

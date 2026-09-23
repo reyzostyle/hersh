@@ -155,53 +155,30 @@ function StealGlyph({ className = '' }: { className?: string }) {
     </svg>
   );
 }
-function HeartGlyph({ className = '' }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" aria-hidden="true">
-      <path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z" />
-    </svg>
-  );
-}
 
 function StealTile({ inView }: { inView: boolean | null }) {
-  const pressed = inView !== false;
+  // Just the two buttons the extension adds, at a size you can read. Steal is
+  // the filled one and pulses once as the tile comes into view.
   return (
-    <Tile className="flex items-center justify-start pl-7">
-      {/* A Short with the extension's buttons in YouTube's action column, and
-          what happens when Steal is pressed: the outline is saved. */}
-      <div className="relative w-[112px] h-[164px] rounded-[16px] overflow-hidden"
-           style={{ background: 'radial-gradient(120% 90% at 30% 20%, #26262c 0%, #111114 60%, #0b0b0d 100%)', border: '1px solid var(--line-strong)' }}>
-        <div className="absolute left-2.5 bottom-3 right-11">
-          <p className="text-[7.5px] font-semibold" style={{ color: '#f1f1f1' }}>@tobbss</p>
-          <p className="text-[7px] leading-tight mt-0.5" style={{ color: 'rgba(241,241,241,0.75)' }}>i ranked every mob by how scary it is</p>
-        </div>
-        <div className="absolute right-2 bottom-3 flex flex-col items-center gap-1.5">
-          {[
-            { l: 'Analyze', G: AnalyzeGlyph, primary: false },
-            { l: 'Steal', G: StealGlyph, primary: true },
-            { l: '12K', G: HeartGlyph, primary: false },
-          ].map(({ l, G, primary }, i) => (
-            <div key={l} className="flex flex-col items-center gap-0.5" style={enter(inView, i, 200)}>
-              <span className={`w-[26px] h-[26px] rounded-full flex items-center justify-center ${primary && inView ? 'lp-pulse' : ''}`}
-                    style={{ background: primary ? '#f1f1f1' : 'rgba(255,255,255,0.14)', color: primary ? '#0f0f0f' : '#f1f1f1' }}>
-                <G className="w-[13px] h-[13px]" />
-              </span>
-              <span className="text-[6.5px] font-medium" style={{ color: '#f1f1f1' }}>{l}</span>
-            </div>
-          ))}
-        </div>
-      </div>
-      <span className="absolute right-4 top-4 label-mono">On YouTube</span>
-      {/* The result of the press, arriving after the pulse - beside the Short,
-          never over it. */}
-      <div className="absolute right-4 bottom-4 flex items-center gap-1.5 px-2 py-1 rounded-md"
-           style={{
-             background: 'var(--bg-app)', border: '1px solid var(--line)',
-             opacity: pressed ? 1 : 0, transform: pressed ? 'none' : 'translateY(-4px)',
-             transition: 'opacity 0.4s ease 1.6s, transform 0.4s ease 1.6s',
-           }}>
-        <span className="w-1.5 h-1.5 rounded-full" style={{ background: 'var(--process)' }} />
-        <span className="text-[10.5px]" style={{ color: 'var(--text)' }}>Outline saved</span>
+    <Tile className="flex items-center justify-center">
+      <span className="absolute left-4 top-4 label-mono">On YouTube</span>
+      <div className="flex items-center gap-2.5">
+        {[
+          { l: 'Analyze', G: AnalyzeGlyph, primary: false },
+          { l: 'Steal', G: StealGlyph, primary: true },
+        ].map(({ l, G, primary }, i) => (
+          <span key={l}
+                className={`flex items-center gap-2 pl-3.5 pr-4 py-2.5 rounded-full text-[13.5px] font-medium ${primary && inView ? 'lp-pulse' : ''}`}
+                style={{
+                  ...enter(inView, i, 200),
+                  background: primary ? 'var(--accent)' : 'transparent',
+                  color: primary ? 'var(--on-accent)' : 'var(--text)',
+                  border: primary ? '1px solid transparent' : '1px solid var(--line-strong)',
+                }}>
+            <G className="w-4 h-4" />
+            {l}
+          </span>
+        ))}
       </div>
     </Tile>
   );
