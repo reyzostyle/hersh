@@ -398,11 +398,26 @@ function Working({ kind, onStop }: { kind: keyof typeof STAGES; onStop: () => vo
     return () => { clearInterval(t); clearTimeout(swap); };
   }, [kind]);
 
-  // Stop sits next to the line that says what is happening, not only under the
-  // composer, because this is where the eye already is during the minute a
-  // video takes.
+  // Seconds since the run started, so the minute a video takes reads as
+  // progress rather than as a hang.
+  const [elapsed, setElapsed] = useState(0);
+  useEffect(() => {
+    const started = Date.now();
+    const t = setInterval(() => setElapsed(Math.floor((Date.now() - started) / 1000)), 1000);
+    return () => clearInterval(t);
+  }, []);
+
+  // Esc stops the run, the way it does in a terminal.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onStop(); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [onStop]);
+
+  // Stop is a line of small text under what is happening, not a button beside
+  // it: a chip there competed with the one line worth reading while it runs.
   return (
-    <div className="animate-msg-in flex items-center gap-3">
+    <div className="animate-msg-in">
       <p className="text-[14px] font-medium" aria-live="polite">
         <span
           className="text-working inline-block transition-opacity duration-200"
@@ -411,9 +426,12 @@ function Working({ kind, onStop }: { kind: keyof typeof STAGES; onStop: () => vo
           {stages[at]}
         </span>
       </p>
-      <button onClick={onStop} className="chip" title="Stop this run">
-        <Stop className="w-3.5 h-3.5" /> Stop
-      </button>
+      <p className="font-mono text-[11px] mt-1.5 tabular-nums" style={{ color: 'var(--text-faint)' }}>
+        {elapsed}s ·{' '}
+        <button onClick={onStop} title="Stop this run" className="transition-colors hover:text-[var(--text)] underline-offset-2 hover:underline">
+          esc to stop
+        </button>
+      </p>
     </div>
   );
 }
