@@ -859,7 +859,7 @@ const pricingPlans: Plan[] = [
     // render as the bold rows and features as the ticked ones, and this is the
     // one line that separates paid from the free trial (enforced server-side
     // in fetch-competitor-ideas / generate-outline, not just hidden in the UI).
-    quotas: ['300 credits a month', 'Ideas unlocked'],
+    quotas: ['300 credits a month', '5 tracked channels'],
     breakdown: [
       { amount: '60', label: 'videos' },
       { amount: '300', label: 'hooks or scripts' },
@@ -870,7 +870,7 @@ const pricingPlans: Plan[] = [
   },
   {
     name: 'Pro', monthlyPrice: 19.99, yearlyMonthlyPrice: 12.99, yearlyTotal: 155.99,
-    quotas: ['Unlimited credits', 'Ideas unlocked'],
+    quotas: ['Unlimited credits', '5 tracked channels'],
     features: ['Everything in Plus', 'Highest fair-use ceiling'],
     cta: 'Get Pro', highlight: true,
   },
@@ -1192,22 +1192,26 @@ export function LandingPage() {
             {/* The only CTA above the fold, and it is the app's composer, not a
                 marketing input: same plate, same radius, same round send. */}
             <form onSubmit={handleHeroAnalyze} autoComplete="off" className="animate-fade-in-up delay-200 w-full max-w-xl mx-auto text-left">
-              <div className="flex items-center gap-2 pl-4 pr-2 py-2" style={composer}>
+              {/* Bigger than the app's composer and quietly lit - a stronger
+                  hairline and a faint halo - because on this page it is the one
+                  thing to do, and at the app's size it read as decoration. */}
+              <div className="hero-field flex items-center gap-2 pl-5 pr-2.5 py-2.5"
+                   style={{ ...composer, border: '1px solid var(--line-strong)' }}>
                 <input
                   type="text"
                   value={heroUrl}
                   onChange={e => { setHeroUrl(e.target.value); if (heroError) setHeroError(''); }}
-                  placeholder="youtube.com/shorts/..."
-                  className="flex-1 min-w-0 py-1.5 text-[14px]"
+                  placeholder="Paste a Shorts link"
+                  className="flex-1 min-w-0 py-2 text-[15px]"
                   style={inputReset}
                 />
                 <button
                   type="submit"
                   aria-label="Analyze"
-                  className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 transition-opacity hover:opacity-90"
+                  className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 transition-opacity hover:opacity-90"
                   style={{ background: 'var(--accent)' }}
                 >
-                  <ArrowUp className="w-4 h-4" style={{ color: 'var(--on-accent)' }} />
+                  <ArrowUp className="w-[18px] h-[18px]" style={{ color: 'var(--on-accent)' }} />
                 </button>
               </div>
               <p className="label-mono mt-3 text-center" style={heroError ? { color: 'rgb(var(--danger-rgb))' } : undefined}>
@@ -1232,9 +1236,8 @@ export function LandingPage() {
           <Head
             id="product"
             eyebrow="How it works"
-            title="Six steps you used to do by hand."
-            muted="Now one place does them."
-            sub="From finding the idea to finding out why it flopped. Every step reads your channel's real numbers, so nothing is generic."
+            title="Six steps."
+            muted="One place does them."
           />
           <WorkflowGrid />
         </section>
@@ -1243,9 +1246,8 @@ export function LandingPage() {
         <section className={`${SECTION} pb-16 sm:pb-24`}>
           <Head
             eyebrow="One balance"
-            title="Pay for what you use."
-            muted="Not for four separate tools."
-            sub="Credits work across the chat, Ideas and the extension. What an action costs is written on the button."
+            title="One balance."
+            muted="Pay for what you use."
           />
           <Showcase />
         </section>
@@ -1256,7 +1258,6 @@ export function LandingPage() {
             eyebrow="Ideas"
             title="Their breakouts,"
             muted="not their uploads."
-            sub="Every Short is ranked against its own channel's median, so a 2M video on a 10M channel does not crowd out the real outliers."
           />
           <Reveal><CompetitorsFrame /></Reveal>
         </section>
@@ -1268,9 +1269,8 @@ export function LandingPage() {
         <section className={`${SECTION} pb-16 sm:pb-24`}>
           <Head
             eyebrow="Chumoku brain"
-            title="It reads your channel."
-            muted="You never describe it again."
-            sub="One click and it learns your niche, your format and your voice from what you already posted. Every idea and script is written for that."
+            title="It learns your channel."
+            muted="In one click."
           />
           <Reveal><BrainFrame /></Reveal>
         </section>
@@ -1281,14 +1281,13 @@ export function LandingPage() {
             eyebrow="Analytics"
             title="Real numbers,"
             muted="not guesses."
-            sub="Connect YouTube once, in two clicks. Every answer reads your own retention and names the second people left."
           />
           <Reveal><AnalyticsFrame /></Reveal>
         </section>
 
         {/* ── Proof ───────────────────────────────────────────────────────── */}
         <section className={`${SECTION} pb-16 sm:pb-24`}>
-          <Head eyebrow="From the Discord" title="Not a wall of five stars." muted="Real messages, word for word." sub="One per surface, from people who were using it anyway." />
+          <Head eyebrow="From the Discord" title="Real messages," muted="word for word." />
           <div className="grid sm:grid-cols-3 gap-3 sm:gap-4">
             {testimonials.map((t, i) => (
               <Reveal key={t.name} delay={i * 70}>
@@ -1315,8 +1314,7 @@ export function LandingPage() {
                   Pricing
                 </p>
                 <h2 className="display" style={{ color: 'var(--text)' }}>
-                  Pays for itself
-                  <span className="block" style={{ color: 'var(--text-muted)' }}>in the time it saves.</span>
+                  Pays for itself<span style={{ color: 'var(--text-muted)' }}> in time saved.</span>
                 </h2>
               </div>
               <BillingToggle interval={billingInterval} onChange={setBillingInterval} />
@@ -1344,14 +1342,14 @@ export function LandingPage() {
             >
               <span className="text-[13.5px] font-medium" style={{ color: 'var(--text)' }}>Free</span>
               <span className="text-[13.5px]" style={{ color: 'var(--text-muted)' }}>20 credits, one time, no card</span>
-              <span className="label-mono sm:ml-auto">No Ideas tab</span>
+              <span className="label-mono sm:ml-auto">3 tracked channels</span>
             </div>
           </Reveal>
         </section>
 
         {/* ── FAQ ─────────────────────────────────────────────────────────── */}
         <section id="faq" className={`${SECTION} pb-16 sm:pb-24 scroll-mt-16`}>
-          <Head eyebrow="Questions" title="Before you sign up." muted="Everything people ask first." />
+          <Head eyebrow="Questions" title="Everything people ask." />
           <Reveal delay={60}><FAQSection /></Reveal>
         </section>
 
@@ -1361,8 +1359,8 @@ export function LandingPage() {
             <div className="p-8 sm:p-12" style={plate}>
               <p className="label-mono mb-4">Start</p>
               <h2 className="display max-w-lg mb-3" style={{ color: 'var(--text)' }}>Start with your next short.</h2>
-              <p className="text-[15px] leading-relaxed max-w-md mb-7" style={{ color: 'var(--text-muted)' }}>
-                Connect the channel, read the last video, and know what to change before you film the next one.
+              <p className="text-[15px] leading-relaxed max-w-md mb-7 text-pretty" style={{ color: 'var(--text-muted)' }}>
+                Paste your last Short and see what to change in the next one.
               </p>
               <div className="flex flex-wrap items-center gap-3">
                 <button

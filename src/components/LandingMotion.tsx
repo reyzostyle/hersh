@@ -74,30 +74,25 @@ function useCount(to: number, inView: boolean | null, ms = 1100) {
 }
 
 // ─── Section head ────────────────────────────────────────────────────────────
-// Hairline, eyebrow, a headline in two weights (the sentence continues in the
-// muted colour rather than splitting into a subhead), one paragraph opposite.
+// Hairline, eyebrow, one headline that fits on one line: the bright half and
+// its muted tail on the same line. There used to be a paragraph opposite it;
+// it was the text nobody read, and at that width it kept leaving a single word
+// on its second line.
 
-export function Head({ eyebrow, title, muted, sub, id }: {
-  eyebrow: string; title: string; muted?: string; sub?: string; id?: string;
+export function Head({ eyebrow, title, muted, id }: {
+  eyebrow: string; title: string; muted?: string; id?: string;
 }) {
   const { ref, inView } = useInView<HTMLDivElement>(0.3);
   return (
-    <div ref={ref} id={id} className="pt-8 sm:pt-10 mb-10 sm:mb-14 scroll-mt-16" style={{ borderTop: '1px solid var(--line)' }}>
+    <div ref={ref} id={id} className="pt-8 sm:pt-10 mb-10 sm:mb-12 scroll-mt-16" style={{ borderTop: '1px solid var(--line)' }}>
       <p className="label-mono mb-5 flex items-center gap-2" style={enter(inView)}>
         <span className="inline-block w-1 h-1 rounded-full" style={{ background: 'var(--text-faint)' }} />
         {eyebrow}
       </p>
-      <div className="grid md:grid-cols-[minmax(0,1fr)_minmax(0,19rem)] gap-5 md:gap-12 items-start">
-        <h2 className="display text-balance" style={{ ...enter(inView, 1), color: 'var(--text)' }}>
-          {title}
-          {muted && <span className="block" style={{ color: 'var(--text-muted)' }}>{muted}</span>}
-        </h2>
-        {sub && (
-          <p className="text-[14.5px] leading-relaxed md:pt-2 text-pretty" style={{ ...enter(inView, 2), color: 'var(--text-muted)' }}>
-            {sub}
-          </p>
-        )}
-      </div>
+      <h2 className="display text-balance" style={{ ...enter(inView, 1), color: 'var(--text)' }}>
+        {title}
+        {muted && <span style={{ color: 'var(--text-muted)' }}> {muted}</span>}
+      </h2>
     </div>
   );
 }
@@ -256,12 +251,14 @@ function RetentionTile({ inView }: { inView: boolean | null }) {
 }
 
 const STEPS: { n: string; title: string; text: string; Tile: (p: { inView: boolean | null }) => JSX.Element }[] = [
-  { n: '01', title: 'Find what works', text: 'Shorts that beat the channel they came from, in your niche.', Tile: FindTile },
-  { n: '02', title: 'Steal it while you scroll', text: 'One button on any Short, right above Like.', Tile: StealTile },
-  { n: '03', title: 'Get your version', text: 'The same moves, rebuilt as an outline for your channel.', Tile: OutlineTile },
-  { n: '04', title: 'Score it before you film', text: 'Hooks and scripts out of 100, with the lines to swap in.', Tile: ScoreTile },
-  { n: '05', title: 'Ask for anything', text: 'A chat that reads your ideas, projects and numbers.', Tile: ChatTile },
-  { n: '06', title: 'See why it flopped', text: 'Your real retention, and the second people left.', Tile: RetentionTile },
+  // One line each at the tile's width. Two-line captions kept ending on a
+  // single word, which reads as copy that ran out of room.
+  { n: '01', title: 'Find what works', text: 'Outliers from your niche, ranked.', Tile: FindTile },
+  { n: '02', title: 'Steal it while you scroll', text: 'One button on any Short on YouTube.', Tile: StealTile },
+  { n: '03', title: 'Get your version', text: 'The same moves, built for your channel.', Tile: OutlineTile },
+  { n: '04', title: 'Score it before you film', text: 'Hooks and scripts, scored out of 100.', Tile: ScoreTile },
+  { n: '05', title: 'Ask for anything', text: 'A chat that knows your ideas and stats.', Tile: ChatTile },
+  { n: '06', title: 'See why it flopped', text: 'Your retention, and where people left.', Tile: RetentionTile },
 ];
 
 export function WorkflowGrid() {
@@ -281,7 +278,7 @@ function Step({ n, title, text, Tile: T }: (typeof STEPS)[number]) {
         <span className="font-mono text-[11px] tabular-nums pt-0.5" style={{ color: 'var(--text-faint)' }}>{n}</span>
         <div>
           <p className="text-[14.5px] font-medium" style={{ color: 'var(--text)' }}>{title}</p>
-          <p className="text-[13px] leading-relaxed mt-1 text-pretty" style={{ color: 'var(--text-muted)' }}>{text}</p>
+          <p className="text-[13px] leading-relaxed mt-1" style={{ color: 'var(--text-muted)' }}>{text}</p>
         </div>
       </div>
     </div>

@@ -9,33 +9,39 @@
 // FIRST sentence, so each answer opens with a complete answer to the question
 // and everything after it is support. And written plainly: most of the people
 // asking do not have English as a first language.
+// Kept short on purpose: questions of about the same length, answers of one or
+// two sentences, the first of which is the whole answer.
 export const FAQS: { q: string; a: string }[] = [
   {
     q: 'What does Chumoku do?',
-    a: 'It watches your Short and tells you what to fix. Paste a link, a hook or a script, and you get a score, the exact seconds to change, and a conversation you can keep asking questions in. It is built for YouTube Shorts and nothing else.',
+    a: 'It runs your Shorts workflow. It finds ideas that already worked, writes the script and tells you what to fix, using your channel\'s real numbers.',
   },
   {
-    q: 'Is it free?',
-    a: 'Yes. You get 20 credits when you sign up, with no card. That is about four video reviews, or a lot more if you are checking hooks and scripts. The free credits are one time and do not refill.',
+    q: 'Is it free to try?',
+    a: 'Yes, 20 credits when you sign up, no card. A message costs 1 credit and a video review costs 5.',
   },
   {
-    q: 'Do I have to connect my YouTube channel?',
-    a: 'No, everything works without it. If you do connect it, Chumoku reads your real retention curve and names the seconds people actually left on, instead of guessing at them. It takes two clicks.',
+    q: 'Do I need to connect YouTube?',
+    a: 'No, but it gets sharper. Connected, it reads your real retention and names the second people left.',
   },
   {
-    q: 'Does it work for TikTok or Instagram Reels?',
-    a: 'No. YouTube Shorts only, on purpose. That is what lets it point at the second people swiped instead of handing you general advice.',
+    q: 'Does it work for TikTok or Reels?',
+    a: 'No, YouTube Shorts only. That focus is what keeps the advice specific.',
+  },
+  {
+    q: 'What does the extension do?',
+    a: 'It puts Analyze and Steal on every Short on YouTube. Steal turns any Short into an outline for your channel.',
+  },
+  {
+    q: 'How does it find ideas?',
+    a: 'It shows only Shorts that beat their own channel\'s usual views. Finding them is free; reading one costs a credit.',
   },
   {
     q: 'What is Chumoku brain?',
-    a: 'It is the profile of your channel that Chumoku writes for you. One click reads your last uploads and works out your niche, your format, your voice, who watches and what to avoid, so every idea, hook and outline after that is written for your channel instead of a generic one. There is no form to fill in beyond your level and a sentence about yourself.',
-  },
-  {
-    q: 'How does it find competitor ideas?',
-    a: "It shows you only the videos that beat the channel they came from. You pick the channels; a small channel's breakout gets in, a big channel's routine upload does not. Finding them is free, and a credit is spent only on the one you open.",
+    a: 'A profile of your channel it writes from your uploads, in one click. Every idea and script after that is written for you.',
   },
   {
     q: 'Can I cancel anytime?',
-    a: 'Yes, from the billing portal, and you keep everything until the period you already paid for ends. No contract and no call.',
+    a: 'Yes, from the billing portal. You keep access until the period you paid for ends.',
   },
 ];
