@@ -285,37 +285,130 @@ function Step({ n, title, text, Tile: T }: (typeof STEPS)[number]) {
   );
 }
 
-// ─── Showcase ────────────────────────────────────────────────────────────────
-// One big true number in the middle, the things it buys drifting around it.
+// ─── Credits, as a ledger ────────────────────────────────────────────────────
+// What a month of using it looks like: a few ordinary actions come in one at a
+// time and the balance ticks down with each. It replaced a big "1 credit" with
+// cards floating around it, which read as a template rather than as the app.
 
-const FLOATERS: { label: string; value: string; pos: string; delay: number; hideSm?: boolean }[] = [
-  { label: 'Hook scored', value: '72 / 100', pos: 'left-[6%] top-[14%]', delay: 0 },
-  { label: 'Outline', value: 'ready', pos: 'right-[7%] top-[10%]', delay: 1.2 },
-  { label: 'Idea saved', value: '6.2x outlier', pos: 'left-[10%] bottom-[14%]', delay: 2.1, hideSm: true },
-  { label: 'Script', value: 'written', pos: 'right-[9%] bottom-[16%]', delay: 0.6, hideSm: true },
-  { label: 'Retention', value: 'read', pos: 'left-[38%] top-[6%]', delay: 1.7, hideSm: true },
+const LEDGER: { what: string; cost: number }[] = [
+  { what: 'Wrote a script from a saved idea', cost: 1 },
+  { what: 'Scored a hook', cost: 1 },
+  { what: 'Stole a format on YouTube', cost: 5 },
+  { what: 'Asked why a Short flopped', cost: 1 },
+];
+const START = 300;
+
+export function CreditLedger() {
+  const { ref, inView } = useInView<HTMLDivElement>(0.35);
+  // How many rows have landed. On the server and without motion: all of them.
+  const [shown, setShown] = useState(LEDGER.length);
+  useEffect(() => {
+    if (inView === false) { setShown(0); return; }
+    if (inView !== true || prefersReducedMotion()) { setShown(LEDGER.length); return; }
+    setShown(0);
+    const timers = LEDGER.map((_, i) => setTimeout(() => setShown(i + 1), 450 + i * 650));
+    return () => timers.forEach(clearTimeout);
+  }, [inView]);
+  const balance = START - LEDGER.slice(0, shown).reduce((a, r) => a + r.cost, 0);
+
+  return (
+    <div ref={ref} className="grid md:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)] overflow-hidden"
+         style={{ background: 'var(--bg-raised)', border: '1px solid var(--line)', borderRadius: 'var(--r-lg)' }}>
+      <div className="p-6 sm:p-8 flex flex-col justify-between gap-6 md:border-r" style={{ borderColor: 'var(--line)' }}>
+        <p className="label-mono">Plus · this month</p>
+        <div>
+          <p className="font-semibold tabular-nums leading-none" style={{ color: 'var(--text)', fontSize: 'clamp(3rem, 2rem + 4vw, 4.5rem)', letterSpacing: '-0.045em' }}>
+            {balance}
+          </p>
+          <p className="text-[13px] mt-2" style={{ color: 'var(--text-muted)' }}>credits left</p>
+        </div>
+      </div>
+      <div className="p-3 sm:p-4 border-t md:border-t-0" style={{ borderColor: 'var(--line)' }}>
+        {LEDGER.map((r, i) => (
+          <div key={r.what} className="flex items-center justify-between gap-4 px-3 py-3"
+               style={{
+                 opacity: i < shown ? 1 : 0,
+                 transform: i < shown ? 'none' : 'translateY(6px)',
+                 transition: 'opacity 0.45s ease, transform 0.45s cubic-bezier(.2,.7,.2,1)',
+                 borderBottom: i < LEDGER.length - 1 ? '1px solid var(--line)' : undefined,
+               }}>
+            <span className="text-[13.5px] truncate" style={{ color: 'var(--text)' }}>{r.what}</span>
+            <span className="font-mono text-[12px] tabular-nums flex-shrink-0" style={{ color: 'var(--text-muted)' }}>−{r.cost}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ─── Chumoku brain, reading ──────────────────────────────────────────────────
+// The brain as the thing it actually does: it reads your uploads one by one,
+// then says three short things about the channel. Replaced a node graph of
+// "YOU" wired to four labels, which looked generated and explained nothing.
+
+const UPLOADS = [
+  'i ranked every mob by how scary it is',
+  'the worst update minecraft ever shipped',
+  'ranking every biome by how hard it is',
+  'this seed should not exist',
+  'every boss, ranked by how unfair it is',
+];
+const LEARNED: { k: string; v: string }[] = [
+  { k: 'Niche', v: 'Minecraft rankings' },
+  { k: 'Format', v: '30-45s, no face' },
+  { k: 'Works best', v: 'a ranking you argue with' },
 ];
 
-export function Showcase() {
-  const { ref, inView } = useInView<HTMLDivElement>(0.3);
+export function BrainScan() {
+  const { ref, inView } = useInView<HTMLDivElement>(0.35);
+  const [read, setRead] = useState(UPLOADS.length);
+  useEffect(() => {
+    if (inView === false) { setRead(0); return; }
+    if (inView !== true || prefersReducedMotion()) { setRead(UPLOADS.length); return; }
+    setRead(0);
+    const timers = UPLOADS.map((_, i) => setTimeout(() => setRead(i + 1), 300 + i * 320));
+    return () => timers.forEach(clearTimeout);
+  }, [inView]);
+  const done = read >= UPLOADS.length;
+
   return (
-    <div ref={ref} className="relative overflow-hidden px-6 py-20 sm:py-28 text-center"
+    <div ref={ref} className="grid md:grid-cols-2 overflow-hidden"
          style={{ background: 'var(--bg-raised)', border: '1px solid var(--line)', borderRadius: 'var(--r-lg)' }}>
-      {FLOATERS.map((f, i) => (
-        <div key={f.label} className={`absolute ${f.pos} ${f.hideSm ? 'hidden md:block' : ''}`} style={enter(inView, i, 250)}>
-          <div className="lp-float px-3 py-2 text-left" style={{ animationDelay: `${f.delay}s`, background: 'var(--bg-app)', border: '1px solid var(--line)', borderRadius: 'var(--r-sm)' }}>
-            <p className="font-mono text-[9.5px] uppercase tracking-wider" style={{ color: 'var(--text-faint)' }}>{f.label}</p>
-            <p className="text-[13px] font-medium mt-0.5" style={{ color: 'var(--text)' }}>{f.value}</p>
-          </div>
+      <div className="p-4 sm:p-6 md:border-r" style={{ borderColor: 'var(--line)' }}>
+        <p className="label-mono mb-3">Reading your uploads</p>
+        <div className="space-y-1">
+          {UPLOADS.map((t, i) => (
+            <div key={t} className="flex items-center gap-2.5 py-1.5">
+              <span className="w-4 h-4 rounded-full flex items-center justify-center flex-shrink-0"
+                    style={{
+                      border: `1px solid ${i < read ? 'transparent' : 'var(--line-strong)'}`,
+                      background: i < read ? 'rgba(var(--process-rgb),0.15)' : 'transparent',
+                      transition: 'background 0.3s ease, border-color 0.3s ease',
+                    }}>
+                <svg viewBox="0 0 12 12" className="w-2.5 h-2.5" style={{ opacity: i < read ? 1 : 0, transition: 'opacity 0.3s ease' }}>
+                  <path d="M2.5 6.2l2.2 2.2 4.8-4.9" fill="none" stroke="var(--process)" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              </span>
+              <span className="text-[13px] truncate" style={{ color: i < read ? 'var(--text)' : 'var(--text-faint)', transition: 'color 0.3s ease' }}>{t}</span>
+            </div>
+          ))}
         </div>
-      ))}
-      <div className="relative">
-        <p className="font-semibold tabular-nums leading-none" style={{ ...enter(inView), color: 'var(--text)', fontSize: 'clamp(3.5rem, 2rem + 6vw, 6.5rem)', letterSpacing: '-0.045em' }}>
-          1 credit
-        </p>
-        <p className="text-[15px] mt-4 max-w-sm mx-auto text-balance" style={{ color: 'var(--text-muted)' }}>
-          for a message. Hooks and scripts included. Watching a video is 5.
-        </p>
+      </div>
+      <div className="p-4 sm:p-6 border-t md:border-t-0" style={{ borderColor: 'var(--line)' }}>
+        <p className="label-mono mb-3">What it learned</p>
+        <div className="space-y-2">
+          {LEARNED.map((l, i) => (
+            <div key={l.k} className="flex items-baseline justify-between gap-4 px-3 py-2.5 rounded-lg"
+                 style={{
+                   background: 'var(--bg-app)', border: '1px solid var(--line)',
+                   opacity: done ? 1 : 0, transform: done ? 'none' : 'translateY(6px)',
+                   transition: `opacity 0.45s ease ${i * 120}ms, transform 0.45s cubic-bezier(.2,.7,.2,1) ${i * 120}ms`,
+                 }}>
+              <span className="font-mono text-[10.5px] uppercase tracking-wider flex-shrink-0" style={{ color: 'var(--text-faint)' }}>{l.k}</span>
+              <span className="text-[13px] text-right truncate" style={{ color: 'var(--text)' }}>{l.v}</span>
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );

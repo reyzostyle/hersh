@@ -13,7 +13,6 @@ import {
   FolderOutlineIcon as Folder,
   GraphUpOutlineIcon as GraphUp,
   GraphUpOutlineIcon as TrendingUp,
-  CpuBoltOutlineIcon as Brain,
   UsersGroupRoundedOutlineIcon as Users,
   HamburgerMenuOutlineIcon as Menu,
 } from '@solar-icons/react';
@@ -25,7 +24,7 @@ import { SUPPORT_EMAIL } from '../lib/brand';
 import { FAQS } from '../lib/faq';
 import { readLastEmail, forgetLastEmail } from '../lib/user';
 import { arrivedWith, peek, PENDING_ANALYZE_KEY } from '../lib/intents';
-import { Head, WorkflowGrid, Showcase } from './LandingMotion';
+import { Head, WorkflowGrid, CreditLedger, BrainScan } from './LandingMotion';
 
 // ─── Surface ─────────────────────────────────────────────────────────────────
 // This page used to run on three bespoke `glass` objects: stacked white
@@ -444,183 +443,6 @@ function AppFrame() {
   );
 }
 
-// The graph the brain is, before it is words.
-//
-// Laid out once at module scope from a fixed seed, never from Math.random: the
-// landing page is prerendered at build time and hydrated in the browser, and a
-// layout that comes out different in those two passes is a hydration mismatch
-// that flickers on first paint.
-//
-// The jitter is the point. A clean radial diagram of four spokes reads as a
-// corporate slide; the same four with their angles and distances knocked about
-// reads as something that was found rather than drawn, which is what the thing
-// actually is.
-const BRAIN_GRAPH = (() => {
-  let seed = 20260909;
-  // Numerical Recipes' LCG. Any deterministic generator would do - this one is
-  // three operations and needs no dependency.
-  const rnd = () => ((seed = (seed * 1664525 + 1013904223) % 4294967296) / 4294967296);
-  const jitter = (n: number) => (rnd() - 0.5) * n;
-
-  const CX = 200, CY = 150;
-  // Four quadrants rather than four points of the compass, so nothing sits
-  // directly above or below the middle.
-  const BASE = [-2.42, -0.72, 0.72, 2.42];
-  const hubs = ['voice', 'niche', 'format', 'audience'].map((label, i) => {
-    const a = BASE[i] + jitter(0.3);
-    const r = 92 + jitter(26);
-    return { label, x: CX + Math.cos(a) * r, y: CY + Math.sin(a) * r * 0.72, a };
-  });
-
-  // The uploads. Fanned outward from their hub, at their own distances, and
-  // some of them carry one or two of their own - a graph where every branch
-  // stops at the same depth reads as a diagram of a graph rather than as one.
-  const nodes: { x: number; y: number; r: number; delay: number }[] = [];
-  const links: { x1: number; y1: number; x2: number; y2: number; faint: boolean }[] = [];
-
-  hubs.forEach(h => {
-    const n = 4 + Math.floor(rnd() * 3);
-    for (let k = 0; k < n; k++) {
-      const a = h.a + (k - (n - 1) / 2) * (0.40 + jitter(0.14)) + jitter(0.2);
-      const r = 36 + rnd() * 36;
-      const x = h.x + Math.cos(a) * r;
-      const y = h.y + Math.sin(a) * r * 0.78;
-      nodes.push({ x, y, r: 2.2 + rnd() * 1.4, delay: rnd() * 5 });
-      links.push({ x1: h.x, y1: h.y, x2: x, y2: y, faint: true });
-
-      // A third of them branch again, close in and at a shallow angle, so the
-      // outer edge of the graph frays instead of ending on a circle.
-      if (rnd() < 0.34) {
-        const a2 = a + jitter(0.9);
-        const r2 = 14 + rnd() * 18;
-        const x2 = x + Math.cos(a2) * r2;
-        const y2 = y + Math.sin(a2) * r2 * 0.8;
-        nodes.push({ x: x2, y: y2, r: 1.8 + rnd(), delay: rnd() * 5 });
-        links.push({ x1: x, y1: y, x2, y2, faint: true });
-      }
-    }
-  });
-
-  // Two loops between neighbouring hubs. Nothing about a channel is a clean
-  // tree - the format is half of what the voice is - and two closed paths are
-  // the difference between a diagram and a network.
-  links.push({ x1: hubs[0].x, y1: hubs[0].y, x2: hubs[3].x, y2: hubs[3].y, faint: true });
-  links.push({ x1: hubs[1].x, y1: hubs[1].y, x2: hubs[2].x, y2: hubs[2].y, faint: true });
-
-  hubs.forEach(h => links.push({ x1: CX, y1: CY, x2: h.x, y2: h.y, faint: false }));
-
-  return { CX, CY, hubs, nodes, links };
-})();
-
-function BrainGraph() {
-  const { CX, CY, hubs, nodes, links } = BRAIN_GRAPH;
-  // The viewBox is cropped to what the layout actually draws plus an even
-  // margin, so the graph fills its half of the plate instead of floating in a
-  // box of empty grid.
-  return (
-    <svg viewBox="34 28 348 250" className="w-full h-auto" aria-hidden="true">
-      <g stroke="var(--line-strong)" fill="none">
-        {links.map((l, i) => (
-          <line key={i} x1={l.x1} y1={l.y1} x2={l.x2} y2={l.y2}
-                strokeWidth={l.faint ? 1 : 1.2} opacity={l.faint ? 0.5 : 1} />
-        ))}
-      </g>
-
-      {nodes.map((n, i) => (
-        <circle key={i} className="brain-dot" cx={n.x} cy={n.y} r={n.r}
-                fill="var(--text-faint)" style={{ animationDelay: `${n.delay.toFixed(2)}s` }} />
-      ))}
-
-      {hubs.map(h => (
-        <g key={h.label}>
-          <circle cx={h.x} cy={h.y} r="5" fill="var(--text-muted)" />
-          {/* Pushed outward along its own spoke and anchored to whichever side
-              that is, so a label never crosses a line running back to the
-              middle however the jitter lands. */}
-          <text
-            x={h.x + Math.cos(h.a) * 13}
-            y={h.y + Math.sin(h.a) * 13 + 3.5}
-            textAnchor={Math.cos(h.a) > 0 ? 'start' : 'end'}
-            style={{ fill: 'var(--text-muted)', fontFamily: "'Geist Mono', ui-monospace, monospace", fontSize: 9.5, letterSpacing: '0.08em', textTransform: 'uppercase' }}
-          >
-            {h.label}
-          </text>
-        </g>
-      ))}
-
-      {/* The middle is the biggest node and nothing else. It had a glow behind
-          it and its name underneath in a larger face, which turned a point in a
-          network into a hero graphic - the one thing on the page that looked
-          generated rather than drawn. It is labelled like every other node now. */}
-      <circle cx={CX} cy={CY} r="7" fill="var(--text)" />
-      <text
-        x={CX} y={CY + 20} textAnchor="middle"
-        style={{ fill: 'var(--text)', fontFamily: "'Geist Mono', ui-monospace, monospace", fontSize: 9.5, letterSpacing: '0.08em', textTransform: 'uppercase' }}
-      >
-        you
-      </text>
-    </svg>
-  );
-}
-
-// The brain: the graph on one side, the same thing resolved into sentences on
-// the other. Shown rather than described, because "it builds a profile of your
-// channel" sounds like every onboarding form ever written, and the difference
-// is that nobody fills this one in.
-function BrainFrame() {
-  const fields = [
-    { k: 'Niche', v: 'ranking, gaming' },
-    { k: 'Format', v: '30 to 45s, no face, gameplay under big on-screen text' },
-    { k: 'Audience', v: 'teens on mobile, there for the take they disagree with' },
-  ];
-  return (
-    <div className="overflow-hidden grid lg:grid-cols-[minmax(0,0.95fr)_minmax(0,1fr)]"
-         style={{ background: 'var(--bg-app)', border: '1px solid var(--line-strong)', borderRadius: 'var(--r-lg)' }}>
-      {/* The graph sits on the app's own grid, which is the one place on this
-          page besides the hero where that texture belongs: it is a field of
-          points, and a field of points needs ground. */}
-      <div className="grid-surface flex items-center justify-center p-5 sm:p-7 lg:border-r"
-           style={{ borderColor: 'var(--line)', borderBottom: '1px solid var(--line)' }}>
-        <BrainGraph />
-      </div>
-
-      <div className="p-5 sm:p-7 space-y-4">
-        <div className="flex items-center gap-3">
-          <span className="row-icon"><Brain className="w-[18px] h-[18px]" /></span>
-          <span className="min-w-0">
-            <span className="block text-[14px] font-medium" style={{ color: 'var(--text)' }}>Chumoku brain</span>
-            <span className="block text-[12px] mt-0.5" style={{ color: 'var(--text-muted)' }}>Read off your last 20 uploads.</span>
-          </span>
-        </div>
-
-        {/* textWrap pretty everywhere there is a sentence in here. On a phone
-            this column is the full width of the screen and every one of these
-            was leaving a single word alone on its last line. */}
-        <p className="text-[13px] leading-relaxed" style={{ color: 'var(--text)', textWrap: 'pretty' }}>
-          You post ranking shorts on mobile games, three or four a week, no face and no voiceover.
-          The ones that land are where the ranking is an argument, not a list.
-        </p>
-        {fields.map(f => (
-          <div key={f.k}>
-            <p className="label-mono mb-1">{f.k}</p>
-            <p className="text-[12.5px] leading-relaxed" style={{ color: 'var(--text-muted)', textWrap: 'pretty' }}>{f.v}</p>
-          </div>
-        ))}
-        <div>
-          <p className="label-mono mb-1.5">How ideas get remade for you</p>
-          {['Keep the argument, drop anything that needs a face on camera.',
-            'Never pitch a format that only works at ten times their views.'].map(x => (
-            <p key={x} className="text-[12.5px] leading-relaxed flex gap-2" style={{ color: 'var(--text-muted)' }}>
-              <span style={{ color: 'var(--text-faint)' }}>-</span>
-              <span style={{ textWrap: 'pretty' }}>{x}</span>
-            </p>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-}
-
 // Competitors: the feed only ever shows shorts that beat the channel's own
 // median views per day, so the multiple is the whole card, the same way it is
 // in CompetitorsFeed.
@@ -710,7 +532,7 @@ function AnalyticsFrame() {
       <div className="grid grid-cols-3 gap-2.5 sm:gap-3 mb-4">
         {[
           { label: 'Views, 28d', value: '1.24M', sub: '+18%' },
-          { label: 'Avg. view %', value: '61%', sub: '+4pt' },
+          { label: 'Viewed', value: '61%', sub: '+4pt' },
           { label: 'Subs, 28d', value: '3,910', sub: '+22%' },
         ].map(t => (
           <div key={t.label} className="p-3 sm:p-4 min-w-0" style={plate}>
@@ -1182,11 +1004,13 @@ export function LandingPage() {
                   what it actually does; "script writer" was concrete and too
                   small. The workflow is the middle, and time is what it buys. */}
               <span className="block text-balance md:whitespace-nowrap" style={{ color: 'var(--text)' }}>Spend less time on every Short.</span>
-              <span className="block text-balance md:whitespace-nowrap" style={{ color: 'var(--text-muted)' }}>Chumoku runs the workflow.</span>
+              {/* Off on phones: four lines of headline before the field pushed
+                  the one thing to do below the fold. */}
+              <span className="hidden sm:block text-balance md:whitespace-nowrap" style={{ color: 'var(--text-muted)' }}>Chumoku runs the workflow.</span>
             </h1>
 
-            <p className="animate-fade-in-up delay-100 text-[15px] sm:text-base leading-relaxed mt-5 mb-8 max-w-lg mx-auto text-balance" style={{ color: 'var(--text-muted)' }}>
-              It finds the idea, writes the script and tells you what to fix, using your channel's real numbers.
+            <p className="animate-fade-in-up delay-100 text-[15px] sm:text-base leading-relaxed mt-4 sm:mt-5 mb-7 sm:mb-8 mx-auto whitespace-nowrap" style={{ color: 'var(--text-muted)' }}>
+              Ideas, scripts and fixes in one app.
             </p>
 
             {/* The only CTA above the fold, and it is the app's composer, not a
@@ -1249,7 +1073,7 @@ export function LandingPage() {
             title="One balance."
             muted="Pay for what you use."
           />
-          <Showcase />
+          <CreditLedger />
         </section>
 
         {/* ── Competitors ─────────────────────────────────────────────────── */}
@@ -1272,7 +1096,7 @@ export function LandingPage() {
             title="It learns your channel."
             muted="In one click."
           />
-          <Reveal><BrainFrame /></Reveal>
+          <BrainScan />
         </section>
 
         {/* ── Analytics ───────────────────────────────────────────────────── */}
