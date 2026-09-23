@@ -100,3 +100,14 @@ h1 { text-wrap: balance; }
 .pill { display: inline-flex; align-items: center; gap: 8px; padding: 9px 16px 9px 13px; border-radius: 999px; border: 1px solid var(--line-strong); font-size: 14px; font-weight: 500; }
 .pill svg { width: 16px; height: 16px; }
 .pill.primary { background: #f1f1f1; color: #0f0f0f; border-color: transparent; }
+
+/* Two buttons on a stage: what the extension adds, without a mock phone. */
+.btn-stage { position: relative; width: 480px; height: 320px; display: flex; align-items: center; justify-content: center; }
+.stage-label { position: absolute; left: 24px; top: 22px; font-family: 'Geist Mono', monospace; font-size: 12.5px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-faint); }
+.big-pills { display: flex; gap: 16px; }
+.big-pill { display: inline-flex; align-items: center; gap: 12px; padding: 16px 26px 16px 22px; border-radius: 999px; border: 1px solid var(--line-strong); font-size: 22px; font-weight: 500; }
+.big-pill svg { width: 26px; height: 26px; }
+.big-pill.primary { background: #f1f1f1; color: #0f0f0f; border-color: transparent; box-shadow: 0 0 0 10px rgba(241,241,241,0.06); }
+.stack { display: flex; flex-direction: column; gap: 18px; align-items: center; zoom: 0.78; }
+.stack .btn-stage { width: 420px; height: 150px; }
+.stack .big-pill { font-size: 20px; padding: 14px 22px 14px 18px; }

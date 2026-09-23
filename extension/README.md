@@ -72,7 +72,7 @@ Built for Shorts creators posting daily in ranking, Minecraft, Roblox and commen
 
 **Privacy policy URL:** https://chumoku.co/privacy (has a Chrome extension section).
 
-**Trader status (EU):** trader - Chumoku sells subscriptions, so the extension is part of a business. Google shows the trader's contact details on the listing.
+**Trader status (EU):** non-trader for now (2026-09-23): trader verification needs a registered organization in Dun & Bradstreet and there is none yet. Switch to trader in the developer dashboard once the business is registered.
 
 **Permissions justification** (the store asks for each):
 - `contextMenus`: the right-click Analyze / Steal entries on Short links.
