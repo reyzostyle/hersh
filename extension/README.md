@@ -51,22 +51,30 @@ https://chrome.google.com/webstore/devconsole ($5 one-time developer fee). Bump
 
 **Description:**
 
-Chumoku is workflow automation for YouTube Shorts creators: it finds the idea, writes the script and tells you what to fix, using your channel's real numbers. This extension puts it where you already spend the time, on YouTube.
+Chumoku is workflow automation for YouTube Shorts creators. It finds the idea, writes the script and tells you what to fix, using your channel's real numbers. This extension brings it to where you already spend the time: scrolling Shorts.
 
-Scrolling Shorts is research. Chumoku turns it into work you can use.
+Every Short on YouTube gets two buttons, right above Like.
 
-Every Short on YouTube gets two buttons, right above Like:
+ANALYZE
+A score out of 100, what makes the hook land, what loses viewers, and the exact seconds to fix.
 
-ANALYZE: a score out of 100, what makes the hook land, and what loses viewers. The same analysis Chumoku runs on your own videos.
+STEAL
+Chumoku watches the Short, works out the move that made it work, and rebuilds it for your niche as a shot-by-shot outline. The format, not the video. It is saved to your Ideas, ready to film.
 
-STEAL: Chumoku watches the Short, works out the structural move that made it work, and rewrites it for your niche as a shot-by-shot outline. The format, not the video. It lands in your Ideas, ready to film.
+Results open in Chrome's side panel, right beside the video, so you keep scrolling. Everything is saved to your Chumoku account, and the chat can turn any stolen idea into a full script.
 
 Also:
 • Right-click any Short in a feed or search result
-• Alt+Shift+A / Alt+Shift+S on the Short you're watching
+• Alt+Shift+A to analyze, Alt+Shift+S to steal
 • Paste any Shorts link into the popup
 
-Built for Shorts creators posting daily in ranking, Minecraft, Roblox and commentary niches. Free account includes 20 credits.
+Built for creators posting Shorts every day. A free account includes 20 credits: a message costs 1, analyzing or stealing a video costs 5.
+
+**Homepage URL:** https://chumoku.co/?utm_source=chrome_web_store
+
+**Support URL:** https://discord.gg/N8S6C95Ry2
+
+**Store icon:** `extension/store/out/store-icon-128.png` (96px artwork on a 128px transparent canvas, as the store asks).
 
 **Category:** Workflow & Planning (the store split Productivity into subcategories; Tools is the fallback). **Language:** English.
 
