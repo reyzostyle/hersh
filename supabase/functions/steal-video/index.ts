@@ -74,10 +74,9 @@ Deno.serve(async (req: Request) => {
       .from('competitor_ideas').select('*')
       .eq('user_id', user.id).eq('video_id', videoId).maybeSingle();
     if (existing?.concept && existing?.outline) {
-      if (!existing.liked) {
-        await supabase.from('competitor_ideas').update({ liked: true }).eq('id', existing.id);
-      }
-      return json({ success: true, idea: { ...existing, liked: true }, charged: 0 });
+      const now = new Date().toISOString();
+      await supabase.from('competitor_ideas').update({ liked: true, created_at: now }).eq('id', existing.id);
+      return json({ success: true, idea: { ...existing, liked: true, created_at: now }, charged: 0 });
     }
 
     const needsRead = !existing?.concept;
@@ -150,6 +149,10 @@ Extra context: ${profile?.channel_context || 'not set'}`;
         // Pressing Steal is a save. It lands in Saved, next to everything
         // else they kept from the feed.
         liked: true,
+        // A save made now. Without this a video that was already a row (seen
+        // in the feed weeks ago) kept its old date, and "my last idea" in the
+        // chat skipped straight past the thing just stolen.
+        created_at: new Date().toISOString(),
       }, { onConflict: 'user_id,video_id' })
       .select()
       .single();

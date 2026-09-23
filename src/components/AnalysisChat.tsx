@@ -496,21 +496,6 @@ function RevealText({ text, onAdvance }: { text: string; onAdvance: () => void }
   );
 }
 
-// The four things this screen takes, as four things to press.
-//
-// "What are we looking at?" over an empty box is a good question and a bad
-// brief: nothing on the screen said a hook could go in it, or a script, or a
-// screenshot of Studio, so the box got links and nothing else. Two of these
-// also settle the routing by saying the word out loud - a paragraph that opens
-// and pays off is the one call the router can reasonably get wrong, and
-// "Check this script:" removes the guess.
-const STARTERS: { label: string; prefill?: string; pick?: boolean }[] = [
-  { label: 'Score a hook', prefill: 'Score this hook:\n' },
-  { label: 'Check a script', prefill: 'Check this script:\n' },
-  { label: 'Read my Studio screenshot', pick: true },
-  { label: 'Why did my last short flop?', prefill: 'Why did my last short flop?' },
-];
-
 export function AnalysisChat() {
   // Lazily seeded from the session cache, not restored in an effect: an effect
   // would render the empty hero for one frame first, and coming back to a tab
@@ -1296,19 +1281,6 @@ export function AnalysisChat() {
     setFilingOpen(false);
   };
 
-  const startWith = (s: typeof STARTERS[number]) => {
-    if (s.pick) { fileRef.current?.click(); return; }
-    setComposer(s.prefill ?? '');
-    // Focus after the value lands, and put the caret at the end - a prefill
-    // that puts the cursor in front of the text it just wrote is a prefill
-    // fighting whoever types next.
-    requestAnimationFrame(() => {
-      const ta = taRef.current;
-      if (!ta) return;
-      ta.focus();
-      ta.setSelectionRange(ta.value.length, ta.value.length);
-    });
-  };
 
   const empty = messages.length === 0 && !opening;
 
@@ -1381,15 +1353,10 @@ export function AnalysisChat() {
             />
             <Price />
 
-            {/* The box took links and nothing else because nothing on the
-                screen said it took anything else. */}
-            <div className="mt-5 flex flex-wrap justify-center gap-2">
-              {STARTERS.map(s => (
-                <button key={s.label} onClick={() => startWith(s)} className="chip">
-                  {s.label}
-                </button>
-              ))}
-            </div>
+            {/* No starter chips under the box. They were four more things to
+                read on an empty screen, wrapped badly in the side panel and on
+                phones, and the chat no longer needs a keyword to route: the
+                placeholder says what it takes. */}
 
             {/* The hero had nowhere to say no. Nothing could fail here before -
                 a send left this screen immediately - but a file can be turned

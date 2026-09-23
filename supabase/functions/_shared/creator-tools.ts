@@ -38,7 +38,7 @@ export const CREATOR_TOOLS: ToolSpec[] = [
   {
     name: 'search_ideas',
     description:
-      "Search the creator's own saved video ideas, the ones they kept from the Ideas tab. Use whenever they mention their ideas, what they were planning to make, or ask what to film next. Leave the query empty to get the most recent.",
+      "Search the creator's own saved video ideas: the ones they kept from the Ideas tab and every Short they stole with the Steal button. Each comes with the outline when one was written. Use whenever they mention their ideas, their last idea, something they stole, what they were planning to make, or ask what to film next. Leave the query empty to get the most recent first.",
     parameters: {
       type: 'OBJECT',
       properties: {
@@ -102,7 +102,7 @@ async function searchIdeasSemantic(supabase: DB, userId: string, query: string) 
   if (!matches.length) return null;
   const { data } = await supabase
     .from('competitor_ideas')
-    .select('id, video_title, channel_name, concept, adapted_idea, created_at')
+    .select('id, video_title, channel_name, concept, adapted_idea, outline, created_at, liked')
     .eq('user_id', userId)
     .in('id', matches.map(m => m.ref_id));
   // Ordered by how close the match was, not by when the row was made. The
@@ -112,14 +112,30 @@ async function searchIdeasSemantic(supabase: DB, userId: string, query: string) 
   const byId = new Map((data ?? []).map((r: any) => [r.id, r]));
   return matches
     .map(m => byId.get(m.ref_id))
-    .filter(Boolean)
+    // deno-lint-ignore no-explicit-any
+    .filter((r: any) => r && r.liked !== false)
     // deno-lint-ignore no-explicit-any
     .map((r: any) => ({
       idea: clip(r.adapted_idea) ?? clip(r.concept),
+      outline: outlineBrief(r.outline),
       from_video: r.video_title,
       from_channel: r.channel_name,
       saved: r.created_at?.slice(0, 10),
     }));
+}
+
+// The outline a steal wrote, cut to what a script needs: the hook and each
+// beat. Without it "write a script from my last idea" got the one-line angle
+// and none of the structure that made the Short worth stealing.
+// deno-lint-ignore no-explicit-any
+function outlineBrief(o: any): string | null {
+  if (!o || typeof o !== 'object') return null;
+  const beats = Array.isArray(o.sections)
+    // deno-lint-ignore no-explicit-any
+    ? o.sections.map((x: any) => `${x.title} (${x.duration}): ${x.content}`).join(' | ')
+    : '';
+  const text = [o.hook && `Hook: ${o.hook}`, beats, o.cta && `Close: ${o.cta}`].filter(Boolean).join(' | ');
+  return text ? clip(text, 900) : null;
 }
 
 async function searchIdeas(supabase: DB, userId: string, query: string) {
@@ -127,10 +143,16 @@ async function searchIdeas(supabase: DB, userId: string, query: string) {
     const semantic = await searchIdeasSemantic(supabase, userId, query);
     if (semantic?.length) return semantic;
   }
+  // Saved ideas only, newest first. A dismissed video is the opposite of an
+  // idea, and "my last idea" used to be able to return one.
   let q = supabase
     .from('competitor_ideas')
-    .select('video_title, channel_name, concept, adapted_idea, video_views, created_at')
+    .select('video_title, channel_name, concept, adapted_idea, outline, video_views, created_at')
     .eq('user_id', userId)
+    // IS NOT FALSE keeps saved and not-yet-ruled rows. A filter, not an .or():
+    // the text search below adds its own .or() and two of them do not combine.
+    .not('liked', 'is', false)
+    .order('liked', { ascending: false, nullsFirst: false })
     .order('created_at', { ascending: false })
     .limit(LIMIT);
   if (query?.trim()) {
@@ -141,6 +163,7 @@ async function searchIdeas(supabase: DB, userId: string, query: string) {
   // deno-lint-ignore no-explicit-any
   return (data ?? []).map((r: any) => ({
     idea: clip(r.adapted_idea) ?? clip(r.concept),
+    outline: outlineBrief(r.outline),
     from_video: r.video_title,
     from_channel: r.channel_name,
     saved: r.created_at?.slice(0, 10),
