@@ -25,6 +25,7 @@ import { SUPPORT_EMAIL } from '../lib/brand';
 import { FAQS } from '../lib/faq';
 import { readLastEmail, forgetLastEmail } from '../lib/user';
 import { arrivedWith, peek, PENDING_ANALYZE_KEY } from '../lib/intents';
+import { Head, WorkflowGrid, Showcase } from './LandingMotion';
 
 // ─── Surface ─────────────────────────────────────────────────────────────────
 // This page used to run on three bespoke `glass` objects: stacked white
@@ -767,26 +768,6 @@ function AnalyticsFrame() {
 // One line each, and each line names a thing: a median, a hook, a second. A
 // sentence that could describe any tool describes nothing, to a reader or to a
 // crawler.
-const surfaces: { index: string; icon: React.ReactNode; label: string; desc: string }[] = [
-  {
-    index: '01',
-    icon: <Users className="w-[18px] h-[18px]" />,
-    label: 'Steal what already worked',
-    desc: 'Only the shorts that beat the channel they came from.',
-  },
-  {
-    index: '02',
-    icon: <VideoIcon className="w-[18px] h-[18px]" />,
-    label: 'Make it yours',
-    desc: 'The idea comes back as your hook and your script, scored before you film.',
-  },
-  {
-    index: '03',
-    icon: <GraphUp className="w-[18px] h-[18px]" />,
-    label: 'Post it, then find out why',
-    desc: 'Your retention curve, the second people left, and what to cut next time.',
-  },
-];
 
 // Verbatim Discord messages, quoted as such. One per surface, so each lands on
 // a different problem rather than three people praising the same thing.
@@ -1009,19 +990,6 @@ function PricingCard({ plan, interval, onSelect }: { plan: Plan; interval: Inter
   );
 }
 
-// ─── Section head ─────────────────────────────────────────────────────────────
-// PageHead's three notes — mono eyebrow, display line, one sentence — in the
-// same order at the same sizes as every screen in the app.
-function Head({ eyebrow, title, sub }: { eyebrow: string; title: string; sub?: string }) {
-  return (
-    <div className="mb-8 sm:mb-10">
-      <p className="label-mono mb-4">{eyebrow}</p>
-      <h2 className="display max-w-2xl" style={{ color: 'var(--text)' }}>{title}</h2>
-      {sub && <p className="text-[15px] mt-3 max-w-md leading-relaxed text-balance" style={{ color: 'var(--text-muted)' }}>{sub}</p>}
-    </div>
-  );
-}
-
 const navLinks: { label: string; id: string }[] = [
   { label: 'Product', id: 'product' },
   { label: 'Pricing', id: 'pricing' },
@@ -1194,32 +1162,36 @@ export function LandingPage() {
             aria-hidden="true"
           />
 
-          <div className={`relative ${SECTION} pt-16 sm:pt-28 pb-10 sm:pb-14`}>
+          {/* Centred now, after money.x.com: one headline, one line under it,
+              one field, and the product underneath. The left-aligned version
+              came from paper.design and read as a document; centred, the page
+              opens on a single thing to do. */}
+          <div className={`relative ${SECTION} pt-16 sm:pt-28 pb-10 sm:pb-14 flex flex-col items-center text-center`}>
             <p className="label-mono mb-5 animate-fade-in">The Shorts workflow, automated</p>
 
             {/* Bright line, then the same sentence continuing in the muted
                 weight. One headline doing the job the headline plus a
                 subheading used to split between them. */}
             <h1
-              className="animate-fade-in-up font-semibold max-w-3xl"
-              style={{ fontSize: 'clamp(2.1rem, 1.2rem + 3.4vw, 3.9rem)', letterSpacing: '-0.035em', lineHeight: 1.05 }}
+              className="animate-fade-in-up font-semibold max-w-4xl mx-auto"
+              style={{ fontSize: 'clamp(2.1rem, 1.1rem + 3vw, 3.4rem)', letterSpacing: '-0.035em', lineHeight: 1.06 }}
             >
               {/* Each half on its own line, so neither breaks mid-phrase. The
                   benefit leads and the mechanism follows in the muted weight:
                   "AI content producer" named a category and left people asking
                   what it actually does; "script writer" was concrete and too
                   small. The workflow is the middle, and time is what it buys. */}
-              <span className="block text-balance" style={{ color: 'var(--text)' }}>Spend less time on every Short.</span>
-              <span className="block text-balance" style={{ color: 'var(--text-muted)' }}>Chumoku runs the workflow.</span>
+              <span className="block text-balance md:whitespace-nowrap" style={{ color: 'var(--text)' }}>Spend less time on every Short.</span>
+              <span className="block text-balance md:whitespace-nowrap" style={{ color: 'var(--text-muted)' }}>Chumoku runs the workflow.</span>
             </h1>
 
-            <p className="animate-fade-in-up delay-100 text-[15px] sm:text-base leading-relaxed mt-5 mb-8 max-w-lg" style={{ color: 'var(--text-muted)' }}>
+            <p className="animate-fade-in-up delay-100 text-[15px] sm:text-base leading-relaxed mt-5 mb-8 max-w-lg mx-auto text-balance" style={{ color: 'var(--text-muted)' }}>
               It finds the idea, writes the script and tells you what to fix, using your channel's real numbers.
             </p>
 
             {/* The only CTA above the fold, and it is the app's composer, not a
                 marketing input: same plate, same radius, same round send. */}
-            <form onSubmit={handleHeroAnalyze} autoComplete="off" className="animate-fade-in-up delay-200 max-w-xl">
+            <form onSubmit={handleHeroAnalyze} autoComplete="off" className="animate-fade-in-up delay-200 w-full max-w-xl mx-auto text-left">
               <div className="flex items-center gap-2 pl-4 pr-2 py-2" style={composer}>
                 <input
                   type="text"
@@ -1238,7 +1210,7 @@ export function LandingPage() {
                   <ArrowUp className="w-4 h-4" style={{ color: 'var(--on-accent)' }} />
                 </button>
               </div>
-              <p className="label-mono mt-3" style={heroError ? { color: 'rgb(var(--danger-rgb))' } : undefined}>
+              <p className="label-mono mt-3 text-center" style={heroError ? { color: 'rgb(var(--danger-rgb))' } : undefined}>
                 {heroError || '20 free credits · no card'}
               </p>
             </form>
@@ -1254,50 +1226,39 @@ export function LandingPage() {
         </header>
 
         {/* ── Product ─────────────────────────────────────────────────────────
-            The hub's list, verbatim: the same rows, the same plates.
-            Signing up lands you on this screen again. */}
-        <section id="product" className={`${SECTION} py-16 sm:py-24 scroll-mt-16`}>
-          <Reveal>
-            <Head
-              eyebrow="The loop"
-              title="Steal, adapt, improve."
-              sub="One credit balance across all three."
-            />
-          </Reveal>
+            The workflow, step by step, each step a small piece of the real
+            interface doing its job as it comes into view. */}
+        <section className={`${SECTION} pt-8 pb-16 sm:pb-24`}>
+          <Head
+            id="product"
+            eyebrow="How it works"
+            title="Six steps you used to do by hand."
+            muted="Now one place does them."
+            sub="From finding the idea to finding out why it flopped. Every step reads your channel's real numbers, so nothing is generic."
+          />
+          <WorkflowGrid />
+        </section>
 
-          {/* The app's `.row`, and deliberately not a button: these three
-              describe the week, they do not go anywhere. Same plate, same icon
-              tile, same measure as the hub someone lands on after signing up -
-              the numeral stays here because these are a sequence, which is the
-              one place a numeral earns its keep. */}
-          <Reveal delay={60}>
-            <div className="row-list">
-              {surfaces.map(s => (
-                <div key={s.label} className="row items-start sm:items-center">
-                  <span className="row-icon">{s.icon}</span>
-                  <span className="flex-1 min-w-0">
-                    <span className="block text-[15px] font-medium" style={{ color: 'var(--text)' }}>{s.label}</span>
-                    <span className="block text-[13px] leading-relaxed mt-0.5 text-balance" style={{ color: 'var(--text-muted)' }}>{s.desc}</span>
-                  </span>
-                  <span className="font-mono text-[11px] flex-shrink-0 tabular-nums self-start sm:self-center" style={{ color: 'var(--text-faint)' }}>
-                    {s.index}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </Reveal>
+        {/* ── Showcase ───────────────────────────────────────────────────────── */}
+        <section className={`${SECTION} pb-16 sm:pb-24`}>
+          <Head
+            eyebrow="One balance"
+            title="Pay for what you use."
+            muted="Not for four separate tools."
+            sub="Credits work across the chat, Ideas and the extension. What an action costs is written on the button."
+          />
+          <Showcase />
         </section>
 
         {/* ── Competitors ─────────────────────────────────────────────────── */}
         <section className={`${SECTION} pb-16 sm:pb-24`}>
-          <Reveal>
-            <Head
-              eyebrow="Ideas"
-              title="Their breakouts, not their uploads."
-              sub="Ranked against that channel's own median."
-            />
-          </Reveal>
-          <Reveal delay={60}><CompetitorsFrame /></Reveal>
+          <Head
+            eyebrow="Ideas"
+            title="Their breakouts,"
+            muted="not their uploads."
+            sub="Every Short is ranked against its own channel's median, so a 2M video on a 10M channel does not crowd out the real outliers."
+          />
+          <Reveal><CompetitorsFrame /></Reveal>
         </section>
 
         {/* ── The brain ───────────────────────────────────────────────────── */}
@@ -1305,33 +1266,29 @@ export function LandingPage() {
             objection: an idea "adapted for your channel" is worth nothing if
             the tool does not know the channel. */}
         <section className={`${SECTION} pb-16 sm:pb-24`}>
-          <Reveal>
-            <Head
-              eyebrow="Chumoku brain"
-              title="It reads your channel."
-              sub="One click, and you never describe it again."
-            />
-          </Reveal>
-          <Reveal delay={60}><BrainFrame /></Reveal>
+          <Head
+            eyebrow="Chumoku brain"
+            title="It reads your channel."
+            muted="You never describe it again."
+            sub="One click and it learns your niche, your format and your voice from what you already posted. Every idea and script is written for that."
+          />
+          <Reveal><BrainFrame /></Reveal>
         </section>
 
         {/* ── Analytics ───────────────────────────────────────────────────── */}
         <section className={`${SECTION} pb-16 sm:pb-24`}>
-          <Reveal>
-            <Head
-              eyebrow="Analytics"
-              title="Improve on real data, not guesses."
-              sub="Connect once. Every answer reads your own retention."
-            />
-          </Reveal>
-          <Reveal delay={60}><AnalyticsFrame /></Reveal>
+          <Head
+            eyebrow="Analytics"
+            title="Real numbers,"
+            muted="not guesses."
+            sub="Connect YouTube once, in two clicks. Every answer reads your own retention and names the second people left."
+          />
+          <Reveal><AnalyticsFrame /></Reveal>
         </section>
 
         {/* ── Proof ───────────────────────────────────────────────────────── */}
         <section className={`${SECTION} pb-16 sm:pb-24`}>
-          <Reveal>
-            <Head eyebrow="From the Discord" title="Not a wall of five stars." sub="Verbatim messages, one per surface, from people who were using it anyway." />
-          </Reveal>
+          <Head eyebrow="From the Discord" title="Not a wall of five stars." muted="Real messages, word for word." sub="One per surface, from people who were using it anyway." />
           <div className="grid sm:grid-cols-3 gap-3 sm:gap-4">
             {testimonials.map((t, i) => (
               <Reveal key={t.name} delay={i * 70}>
@@ -1351,10 +1308,16 @@ export function LandingPage() {
         {/* ── Pricing ─────────────────────────────────────────────────────── */}
         <section id="pricing" className={`${SECTION} pb-16 sm:pb-24 scroll-mt-16`}>
           <Reveal>
-            <div className="flex flex-wrap items-end justify-between gap-4 mb-8 sm:mb-10">
+            <div className="flex flex-wrap items-end justify-between gap-4 mb-10 sm:mb-14 pt-8 sm:pt-10" style={{ borderTop: '1px solid var(--line)' }}>
               <div>
-                <p className="label-mono mb-4">Pricing</p>
-                <h2 className="display" style={{ color: 'var(--text)' }}>One balance, not four limits.</h2>
+                <p className="label-mono mb-5 flex items-center gap-2">
+                  <span className="inline-block w-1 h-1 rounded-full" style={{ background: 'var(--text-faint)' }} />
+                  Pricing
+                </p>
+                <h2 className="display" style={{ color: 'var(--text)' }}>
+                  Pays for itself
+                  <span className="block" style={{ color: 'var(--text-muted)' }}>in the time it saves.</span>
+                </h2>
               </div>
               <BillingToggle interval={billingInterval} onChange={setBillingInterval} />
             </div>
@@ -1388,7 +1351,7 @@ export function LandingPage() {
 
         {/* ── FAQ ─────────────────────────────────────────────────────────── */}
         <section id="faq" className={`${SECTION} pb-16 sm:pb-24 scroll-mt-16`}>
-          <Reveal><Head eyebrow="Questions" title="Before you sign up." /></Reveal>
+          <Head eyebrow="Questions" title="Before you sign up." muted="Everything people ask first." />
           <Reveal delay={60}><FAQSection /></Reveal>
         </section>
 
@@ -1426,42 +1389,95 @@ export function LandingPage() {
           </Reveal>
         </section>
 
-        {/* ── Footer ──────────────────────────────────────────────────────── */}
-        <footer style={{ borderTop: '1px solid var(--line)' }}>
-          <div className={`${SECTION} py-10 flex flex-col sm:flex-row sm:items-center gap-6`}>
-            <div className="flex items-center gap-2 font-black uppercase tracking-[0.14em] text-[13px]" style={{ color: 'var(--text-muted)' }}>
-              <img src="/chumoku-mark.png" alt="" className="h-[12px] w-auto opacity-60" />
-              Chumoku
+        {/* ── Footer ──────────────────────────────────────────────────────────
+            Columns, then the name set huge and cut off by the bottom edge -
+            the page ends on the brand instead of on a row of small links. The
+            wordmark is type, not an image, so it costs nothing and never
+            blurs. */}
+        <footer className="relative overflow-hidden" style={{ borderTop: '1px solid var(--line)' }}>
+          <div className={`${SECTION} pt-14 pb-10 grid grid-cols-3 gap-x-6 gap-y-10 sm:grid-cols-[minmax(0,1.4fr)_repeat(3,minmax(0,1fr))]`}>
+            <div className="col-span-3 sm:col-span-1">
+              <div className="flex items-center gap-2 text-[15px] font-semibold" style={{ color: 'var(--text)' }}>
+                <img src="/chumoku-mark.png" alt="" className="h-[14px] w-auto" />
+                Chumoku
+              </div>
+              <p className="text-[13px] leading-relaxed mt-3 max-w-[16rem] text-pretty" style={{ color: 'var(--text-muted)' }}>
+                The Shorts workflow, automated. Less time on every Short.
+              </p>
+              {/* The other half of the sameAs in index.html: those profiles link
+                  back here, and rel="me" is the markup for "this is also me". */}
+              <div className="flex flex-wrap gap-x-4 gap-y-2 mt-5 text-[13px]">
+                {SOCIALS.map(sn => (
+                  <a key={sn.label} href={sn.href} rel="me noopener noreferrer" target="_blank"
+                     className="transition-colors hover:text-[var(--text)]" style={{ color: 'var(--text-faint)' }}>
+                    {sn.label}
+                  </a>
+                ))}
+              </div>
             </div>
 
-            <div className="flex flex-wrap items-center gap-x-5 gap-y-2 sm:ml-auto text-[13px]">
-              <a href={`mailto:${SUPPORT_EMAIL}`} className="flex items-center gap-1.5 transition-colors hover:text-[var(--text)]" style={{ color: 'var(--text-muted)' }}>
-                <Mail className="w-3.5 h-3.5" />{SUPPORT_EMAIL}
-              </a>
-              {/* Linked from the site's most-crawled page, because a page
-                  nothing links to is a page a crawler reaches late or never.
-                  The sitemap lists them; an internal link is what gets them
-                  read. */}
-              <a href="/blog" className="transition-colors hover:text-[var(--text)]" style={{ color: 'var(--text-muted)' }}>Blog</a>
-              <a href="/privacy" className="transition-colors hover:text-[var(--text)]" style={{ color: 'var(--text-muted)' }}>Privacy</a>
-              <a href="/terms" className="transition-colors hover:text-[var(--text)]" style={{ color: 'var(--text-muted)' }}>Terms</a>
-              {/* The other half of the sameAs in index.html. Those three
-                  profiles already link back here, and a search engine
-                  resolving "which Chumoku is this" is looking for exactly that
-                  round trip - a claim confirmed from both ends rather than
-                  asserted by one. rel="me" is the markup for "this is also
-                  me"; it is what the reciprocal link is FOR. */}
-              {SOCIALS.map(sn => (
-                <a key={sn.label} href={sn.href} rel="me noopener noreferrer" target="_blank"
-                   className="transition-colors hover:text-[var(--text)]" style={{ color: 'var(--text-muted)' }}>
-                  {sn.label}
-                </a>
-              ))}
-            </div>
+            {[
+              { head: 'Product', links: [
+                { label: 'How it works', onClick: () => scrollTo('product') },
+                { label: 'Pricing', onClick: () => scrollTo('pricing') },
+                { label: 'FAQ', onClick: () => scrollTo('faq') },
+              ] },
+              // Linked from the most-crawled page on purpose: a page nothing
+              // links to is a page a crawler reaches late or never.
+              { head: 'Resources', links: [
+                { label: 'Blog', href: '/blog' },
+                { label: 'Discord', href: 'https://discord.com/invite/N8S6C95Ry2', external: true },
+              ] },
+              { head: 'Company', links: [
+                { label: 'Contact', href: `mailto:${SUPPORT_EMAIL}` },
+                { label: 'Privacy', href: '/privacy' },
+                { label: 'Terms', href: '/terms' },
+              ] },
+            ].map(col => (
+              <div key={col.head}>
+                <p className="label-mono mb-4">{col.head}</p>
+                <ul className="space-y-2.5">
+                  {col.links.map(l => (
+                    <li key={l.label}>
+                      {'href' in l && l.href ? (
+                        <a href={l.href} {...('external' in l && l.external ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
+                           className="text-[13.5px] transition-colors hover:text-[var(--text)]" style={{ color: 'var(--text-muted)' }}>
+                          {l.label}
+                        </a>
+                      ) : (
+                        <button onClick={'onClick' in l ? l.onClick : undefined}
+                                className="text-[13.5px] transition-colors hover:text-[var(--text)]" style={{ color: 'var(--text-muted)' }}>
+                          {l.label}
+                        </button>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
           </div>
-          <div className={`${SECTION} pb-10`}>
+
+          <div className={`${SECTION} pb-6 flex items-center justify-between gap-4`}>
             <p className="label-mono">© {new Date().getFullYear()} Chumoku</p>
+            <a href={`mailto:${SUPPORT_EMAIL}`} className="label-mono transition-colors hover:text-[var(--text)] flex items-center gap-1.5">
+              <Mail className="w-3 h-3" />{SUPPORT_EMAIL}
+            </a>
           </div>
+
+          <p
+            aria-hidden="true"
+            className="select-none pointer-events-none text-center font-semibold leading-[0.78] -mb-[0.16em] whitespace-nowrap"
+            style={{
+              fontSize: 'clamp(4.5rem, 1rem + 17vw, 17rem)',
+              letterSpacing: '-0.06em',
+              color: 'transparent',
+              backgroundImage: 'linear-gradient(to bottom, rgba(255,255,255,0.09), rgba(255,255,255,0.015))',
+              WebkitBackgroundClip: 'text',
+              backgroundClip: 'text',
+            }}
+          >
+            chumoku
+          </p>
         </footer>
       </div>
 
