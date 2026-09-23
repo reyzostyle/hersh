@@ -80,6 +80,10 @@ Chumoku is workflow automation for Shorts creators. Free account includes 20 cre
 - Host access to chumoku.co: the panel shows the Chumoku site, signed in with your existing session.
 - Host access to youtube.com: to place the two buttons on Shorts pages.
 
+**Remote code:** answer "No, I am not using remote code". Everything runs from the package; the side panel's chumoku.co iframe is embedded web content, not remote code.
+
+**Data usage:** tick no data types (the extension collects nothing itself; it opens Chumoku with the Short's public link on a click), tick all three certifications.
+
 **Single purpose:** Send a YouTube Short to Chumoku for analysis or format adaptation.
 
 **Data use:** the extension collects nothing and sends nothing on its own. Pressing a
