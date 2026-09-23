@@ -49,26 +49,16 @@ https://chrome.google.com/webstore/devconsole ($5 one-time developer fee). Bump
 
 **Summary (132 chars max):** The Shorts workflow, automated. Analyze any Short or steal its format as an outline for your channel, beside the video.
 
-**Description:**
+**Description:** (kept short: the store shows the first lines, people skim the rest)
 
-Chumoku is workflow automation for YouTube Shorts creators. It finds the idea, writes the script and tells you what to fix, using your channel's real numbers. This extension brings it to where you already spend the time: scrolling Shorts.
+Two buttons on every YouTube Short, right above Like.
 
-Every Short on YouTube gets two buttons, right above Like.
+ANALYZE: a score out of 100 and the exact seconds to fix.
+STEAL: the Short's format, rebuilt as an outline for your channel and saved to your Ideas.
 
-ANALYZE
-A score out of 100, what makes the hook land, what loses viewers, and the exact seconds to fix.
+Results open in a side panel beside the video, so you keep scrolling. Right-click any Short or use Alt+Shift+A / S.
 
-STEAL
-Chumoku watches the Short, works out the move that made it work, and rebuilds it for your niche as a shot-by-shot outline. The format, not the video. It is saved to your Ideas, ready to film.
-
-Results open in Chrome's side panel, right beside the video, so you keep scrolling. Everything is saved to your Chumoku account, and the chat can turn any stolen idea into a full script.
-
-Also:
-• Right-click any Short in a feed or search result
-• Alt+Shift+A to analyze, Alt+Shift+S to steal
-• Paste any Shorts link into the popup
-
-Built for creators posting Shorts every day. A free account includes 20 credits: a message costs 1, analyzing or stealing a video costs 5.
+Chumoku is workflow automation for Shorts creators. Free account includes 20 credits.
 
 **Homepage URL:** https://chumoku.co/?utm_source=chrome_web_store
 
