@@ -176,6 +176,10 @@ input::placeholder { color: var(--text-faint); }
   border-radius: var(--r-md);
 }
 .w-tile-center { display: flex; align-items: center; justify-content: center; }
+/* Text tiles sit in the middle of the tile, like the others; the toast stays
+   pinned to the corner. */
+.w-tile-col { display: flex; flex-direction: column; justify-content: center; }
+.w-tile-col .line-k:first-of-type { margin-top: 4px; }
 .w-step-head { display: flex; gap: 12px; align-items: baseline; margin: 16px 0 4px; font-size: 14.5px; font-weight: 500; }
 .w-step-head .n { font-family: 'Geist Mono', ui-monospace, monospace; font-size: 11px; color: var(--text-faint); }
 .w-step-sub { margin: 0 0 0 27px; font-size: 13px; color: var(--text-muted); }
