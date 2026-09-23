@@ -137,28 +137,72 @@ function FindTile({ inView }: { inView: boolean | null }) {
   );
 }
 
-function StealTile({ inView }: { inView: boolean | null }) {
+// The two icons the extension actually injects (extension/content.js), so the
+// tile shows the real buttons and not two blank circles.
+function AnalyzeGlyph({ className = '' }: { className?: string }) {
   return (
-    <Tile className="flex items-center justify-center">
-      {/* A Short with the extension's two buttons in its action column. */}
-      <div className="relative w-[104px] h-[156px] rounded-[14px] overflow-hidden"
-           style={{ background: 'linear-gradient(160deg, #1d1d22, #0c0c0e)', border: '1px solid var(--line-strong)' }}>
-        <div className="absolute left-2.5 bottom-3 right-10">
-          <p className="text-[7.5px] font-medium" style={{ color: '#f1f1f1' }}>@tobbss</p>
+    <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <circle cx="11" cy="11" r="7" /><path d="m20 20-3.5-3.5" /><path d="M8 12.5l2-2.5 2 1.5 2-3" />
+    </svg>
+  );
+}
+function StealGlyph({ className = '' }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <rect x="8" y="8" width="12" height="12" rx="2.5" />
+      <path d="M16 8V6.5A2.5 2.5 0 0 0 13.5 4h-7A2.5 2.5 0 0 0 4 6.5v7A2.5 2.5 0 0 0 6.5 16H8" />
+      <path d="M14 11.5v5M11.5 14h5" />
+    </svg>
+  );
+}
+function HeartGlyph({ className = '' }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" aria-hidden="true">
+      <path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z" />
+    </svg>
+  );
+}
+
+function StealTile({ inView }: { inView: boolean | null }) {
+  const pressed = inView !== false;
+  return (
+    <Tile className="flex items-center justify-start pl-7">
+      {/* A Short with the extension's buttons in YouTube's action column, and
+          what happens when Steal is pressed: the outline is saved. */}
+      <div className="relative w-[112px] h-[164px] rounded-[16px] overflow-hidden"
+           style={{ background: 'radial-gradient(120% 90% at 30% 20%, #26262c 0%, #111114 60%, #0b0b0d 100%)', border: '1px solid var(--line-strong)' }}>
+        <div className="absolute left-2.5 bottom-3 right-11">
+          <p className="text-[7.5px] font-semibold" style={{ color: '#f1f1f1' }}>@tobbss</p>
           <p className="text-[7px] leading-tight mt-0.5" style={{ color: 'rgba(241,241,241,0.75)' }}>i ranked every mob by how scary it is</p>
         </div>
-        <div className="absolute right-2 bottom-3 flex flex-col items-center gap-2">
-          {['Analyze', 'Steal'].map((l, i) => (
+        <div className="absolute right-2 bottom-3 flex flex-col items-center gap-1.5">
+          {[
+            { l: 'Analyze', G: AnalyzeGlyph, primary: false },
+            { l: 'Steal', G: StealGlyph, primary: true },
+            { l: '12K', G: HeartGlyph, primary: false },
+          ].map(({ l, G, primary }, i) => (
             <div key={l} className="flex flex-col items-center gap-0.5" style={enter(inView, i, 200)}>
-              <span className={`w-6 h-6 rounded-full ${l === 'Steal' && inView ? 'lp-pulse' : ''}`}
-                    style={{ background: l === 'Steal' ? '#f1f1f1' : 'rgba(255,255,255,0.14)' }} />
-              <span className="text-[7px]" style={{ color: '#f1f1f1' }}>{l}</span>
+              <span className={`w-[26px] h-[26px] rounded-full flex items-center justify-center ${primary && inView ? 'lp-pulse' : ''}`}
+                    style={{ background: primary ? '#f1f1f1' : 'rgba(255,255,255,0.14)', color: primary ? '#0f0f0f' : '#f1f1f1' }}>
+                <G className="w-[13px] h-[13px]" />
+              </span>
+              <span className="text-[6.5px] font-medium" style={{ color: '#f1f1f1' }}>{l}</span>
             </div>
           ))}
-          <span className="w-6 h-6 rounded-full" style={{ background: 'rgba(255,255,255,0.14)' }} />
         </div>
       </div>
       <span className="absolute right-4 top-4 label-mono">On YouTube</span>
+      {/* The result of the press, arriving after the pulse - beside the Short,
+          never over it. */}
+      <div className="absolute right-4 bottom-4 flex items-center gap-1.5 px-2 py-1 rounded-md"
+           style={{
+             background: 'var(--bg-app)', border: '1px solid var(--line)',
+             opacity: pressed ? 1 : 0, transform: pressed ? 'none' : 'translateY(-4px)',
+             transition: 'opacity 0.4s ease 1.6s, transform 0.4s ease 1.6s',
+           }}>
+        <span className="w-1.5 h-1.5 rounded-full" style={{ background: 'var(--process)' }} />
+        <span className="text-[10.5px]" style={{ color: 'var(--text)' }}>Outline saved</span>
+      </div>
     </Tile>
   );
 }
