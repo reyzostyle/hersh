@@ -2,7 +2,7 @@ import { ArrowLeftOutlineIcon as ArrowLeft } from '@solar-icons/react';
 import { SUPPORT_EMAIL } from '../lib/brand';
 import { SITE_HOST } from '../lib/brand';
 
-const UPDATED = 'July 1, 2026';
+const UPDATED = 'September 23, 2026';
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
@@ -40,7 +40,8 @@ export function PrivacyPolicy() {
               Chumoku ("Chumoku", "we", "us") is a service operated by Chumoku Media that helps creators
               analyze their YouTube content to improve hooks, scripts, and performance. This policy
               explains what data we collect, how we use it, and the choices you have. It applies to the
-              website at <span className="text-white">{SITE_HOST}</span> and the Chumoku application.
+              website at <span className="text-white">{SITE_HOST}</span>, the Chumoku application, and the
+              Chumoku extension for Google Chrome.
             </p>
           </Section>
 
@@ -125,6 +126,42 @@ export function PrivacyPolicy() {
               (payments), and our AI processing providers — and only to the extent needed to provide the
               service, or where required by law.
             </p>
+          </Section>
+
+          {/* Written for the Chrome Web Store review as much as for users: the
+              store checks that what a listing's permissions can do is stated
+              here, and that the extension's data use matches it. Keep in step
+              with extension/manifest.json and extension/README.md. */}
+          <Section title="Chrome extension">
+            <p>
+              The Chumoku extension adds Analyze and Steal buttons to YouTube Shorts and opens Chumoku in
+              Chrome's side panel. It is designed to collect as little as possible:
+            </p>
+            <ul className="list-disc pl-5 space-y-1.5">
+              <li>
+                It runs on youtube.com only to place its buttons. It does not read your watch history,
+                your comments, your YouTube account or any other page content.
+              </li>
+              <li>
+                When you press Analyze or Steal, or use its right-click menu or keyboard shortcut, it reads
+                the address of the Short you chose and sends that public video link to Chumoku, the same
+                as pasting the link into the app. Nothing is sent until you press something.
+              </li>
+              <li>
+                It keeps the last Short you pressed in Chrome's session storage so the side panel can
+                pick it up. That storage stays in your browser and is cleared when Chrome closes.
+              </li>
+              <li>
+                The side panel shows the Chumoku website, signed in with your existing Chumoku session.
+                The extension itself stores no passwords, tokens or account details.
+              </li>
+              <li>
+                It contains no analytics, advertising or tracking code, and it does not sell or share any
+                data. Results you create are saved to your Chumoku account and handled as described in
+                the rest of this policy.
+              </li>
+            </ul>
+            <p>You can remove the extension at any time from Chrome's extensions page.</p>
           </Section>
 
           <Section title="Data retention and deletion">

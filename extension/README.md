@@ -70,6 +70,10 @@ Built for Shorts creators posting daily in ranking, Minecraft, Roblox and commen
 
 **Category:** Productivity. **Language:** English.
 
+**Privacy policy URL:** https://chumoku.co/privacy (has a Chrome extension section).
+
+**Trader status (EU):** trader - Chumoku sells subscriptions, so the extension is part of a business. Google shows the trader's contact details on the listing.
+
 **Permissions justification** (the store asks for each):
 - `contextMenus`: the right-click Analyze / Steal entries on Short links.
 - `activeTab`: the popup reads the current tab's URL to know which Short you're on.
@@ -83,5 +87,7 @@ Built for Shorts creators posting daily in ranking, Minecraft, Roblox and commen
 **Data use:** the extension collects nothing and sends nothing on its own. Pressing a
 button opens chumoku.co with the Short's public URL.
 
-**Screenshots needed (1280×800):** the buttons on a Short, the popup, a finished
+**Screenshots:** ready in `extension/store/out/` (five at 1280×800 plus the 440×280 promo tile). Rebuild them with `npm run ext:shots` after changing `extension/store/*.html`.
+
+Old note - screenshots needed (1280×800): the buttons on a Short, the popup, a finished
 Steal outline in the app, an analysis in the chat.

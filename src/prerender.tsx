@@ -120,7 +120,7 @@ export function render(): PrerenderRoute[] {
       path: '/privacy',
       title: 'Privacy Policy - Chumoku',
       description:
-        'How Chumoku handles your data, what the YouTube connection reads, and what is stored.',
+        'How Chumoku handles your data, what the YouTube connection reads, what the Chrome extension does, and what is stored.',
       html: wrap(<PrivacyPolicy />),
     },
     {
