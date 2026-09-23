@@ -68,7 +68,7 @@ Also:
 
 Built for Shorts creators posting daily in ranking, Minecraft, Roblox and commentary niches. Free account includes 20 credits.
 
-**Category:** Productivity. **Language:** English.
+**Category:** Workflow & Planning (the store split Productivity into subcategories; Tools is the fallback). **Language:** English.
 
 **Privacy policy URL:** https://chumoku.co/privacy (has a Chrome extension section).
 
