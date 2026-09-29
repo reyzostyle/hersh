@@ -2,8 +2,8 @@
   "manifest_version": 3,
   "name": "Chumoku",
   "short_name": "Chumoku",
-  "version": "0.2.6",
-  "description": "The Shorts workflow, automated. Analyze any Short or steal its format as an outline for your channel, beside the video.",
+  "version": "0.3.0",
+  "description": "Steal any Short's format, rebuilt for your channel, or ask Chumoku about it, right beside the video.",
   "homepage_url": "https://chumoku.co",
   "icons": {
     "16": "icons/icon-16.png",
@@ -49,7 +49,7 @@
       "suggested_key": {
         "default": "Alt+Shift+A"
       },
-      "description": "Analyze the Short you're watching"
+      "description": "Ask Chumoku about the Short you're watching"
     },
     "steal": {
       "suggested_key": {

@@ -1,6 +1,6 @@
 import { APP_URL, PANEL_KEY } from './shared.js';
 
-// Hands each Analyze / Steal press to the app in the iframe.
+// Hands each Steal / Ask press to the app in the iframe.
 //
 // The background worker writes the request to session storage and opens this
 // panel. On the first load the request rides in the iframe's URL; after that

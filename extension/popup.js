@@ -38,7 +38,7 @@ if (tabVideo) {
     send(action, `https://www.youtube.com/shorts/${id}`);
   };
   input.addEventListener('input', () => { error.hidden = true; });
-  input.addEventListener('keydown', (e) => { if (e.key === 'Enter') go('analyze'); });
+  input.addEventListener('keydown', (e) => { if (e.key === 'Enter') go('steal'); });
   offVideo.querySelectorAll('[data-action]').forEach((b) => {
     b.addEventListener('click', () => go(b.dataset.action));
   });

@@ -1,4 +1,4 @@
-// Puts Analyze and Steal on every YouTube Short, in the same column as Like,
+// Puts Steal and Ask on every YouTube Short, in the same column as Like,
 // Comment and Share, so they are where the thumb already is while scrolling.
 //
 // YouTube renders one action bar per Short in the feed
@@ -25,10 +25,10 @@
   // and an innerHTML assignment from a content script throws there.
   const SVG_NS = 'http://www.w3.org/2000/svg';
   const ICONS = {
+    // The 'analyze' action is Ask since 2026-09-30: the app stopped scoring
+    // and talks the video through instead. The id stays - the app keys on it.
     analyze: [
-      ['circle', { cx: 11, cy: 11, r: 7 }],
-      ['path', { d: 'm20 20-3.5-3.5' }],
-      ['path', { d: 'M8 12.5l2-2.5 2 1.5 2-3' }],
+      ['path', { d: 'M20 11.5a7.5 7.5 0 0 1-10.9 6.7L4 19.5l1.3-4.6A7.5 7.5 0 1 1 20 11.5z' }],
     ],
     steal: [
       ['rect', { x: 8, y: 8, width: 12, height: 12, rx: 2.5 }],
@@ -49,9 +49,9 @@
     return svg;
   }
 
-  const LABELS = { analyze: 'Analyze', steal: 'Steal' };
+  const LABELS = { analyze: 'Ask', steal: 'Steal' };
   const TITLES = {
-    analyze: 'Chumoku: why this Short worked, scored out of 100',
+    analyze: 'Chumoku: ask about this Short',
     steal: 'Chumoku: rebuild this format as an outline for your channel',
   };
 
@@ -136,7 +136,8 @@
     const g = document.createElement('div');
     g.className = `chumoku-group ${extraClass || ''}`.trim();
     g.setAttribute(MARK, '');
-    g.append(button('analyze'), button('steal'));
+    // Steal first: it is the product. Ask is the follow-up.
+    g.append(button('steal'), button('analyze'));
     return g;
   }
 

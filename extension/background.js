@@ -63,8 +63,8 @@ chrome.runtime.onInstalled.addListener((details) => {
   chrome.contextMenus.removeAll(() => {
     for (const { id, ...scope } of roots) {
       chrome.contextMenus.create({ id: `${id}:root`, title: 'Chumoku', ...scope });
-      chrome.contextMenus.create({ id: `${id}:analyze`, parentId: `${id}:root`, title: 'Analyze this Short', ...scope });
       chrome.contextMenus.create({ id: `${id}:steal`, parentId: `${id}:root`, title: 'Steal this format', ...scope });
+      chrome.contextMenus.create({ id: `${id}:analyze`, parentId: `${id}:root`, title: 'Ask about this Short', ...scope });
     }
   });
   // First install: show what it does on a real Short instead of leaving an

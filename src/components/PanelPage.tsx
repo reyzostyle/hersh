@@ -98,7 +98,7 @@ export function PanelPage() {
           {slots.analyze && slots.steal && (['analyze', 'steal'] as Action[]).map(a => (
             <button key={a} onClick={() => setActive(a)} className="chip" data-on={active === a}
                     title={slots[a]?.url}>
-              {a === 'analyze' ? 'Analysis' : 'Steal'}
+              {a === 'analyze' ? 'Ask' : 'Steal'}
             </button>
           ))}
           <a href={`${SITE_URL}/?utm_source=extension`} target="_blank" rel="noopener"

@@ -2,12 +2,12 @@
 
 Two buttons on every YouTube Short, in the column above Like:
 
-- **Analyze** opens `chumoku.co/?analyze=<short>`: the normal analysis in the chat.
+- **Ask** (action id still `analyze`) opens `chumoku.co/?analyze=<short>`: the chat watches the Short and answers. Renamed from Analyze in 0.3.0 when the app stopped scoring.
 - **Steal** opens `chumoku.co/?steal=<short>`: the `steal-video` edge function reads
   the idea, watches the video, writes an outline for the user's channel and files it
   under Ideas → Saved. 5 credits (1 read + 4 outline), nothing if already stolen.
 
-Also: right-click any Short link (Chumoku → Analyze / Steal), `Alt+Shift+A` /
+Also: right-click any Short link (Chumoku → Steal / Ask), `Alt+Shift+A` /
 `Alt+Shift+S` on the Short you're watching, and a popup for pasting a link.
 
 Results open in Chrome's **side panel**, beside the video. The panel keeps one analysis
@@ -47,18 +47,18 @@ https://chrome.google.com/webstore/devconsole ($5 one-time developer fee). Bump
 
 **Name:** Chumoku
 
-**Summary (132 chars max):** The Shorts workflow, automated. Analyze any Short or steal its format as an outline for your channel, beside the video.
+**Summary (132 chars max):** Steal any Short's format, rebuilt for your channel, or ask Chumoku about it, right beside the video.
 
 **Description:** (kept short: the store shows the first lines, people skim the rest)
 
 Two buttons on every YouTube Short, right above Like.
 
-ANALYZE: a score out of 100 and the exact seconds to fix.
-STEAL: the Short's format, rebuilt as an outline for your channel and saved to your Ideas.
+STEAL: the Short's format, rebuilt for your channel. A hook and a beat-by-beat outline, saved to your Ideas.
+ASK: talk the Short through with Chumoku. Why it worked, what to take from it, what to fix.
 
-Results open in a side panel beside the video, so you keep scrolling. Right-click any Short or use Alt+Shift+A / S.
+Results open in a side panel beside the video, so you keep scrolling. Right-click any Short or use Alt+Shift+S / A.
 
-Chumoku is workflow automation for Shorts creators. Free account includes 20 credits.
+Free account includes 20 credits.
 
 **Homepage URL:** https://chumoku.co/?utm_source=chrome_web_store
 
@@ -73,7 +73,7 @@ Chumoku is workflow automation for Shorts creators. Free account includes 20 cre
 **Trader status (EU):** non-trader for now (2026-09-23): trader verification needs a registered organization in Dun & Bradstreet and there is none yet. Switch to trader in the developer dashboard once the business is registered.
 
 **Permissions justification** (the store asks for each):
-- `contextMenus`: the right-click Analyze / Steal entries on Short links.
+- `contextMenus`: the right-click Steal / Ask entries on Short links.
 - `activeTab`: the popup reads the current tab's URL to know which Short you're on.
 - `sidePanel`: results open in a panel beside the video.
 - `storage`: hands the pressed Short from the button to the panel (session only, cleared when Chrome closes).
@@ -84,7 +84,7 @@ Chumoku is workflow automation for Shorts creators. Free account includes 20 cre
 
 **Data usage:** tick no data types (the extension collects nothing itself; it opens Chumoku with the Short's public link on a click), tick all three certifications.
 
-**Single purpose:** Send a YouTube Short to Chumoku for analysis or format adaptation.
+**Single purpose:** Send a YouTube Short to Chumoku to adapt its format for your channel or talk it through.
 
 **Data use:** the extension collects nothing and sends nothing on its own. Pressing a
 button opens chumoku.co with the Short's public URL.
