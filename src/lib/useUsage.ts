@@ -15,8 +15,6 @@ export const CREDIT_COSTS = {
   video_analysis: 5,
   // One credit each since scoring became a tool inside the chat's answer
   // rather than its own screen. Mirrors _shared/credits.ts.
-  hook_check: 1,
-  script_check: 1,
   competitor_idea: 1,
   // Watches the competitor's video before writing, so it costs what watching
   // costs. Mirrors _shared/credits.ts.

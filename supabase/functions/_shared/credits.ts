@@ -42,8 +42,6 @@ export const CREDIT_COSTS = {
   // now (see chat-followup), the same kind of text call a question is, and
   // charging two or three times the price of a question for the same work
   // was the tax that made people avoid pasting anything in.
-  hook_check: 1,
-  script_check: 1,
   competitor_idea: 1,
   // Was 1, when the outline was written from the competitor's transcript. It
   // now WATCHES the video (see generate-outline), which is the same class of
