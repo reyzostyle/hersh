@@ -53,11 +53,14 @@ export function Page({
 export function PageHead({
   eyebrow,
   title,
+  tagline,
   subtitle,
   action,
 }: {
   eyebrow: string;
   title: string;
+  // X Money's two-tone headline: a second line at the same size in 60% white.
+  tagline?: string;
   subtitle?: string;
   action?: React.ReactNode;
 }) {
@@ -68,7 +71,10 @@ export function PageHead({
           a narrow one. Sharing a row with a segmented control was squeezing the
           display line into three ragged lines on a phone. */}
       <div className="flex flex-wrap items-start gap-x-4 gap-y-3">
-        <h1 className="display w-full sm:w-auto sm:flex-1 min-w-0" style={{ color: 'var(--text)' }}>{title}</h1>
+        <h1 className="t-title w-full sm:w-auto sm:flex-1 min-w-0" style={{ color: 'var(--text)' }}>
+          {title}
+          {tagline && <><br /><span className="t-quiet">{tagline}</span></>}
+        </h1>
         {action && <div className="flex-shrink-0 sm:pt-1">{action}</div>}
       </div>
       {subtitle && (
@@ -297,21 +303,36 @@ export function EditActions({ onSave, onCancel, saving }: {
   );
 }
 
-// Waiting, centred on both axes.
-//
-// Every tab had its own version pinned near the top - `justify-center pt-16` -
-// which centres it horizontally and leaves it stranded high on the page while
-// the rest of the screen is empty. It also drifted in size and colour between
-// screens. One component, one place.
-export function Loading() {
+// Loading is a skeleton of a page, not a spinner: a header and three plates
+// shimmering where the content will land, so the screen has its shape before
+// it has its data.
+export function Loading({ rows = 3 }: { rows?: number }) {
   return (
-    // The negative margins cancel the sheet's own vertical padding (64 top, 80
-    // bottom), which is deliberately asymmetric and would otherwise pull the
-    // spinner 8px above the true centre of the page.
-    <div className="flex-1 flex items-center justify-center -mt-12 sm:-mt-16 -mb-20">
-      <Loader2 className="w-5 h-5 animate-spin" style={{ color: 'var(--text-faint)' }} />
+    <div aria-busy="true" aria-label="Loading">
+      <Skeleton className="h-3 w-20 mb-4" />
+      <Skeleton className="h-8 w-72 max-w-full mb-10" />
+      <div className="flex flex-col gap-2.5">
+        {Array.from({ length: rows }, (_, i) => <Skeleton key={i} className="h-[68px] w-full" style={{ borderRadius: 'var(--r-md)' }} />)}
+      </div>
     </div>
   );
+}
+
+export function Skeleton({ className = '', style }: { className?: string; style?: React.CSSProperties }) {
+  return <span className={`sk block ${className}`} style={style} aria-hidden="true" />;
+}
+
+// The three button levels. See .btn in index.css.
+export function Button({
+  variant = 'secondary',
+  size = 'md',
+  className = '',
+  ...props
+}: React.ButtonHTMLAttributes<HTMLButtonElement> & {
+  variant?: 'primary' | 'secondary' | 'ghost' | 'text';
+  size?: 'sm' | 'md';
+}) {
+  return <button type="button" {...props} className={`btn btn--${variant} ${size === 'sm' ? 'btn--sm' : ''} ${className}`} />;
 }
 
 // Dashed, quiet, and always inside the sheet — an empty tab should look like a
@@ -320,7 +341,7 @@ export function Empty({ icon, children }: { icon?: React.ReactNode; children: Re
   return (
     <div
       className="rounded-[var(--r-md)] px-6 py-12 flex flex-col items-center justify-center text-center gap-3"
-      style={{ background: 'rgba(255,255,255,0.02)', border: '1px dashed var(--line-strong)' }}
+      style={{ background: 'var(--bg-raised)', border: '1px solid var(--line)' }}
     >
       {icon}
       <p className="text-[13px] max-w-sm text-balance" style={{ color: 'var(--text-muted)' }}>{children}</p>
