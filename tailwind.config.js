@@ -5,7 +5,10 @@ export default {
     extend: {
       fontFamily: {
         sans: ['Geist', 'ui-sans-serif', 'system-ui', '-apple-system', 'sans-serif'],
-        mono: ['Geist Mono', 'ui-monospace', 'SFMono-Regular', 'Menlo', 'monospace'],
+        // X Money has no monospace anywhere: numbers are the sans at tabular
+        // width (see .font-mono in index.css). The 47 font-mono call sites
+        // follow without edits.
+        mono: ['Geist', 'ui-sans-serif', 'system-ui', 'sans-serif'],
       },
       // Eight greys were in use across 356 call sites, which is not a palette,
       // it is eight people guessing. Tailwind's own names are remapped onto a

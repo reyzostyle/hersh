@@ -74,9 +74,8 @@ function Radar({ values }: { values: number[] }) {
         const anchor = x > cx + 4 ? 'start' : x < cx - 4 ? 'end' : 'middle';
         return (
           <text key={label} x={x} y={y} textAnchor={anchor} dominantBaseline="middle"
-                fill="var(--text-faint)" fontSize="10" fontFamily="Geist Mono, monospace"
-                letterSpacing="0.06em">
-            {label.toUpperCase()}
+                fill="var(--text-muted)" fontSize="12" fontWeight="500" fontFamily="Geist, sans-serif">
+            {label}
           </text>
         );
       })}

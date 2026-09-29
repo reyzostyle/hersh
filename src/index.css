@@ -723,3 +723,7 @@ button.row:active,
   background: #FFFFFF; color: #000000;
 }
 .sc__open:focus-visible { outline: 2px solid #FFFFFF; outline-offset: 3px; }
+
+/* font-mono now resolves to Geist (tailwind.config.js); keep the property
+   people used mono for - digits that line up. */
+.font-mono { font-variant-numeric: tabular-nums; }

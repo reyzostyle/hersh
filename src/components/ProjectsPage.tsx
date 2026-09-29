@@ -143,7 +143,7 @@ export function ProjectsPage() {
         </div>
       ) : (
         <button onClick={() => setCreating(true)}
-          className="btn-primary flex items-center gap-2 mb-8 px-4 py-2.5 rounded-[var(--r-sm)] text-sm font-medium">
+          className="btn-primary self-start inline-flex items-center gap-2 mb-8 px-4 py-2.5 rounded-[var(--r-sm)] text-sm font-medium">
           <Plus className="w-4 h-4" /> New project
         </button>
       )}
