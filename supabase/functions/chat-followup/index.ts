@@ -91,7 +91,7 @@ Deno.serve(async (req: Request) => {
 
     // threadId is optional now: the first message of a conversation can be a
     // question, and there is no thread until something is worth keeping.
-    const { threadId, question, image, images: rawImages } = await req.json();
+    const { threadId, question, image, images: rawImages, ideaId } = await req.json();
 
     // `image` is still read so a client from before the array shipped keeps
     // working across the gap between the two deploys.
@@ -228,11 +228,35 @@ ${(a.weak_spots ?? []).map(s => `- ${s}`).join('\n') || '- none noted'}
 `
       : '';
 
+    // The saved idea the message is about, when it was sent from an idea's
+    // "Write the script" step. Read here, scoped to its owner, so the script
+    // follows the outline that was actually built rather than whatever a
+    // lookup by name turned up.
+    let ideaBlock = '';
+    if (typeof ideaId === 'string' && ideaId) {
+      const { data: idea } = await supabase
+        .from('competitor_ideas')
+        .select('pitch, adapted_idea, outline, video_title, channel_name')
+        .eq('id', ideaId).eq('user_id', user.id).maybeSingle();
+      if (idea) {
+        const o = idea.outline as { hook?: string; sections?: Array<{ title: string; content: string; duration: string }>; cta?: string } | null;
+        ideaBlock = `## The idea they mean
+Their version: ${idea.pitch || idea.adapted_idea || ''}
+${idea.adapted_idea ? `Angle: ${idea.adapted_idea}\n` : ''}Stolen from: "${idea.video_title ?? ''}" (${idea.channel_name ?? 'another channel'})
+${o ? `Outline already agreed - the script follows it beat for beat:
+Hook: ${o.hook ?? ''}
+${(o.sections ?? []).map(sec => `- ${sec.duration} ${sec.title}: ${sec.content}`).join('\n')}
+End: ${o.cta ?? ''}` : ''}
+
+`;
+      }
+    }
+
     const messageBlock = question?.trim()
       ? `## Their message\n"""\n${question.trim()}\n"""`
       : '## Their message\nThey sent the screenshot with no text.';
 
-    const prompt = `${block ? `## Who you are talking to\n${block}\n\n` : ''}${reviewBlock}${history ? `## The conversation so far\n${history}\n\n` : ''}${hasImage ? `## Attached\n${images.length === 1 ? 'A screenshot is' : `${images.length} screenshots are`} attached above. They are the evidence for whatever they are asking.\n\n` : ''}${messageBlock}`;
+    const prompt = `${block ? `## Who you are talking to\n${block}\n\n` : ''}${ideaBlock}${reviewBlock}${history ? `## The conversation so far\n${history}\n\n` : ''}${hasImage ? `## Attached\n${images.length === 1 ? 'A screenshot is' : `${images.length} screenshots are`} attached above. They are the evidence for whatever they are asking.\n\n` : ''}${messageBlock}`;
 
     // One call, tools on it. A lookup pays for a second round trip only when
     // the answer depends on something only this account knows.

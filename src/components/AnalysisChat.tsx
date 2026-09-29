@@ -13,6 +13,7 @@ import {
   loadThreadMessages, takeRequestedThread, requestHistory, type ThreadAnalysis,
 } from '../lib/projects';
 import { uploadChatImages, signChatImages } from '../lib/chatImages';
+import { take, PENDING_CHAT_KEY } from '../lib/intents';
 
 
 // Defined next to the table it is stored in - see lib/projects.ts. The chat
@@ -582,6 +583,20 @@ export function AnalysisChat() {
 
     if (requested) { openThread(requested); return; }
 
+    // "Write the script" from an idea. The sender cleared the session cache,
+    // so this is a fresh conversation and the idea is found by the chat's own
+    // lookup, the same as if they had typed it.
+    const message = take(PENDING_CHAT_KEY);
+    if (message) {
+      try {
+        const { text, ideaId } = JSON.parse(message) as { text: string; ideaId?: string };
+        routeMessage(text, { ideaId });
+      } catch {
+        routeMessage(message);
+      }
+      return;
+    }
+
     if (!pending) return;
     const videoId = extractVideoId(pending);
     // A link that does not resolve goes into the composer rather than being
@@ -887,9 +902,13 @@ export function AnalysisChat() {
   // this closure yet.
   const routeMessage = async (
     text: string,
-    { silent = false, tid, images, previews, shots }: {
+    { silent = false, tid, images, previews, shots, ideaId }: {
       silent?: boolean; tid?: string | null;
       images?: { mimeType: string; base64: string }[]; previews?: string[]; shots?: File[];
+      // The saved idea this message is about, when it came from an idea's
+      // "Write the script" step: the server reads the outline itself rather
+      // than hoping a lookup by name finds the right one.
+      ideaId?: string;
     } = {},
   ) => {
     const thread = tid ?? threadId;
@@ -905,7 +924,7 @@ export function AnalysisChat() {
       const res = await fetchWithRetry(`${FUNCTIONS_URL}/chat-followup`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ threadId: thread, question: text, images }),
+        body: JSON.stringify({ threadId: thread, question: text, images, ideaId }),
         signal,
       });
       const data = await res.json();

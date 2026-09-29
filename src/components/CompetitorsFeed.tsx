@@ -35,6 +35,8 @@ interface Props {
   onRefresh: () => void;
   adaptForProfile: boolean;
   onAdaptChange: (v: boolean) => void;
+  // Videos whose one-line pitch is being written right now.
+  pitchingIds: Set<string>;
 }
 
 const SORTS: { value: IdeaSort; label: string }[] = [
@@ -59,12 +61,18 @@ export function CompetitorsFeed({
   onClear, clearing,
   addingChannel, addError, removingId, syncingChannelId, onAddChannel, onRemoveChannel,
   onAutoFind, channelLimit, refreshing, fetchError, fetchNotice, onRefresh,
-  adaptForProfile, onAdaptChange,
+  adaptForProfile, onAdaptChange, pitchingIds,
 }: Props) {
   const [manageOpen, setManageOpen] = useState(false);
   const [sort, setSort] = useState<IdeaSort>('outlier');
 
-  const visible = sortAndFilterFeed(items, { floor: 0, sort, channelId: null });
+  // Ideas that do not transfer to this channel stay out of the way unless
+  // asked for. They are still there - a tracked channel from another niche
+  // occasionally has a format worth taking - but they no longer fill the grid.
+  const [showOffNiche, setShowOffNiche] = useState(false);
+  const sorted = sortAndFilterFeed(items, { floor: 0, sort, channelId: null });
+  const offNiche = filter === 'new' ? sorted.filter(i => i.idea?.fit === 'no').length : 0;
+  const visible = showOffNiche || filter !== 'new' ? sorted : sorted.filter(i => i.idea?.fit !== 'no');
   // Clearing only makes sense on the inbox, and only with something in it. It
   // decides the layout as well as its own visibility: whichever control comes
   // first on the right takes the auto margin that pushes the group there.
@@ -187,18 +195,27 @@ export function CompetitorsFeed({
       )}
 
       {visible.length > 0 ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2.5">
           {visible.map(item => (
             <CompetitorVideoCard
               key={item.video_id}
               item={item}
+              pitching={pitchingIds.has(item.video_id)}
               onOpen={() => onOpen(item)}
               onDismiss={() => onDismiss(item)}
               onSave={() => onSave(item)}
             />
           ))}
         </div>
-      ) : channels.length === 0 ? (
+      ) : null}
+
+      {offNiche > 0 && (
+        <button onClick={() => setShowOffNiche(v => !v)} className="btn btn--text btn--sm mx-auto flex">
+          {showOffNiche ? 'Hide the ones outside your niche' : `Show ${offNiche} outside your niche`}
+        </button>
+      )}
+
+      {visible.length > 0 ? null : channels.length === 0 ? (
         <Empty icon={<Users className="w-7 h-7" style={{ color: 'var(--text-faint)' }} />}>
           Add a competitor channel to start tracking what actually works on their channel.
         </Empty>

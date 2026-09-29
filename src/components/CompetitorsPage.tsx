@@ -1,7 +1,7 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase, getSessionToken, getUserId } from '../lib/supabase';
 import {
-  callFunction, stealVideo, inboxItems, itemFromIdea, filterIdeas,
+  callFunction, stealVideo, pitchIdeas, inboxItems, itemFromIdea, filterIdeas,
   type CompetitorChannel, type CompetitorIdea, type FeedItem, type IdeaFilter, type PoolVideo,
 } from '../lib/competitors';
 import { takeRequestedVideo } from '../lib/projects';
@@ -50,6 +50,10 @@ export function CompetitorsPage() {
   // A finished steal lands on its card first - the result at a glance, the
   // thing that gets filmed - and the outline is one press further.
   const [stolen, setStolen] = useState<CompetitorIdea | null>(null);
+  // Feed videos whose one-line pitch is being written. A ref remembers every
+  // id already asked for, so a re-render never sends the same batch twice.
+  const [pitchingIds, setPitchingIds] = useState<Set<string>>(new Set());
+  const pitchAsked = useRef<Set<string>>(new Set());
 
   const loadData = useCallback(async () => {
     try {
@@ -102,6 +106,47 @@ export function CompetitorsPage() {
   }, []);
 
   useEffect(() => { loadData(); }, [loadData]);
+
+  // Pitch the top of the inbox: one free call writes "your version" and a fit
+  // for up to thirty videos the creator has not seen pitched yet. Runs again
+  // whenever the pool grows (a refresh, a new channel), and only for what is
+  // missing.
+  useEffect(() => {
+    if (initialLoading) return;
+    const pitched = new Set(ideas.filter(i => i.pitch).map(i => i.video_id));
+    const want = inboxItems(pool, ideas)
+      .filter(i => !pitched.has(i.video_id) && !pitchAsked.current.has(i.video_id))
+      .sort((a, b) => (b.outlier_score ?? 0) - (a.outlier_score ?? 0))
+      .slice(0, 30)
+      .map(i => i.video_id);
+    if (want.length === 0) return;
+    want.forEach(id => pitchAsked.current.add(id));
+    setPitchingIds(prev => new Set([...prev, ...want]));
+    (async () => {
+      try {
+        const token = await getSessionToken();
+        if (!token) return;
+        const rows = await pitchIdeas(want, token);
+        if (rows.length) {
+          setIdeas(prev => {
+            const next = [...prev];
+            for (const row of rows) {
+              const at = next.findIndex(i => i.video_id === row.video_id);
+              if (at >= 0) next[at] = { ...next[at], pitch: row.pitch, fit: row.fit };
+              else next.push(row);
+            }
+            return next;
+          });
+        }
+      } finally {
+        setPitchingIds(prev => {
+          const next = new Set(prev);
+          want.forEach(id => next.delete(id));
+          return next;
+        });
+      }
+    })();
+  }, [pool, ideas, initialLoading]);
 
   // A saved idea opened from its project. Read once on mount and cleared, the
   // same handoff Analyze uses for a filed conversation. The lookup below falls
@@ -410,8 +455,9 @@ export function CompetitorsPage() {
     <Page className="animate-tab-in">
       <PageHead
         eyebrow="Ideas"
-        title="Steal what already worked"
-        subtitle="Shorts that beat the channel they came from, rebuilt for yours. Finding them is free, reading one costs a credit."
+        title="Steal what already worked."
+        tagline="Rebuilt for your channel."
+        subtitle="Shorts that beat their own channel, pitched as your version. Browsing is free; opening one up costs a credit."
       />
 
       <CompetitorsFeed
@@ -440,6 +486,7 @@ export function CompetitorsPage() {
         onRefresh={handleRefresh}
         adaptForProfile={adaptForProfile}
         onAdaptChange={setAdaptForProfile}
+        pitchingIds={pitchingIds}
       />
 
       {findOpen && (

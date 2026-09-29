@@ -36,6 +36,11 @@ export interface CompetitorIdea {
   video_views: number | null;
   video_published_at: string | null;
   outlier_score: number | null;
+  // One line, from the title alone: what THIS creator's version would be, and
+  // whether it suits their channel. Written free by pitch-ideas before anyone
+  // pays to read the video; null until then.
+  pitch?: string | null;
+  fit?: 'yes' | 'stretch' | 'no' | null;
   concept: string | null;
   adapted_idea: string | null;
   outline: Outline | null;
@@ -91,6 +96,16 @@ export async function stealVideo(url: string, token: string): Promise<StealResul
   if (data.error === 'limit_reached') return { limit: true, cost: data.cost ?? 5 };
   if (!res.ok) throw new Error(data.error || 'Could not steal that video');
   return { idea: data.idea as CompetitorIdea };
+}
+
+// Free one-line pitches for up to thirty feed videos at once. Returns the
+// idea rows it wrote; anything already pitched is skipped server-side.
+export async function pitchIdeas(videoIds: string[], token: string): Promise<CompetitorIdea[]> {
+  if (videoIds.length === 0) return [];
+  const res = await callFunction('pitch-ideas', token, { videoIds });
+  if (!res.ok) return [];
+  const data = await res.json().catch(() => ({}));
+  return (data.ideas ?? []) as CompetitorIdea[];
 }
 
 // ─── The pool ────────────────────────────────────────────────────────────────
@@ -195,6 +210,10 @@ export function sortAndFilterFeed(
   });
 
   return out.sort((a, b) => {
+    // What fits this channel comes first whatever the sort: the feed is ideas
+    // for you before it is a leaderboard.
+    const byFit = fitRank(a) - fitRank(b);
+    if (byFit !== 0) return byFit;
     if (sort === 'views') return (b.video_views ?? 0) - (a.video_views ?? 0);
     if (sort === 'recent') {
       const at = a.video_published_at ? new Date(a.video_published_at).getTime() : 0;
@@ -203,4 +222,9 @@ export function sortAndFilterFeed(
     }
     return (b.outlier_score ?? 0) - (a.outlier_score ?? 0);
   });
+}
+
+const FIT_RANK: Record<string, number> = { yes: 0, stretch: 1, no: 3 };
+function fitRank(i: FeedItem): number {
+  return i.idea?.fit ? FIT_RANK[i.idea.fit] ?? 2 : 2;
 }

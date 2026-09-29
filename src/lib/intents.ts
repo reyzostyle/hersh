@@ -12,6 +12,9 @@
 export const PENDING_ANALYZE_KEY = 'chumoku_pending_video_url';
 export const PENDING_STEAL_KEY = 'chumoku_pending_steal_url';
 export const PENDING_SHARE_KEY = 'chumoku_pending_share_url';
+// A message for the chat to send as soon as it opens: "write the script for
+// this idea", pressed at the end of an idea's steps.
+export const PENDING_CHAT_KEY = 'chumoku_pending_chat_message';
 
 export type Intent = 'analyze' | 'steal' | 'share';
 

@@ -1,14 +1,22 @@
-import { EyeOutlineIcon as Eye, SlashCircleOutlineIcon as Dismissed, GraphUpOutlineIcon as TrendingUp, BookmarkOutlineIcon as Bookmark } from '@solar-icons/react';
-import { Check } from './BrandIcons';
-import { formatViews, formatDate, type FeedItem } from '../lib/competitors';
+import { formatViews, type FeedItem } from '../lib/competitors';
+import { Skeleton } from './Page';
 
-// A tile in the grid, and nothing more. It used to carry a preview of the
-// written angle and two more buttons, which made every card a small document
-// you had to read to get past. Triage is a glance: how hard it beat its
-// channel, what it was, keep or drop. Everything else happens on the video's
-// own screen.
-export function CompetitorVideoCard({ item, onOpen, onDismiss, onSave }: {
+// A card in the Ideas feed, rebuilt 2026-09-30 around one question: is this an
+// idea for ME?
+//
+// It used to lead with the other channel's title in 13px text, which is
+// someone else's video, not an idea - Ivan could not tell from the grid whether
+// any card suited his channel until he paid a credit to find out. Now the frame
+// and how far it beat its channel are what you see first (they are also what
+// reads on camera), and the text is THIS creator's version in one line, with a
+// quiet mark when it does not fit their channel. The source title drops to a
+// caption.
+//
+// While the pitch is still being written the line is a skeleton, so the grid
+// fills in rather than arrives.
+export function CompetitorVideoCard({ item, pitching, onOpen, onDismiss, onSave }: {
   item: FeedItem;
+  pitching?: boolean;
   onOpen: () => void;
   onDismiss: () => void;
   onSave: () => void;
@@ -16,68 +24,52 @@ export function CompetitorVideoCard({ item, onOpen, onDismiss, onSave }: {
   const idea = item.idea;
   const isSaved = idea?.liked === true;
   const isDismissed = idea?.liked === false;
+  const pitch = idea?.pitch;
+  const fit = idea?.fit;
 
   return (
     <div
-      className="group rounded-[var(--r-md)] p-3.5 flex flex-col gap-2.5 transition-colors cursor-pointer"
-      style={{
-        background: 'var(--bg-raised)',
-        border: '1px solid var(--line)',
-        opacity: isDismissed ? 0.5 : 1,
-      }}
+      className="idea-card group"
+      style={{ opacity: isDismissed ? 0.5 : 1 }}
       onClick={onOpen}
       role="button"
       tabIndex={0}
       onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onOpen(); } }}
     >
-      <div className="flex items-center gap-2 min-w-0">
-        {item.outlier_score != null && (
-          <span
-            className="flex items-center gap-1 font-mono text-[11px] px-1.5 py-0.5 rounded flex-shrink-0 tabular-nums"
-            style={{ background: 'rgba(var(--process-rgb),0.12)', color: 'var(--process)' }}
-            title="Views against this channel's median"
-          >
-            <TrendingUp className="w-3 h-3" />
-            {item.outlier_score}x
+      <div className="idea-card__media">
+        <img src={`https://i.ytimg.com/vi/${item.video_id}/hqdefault.jpg`} alt="" loading="lazy" />
+        {item.outlier_score != null && item.outlier_score < 1000 && (
+          <span className="idea-card__mult" title="Views against this channel's usual">
+            {item.outlier_score}×
           </span>
         )}
-        <span className="ml-auto flex items-center gap-2 flex-shrink-0 font-mono text-[11px] tabular-nums" style={{ color: 'var(--text-faint)' }}>
-          {item.video_views !== null && (
-            <span className="flex items-center gap-1"><Eye className="w-3 h-3" />{formatViews(item.video_views)}</span>
-          )}
-          {item.video_published_at && <span>{formatDate(item.video_published_at)}</span>}
-        </span>
       </div>
 
-      <p className="text-[13px] font-medium leading-snug line-clamp-2" style={{ color: 'var(--text)' }}>
-        {item.video_title || 'Untitled video'}
-      </p>
+      <div className="idea-card__body">
+        {pitch ? (
+          <p className="idea-card__pitch">{pitch}</p>
+        ) : pitching ? (
+          <div className="flex flex-col gap-1.5 py-0.5" aria-label="Writing your version">
+            <Skeleton className="h-3.5 w-full" />
+            <Skeleton className="h-3.5 w-2/3" />
+          </div>
+        ) : (
+          <p className="idea-card__pitch" style={{ color: 'var(--text-muted)' }}>{item.video_title || 'Untitled video'}</p>
+        )}
 
-      <p className="text-[11px] truncate" style={{ color: 'var(--text-faint)' }}>{item.channel_name}</p>
+        <p className="idea-card__meta">
+          {fit === 'yes' && <span className="idea-card__fit">Fits your channel</span>}
+          {fit === 'stretch' && <span>Stretch</span>}
+          {fit === 'no' && <span>Not your niche</span>}
+          {fit && ' · '}
+          {[item.channel_name, item.video_views != null ? formatViews(item.video_views) : null].filter(Boolean).join(' · ')}
+        </p>
 
-      {/* stopPropagation so keeping or dropping never also opens the card. */}
-      <div className="flex items-center gap-1 mt-auto pt-1" onClick={e => e.stopPropagation()}>
-        <button
-          onClick={onSave}
-          title={isSaved ? 'Saved' : 'Save'}
-          className="flex items-center gap-1 text-[11px] font-medium px-2 py-1 rounded-[var(--r-sm)] transition-colors"
-          style={isSaved
-            ? { background: 'rgba(var(--process-rgb),0.12)', color: 'var(--process)' }
-            : { color: 'var(--text-faint)' }}
-        >
-          {isSaved ? <Check className="w-3 h-3" /> : <Bookmark className="w-3 h-3" />}
-          {isSaved ? 'Saved' : 'Save'}
-        </button>
-
-        <button
-          onClick={onDismiss}
-          title={isDismissed ? 'Put back' : 'Dismiss'}
-          className="flex items-center gap-1 text-[11px] font-medium px-2 py-1 rounded-[var(--r-sm)] transition-colors hover:text-[var(--text)]"
-          style={{ color: 'var(--text-faint)' }}
-        >
-          <Dismissed className="w-3 h-3" />
-          {isDismissed ? 'Restore' : 'Dismiss'}
-        </button>
+        {/* stopPropagation so keeping or dropping never also opens the card. */}
+        <div className="idea-card__actions" onClick={e => e.stopPropagation()}>
+          <button onClick={onSave} data-on={isSaved}>{isSaved ? 'Saved' : 'Save'}</button>
+          <button onClick={onDismiss}>{isDismissed ? 'Restore' : 'Dismiss'}</button>
+        </div>
       </div>
     </div>
   );

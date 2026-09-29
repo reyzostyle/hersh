@@ -774,3 +774,61 @@ button.row:active,
   animation: shimmer 1.4s ease-in-out infinite;
 }
 @media (prefers-reduced-motion: reduce) { .sk { animation: none; } }
+
+/* ─── Idea card (CompetitorVideoCard.tsx) ─────────────────────────────────────
+   The frame first, the idea second, the source last. The frame is 4:5 rather
+   than 9:16: a Short's hqdefault is a 480x360 letterbox, and cropping it all the
+   way to 9:16 blows a 200px-wide strip up into mush. */
+.idea-card {
+  display: flex; flex-direction: column; overflow: hidden; cursor: pointer;
+  border-radius: var(--r-lg); background: var(--bg-raised);
+  box-shadow: inset 0 0 0 1px var(--line);
+  transition: box-shadow 0.15s ease, transform 0.15s ease;
+}
+.idea-card:hover { box-shadow: inset 0 0 0 1px var(--line-strong); }
+.idea-card:focus-visible { outline: 2px solid var(--text); outline-offset: 2px; }
+.idea-card__media { position: relative; aspect-ratio: 4 / 5; overflow: hidden; background: #000; }
+.idea-card__media img { width: 100%; height: 100%; object-fit: cover; transform: scale(1.35); transition: transform 0.4s ease; }
+.idea-card:hover .idea-card__media img { transform: scale(1.4); }
+.idea-card__mult {
+  position: absolute; left: 10px; bottom: 10px;
+  font-size: 20px; font-weight: 500; letter-spacing: -0.02em; line-height: 1;
+  padding: 6px 10px; border-radius: 999px;
+  background: rgba(0, 0, 0, 0.62); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+  color: #fff; font-variant-numeric: tabular-nums;
+}
+.idea-card__body { display: flex; flex-direction: column; gap: 6px; padding: 12px 14px 12px; flex: 1; }
+.idea-card__pitch {
+  font-size: 15px; line-height: 20px; font-weight: 500; letter-spacing: -0.01em; color: var(--text);
+  display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;
+}
+.idea-card__meta { font-size: 12px; line-height: 18px; color: var(--text-faint); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.idea-card__fit { color: var(--process); }
+.idea-card__actions { display: flex; gap: 4px; margin-top: auto; padding-top: 4px; }
+.idea-card__actions button {
+  font-size: 12px; font-weight: 500; padding: 4px 10px; border-radius: 999px;
+  color: var(--text-faint); transition: color 0.15s ease, background-color 0.15s ease;
+}
+.idea-card__actions button:hover { color: var(--text); background: rgba(255, 255, 255, 0.06); }
+.idea-card__actions button[data-on="true"] { color: var(--on-accent); background: var(--accent); }
+@media (prefers-reduced-motion: reduce) { .idea-card__media img, .idea-card:hover .idea-card__media img { transition: none; transform: scale(1.35); } }
+
+/* ─── Idea steps (CompetitorVideoView.tsx) ──────────────────────────────────── */
+.idea-hero__media {
+  position: relative; width: 100%; max-width: 240px; aspect-ratio: 4 / 5; flex-shrink: 0;
+  border-radius: var(--r-lg); overflow: hidden; background: #000;
+}
+.idea-hero__media img { width: 100%; height: 100%; object-fit: cover; transform: scale(1.35); }
+.idea-step {
+  padding: 20px 22px 22px; border-radius: var(--r-lg);
+  background: var(--bg-raised); box-shadow: inset 0 0 0 1px var(--line);
+  transition: opacity 0.2s ease;
+}
+.idea-step[data-dim="true"] { opacity: 0.55; }
+.idea-step__n {
+  width: 26px; height: 26px; border-radius: 999px; flex-shrink: 0;
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: 13px; font-weight: 500; color: var(--text-muted);
+  box-shadow: inset 0 0 0 1px var(--line-strong);
+}
+.idea-step__n[data-done="true"] { background: var(--accent); color: var(--on-accent); box-shadow: none; }

@@ -1,20 +1,21 @@
-import {
-  AltArrowLeftOutlineIcon as ArrowLeft, SlashCircleOutlineIcon as Dismissed,
-  Stars2OutlineIcon as Sparkles, RefreshOutlineIcon as Loader2,
-  SquareArrowRightUpOutlineIcon as ExternalLink,
-  BookmarkOutlineIcon as Bookmark,
-} from '@solar-icons/react';
-import { Check } from './BrandIcons';
-import { formatViews, formatDate, type FeedItem, type CompetitorIdea } from '../lib/competitors';
+import { AltArrowLeftOutlineIcon as ArrowLeft, SquareArrowRightUpOutlineIcon as ExternalLink, LockKeyholeMinimalisticOutlineIcon as Lock } from '@solar-icons/react';
+import { formatViews, type FeedItem, type CompetitorIdea } from '../lib/competitors';
 import { useIdeaGeneration } from '../lib/useIdeaGeneration';
 import { CREDIT_COSTS } from '../lib/useUsage';
-import { Page, PageHead, Panel, Section } from './Page';
+import { PENDING_CHAT_KEY } from '../lib/intents';
+import { resetAnalysisSession } from './AnalysisChat';
+import { Page, Button, Skeleton } from './Page';
 import { ErrorNotice } from './ErrorNotice';
 
-// Working on one video happens here, on its own screen, not in a tray over the
-// grid. The tray was fine for reading a paragraph and wrong for everything the
-// step actually became: an outline is a document, and a 384px column with the
-// feed showing through beside it is not where you read one.
+// One idea, opened up a step at a time (rebuilt 2026-09-30).
+//
+// The screen used to be the other channel's title as a heading and then two
+// paragraphs and an outline in one long scroll. What Ivan asked for instead is
+// the thing he liked about the steal checklist: press a button, watch it work,
+// see what comes out - a small reveal each time. So the steps are stacked and
+// locked in order: the angle (1 credit, reads the video), the outline (4,
+// watches it), the script (in Chat, where it can be argued with). A locked
+// step shows its shape blurred, so there is always something to unlock.
 export function CompetitorVideoView({
   item, onBack, onBreakDown, breaking, onSave, onDismiss, onUpdated, backLabel = 'Feed',
 }: {
@@ -34,129 +35,172 @@ export function CompetitorVideoView({
   const { generatingOutline, generateOutline, error, errorIsPlanLimit } =
     useIdeaGeneration(idea ?? ({ id: '' } as CompetitorIdea), onUpdated);
 
+  const hasAngle = !!idea?.concept;
+  const outline = idea?.outline ?? null;
+
+  const writeScript = () => {
+    if (!idea) return;
+    // Kept, so the chat's lookup finds it among their saved ideas and it lands
+    // in Saved with the conversation that follows.
+    if (!isSaved) onSave();
+    const name = outline?.hook || idea.pitch || idea.video_title || 'this idea';
+    try {
+      localStorage.setItem(PENDING_CHAT_KEY, JSON.stringify({ text: `Write the full script for my saved idea "${name}".`, ideaId: idea.id }));
+    } catch { /* ignore */ }
+    resetAnalysisSession();
+    window.dispatchEvent(new CustomEvent('chumoku:navigate', { detail: 'analyze' }));
+  };
+
   return (
     <Page className="animate-tab-in">
       <button
         onClick={onBack}
-        className="flex items-center gap-1.5 mb-6 text-[13px] transition-colors hover:text-[var(--text)]"
+        className="flex items-center gap-1.5 mb-8 t-small transition-colors hover:text-[var(--text)]"
         style={{ color: 'var(--text-muted)' }}
       >
         <ArrowLeft className="w-4 h-4" /> {backLabel}
       </button>
 
-      <PageHead eyebrow={item.channel_name || 'Competitor'} title={item.video_title || 'Untitled video'} />
-
-      {/* Facts read as a line of type; only the things you can DO are buttons.
-          Wrapping the view count and the date in pills made six controls out of
-          three, and the two you cannot press looked exactly like the four you
-          can. */}
-      <div className="flex flex-wrap items-center gap-x-4 gap-y-3 -mt-4 mb-8">
-        <div className="flex items-center gap-3 font-mono text-[12px] tabular-nums">
-          {item.outlier_score != null && (
-            <span style={{ color: 'var(--process)' }} title="Views against this channel's median">
-              {item.outlier_score}x
-            </span>
+      <div className="flex flex-col sm:flex-row gap-6 sm:gap-8 mb-12">
+        <div className="idea-hero__media">
+          <img src={`https://i.ytimg.com/vi/${item.video_id}/hqdefault.jpg`} alt="" />
+          {item.outlier_score != null && item.outlier_score < 1000 && (
+            <span className="idea-card__mult">{item.outlier_score}×</span>
           )}
-          {item.video_views != null && (
-            <span style={{ color: 'var(--text-muted)' }}>{formatViews(item.video_views)} views</span>
-          )}
-          {item.video_published_at && (
-            <span style={{ color: 'var(--text-faint)' }}>{formatDate(item.video_published_at)}</span>
-          )}
-          {/* A link out, not an action on the idea, so it belongs with the
-              facts. As a fourth pill it was also what pushed the row onto two
-              lines on a phone. */}
-          <a
-            href={`https://www.youtube.com/watch?v=${item.video_id}`}
-            target="_blank" rel="noopener noreferrer"
-            className="flex items-center gap-1 transition-colors hover:text-[var(--text)]"
-            style={{ color: 'var(--text-faint)' }}
-          >
-            watch <ExternalLink className="w-3 h-3" />
-          </a>
         </div>
 
-        <div className="flex items-center gap-2 sm:ml-auto">
-          <button onClick={onSave} className="chip" data-on={isSaved}>
-            {isSaved ? <Check className="w-3.5 h-3.5" /> : <Bookmark className="w-3.5 h-3.5" />}
-            {isSaved ? 'Saved' : 'Save'}
-          </button>
-          <button onClick={onDismiss} className="chip" data-on={isDismissed}>
-            <Dismissed className="w-3.5 h-3.5" />
-            {isDismissed ? 'Dismissed' : 'Dismiss'}
-          </button>
+        <div className="flex-1 min-w-0 flex flex-col">
+          <p className="t-label mb-3" style={{ color: 'var(--text-muted)' }}>
+            {[item.channel_name, item.video_views != null ? `${formatViews(item.video_views)} views` : null].filter(Boolean).join(' · ')}
+            {' · '}
+            <a href={`https://www.youtube.com/watch?v=${item.video_id}`} target="_blank" rel="noopener noreferrer"
+               className="inline-flex items-center gap-1 transition-colors hover:text-[var(--text)]">
+              watch <ExternalLink className="w-3 h-3" />
+            </a>
+          </p>
+          <h1 className="t-title" style={{ color: 'var(--text)' }}>{idea?.pitch || item.video_title || 'Untitled video'}</h1>
+          {idea?.pitch && item.video_title && (
+            <p className="t-small mt-3" style={{ color: 'var(--text-faint)' }}>From “{item.video_title}”</p>
+          )}
+          <div className="flex items-center gap-2 mt-6">
+            <Button variant={isSaved ? 'primary' : 'secondary'} size="sm" onClick={onSave}>{isSaved ? 'Saved' : 'Save'}</Button>
+            <Button variant="ghost" size="sm" onClick={onDismiss}>{isDismissed ? 'Restore' : 'Dismiss'}</Button>
+          </div>
         </div>
       </div>
 
-      {/* The two paid steps, in the order you would take them. */}
-      {!idea?.concept ? (
-        <Panel className="flex flex-col items-start gap-4">
-          <p className="text-[14px] max-w-md text-balance" style={{ color: 'var(--text-muted)' }}>
-            Nothing has read this yet. Break it down and you get what the video is doing and how the same move
-            works on your channel.
-          </p>
-          <button onClick={onBreakDown} disabled={breaking}
-                  className="btn-primary flex items-center gap-2 px-4 py-2.5 rounded-[var(--r-sm)] text-sm font-medium disabled:opacity-40">
-            {breaking ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
-            {breaking ? 'Reading the transcript' : `Break it down · ${CREDIT_COSTS.competitor_idea} cr`}
-          </button>
-        </Panel>
-      ) : (
-        <>
-          {idea.concept && (
-            <Section label="What they did" className="mt-0">
-              <p className="text-[14px] leading-relaxed" style={{ color: 'var(--text-muted)' }}>{idea.concept}</p>
-            </Section>
-          )}
-
-          {idea.adapted_idea && (
-            <Section label="Your angle">
-              <p className="text-[15px] leading-relaxed" style={{ color: 'var(--text)' }}>{idea.adapted_idea}</p>
-            </Section>
-          )}
-
-          <Section label="Outline">
-            {error && !errorIsPlanLimit && <ErrorNotice message={error} />}
-            {errorIsPlanLimit && (
-              <p className="text-[13px] mb-3" style={{ color: 'var(--text-muted)' }}>{error}</p>
-            )}
-
-            {idea.outline ? (
-              <Panel>
-                <p className="label-mono mb-2">Hook, first 3s</p>
-                <p className="text-[15px] leading-relaxed mb-5" style={{ color: 'var(--text)' }}>{idea.outline.hook}</p>
-                {idea.outline.sections?.map((sec, i) => (
-                  <div key={i} className="py-3" style={{ borderTop: '1px solid var(--line)' }}>
-                    <div className="flex items-baseline gap-3 mb-1">
-                      <span className="text-[13px] font-medium" style={{ color: 'var(--text)' }}>{sec.title}</span>
-                      <span className="font-mono text-[11px]" style={{ color: 'var(--text-faint)' }}>{sec.duration}</span>
-                    </div>
-                    <p className="text-[13px] leading-relaxed" style={{ color: 'var(--text-muted)' }}>{sec.content}</p>
-                  </div>
-                ))}
-                {idea.outline.cta && (
-                  <div className="pt-3" style={{ borderTop: '1px solid var(--line)' }}>
-                    <p className="label-mono mb-1.5">Close</p>
-                    <p className="text-[13px] leading-relaxed" style={{ color: 'var(--text)' }}>{idea.outline.cta}</p>
-                  </div>
-                )}
-              </Panel>
-            ) : (
-              <Panel className="flex flex-col items-start gap-4">
-                <p className="text-[14px] max-w-md text-balance" style={{ color: 'var(--text-muted)' }}>
-                  The outline is written while watching the video, so it can carry over the cuts, the framing and
-                  what is on screen, not just the words.
-                </p>
-                <button onClick={generateOutline} disabled={generatingOutline}
-                        className="btn-primary flex items-center gap-2 px-4 py-2.5 rounded-[var(--r-sm)] text-sm font-medium disabled:opacity-40">
-                  {generatingOutline ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
-                  {generatingOutline ? 'Watching the video' : `Create outline · ${CREDIT_COSTS.competitor_outline} cr`}
-                </button>
-              </Panel>
-            )}
-          </Section>
-        </>
+      {error && (
+        <div className="mb-6">
+          {errorIsPlanLimit
+            ? <p className="t-small" style={{ color: 'var(--text-muted)' }}>{error}</p>
+            : <ErrorNotice message={error} />}
+        </div>
       )}
+
+      <ol className="flex flex-col gap-3">
+        {/* 1. The angle */}
+        <Step n={1} title="Your angle" done={hasAngle}>
+          {hasAngle ? (
+            <div className="animate-msg-in">
+              <p className="t-body" style={{ color: 'var(--text)' }}>{idea!.adapted_idea}</p>
+              {idea!.concept && (
+                <details className="mt-4">
+                  <summary className="t-small cursor-pointer select-none" style={{ color: 'var(--text-faint)' }}>Why the original worked</summary>
+                  <p className="t-small mt-2" style={{ color: 'var(--text-muted)' }}>{idea!.concept}</p>
+                </details>
+              )}
+            </div>
+          ) : breaking ? (
+            <Working label="Reading the video" lines={3} />
+          ) : (
+            <Locked lines={3}>
+              <Button variant="primary" onClick={onBreakDown}>Reveal the angle · {CREDIT_COSTS.competitor_idea} credit</Button>
+            </Locked>
+          )}
+        </Step>
+
+        {/* 2. The outline */}
+        <Step n={2} title="Outline" done={!!outline} dim={!hasAngle}>
+          {outline ? (
+            <div className="animate-msg-in">
+              <p className="t-label mb-1.5" style={{ color: 'var(--text-muted)' }}>Hook</p>
+              <p className="t-heading mb-5" style={{ color: 'var(--text)' }}>{outline.hook}</p>
+              <ol className="flex flex-col gap-3">
+                {outline.sections?.map((sec, i) => (
+                  <li key={i} className="grid grid-cols-[3.5rem_1fr] gap-3">
+                    <span className="t-small tabular-nums" style={{ color: 'var(--text-faint)' }}>{sec.duration}</span>
+                    <div>
+                      <p className="t-small font-medium" style={{ color: 'var(--text)' }}>{sec.title}</p>
+                      <p className="t-small" style={{ color: 'var(--text-muted)' }}>{sec.content}</p>
+                    </div>
+                  </li>
+                ))}
+              </ol>
+              {outline.cta && (
+                <p className="t-small mt-4" style={{ color: 'var(--text-muted)' }}><span style={{ color: 'var(--text-faint)' }}>End · </span>{outline.cta}</p>
+              )}
+            </div>
+          ) : generatingOutline ? (
+            <Working label="Watching it frame by frame" lines={4} />
+          ) : (
+            <Locked lines={4}>
+              {hasAngle
+                ? <Button variant="primary" onClick={generateOutline}>Build the outline · {CREDIT_COSTS.competitor_outline} credits</Button>
+                : <p className="t-small flex items-center gap-1.5" style={{ color: 'var(--text-faint)' }}><Lock className="w-3.5 h-3.5" />Reveal the angle first</p>}
+            </Locked>
+          )}
+        </Step>
+
+        {/* 3. The script, in Chat */}
+        <Step n={3} title="Script" dim={!outline}>
+          {outline ? (
+            <div className="flex flex-col items-start gap-3">
+              <p className="t-small" style={{ color: 'var(--text-muted)' }}>Chumoku writes it in Chat, where you can push back on any line.</p>
+              <Button variant="primary" onClick={writeScript}>Write the script in Chat</Button>
+            </div>
+          ) : (
+            <p className="t-small flex items-center gap-1.5" style={{ color: 'var(--text-faint)' }}><Lock className="w-3.5 h-3.5" />Build the outline first</p>
+          )}
+        </Step>
+      </ol>
     </Page>
+  );
+}
+
+function Step({ n, title, done, dim, children }: { n: number; title: string; done?: boolean; dim?: boolean; children: React.ReactNode }) {
+  return (
+    <li className="idea-step" data-dim={dim ? 'true' : undefined}>
+      <div className="flex items-center gap-3 mb-4">
+        <span className="idea-step__n" data-done={done ? 'true' : undefined}>{n}</span>
+        <p className="t-heading" style={{ color: 'var(--text)' }}>{title}</p>
+      </div>
+      {children}
+    </li>
+  );
+}
+
+// A step not opened yet: its shape, blurred, with the button that opens it on
+// top. Something to unlock rather than an empty box.
+function Locked({ lines, children }: { lines: number; children: React.ReactNode }) {
+  return (
+    <div className="relative">
+      <div className="flex flex-col gap-2.5 blur-[3px] opacity-60 select-none" aria-hidden="true">
+        {Array.from({ length: lines }, (_, i) => (
+          <span key={i} className="block h-3.5 rounded" style={{ width: `${92 - i * 14}%`, background: 'rgba(255,255,255,0.1)' }} />
+        ))}
+      </div>
+      <div className="absolute inset-0 flex items-center">{children}</div>
+    </div>
+  );
+}
+
+function Working({ label, lines }: { label: string; lines: number }) {
+  return (
+    <div aria-live="polite">
+      <p className="t-small text-working mb-3">{label}</p>
+      <div className="flex flex-col gap-2.5">
+        {Array.from({ length: lines }, (_, i) => <Skeleton key={i} className="h-3.5" style={{ width: `${92 - i * 14}%` }} />)}
+      </div>
+    </div>
   );
 }
