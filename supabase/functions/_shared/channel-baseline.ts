@@ -10,6 +10,10 @@ export const MIN_BASELINE = 5;        // below this the median is noise
 // A video published yesterday has barely any views yet; letting it into the
 // median drags the median toward zero and inflates every multiplier.
 export const BASELINE_MIN_AGE_DAYS = 7;
+// A channel whose normal Short gets a few hundred views has no "normal" worth
+// dividing by: the first steal tested scored 13780x against a 157-view median,
+// which is true and reads as a bug. Below this, report views instead.
+export const MIN_MEDIAN_VIEWS = 1000;
 
 // "PT1M30S" -> 90. Returns null when the duration is missing or unparseable,
 // which is treated as "not a Short" rather than guessed at.
@@ -76,5 +80,5 @@ export async function channelShortsMedian(channelId: string, apiKey: string): Pr
     .map((v: any) => parseInt(v.statistics?.viewCount || '0', 10));
   if (views.length < MIN_BASELINE) return null;
   const m = median(views);
-  return m > 0 ? m : null;
+  return m >= MIN_MEDIAN_VIEWS ? m : null;
 }

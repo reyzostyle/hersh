@@ -17,8 +17,11 @@ export interface StealCardProps {
 
 export function StealCard({ idea, multiplier, onOpen }: StealCardProps) {
   const thumb = idea.video_thumbnail || `https://i.ytimg.com/vi/${idea.video_id}/sddefault.jpg`;
-  const big = multiplier !== null ? `${multiplier}×` : formatViews(idea.video_views);
-  const bigLabel = multiplier !== null ? 'more views than this channel usually gets' : 'views on the original';
+  // Four digits of multiplier is true for a tiny channel and reads as a bug;
+  // the server already refuses tiny baselines, this covers rows scored before.
+  const ratio = multiplier !== null && multiplier < 1000 ? multiplier : null;
+  const big = ratio !== null ? `${ratio}×` : formatViews(idea.video_views);
+  const bigLabel = ratio !== null ? 'more views than this channel usually gets' : 'views on the original';
 
   return (
     <article className="sc">
