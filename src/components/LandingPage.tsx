@@ -967,23 +967,14 @@ export function LandingPage() {
         </nav>
 
         {/* ── Hero ────────────────────────────────────────────────────────────
-            The one screen with the grid on it, and the grid is the app's:
-            112px cell, --line hairline, the same surface Analyze is drawn on.
-            Everything below this is flat, exactly like every other tab.
+            Flat, like money.x.com: no ruled grid behind the headline. The grid
+            that used to sit here was the last piece of decoration on the page.
 
-            What used to be here: three drifting blurred blobs, a glow along
-            the bottom edge, a rotating quote pill, a marquee of four invented
-            widgets, and a haloed input. None of it existed in the product. */}
+            What used to be here before that: three drifting blurred blobs, a
+            glow along the bottom edge, a rotating quote pill, a marquee of four
+            invented widgets, and a haloed input. None of it existed in the
+            product. */}
         <header className="relative overflow-hidden">
-          <div className="absolute inset-0 grid-surface pointer-events-none" aria-hidden="true" />
-          {/* Fades the grid out into the flat page rather than cutting it at a
-              hard line across the screen. */}
-          <div
-            className="absolute inset-x-0 bottom-0 h-40 pointer-events-none"
-            style={{ background: 'linear-gradient(to bottom, transparent, var(--bg-app))' }}
-            aria-hidden="true"
-          />
-
           {/* Centred now, after money.x.com: one headline, one line under it,
               one field, and the product underneath. The left-aligned version
               came from paper.design and read as a document; centred, the page

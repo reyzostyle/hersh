@@ -4,6 +4,7 @@ import { loadCreditStatus, canAfford, spendCredits, CREDIT_COSTS } from '../_sha
 import { loadChannelScan, channelScanBlock } from '../_shared/channel-scan.ts';
 import { loadBrain, brainBlock } from '../_shared/brain.ts';
 import { fetchTranscript, extractConceptAndAdapt, generateOutline } from '../_shared/steal.ts';
+import { channelShortsMedian, roundScore } from '../_shared/channel-baseline.ts';
 
 const CORS = corsHeaders({ methods: 'POST, OPTIONS' });
 
@@ -104,6 +105,12 @@ Deno.serve(async (req: Request) => {
     const channelId: string = video.snippet?.channelId || '';
     const channelName: string = video.snippet?.channelTitle || '';
 
+    // How far this Short beat its own channel: the number the steal card leads
+    // with. Started now, read after the profile loads, so it costs no extra
+    // wait. A row the feed already scored keeps its score if this comes back
+    // empty (too little history, or the API said no).
+    const medianPromise = channelId ? channelShortsMedian(channelId, apiKey).catch(() => null) : Promise.resolve(null);
+
     // Same profile the feed adapts against: the brain if built, the four typed
     // boxes if not. A steal is always adapted - adapting is the point of it.
     const brain = await loadBrain(supabase, user.id);
@@ -118,13 +125,14 @@ Audience: ${profile?.target_audience || 'not set'}
 Extra context: ${profile?.channel_context || 'not set'}`;
     const scanBlock = channelScanBlock(await loadChannelScan(supabase, user.id));
 
+    const channelMedian = await medianPromise;
+    const outlierScore = channelMedian ? roundScore(views / channelMedian) : (existing?.outlier_score ?? null);
+
     let concept: string = existing?.concept || '';
     let adaptedIdea: string = existing?.adapted_idea || '';
     if (needsRead) {
       const transcript = await fetchTranscript(videoId);
-      // No outlier score: this video did not come from a tracked channel's
-      // pool, so there is no baseline to measure it against.
-      const read = await extractConceptAndAdapt(videoId, title, views, null, transcript, profileBlock, scanBlock, niche);
+      const read = await extractConceptAndAdapt(videoId, title, views, outlierScore, transcript, profileBlock, scanBlock, niche);
       concept = read.concept;
       adaptedIdea = read.adapted_idea;
     }
@@ -142,6 +150,7 @@ Extra context: ${profile?.channel_context || 'not set'}`;
         video_title: title,
         video_thumbnail: video.snippet?.thumbnails?.high?.url || video.snippet?.thumbnails?.default?.url || null,
         video_views: views,
+        outlier_score: outlierScore,
         video_published_at: video.snippet?.publishedAt || null,
         concept,
         adapted_idea: adaptedIdea,

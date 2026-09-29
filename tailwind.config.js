@@ -42,6 +42,14 @@ export default {
       letterSpacing: {
         tightest: '-0.035em',
       },
+      // X Money sets headings at 500 and never goes past 600. Remapped here so
+      // the 55 semibold and 13 bold/black call sites follow without edits.
+      fontWeight: {
+        semibold: '500',
+        bold: '600',
+        extrabold: '600',
+        black: '600',
+      },
     },
   },
   plugins: [],

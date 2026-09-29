@@ -10,6 +10,7 @@ import { CompetitorVideoView } from './CompetitorVideoView';
 import { FindCompetitorsModal } from './FindCompetitorsModal';
 import { Page, PageHead, Loading } from './Page';
 import { StealProgress } from './StealProgress';
+import { StealCard } from './StealCard';
 import { take, PENDING_STEAL_KEY } from '../lib/intents';
 
 // Two layers, and the difference is the whole point of this screen.
@@ -47,6 +48,9 @@ export function CompetitorsPage() {
   const [adaptForProfile, setAdaptForProfile] = useState(true);
   const [findOpen, setFindOpen] = useState(false);
   const [stealing, setStealing] = useState(false);
+  // A finished steal lands on its card first - the result at a glance, the
+  // thing that gets filmed - and the outline is one press further.
+  const [stolen, setStolen] = useState<CompetitorIdea | null>(null);
 
   const loadData = useCallback(async () => {
     try {
@@ -132,7 +136,7 @@ export function CompetitorsPage() {
         }
         handleIdeaUpdated(result.idea, { persist: false });
         setIdeaFilter('saved');
-        setOpenVideoId(result.idea.video_id);
+        setStolen(result.idea);
       } catch (e) {
         setFetchError(e instanceof Error ? e.message : 'Could not steal that video');
       } finally {
@@ -351,6 +355,20 @@ export function CompetitorsPage() {
     return (
       <Page>
         <StealProgress />
+      </Page>
+    );
+  }
+
+  if (stolen) {
+    return (
+      <Page>
+        <div className="flex justify-center animate-scale-in">
+          <StealCard
+            idea={stolen}
+            multiplier={stolen.outlier_score}
+            onOpen={() => { setOpenVideoId(stolen.video_id); setStolen(null); }}
+          />
+        </div>
       </Page>
     );
   }

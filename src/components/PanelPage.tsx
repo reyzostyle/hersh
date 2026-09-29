@@ -10,6 +10,7 @@ import { AnalysisChat, resetAnalysisSession } from './AnalysisChat';
 import { CompetitorVideoView } from './CompetitorVideoView';
 import { ErrorNotice } from './ErrorNotice';
 import { StealProgress } from './StealProgress';
+import { StealCard } from './StealCard';
 
 // Chumoku inside the Chrome extension's side panel, docked beside YouTube.
 //
@@ -194,6 +195,8 @@ function StealRun({ url }: { url: string }) {
   const [projects, setProjects] = useState<Project[]>([]);
   const [error, setError] = useState('');
   const [limit, setLimit] = useState<number | null>(null);
+  // The card first, the outline behind it. See CompetitorsPage.
+  const [showOutline, setShowOutline] = useState(false);
   const started = useRef(false);
 
   useEffect(() => {
@@ -243,6 +246,14 @@ function StealRun({ url }: { url: string }) {
 
   if (!idea && running) return <StealProgress />;
   if (!idea) return null;
+
+  if (!showOutline) {
+    return (
+      <div className="p-4 flex justify-center animate-scale-in">
+        <StealCard idea={idea} multiplier={idea.outlier_score} onOpen={() => setShowOutline(true)} />
+      </div>
+    );
+  }
 
   return (
     <CompetitorVideoView

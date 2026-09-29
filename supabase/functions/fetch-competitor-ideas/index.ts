@@ -1,5 +1,6 @@
 import { corsHeaders } from '../_shared/http.ts';
 import { createClient } from 'npm:@supabase/supabase-js@2.57.4';
+import { BASELINE_SIZE, MIN_BASELINE, BASELINE_MIN_AGE_DAYS, isShort, median, ageDays, roundScore } from '../_shared/channel-baseline.ts';
 
 const CORS = corsHeaders({ methods: 'GET, POST, PUT, DELETE, OPTIONS' });
 
@@ -37,10 +38,8 @@ async function getUserIdFromToken(supabase: any, token: string): Promise<string>
 // beaten anything yet; it enters the pool a week later, on the same footing as
 // everything else, because the pool is rebuilt hourly and spans the last 50
 // uploads either way.
-const BASELINE_SIZE = 50;      // uploads pulled to establish "normal" (videos.list caps at 50 ids)
 const OUTLIER_THRESHOLD = 1.5; // times the channel's median views
 const POOL_PER_CHANNEL = 30;   // how deep the pool goes per channel
-const MIN_BASELINE = 5;        // below this the median is noise, so don't filter on it
 
 // English only. Auto-find pulled in a Portuguese channel and its videos landed
 // in the feed, which is worse than useless: an idea you cannot read is an idea
@@ -51,13 +50,9 @@ function isEnglish(item: any): boolean {
   const lang = item.snippet?.defaultAudioLanguage || item.snippet?.defaultLanguage;
   return !lang || String(lang).toLowerCase().startsWith('en');
 }
-// Applies to the BASELINE only, not to what gets surfaced. A video published
-// yesterday has barely any views yet, so letting it into the median drags the
-// median toward zero and inflates every multiplier on the channel. Keeping it
-// out of the FEED as well was a mistake: under this formula a fresh video is
-// understated, not overstated, so it can be shown honestly the day it goes up
-// and simply climbs as its views land.
-const BASELINE_MIN_AGE_DAYS = 7;
+// BASELINE_MIN_AGE_DAYS (channel-baseline.ts) applies to the baseline only,
+// not to what gets surfaced: under this formula a fresh video is understated,
+// not overstated, so it can be shown honestly the day it goes up.
 
 // A channel synced this recently is left alone, no matter who asked. Two
 // creators tracking the same competitor cost one API call between them, which
@@ -70,39 +65,6 @@ interface PoolVideo {
   views: number;
   publishedAt: string;
   outlierScore: number | null;
-}
-
-const MAX_SHORT_SECONDS = 180; // YouTube's current ceiling for a Short
-
-// "PT1M30S" -> 90. Returns null when the duration is missing or unparseable,
-// which is treated as "not a Short" rather than guessed at.
-function parseDurationSeconds(iso: string | undefined): number | null {
-  const m = /^P(?:(\d+)D)?T(?:(\d+)H)?(?:(\d+)M)?(?:(\d+(?:\.\d+)?)S)?$/.exec(iso || '');
-  if (!m) return null;
-  const [, d, h, min, s] = m;
-  return Number(d || 0) * 86400 + Number(h || 0) * 3600 + Number(min || 0) * 60 + Number(s || 0);
-}
-
-// Streams and long-form uploads are a different game from Shorts, and mixing
-// them in also skews the channel's median: a Short compared against an average
-// that includes 20-minute videos is being measured against the wrong baseline.
-// A finished stream reports liveBroadcastContent "none", so its presence in
-// liveStreamingDetails is what actually identifies it.
-function isShort(item: any): boolean {
-  if (item.liveStreamingDetails) return false;
-  const seconds = parseDurationSeconds(item.contentDetails?.duration);
-  return seconds !== null && seconds > 0 && seconds <= MAX_SHORT_SECONDS;
-}
-
-function median(nums: number[]): number {
-  if (nums.length === 0) return 0;
-  const sorted = [...nums].sort((a, b) => a - b);
-  const mid = Math.floor(sorted.length / 2);
-  return sorted.length % 2 === 0 ? (sorted[mid - 1] + sorted[mid]) / 2 : sorted[mid];
-}
-
-function ageDays(publishedAt: string): number {
-  return (Date.now() - new Date(publishedAt).getTime()) / 86_400_000;
 }
 
 async function fetchChannelPool(
@@ -183,7 +145,7 @@ async function fetchChannelPool(
       title: v.title,
       views: v.views,
       publishedAt: v.publishedAt,
-      outlierScore: Math.round(v.outlierScore * 10) / 10,
+      outlierScore: roundScore(v.outlierScore),
     }));
 
   return { videos, medianViews };

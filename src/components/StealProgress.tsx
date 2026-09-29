@@ -31,26 +31,27 @@ export function StealProgress() {
 
   return (
     <div className="px-5 pt-10 pb-8">
-      <p className="label-mono mb-5">Stealing the format</p>
-      <ol className="space-y-3" aria-live="polite">
+      {/* Sized to be filmed: this list is the "it's working" shot in a demo. */}
+      <p className="text-[22px] font-medium tracking-[-0.02em] mb-6" style={{ color: 'var(--text)' }}>Stealing the format</p>
+      <ol className="space-y-4" aria-live="polite">
         {STEAL_STEPS.map((step, i) => {
           const done = i < at;
           const current = i === at;
           return (
             <li key={step.label} className="flex items-center gap-3">
-              <span className="w-4 h-4 rounded-full flex items-center justify-center flex-shrink-0"
+              <span className="w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0"
                     style={{
                       border: `1px solid ${done ? 'transparent' : current ? 'var(--text-muted)' : 'var(--line-strong)'}`,
                       background: done ? 'rgba(var(--process-rgb),0.15)' : 'transparent',
                       transition: 'background 0.3s ease, border-color 0.3s ease',
                     }}>
                 {done && (
-                  <svg viewBox="0 0 12 12" className="w-2.5 h-2.5" aria-hidden="true">
+                  <svg viewBox="0 0 12 12" className="w-3 h-3" aria-hidden="true">
                     <path d="M2.5 6.2l2.2 2.2 4.8-4.9" fill="none" stroke="var(--process)" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
                   </svg>
                 )}
               </span>
-              <span className={`text-[14px] ${current ? 'text-working font-medium' : ''}`}
+              <span className={`text-[16px] ${current ? 'text-working font-medium' : ''}`}
                     style={current ? undefined : { color: done ? 'var(--text-muted)' : 'var(--text-faint)' }}>
                 {step.label}
               </span>
@@ -58,7 +59,7 @@ export function StealProgress() {
           );
         })}
       </ol>
-      <p className="font-mono text-[11px] mt-6 tabular-nums" style={{ color: 'var(--text-faint)' }}>
+      <p className="text-[13px] mt-7 tabular-nums" style={{ color: 'var(--text-faint)' }}>
         {elapsed}s · usually under a minute
       </p>
     </div>

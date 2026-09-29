@@ -12,19 +12,23 @@
      look expensive is the page being darker than the panels and the grid giving
      the eye something precise to sit on. */
   --bg-app: #0A0A0B;
-  --bg-raised: #121214;
-  --bg-raised-hover: #17171A;
+  /* Panels are X Money's #141414 and its hover a step up; the page stays the
+     warmer near-black it always was (Ivan kept it, 2026-09-29). */
+  --bg-raised: #141414;
+  --bg-raised-hover: #1C1C1C;
 
   --accent: #FFFFFF;
   --accent-rgb: 255, 255, 255;
   --on-accent: #0A0A0B;
   --accent-soft: #ECECEC;
 
-  --text: #ECECEC;
-  --text-muted: #9B9B9B;
-  --text-faint: #6E6E6E;
+  /* Hierarchy by opacity, X Money's way: white, then 60%, then 45%. On
+     --bg-app 19.0:1, 7.3:1, 5.0:1; on a panel the faint step is 4.7:1. */
+  --text: #FAFAFA;
+  --text-muted: #9D9D9E;
+  --text-faint: #808081;
 
-  --line: rgba(255, 255, 255, 0.07);
+  --line: rgba(255, 255, 255, 0.08);
   --line-strong: rgba(255, 255, 255, 0.14);
 
   /* Three radii and a pill. */
@@ -53,6 +57,7 @@
      link in the sidebar. If it ever shows up on a second control, one of the
      two is wrong. */
   --upgrade: #F5C451;
+
 }
 
 @tailwind base;
@@ -331,9 +336,12 @@ input, textarea, select {
 /* Primary CTA: subtle top highlight + soft glow so buttons share the glass look */
 .btn-primary {
   /* White, flat, no gradient and no glow. Every filled action in the product
-     is this, so a primary button can never quietly be a different blue again. */
+     is this, so a primary button can never quietly be a different blue again.
+     A pill, like X's: the one solid control on a screen should also be the
+     one round one. */
   background: var(--accent);
   color: var(--on-accent);
+  border-radius: 999px !important;
   transition: opacity 0.15s ease;
 }
 .btn-primary:hover { opacity: 0.9; }
@@ -347,19 +355,23 @@ input, textarea, select {
    everything here used to sit within a few pixels of everything else. */
 .display {
   font-size: clamp(1.75rem, 1.2rem + 2.2vw, 2.75rem);
-  font-weight: 600;
-  letter-spacing: -0.035em;
+  /* Medium, not semibold: X Money sets every heading at 500 and lets size do
+     the work. Heavier weights read as shouting on a dark page. */
+  font-weight: 500;
+  letter-spacing: -0.025em;
   line-height: 1.05;
 }
 
-/* Small mono labels, the voice the Geist site uses for anything measured. */
+/* Small section labels. Were 10px uppercase mono at 38% white, which is 3.3:1
+   - under the 4.5:1 floor - and read as a spec sheet. Now X Money's label:
+   sentence case, 12px, medium, muted. The class name stays so no call site
+   had to change. */
 .label-mono {
-  font-family: 'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
-  font-size: 10px;
+  font-size: 12px;
+  line-height: 18px;
   font-weight: 500;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.38);
+  letter-spacing: 0.01em;
+  color: var(--text-muted);
 }
 
 
@@ -678,3 +690,36 @@ button.row:active,
   border-color: rgba(255, 255, 255, 0.24) !important;
   box-shadow: 0 0 56px -6px rgba(255, 255, 255, 0.10), 0 0 140px -20px rgba(255, 255, 255, 0.08);
 }
+
+/* ─── Steal card (StealCard.tsx) ──────────────────────────────────────────────
+   X Money's language: pure black, #141414 panel on a half-pixel hairline,
+   medium weight rather than bold, tight tracking, and hierarchy by opacity -
+   white for what matters, 60% white for everything that explains it (8.2:1 on
+   #141414). The thumbnail is the only colour. The one solid control is a
+   white pill. */
+.sc {
+  font-family: 'Geist', ui-sans-serif, system-ui, sans-serif;
+  /* Fits Chrome's narrowest side panel (~320px) as well as the app. */
+  /* 9:16 is a floor, not a clamp: with overflow visible, aspect-ratio lets the
+     card grow when a long hook needs the room, instead of cutting the button
+     off on a narrow side panel. The media clips its own corners. */
+  width: min(340px, 100%); aspect-ratio: 9 / 16;
+  display: flex; flex-direction: column;
+  border-radius: 28px; background: var(--bg-raised); color: #FFFFFF;
+  box-shadow: inset 0 0 0 0.5px rgba(255, 255, 255, 0.1);
+  -webkit-font-smoothing: antialiased;
+}
+.sc__media { aspect-ratio: 5 / 4; flex-shrink: 0; overflow: hidden; border-radius: 28px 28px 0 0; background: #000; }
+/* sddefault is letterboxed on a Short; scaling pushes the bars out of frame. */
+.sc__media img { width: 100%; height: 100%; object-fit: cover; transform: scale(1.35); }
+.sc__body { flex: 1; display: flex; flex-direction: column; padding: 20px 24px 24px; }
+.sc__source { font-size: 13px; line-height: 20px; color: rgba(255, 255, 255, 0.6); }
+.sc__big { font-size: 64px; font-weight: 500; letter-spacing: -0.04em; line-height: 1; margin-top: 12px; font-variant-numeric: tabular-nums; }
+.sc__big-label { font-size: 13px; line-height: 20px; color: rgba(255, 255, 255, 0.6); margin-top: 6px; }
+.sc__hook { font-size: 22px; font-weight: 500; line-height: 26px; letter-spacing: -0.01em; margin-top: auto; padding-top: 20px; text-wrap: balance; }
+.sc__open {
+  margin-top: 16px; align-self: flex-start;
+  font-size: 13px; font-weight: 500; line-height: 20px; padding: 8px 16px; border-radius: 999px;
+  background: #FFFFFF; color: #000000;
+}
+.sc__open:focus-visible { outline: 2px solid #FFFFFF; outline-offset: 3px; }
