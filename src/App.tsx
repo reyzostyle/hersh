@@ -335,6 +335,8 @@ function AppContent() {
   // states, and must never fall through to the landing page or onboarding.
   if (window.location.pathname === '/panel') return <PanelPage />;
   if (import.meta.env.DEV && window.location.pathname === '/lab') return <StealLab />;
+  // The landing page as a guest sees it, while signed in. Dev only.
+  if (import.meta.env.DEV && window.location.pathname === '/lab/landing') return <LandingPage />;
 
   if (loading) {
     return (

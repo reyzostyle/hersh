@@ -7,13 +7,7 @@ import {
   AltArrowDownOutlineIcon as ChevronDown,
   ArrowUpOutlineIcon as ArrowUp,
   ArrowRightUpOutlineIcon as ArrowUpRight,
-  AddOutlineIcon as Plus,
   LetterOutlineIcon as Mail,
-  VideocameraOutlineIcon as VideoIcon,
-  FolderOutlineIcon as Folder,
-  GraphUpOutlineIcon as GraphUp,
-  GraphUpOutlineIcon as TrendingUp,
-  UsersGroupRoundedOutlineIcon as Users,
   HamburgerMenuOutlineIcon as Menu,
 } from '@solar-icons/react';
 import { Check } from './BrandIcons';
@@ -23,7 +17,10 @@ import { supabase } from '../lib/supabase';
 import { SUPPORT_EMAIL } from '../lib/brand';
 import { FAQS } from '../lib/faq';
 import { readLastEmail, forgetLastEmail } from '../lib/user';
-import { arrivedWith, peek, PENDING_ANALYZE_KEY } from '../lib/intents';
+import { arrivedWith, peek, PENDING_ANALYZE_KEY, PENDING_STEAL_KEY } from '../lib/intents';
+import { StealCard } from './StealCard';
+import { CompetitorVideoCard } from './CompetitorVideoCard';
+import type { FeedItem } from '../lib/competitors';
 import { Head, WorkflowGrid, CreditLedger, BrainScan } from './LandingMotion';
 
 // ─── Surface ─────────────────────────────────────────────────────────────────
@@ -346,250 +343,32 @@ function AuthModal({ initialMode, onClose, context }: {
 // changes shape, these are wrong, and that is the correct amount of coupling
 // for a page whose whole job is to show the app.
 
-// The hero shot: the sidebar and a finished thread, exactly as Analyze renders
-// it — conversation on the ruled grid, no sheet under it.
-function AppFrame() {
-  const nav = [
-    { icon: <VideoIcon className="w-3.5 h-3.5" />, label: 'Analyze', on: true },
-    { icon: <Folder className="w-3.5 h-3.5" />, label: 'Projects', on: false },
-    { icon: <GraphUp className="w-3.5 h-3.5" />, label: 'Analytics', on: false },
-    { icon: <Users className="w-3.5 h-3.5" />, label: 'Ideas', on: false },
-  ];
-
-  return (
-    <div
-      className="overflow-hidden"
-      style={{ background: 'var(--bg-app)', border: '1px solid var(--line-strong)', borderRadius: 'var(--r-lg)' }}
-    >
-      <div className="flex" style={{ height: 'clamp(360px, 46vw, 460px)' }}>
-        {/* Sidebar. Hidden on phones: at that width it would be four icons
-            wide and the thread beside it unreadable, which shows off nothing. */}
-        <div className="hidden sm:flex w-[168px] flex-shrink-0 flex-col py-4 px-3" style={{ borderRight: '1px solid var(--line)' }}>
-          <div className="flex items-center gap-2 px-2 mb-6">
-            <img src="/chumoku-mark.png" alt="" className="h-[11px] w-auto" />
-            <span className="font-black uppercase tracking-[0.14em] text-[10px]" style={{ color: 'var(--text)' }}>Chumoku</span>
-          </div>
-          <div className="space-y-0.5">
-            {nav.map(n => (
-              <div
-                key={n.label}
-                className="flex items-center gap-2.5 px-2 py-1.5 rounded-[var(--r-sm)] text-[11.5px]"
-                style={n.on
-                  ? { background: 'var(--bg-raised-hover)', color: 'var(--text)' }
-                  : { color: 'var(--text-faint)' }}
-              >
-                {n.icon}
-                {n.label}
-              </div>
-            ))}
-          </div>
-          <div className="mt-auto px-2">
-            <p className="label-mono">Credits</p>
-            <p className="font-mono text-[11px] mt-1" style={{ color: 'var(--text-muted)' }}>284 left</p>
-          </div>
-        </div>
-
-        {/* No grid inside the frame. It used to draw its own at a 56px cell
-            while the hero draws the page's at 112px, so the two met at the
-            frame's edge without lining up on either axis - a fine mesh sitting
-            inside a coarse one, which reads as a rendering fault rather than
-            as texture. The frame is a solid panel on the page's grid now, the
-            same way a sheet sits on it inside the app. */}
-        <div className="relative flex-1 min-w-0">
-          <div className="relative h-full flex flex-col px-4 sm:px-6 pt-5 pb-4">
-            {/* overflow-hidden, not just min-h-0: the frame is a fixed height
-                and on a phone the card is taller than it, so without this the
-                thread spilled over the composer instead of being cropped by
-                the frame's edge. */}
-            <div className="flex-1 min-h-0 overflow-hidden space-y-3">
-              <div className="flex justify-end">
-                <span className="rounded-[14px] px-3 py-1.5 text-[11.5px] font-mono truncate max-w-[80%]" style={{ background: 'var(--bg-raised)', color: 'var(--text)' }}>
-                  youtube.com/shorts/8fLq2Xr
-                </span>
-              </div>
-
-              <p className="label-mono">Watched the whole thing</p>
-
-              <div className="p-3.5 sm:p-4" style={plate}>
-                <div className="flex items-baseline gap-1.5 mb-3">
-                  <span className="text-[26px] leading-none font-semibold tracking-tight tabular-nums" style={{ color: 'var(--text)' }}>62</span>
-                  <span className="font-mono text-[10px]" style={{ color: 'var(--text-faint)' }}>/ 100</span>
-                </div>
-                <p className="text-[11.5px] leading-relaxed mb-3.5" style={{ color: 'var(--text-muted)' }}>
-                  The idea lands, the open does not. You spend 0:00 to 0:03 setting up a payoff the thumbnail already gave away.
-                </p>
-                <p className="label-mono mb-1.5">Fix</p>
-                <ul className="space-y-1">
-                  <li className="text-[11.5px] leading-relaxed" style={{ color: 'var(--text)' }}>Cut the first 1.4s. Open on the reaction at 0:03.</li>
-                  {/* Second fix drops on a phone: at 360px of frame it is the
-                      line that gets cut in half by the crop. */}
-                  <li className="hidden sm:block text-[11.5px] leading-relaxed" style={{ color: 'var(--text)' }}>Retention falls off a cliff at 0:07, where the b-roll repeats.</li>
-                </ul>
-              </div>
-            </div>
-
-            {/* The composer, same shape as the one in the hero above it. */}
-            <div className="flex-shrink-0 mt-3 flex items-center gap-2 px-3 py-2" style={composer}>
-              <Plus className="w-3.5 h-3.5 flex-shrink-0" style={{ color: 'var(--text-faint)' }} />
-              <span className="flex-1 text-[11.5px] truncate" style={{ color: 'var(--text-faint)' }}>Ask about the fixes, or send another link</span>
-              <span className="w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0" style={{ background: 'var(--accent)' }}>
-                <ArrowUp className="w-3 h-3" style={{ color: 'var(--on-accent)' }} />
-              </span>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// Competitors: the feed only ever shows shorts that beat the channel's own
-// median views per day, so the multiple is the whole card, the same way it is
-// in CompetitorsFeed.
-function CompetitorsFrame() {
-  const rows = [
-    { ch: 'nikocado', title: 'i ate the whole menu in one sitting', mult: '7.4x', vpd: '412k / day' },
-    { ch: 'sidemen clips', title: 'he guessed it in three words', mult: '3.1x', vpd: '96k / day' },
-    { ch: 'mrwhosetheboss', title: 'the phone nobody was allowed to review', mult: '2.2x', vpd: '61k / day' },
-  ];
-  return (
-    <div className="overflow-hidden" style={{ background: 'var(--bg-app)', border: '1px solid var(--line-strong)', borderRadius: 'var(--r-lg)' }}>
-      <div className="flex items-center gap-2 px-4 sm:px-5 py-3" style={{ borderBottom: '1px solid var(--line)' }}>
-        {/* nowrap, and the second chip only appears once there is room for it:
-            "4 channels tracked" beside two pills wrapped onto a second line on
-            a phone and ran into them. */}
-        <p className="label-mono flex-1 whitespace-nowrap truncate">Feed · 4 channels</p>
-        <span className="chip" data-on="true">Outliers</span>
-        <span className="chip hidden md:inline-flex">Saved</span>
-      </div>
-      <div className="px-4 sm:px-5">
-        {rows.map((r, i) => (
-          <div key={r.title} className="flex items-center gap-3 sm:gap-4 py-3.5" style={i < rows.length - 1 ? { borderBottom: '1px solid var(--line)' } : undefined}>
-            {/* The multiple, in the same green pill the real card carries.
-                There used to be an empty rounded rectangle here standing in for
-                a thumbnail, which the feed does not have and never did - so the
-                one thing the frame said about the product was that its images
-                had failed to load. */}
-            <span
-              className="flex items-center gap-1 font-mono text-[11px] px-1.5 py-0.5 rounded flex-shrink-0 tabular-nums"
-              style={{ background: 'rgba(var(--process-rgb),0.12)', color: 'var(--process)' }}
-            >
-              <TrendingUp className="w-3 h-3" />
-              {r.mult}
-            </span>
-            <div className="flex-1 min-w-0">
-              <p className="text-[12.5px] truncate" style={{ color: 'var(--text)' }}>{r.title}</p>
-              <p className="label-mono mt-1">{r.ch}</p>
-            </div>
-            <p className="font-mono text-[10px] flex-shrink-0 tabular-nums" style={{ color: 'var(--text-faint)' }}>{r.vpd}</p>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-// Analytics: the app's Tile row, then a retention curve with the drop marked.
-//
-// The shape is the one this product exists for: a normal opening slide, then a
-// cliff, then a long flat tail. The marker sits ON the cliff and the label is
-// the timestamp that cliff falls at, worked out from the same duration printed
-// under the axis - an earlier version put "0:07" at the 55% mark of a 31-second
-// video, which is the kind of detail a creator checks first.
-const DURATION_S = 31;
-const CURVE = [
-  100, 96, 90, 85, 82, 79, 77, 75, 73, 71,
-  52, 49, 47, 46, 45, 44, 43, 43, 42, 41,
-  41, 40, 40, 39, 39, 38, 38, 37, 37, 36,
-  36, 35, 35, 34, 34, 33, 33, 32, 32, 31, 30,
+// Real Shorts from the niches this is for, with their real numbers: each
+// multiple is the video's views over its own channel's median Short, measured
+// 2026-09-29. The pitches are what Chumoku writes for a Minecraft ranking
+// channel. Nothing here is a mock of a number.
+const DEMO: FeedItem[] = [
+  {
+    video_id: 'Y1s03EY3UCk', channel_id: 'demo-1', channel_name: 'Olympus Stuff',
+    video_title: "When you go to McDonald's (meme) ROBLOX", video_views: 13_691_877, video_published_at: null,
+    outlier_score: 31, idea: { pitch: 'When you join a Minecraft server as a noob', fit: 'yes' } as FeedItem['idea'],
+  },
+  {
+    video_id: '2cYF74YMmGc', channel_id: 'demo-2', channel_name: 'Alexa Real',
+    video_title: 'how different players do MLG water bucket', video_views: 15_548_608, video_published_at: null,
+    outlier_score: 20, idea: { pitch: 'How different players build their first house', fit: 'yes' } as FeedItem['idea'],
+  },
+  {
+    video_id: 'k-JdoUmUMWo', channel_id: 'demo-3', channel_name: 'The Robloxian Baddie',
+    video_title: 'How to Do the GNARLY Obby Trend', video_views: 281_889, video_published_at: null,
+    outlier_score: 24, idea: { pitch: 'Ranking every parkour jump from easy to impossible', fit: 'yes' } as FeedItem['idea'],
+  },
+  {
+    video_id: 'fq9MMsCeNhw', channel_id: 'demo-4', channel_name: 'mint.chippie',
+    video_title: 'Herobrine vs XDjames rank up', video_views: 2_163_572, video_published_at: null,
+    outlier_score: null, idea: { pitch: 'Rank 1 Steve vs Rank 100 Warden. Only one walks out.', fit: 'yes' } as FeedItem['idea'],
+  },
 ];
-// The first sample after the fall, i.e. the point the marker names.
-const DROP_AT = 10;
-const DROP_LABEL = `0:${String(Math.round((DROP_AT / (CURVE.length - 1)) * DURATION_S)).padStart(2, '0')}`;
-
-function AnalyticsFrame() {
-  // 0..108 rather than 0..150: on the old scale the entire curve sat in the
-  // top third of the box and the cliff read as a scratch.
-  const y = (v: number) => (1 - v / 108) * 100;
-  const points = CURVE.map((v, i) => `${(i / (CURVE.length - 1)) * 100},${y(v)}`).join(' ');
-  const dropX = (DROP_AT / (CURVE.length - 1)) * 100;
-
-  return (
-    <div className="p-4 sm:p-5" style={{ background: 'var(--bg-app)', border: '1px solid var(--line-strong)', borderRadius: 'var(--r-lg)' }}>
-      {/* The connected state, said out loud. Everything in this frame is real
-          YouTube data and there was nothing on it saying so, which is the one
-          thing that separates these numbers from numbers any tool can invent. */}
-      <div className="flex items-center gap-2 mb-4">
-        <span
-          className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium"
-          style={{ background: 'rgba(255,0,0,0.10)', border: '1px solid rgba(255,0,0,0.28)', color: '#FF4444' }}
-        >
-          <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: '#FF0000' }} />
-          YouTube connected
-        </span>
-      </div>
-
-      <div className="grid grid-cols-3 gap-2.5 sm:gap-3 mb-4">
-        {[
-          { label: 'Views, 28d', value: '1.24M', sub: '+18%' },
-          { label: 'Viewed', value: '61%', sub: '+4pt' },
-          { label: 'Subs, 28d', value: '3,910', sub: '+22%' },
-        ].map(t => (
-          <div key={t.label} className="p-3 sm:p-4 min-w-0" style={plate}>
-            <p className="label-mono mb-2 truncate">{t.label}</p>
-            <p className="text-[18px] sm:text-[22px] leading-none font-semibold tracking-tight tabular-nums" style={{ color: 'var(--text)' }}>{t.value}</p>
-            <p className="font-mono text-[10px] mt-2" style={{ color: 'var(--process)' }}>{t.sub}</p>
-          </div>
-        ))}
-      </div>
-
-      <div className="p-4" style={plate}>
-        <p className="label-mono mb-3">Retention · last short</p>
-        <div className="relative">
-          <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="w-full h-[86px] sm:h-[110px]" aria-hidden="true">
-            <line x1="0" y1={y(100)} x2="100" y2={y(100)} stroke="var(--line)" strokeWidth="0.4" vectorEffect="non-scaling-stroke" />
-            <line x1="0" y1={y(50)} x2="100" y2={y(50)} stroke="var(--line)" strokeWidth="0.4" vectorEffect="non-scaling-stroke" />
-            <polyline
-              points={points}
-              fill="none"
-              stroke="var(--text)"
-              strokeWidth="1.4"
-              strokeLinejoin="round"
-              vectorEffect="non-scaling-stroke"
-            />
-            <line x1={dropX} y1="0" x2={dropX} y2="100" stroke="var(--line-strong)" strokeWidth="0.8" strokeDasharray="3 3" vectorEffect="non-scaling-stroke" />
-          </svg>
-          {/* The callout is HTML, not SVG text: the viewBox is stretched
-              non-uniformly, which would squash any glyph drawn inside it. */}
-          <div className="absolute top-0 -translate-x-1/2" style={{ left: `${dropX}%` }}>
-            <span className="font-mono text-[10px] whitespace-nowrap px-1.5 py-0.5 rounded" style={{ background: 'var(--bg-raised-hover)', color: 'var(--text)', border: '1px solid var(--line-strong)' }}>
-              {DROP_LABEL}
-            </span>
-          </div>
-        </div>
-        <div className="flex justify-between mt-2">
-          <span className="font-mono text-[10px]" style={{ color: 'var(--text-faint)' }}>0:00</span>
-          <span className="font-mono text-[10px]" style={{ color: 'var(--text-faint)' }}>0:{DURATION_S}</span>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// ─── Content ──────────────────────────────────────────────────────────────────
-
-// The same four rows, in the same order, with the same numbering as the app's
-// hub (HomePage.tsx). Someone who signs up lands on this list again, which is
-// the point: the page is not a brochure for the product, it is the product's
-// first screen with the door still shut.
-// The three moves, in the order a week actually goes. This was four tabs with
-// a sentence each - Analyze, Projects, Analytics, Competitors - which is the
-// product's own filing system, not anything the reader turned up wanting. They
-// are still the tabs inside; the page just stops asking anyone to learn them.
-//
-// One line each, and each line names a thing: a median, a hook, a second. A
-// sentence that could describe any tool describes nothing, to a reader or to a
-// crawler.
 
 // Verbatim Discord messages, quoted as such. One per surface, so each lands on
 // a different problem rather than three people praising the same thing.
@@ -602,14 +381,48 @@ const testimonials: { quote: string; name: string; on: string }[] = [
   {
     quote: 're-wrote the first 5 seconds based on the prompt, retention actually stayed flat through the intro',
     name: 'Yonatan',
-    on: 'Analyze',
+    on: 'Chat',
   },
   {
     quote: 'figured out people were swiping away right when I started doing the sponsor plug... that graph read is insane',
     name: 'd4wki',
-    on: 'Analytics',
+    on: 'Chat',
   },
 ];
+
+const noop = () => {};
+
+// The first thing on the page is what a steal gives you, because that is the
+// product and the thing people film: two ideas from the feed and the card a
+// steal lands on.
+function HeroDemo() {
+  const stolen = DEMO[0];
+  return (
+    <div className="flex items-end justify-center gap-3 sm:gap-4">
+      <div className="hidden md:block w-[230px]"><CompetitorVideoCard item={DEMO[1]} readOnly onOpen={noop} onSave={noop} onDismiss={noop} /></div>
+      <StealCard
+        idea={{
+          video_id: stolen.video_id, video_thumbnail: null, video_views: stolen.video_views, channel_name: stolen.channel_name,
+          outline: { hook: 'Everyone on this server is rich. I have one dirt block.', sections: [], cta: '' },
+        }}
+        multiplier={stolen.outlier_score}
+      />
+      <div className="hidden md:block w-[230px]"><CompetitorVideoCard item={DEMO[2]} readOnly onOpen={noop} onSave={noop} onDismiss={noop} /></div>
+    </div>
+  );
+}
+
+function IdeasGrid() {
+  return (
+    <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5">
+      {DEMO.map((item, i) => (
+        <Reveal key={item.video_id} delay={i * 70}>
+          <CompetitorVideoCard item={item} readOnly onOpen={noop} onSave={noop} onDismiss={noop} />
+        </Reveal>
+      ))}
+    </div>
+  );
+}
 
 function FAQSection() {
   const [open, setOpen] = useState<number | null>(0);
@@ -683,11 +496,11 @@ const pricingPlans: Plan[] = [
     // in fetch-competitor-ideas / generate-outline, not just hidden in the UI).
     quotas: ['300 credits a month', '5 tracked channels'],
     breakdown: [
-      { amount: '60', label: 'videos' },
-      { amount: '300', label: 'hooks or scripts' },
-      { amount: '300', label: 'ideas' },
+      { amount: '60', label: 'steals' },
+      { amount: '300', label: 'chat messages' },
+      { amount: '300', label: 'angles' },
     ],
-    features: ['Retention read on your own videos', 'Channel context in every answer', 'Projects and saved ideas'],
+    features: ['Your version of every idea, free', 'Scripts written for your channel', 'Steal and Ask on every Short'],
     cta: 'Get Plus', highlight: false,
   },
   {
@@ -861,22 +674,22 @@ export function LandingPage() {
   };
 
   // This page only ever renders for guests (App.tsx routes anyone with a
-  // session straight to the Dashboard), so there is no logged-in branch to
-  // take here. The link is stashed, signup opens, and AnalysisChat picks the
-  // key up on mount and runs the analysis without asking for it again.
-  const handleHeroAnalyze = (e: React.FormEvent) => {
+  // session straight to the Dashboard), so the link is stashed and signup
+  // opens; once they are in, the Ideas tab picks the key up and runs the steal
+  // without asking again (the same handoff the extension uses).
+  const [heroSteal, setHeroSteal] = useState(false);
+  const handleHeroSteal = (e: React.FormEvent) => {
     e.preventDefault();
     const trimmed = heroUrl.trim();
     if (!trimmed) return;
     if (!looksLikeVideoLink(trimmed)) {
-      setHeroError('That does not look like a video link. Paste a short, e.g. youtube.com/shorts/...');
+      setHeroError('That does not look like a Short. Paste a link like youtube.com/shorts/...');
       return;
     }
     setHeroError('');
-    localStorage.setItem('chumoku_pending_video_url', trimmed);
-    // Show the work starting before asking for anything. The signup form comes
-    // up on the last step, from inside the gate.
-    setHeroGate(trimmed);
+    try { localStorage.setItem(PENDING_STEAL_KEY, trimmed); } catch { /* private mode */ }
+    setHeroSteal(true);
+    setAuthModal('signup');
   };
 
   // The page scrolls in a div, not the window, so anchor hrefs would jump the
@@ -980,7 +793,7 @@ export function LandingPage() {
               came from paper.design and read as a document; centred, the page
               opens on a single thing to do. */}
           <div className={`relative ${SECTION} pt-16 sm:pt-28 pb-10 sm:pb-14 flex flex-col items-center text-center`}>
-            <p className="label-mono mb-5 animate-fade-in">The Shorts workflow, automated</p>
+            <p className="label-mono mb-5 animate-fade-in">For Shorts creators</p>
 
             {/* Bright line, then the same sentence continuing in the muted
                 weight. One headline doing the job the headline plus a
@@ -994,19 +807,19 @@ export function LandingPage() {
                   "AI content producer" named a category and left people asking
                   what it actually does; "script writer" was concrete and too
                   small. The workflow is the middle, and time is what it buys. */}
-              <span className="block text-balance md:whitespace-nowrap" style={{ color: 'var(--text)' }}>Spend less time on every Short.</span>
+              <span className="block text-balance md:whitespace-nowrap" style={{ color: 'var(--text)' }}>Steal the Shorts blowing up in your niche.</span>
               {/* Off on phones: four lines of headline before the field pushed
                   the one thing to do below the fold. */}
-              <span className="hidden sm:block text-balance md:whitespace-nowrap" style={{ color: 'var(--text-muted)' }}>Chumoku runs the workflow.</span>
+              <span className="block text-balance md:whitespace-nowrap" style={{ color: 'var(--text-muted)' }}>Post your version tomorrow.</span>
             </h1>
 
-            <p className="animate-fade-in-up delay-100 text-[15px] sm:text-base leading-relaxed mt-4 sm:mt-5 mb-7 sm:mb-8 mx-auto whitespace-nowrap" style={{ color: 'var(--text-muted)' }}>
-              Ideas, scripts and fixes in one app.
+            <p className="animate-fade-in-up delay-100 text-[15px] sm:text-base leading-relaxed mt-4 sm:mt-5 mb-7 sm:mb-8 mx-auto max-w-md text-balance" style={{ color: 'var(--text-muted)' }}>
+              Chumoku finds them, rebuilds them for your channel and writes the script.
             </p>
 
             {/* The only CTA above the fold, and it is the app's composer, not a
                 marketing input: same plate, same radius, same round send. */}
-            <form onSubmit={handleHeroAnalyze} autoComplete="off" className="animate-fade-in-up delay-200 w-full max-w-xl mx-auto text-left">
+            <form onSubmit={handleHeroSteal} autoComplete="off" className="animate-fade-in-up delay-200 w-full max-w-xl mx-auto text-left">
               {/* Bigger than the app's composer and quietly lit - a stronger
                   hairline and a faint halo - because on this page it is the one
                   thing to do, and at the app's size it read as decoration. */}
@@ -1016,13 +829,13 @@ export function LandingPage() {
                   type="text"
                   value={heroUrl}
                   onChange={e => { setHeroUrl(e.target.value); if (heroError) setHeroError(''); }}
-                  placeholder="Paste a Shorts link"
+                  placeholder="Paste a Short to steal"
                   className="flex-1 min-w-0 py-2 text-[15px]"
                   style={inputReset}
                 />
                 <button
                   type="submit"
-                  aria-label="Analyze"
+                  aria-label="Steal"
                   className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 transition-opacity hover:opacity-90"
                   style={{ background: 'var(--accent)' }}
                 >
@@ -1039,7 +852,7 @@ export function LandingPage() {
               impression: not a claim about the app, the app. */}
           <div className={`relative ${SECTION} pb-16 sm:pb-24`}>
             <div className="animate-fade-in-up delay-300">
-              <AppFrame />
+              <HeroDemo />
             </div>
           </div>
         </header>
@@ -1051,8 +864,8 @@ export function LandingPage() {
           <Head
             id="product"
             eyebrow="How it works"
-            title="Six steps."
-            muted="One place does them."
+            title="Four steps."
+            muted="None of them is a blank page."
           />
           <WorkflowGrid />
         </section>
@@ -1071,10 +884,10 @@ export function LandingPage() {
         <section className={`${SECTION} pb-16 sm:pb-24`}>
           <Head
             eyebrow="Ideas"
-            title="Their breakouts,"
-            muted="not their uploads."
+            title="Your version,"
+            muted="not their title."
           />
-          <Reveal><CompetitorsFrame /></Reveal>
+          <IdeasGrid />
         </section>
 
         {/* ── The brain ───────────────────────────────────────────────────── */}
@@ -1088,16 +901,6 @@ export function LandingPage() {
             muted="In one click."
           />
           <BrainScan />
-        </section>
-
-        {/* ── Analytics ───────────────────────────────────────────────────── */}
-        <section className={`${SECTION} pb-16 sm:pb-24`}>
-          <Head
-            eyebrow="Analytics"
-            title="Real numbers,"
-            muted="not guesses."
-          />
-          <Reveal><AnalyticsFrame /></Reveal>
         </section>
 
         {/* ── Proof ───────────────────────────────────────────────────────── */}
@@ -1309,11 +1112,17 @@ export function LandingPage() {
       {authModal && (
         <AuthModal
           initialMode={authModal}
-          onClose={() => setAuthModal(null)}
+          onClose={() => {
+            setAuthModal(null);
+            // Closing without signing up drops the steal they did not start.
+            if (heroSteal) { try { localStorage.removeItem(PENDING_STEAL_KEY); } catch { /* ignore */ } setHeroSteal(false); }
+          }}
           context={
-            heroGate && authModal === 'signup'
-              ? { title: 'Your breakdown is ready', sub: 'Create an account to see it. 20 free credits, no card.' }
-              : undefined
+            heroSteal && authModal === 'signup'
+              ? { title: 'Create an account to steal it', sub: 'It runs the moment you are in. 20 free credits, no card.' }
+              : heroGate && authModal === 'signup'
+                ? { title: 'Your breakdown is ready', sub: 'Create an account to see it. 20 free credits, no card.' }
+                : undefined
           }
         />
       )}

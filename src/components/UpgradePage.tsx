@@ -38,17 +38,15 @@ const plans: Plan[] = [
     monthlyPrice: 9.99,
     yearlyTotal: 119.99,
     yearlyMonthlyPrice: 9.99,
-    // "& scripts" dropped 2026-08-23 along with competitor full-script
-    // generation. "Script checks" above is Script Lab, a different tool that
-    // reviews a script you wrote, and it stays.
-    quotas: ['300 credits / month', 'Video, Hook & Script checks', 'Competitor ideas & outlines'],
+    // Rewritten 2026-09-30 with the product: no scores and no Analytics any
+    // more, so nothing here promises either.
+    quotas: ['300 credits / month', 'Steal and Ask on every Short', 'Ideas pitched for your channel'],
     features: [
-      'Hook score & assessment',
-      'Weak spot breakdown',
-      'Hook ideas & rewrites',
-      'Channel profile context',
-      'Retention insights on your videos',
-      'Track up to 5 competitor channels',
+      'Your version of every idea, free',
+      'Angles, outlines and scripts',
+      'A chat that knows your channel',
+      'Retention read on your own videos',
+      'Track up to 5 channels',
     ],
     cta: 'Upgrade to Plus',
   },

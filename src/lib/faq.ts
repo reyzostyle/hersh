@@ -14,11 +14,11 @@
 export const FAQS: { q: string; a: string }[] = [
   {
     q: 'What does Chumoku do?',
-    a: 'It runs your Shorts workflow. It finds ideas that already worked, writes the script and tells you what to fix, using your channel\'s real numbers.',
+    a: 'It finds Shorts blowing up in your niche and rebuilds them for your channel: your version of the idea, an outline, then the script.',
   },
   {
     q: 'Is it free to try?',
-    a: 'Yes, 20 credits when you sign up, no card. A message costs 1 credit and a video review costs 5.',
+    a: 'Yes, 20 credits when you sign up, no card. Browsing ideas is free, a chat message costs 1 credit and a steal costs 5.',
   },
   {
     q: 'Do I need to connect YouTube?',
@@ -30,11 +30,11 @@ export const FAQS: { q: string; a: string }[] = [
   },
   {
     q: 'What does the extension do?',
-    a: 'It puts Analyze and Steal on every Short on YouTube. Steal turns any Short into an outline for your channel.',
+    a: 'It puts Steal and Ask on every Short on YouTube. Steal turns any Short into an outline for your channel; Ask talks it through.',
   },
   {
     q: 'How does it find ideas?',
-    a: 'It shows only Shorts that beat their own channel\'s usual views. Finding them is free; reading one costs a credit.',
+    a: 'It shows only Shorts that beat their own channel\'s usual views, each pitched as your version for free. Opening one up costs a credit.',
   },
   {
     q: 'What is Chumoku brain?',

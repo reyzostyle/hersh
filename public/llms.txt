@@ -1,12 +1,11 @@
 # Chumoku
 
-> Workflow automation for YouTube Shorts creators. Chumoku finds the idea, rebuilds
-> a Short's format for the creator's channel, writes the script and tells them what
-> to fix, using their channel's real YouTube numbers, so every Short takes less
-> time. Shorts only; it does not generate video.
+> Chumoku finds the YouTube Shorts blowing up in a creator's niche and rebuilds
+> them for that creator's channel: their version of the idea, a beat-by-beat
+> outline, then the script. Shorts only; it does not generate video.
 
-Chumoku is a software product at chumoku.co: a web application for analysing
-short-form video. It is not a manufacturer and has nothing to do with timber,
+Chumoku is a software product at chumoku.co: a web application for finding and
+adapting short-form video ideas. It is not a manufacturer and has nothing to do with timber,
 wood products or any physical-goods industry - older businesses share this name
 and are unrelated to it.
 
@@ -24,42 +23,37 @@ the script.
 
 ## Surfaces
 
-- Analyze: one conversation, not a form. Send a pasted YouTube link, an uploaded
-  video file, a written hook or a full script. For a video it watches the whole
-  thing, builds a beat-by-beat read of every cut, overlay and sound, scores it
-  out of 100 across hook, retention, payoff and delivery, and returns timestamped
-  edit fixes. For a creator's own published video it maps the real retention
-  drop-offs onto that timeline. Follow-up questions are answered against the
-  analysis already in the thread, so the review is a starting point rather than a
-  verdict.
-- Projects: folders holding a conversation, the video it was about, and the ideas
-  saved off it. A conversation filed into a project reopens where it was left.
-- Analytics: the creator's own YouTube numbers, alongside the retention curves of
-  the videos they have run through Chumoku.
-- Ideas: tracks rival channels and surfaces only the Shorts that clearly beat
-  that channel's own median views per day, then rebuilds the idea for the user's
-  own channel instead of copying it.
+- Ideas: tracks channels in the creator's niche and surfaces only the Shorts
+  that clearly beat that channel's own median views. Every one is pitched, free,
+  as a one-line version for the creator's channel with a note on whether it fits.
+  Opening one up is a set of steps: the angle (reads the video), then an outline
+  (watches it), then the script, written in Chat.
+- Steal: from the Chrome extension, the phone share sheet or a pasted link, any
+  Short becomes a saved idea with a hook and an outline for the creator's
+  channel, and a card showing how far it beat its own channel.
+- Chat: one conversation about any video, idea, hook or script. It watches a
+  pasted Short and answers in a few sentences with the one edit that matters,
+  then talks the rest through. It reads the creator's saved ideas, past
+  conversations and, with a connected channel, their real retention. It does not
+  score videos out of 100.
+- Saved: the ideas the creator kept and every conversation they have had.
 - Chumoku brain: the profile of the creator's channel, written by the model
-  rather than typed into a form. One click reads their last twenty uploads,
-  alongside the one thing they were asked to type (their level and a sentence
-  about themselves), and works out their niche, their format, their voice, who
-  watches, what already works on that channel, what to avoid at their scale, and
-  the rules for remaking someone else's video on it. Every other surface is
-  written against it, which is what makes an adapted idea specific to a channel
-  rather than to a niche. It costs nothing and is rebuilt on demand.
+  rather than typed into a form. One click reads their last twenty uploads and
+  works out their niche, format, voice, audience and the rules for remaking
+  someone else's video on their channel. Every other surface is written against
+  it. It costs nothing and is rebuilt on demand.
 
 ## Pricing
 
 - Free: 20 credits, no card required, one time with no monthly refill. Enough for
-  a few videos or several hook and script checks. The Ideas tab requires a paid
-  plan; Chumoku brain is free on every plan.
+  a few steals or twenty chat messages. Chumoku brain is free on every plan.
 - Plus: $9.99 per month, or $119.99 per year. 300 credits per month.
 - Pro: $19.99 per month, or $155.99 per year (an effective $12.99 per month).
   Unlimited credits under a fair-use ceiling.
 - Extra credits: $4.99 for 100.
 
 One credit balance covers every surface, so users only spend on what they use.
-A video costs 5 credits, a script check 3, a hook check 2, a follow-up message 1.
+A steal or a watched video costs 5 credits, an angle 1, an outline 4, a chat message 1.
 
 ## Writing
 

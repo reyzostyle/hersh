@@ -786,6 +786,7 @@ button.row:active,
   transition: box-shadow 0.15s ease, transform 0.15s ease;
 }
 .idea-card:hover { box-shadow: inset 0 0 0 1px var(--line-strong); }
+.idea-card[data-readonly="true"] { cursor: default; }
 .idea-card:focus-visible { outline: 2px solid var(--text); outline-offset: 2px; }
 .idea-card__media { position: relative; aspect-ratio: 4 / 5; overflow: hidden; background: #000; }
 .idea-card__media img { width: 100%; height: 100%; object-fit: cover; transform: scale(1.35); transition: transform 0.4s ease; }

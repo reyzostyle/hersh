@@ -14,9 +14,12 @@ import { Skeleton } from './Page';
 //
 // While the pitch is still being written the line is a skeleton, so the grid
 // fills in rather than arrives.
-export function CompetitorVideoCard({ item, pitching, onOpen, onDismiss, onSave }: {
+export function CompetitorVideoCard({ item, pitching, readOnly, onOpen, onDismiss, onSave }: {
   item: FeedItem;
   pitching?: boolean;
+  // The landing page shows real cards with nothing behind them: no buttons,
+  // and not announced as a control.
+  readOnly?: boolean;
   onOpen: () => void;
   onDismiss: () => void;
   onSave: () => void;
@@ -31,10 +34,11 @@ export function CompetitorVideoCard({ item, pitching, onOpen, onDismiss, onSave 
     <div
       className="idea-card group"
       style={{ opacity: isDismissed ? 0.5 : 1 }}
-      onClick={onOpen}
-      role="button"
-      tabIndex={0}
-      onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onOpen(); } }}
+      onClick={readOnly ? undefined : onOpen}
+      role={readOnly ? undefined : 'button'}
+      tabIndex={readOnly ? undefined : 0}
+      onKeyDown={readOnly ? undefined : e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onOpen(); } }}
+      data-readonly={readOnly ? 'true' : undefined}
     >
       <div className="idea-card__media">
         <img src={`https://i.ytimg.com/vi/${item.video_id}/hqdefault.jpg`} alt="" loading="lazy" />
@@ -66,10 +70,10 @@ export function CompetitorVideoCard({ item, pitching, onOpen, onDismiss, onSave 
         </p>
 
         {/* stopPropagation so keeping or dropping never also opens the card. */}
-        <div className="idea-card__actions" onClick={e => e.stopPropagation()}>
+        {!readOnly && <div className="idea-card__actions" onClick={e => e.stopPropagation()}>
           <button onClick={onSave} data-on={isSaved}>{isSaved ? 'Saved' : 'Save'}</button>
           <button onClick={onDismiss}>{isDismissed ? 'Restore' : 'Dismiss'}</button>
-        </div>
+        </div>}
       </div>
     </div>
   );

@@ -54,25 +54,6 @@ function enter(inView: boolean | null, i = 0, base = 0): React.CSSProperties {
   };
 }
 
-// Counts up to `to` once in view. Renders `to` on the server.
-function useCount(to: number, inView: boolean | null, ms = 1100) {
-  const [n, setN] = useState(to);
-  useEffect(() => {
-    if (inView === false) { setN(0); return; }
-    if (inView !== true || prefersReducedMotion()) { setN(to); return; }
-    let raf = 0;
-    const start = performance.now();
-    const tick = (t: number) => {
-      const p = Math.min(1, (t - start) / ms);
-      setN(Math.round(to * (1 - Math.pow(1 - p, 3))));
-      if (p < 1) raf = requestAnimationFrame(tick);
-    };
-    raf = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(raf);
-  }, [to, inView, ms]);
-  return n;
-}
-
 // ─── Section head ────────────────────────────────────────────────────────────
 // Hairline, eyebrow, one headline that fits on one line: the bright half and
 // its muted tail on the same line. There used to be a paragraph opposite it;
@@ -97,7 +78,7 @@ export function Head({ eyebrow, title, muted, id }: {
   );
 }
 
-// ─── The workflow, 01 to 06 ──────────────────────────────────────────────────
+// ─── The workflow, 01 to 04 ──────────────────────────────────────────────────
 
 const tile: React.CSSProperties = {
   background: 'var(--bg-raised)',
@@ -114,14 +95,17 @@ function Tile({ children, className = '' }: { children: React.ReactNode; classNa
 }
 
 function FindTile({ inView }: { inView: boolean | null }) {
+  // Your version of each, not their title - the feed's whole point since
+  // 2026-09-30. The multiples are the real ones for the Shorts the demo cards
+  // on this page use (measured against each channel's median, 2026-09-29).
   const rows = [
-    { t: 'i ranked every mob by how scary it is', m: '6.2x' },
-    { t: 'roblox games that should not exist', m: '3.8x' },
-    { t: 'he tried the hardest seed', m: '2.4x' },
+    { t: 'When you join a server as a noob', m: '31x' },
+    { t: 'How different players build a house', m: '20x' },
+    { t: 'Rank 1 Steve vs Rank 100 Warden', m: '24x' },
   ];
   return (
     <Tile>
-      <p className="label-mono mb-3">Outliers in your niche</p>
+      <p className="label-mono mb-3">Ideas for your channel</p>
       <div className="space-y-2">
         {rows.map((r, i) => (
           <div key={r.t} className="flex items-center gap-2.5 px-2.5 py-2 rounded-lg" style={{ ...enter(inView, i, 150), background: 'var(--bg-app)', border: '1px solid var(--line)' }}>
@@ -139,10 +123,10 @@ function FindTile({ inView }: { inView: boolean | null }) {
 
 // The two icons the extension actually injects (extension/content.js), so the
 // tile shows the real buttons and not two blank circles.
-function AnalyzeGlyph({ className = '' }: { className?: string }) {
+function AskGlyph({ className = '' }: { className?: string }) {
   return (
     <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <circle cx="11" cy="11" r="7" /><path d="m20 20-3.5-3.5" /><path d="M8 12.5l2-2.5 2 1.5 2-3" />
+      <path d="M20 11.5a7.5 7.5 0 0 1-10.9 6.7L4 19.5l1.3-4.6A7.5 7.5 0 1 1 20 11.5z" />
     </svg>
   );
 }
@@ -164,8 +148,8 @@ function StealTile({ inView }: { inView: boolean | null }) {
       <span className="absolute left-4 top-4 label-mono">On YouTube</span>
       <div className="flex items-center gap-2.5">
         {[
-          { l: 'Analyze', G: AnalyzeGlyph, primary: false },
           { l: 'Steal', G: StealGlyph, primary: true },
+          { l: 'Ask', G: AskGlyph, primary: false },
         ].map(({ l, G, primary }, i) => (
           <span key={l}
                 className={`flex items-center gap-2 pl-3.5 pr-4 py-2.5 rounded-full text-[13.5px] font-medium ${primary && inView ? 'lp-pulse' : ''}`}
@@ -188,7 +172,6 @@ function OutlineTile({ inView }: { inView: boolean | null }) {
   const lines = [
     { k: 'Hook, 0-3s', v: 'Rank the scariest mob before anyone asks why.' },
     { k: 'Build, 3-18s', v: 'Cut on every rank, number on screen.' },
-    { k: 'Payoff, 18-27s', v: 'Number one is the one nobody fears.' },
   ];
   return (
     <Tile>
@@ -205,29 +188,11 @@ function OutlineTile({ inView }: { inView: boolean | null }) {
   );
 }
 
-function ScoreTile({ inView }: { inView: boolean | null }) {
-  const n = useCount(72, inView);
-  return (
-    <Tile className="flex flex-col">
-      <p className="label-mono">Hook</p>
-      <p className="text-[12.5px] mt-2" style={{ color: 'var(--text-muted)' }}>"nobody has survived this seed"</p>
-      <div className="mt-auto">
-        <p className="font-semibold tabular-nums leading-none" style={{ color: 'var(--text)', fontSize: 44, letterSpacing: '-0.03em' }}>
-          {n}<span className="text-[14px] font-normal ml-1.5 font-mono" style={{ color: 'var(--text-faint)' }}>/ 100</span>
-        </p>
-        <div className="mt-3 h-1 rounded-full overflow-hidden" style={{ background: 'var(--line)' }}>
-          <div className="h-full rounded-full" style={{ width: `${n}%`, background: 'var(--text)', transition: 'width 0.2s linear' }} />
-        </div>
-      </div>
-    </Tile>
-  );
-}
-
 function ChatTile({ inView }: { inView: boolean | null }) {
   return (
     <Tile className="flex flex-col justify-end gap-2">
       <div className="self-end max-w-[85%] px-3 py-2 rounded-2xl text-[12px]" style={{ ...enter(inView, 0, 100), background: 'var(--bg-app)', border: '1px solid var(--line)', color: 'var(--text)' }}>
-        turn my last saved idea into a script
+        write the script for my saved idea
       </div>
       <div className="max-w-[92%] px-3 py-2 rounded-2xl text-[12px] leading-snug" style={{ ...enter(inView, 1, 500), background: 'var(--bg-app)', border: '1px solid var(--line)', color: 'var(--text-muted)' }}>
         <span style={{ color: 'var(--text)' }}>Hook:</span> "I ranked every mob by how scary it is. Number one will annoy you."
@@ -236,55 +201,18 @@ function ChatTile({ inView }: { inView: boolean | null }) {
   );
 }
 
-// Strictly non-increasing: retention can only lose viewers inside a video.
-const MINI_CURVE = [100, 94, 89, 85, 82, 80, 78, 60, 56, 54, 52, 51, 50, 49, 48, 47, 46, 45];
-
-function RetentionTile({ inView }: { inView: boolean | null }) {
-  const pts = MINI_CURVE.map((v, i) => `${(i / (MINI_CURVE.length - 1)) * 100},${(1 - v / 110) * 100}`).join(' ');
-  // The cliff: the first sample after the fall.
-  const dropX = (7 / (MINI_CURVE.length - 1)) * 100;
-  return (
-    <Tile className="flex flex-col">
-      <p className="label-mono">Your retention</p>
-      {/* min-h-0 on both, or the svg keeps its intrinsic square height and
-          pushes the caption out of the tile. */}
-      <div className="relative flex-1 min-h-0 mt-3">
-        <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="absolute inset-0 w-full h-full overflow-visible">
-          <polyline points={pts} fill="none" stroke="var(--text)" strokeWidth="1.4" vectorEffect="non-scaling-stroke" />
-          <line x1={dropX} x2={dropX} y1="0" y2="100" stroke="rgb(var(--danger-rgb))" strokeWidth="1" strokeDasharray="2 3"
-                vectorEffect="non-scaling-stroke" style={enter(inView, 0, 1100)} />
-        </svg>
-        {/* The curve draws left to right by uncovering it: a plate the colour
-            of the tile slides off to the right. A dash-offset draw does not
-            survive vector-effect: non-scaling-stroke, which the line needs to
-            stay 1.4px when the box is stretched. */}
-        <div aria-hidden="true" className="absolute inset-y-0 right-0 -left-1"
-             style={{
-               background: 'var(--bg-raised)',
-               transformOrigin: 'right',
-               transform: inView === false ? 'scaleX(1)' : 'scaleX(0)',
-               transition: 'transform 1.3s cubic-bezier(.4,0,.2,1) 0.2s',
-             }} />
-      </div>
-      <p className="font-mono text-[10px] mt-2" style={{ ...enter(inView, 0, 1200), color: 'rgb(var(--danger-rgb))' }}>0:12 · people left here</p>
-    </Tile>
-  );
-}
-
 const STEPS: { n: string; title: string; text: string; Tile: (p: { inView: boolean | null }) => JSX.Element }[] = [
   // One line each at the tile's width. Two-line captions kept ending on a
   // single word, which reads as copy that ran out of room.
-  { n: '01', title: 'Find what works', text: 'Outliers from your niche, ranked.', Tile: FindTile },
-  { n: '02', title: 'Steal it while you scroll', text: 'One button on any Short on YouTube.', Tile: StealTile },
-  { n: '03', title: 'Get your version', text: 'The same moves, built for your channel.', Tile: OutlineTile },
-  { n: '04', title: 'Score it before you film', text: 'Hooks and scripts, scored out of 100.', Tile: ScoreTile },
-  { n: '05', title: 'Ask for anything', text: 'A chat that knows your ideas and stats.', Tile: ChatTile },
-  { n: '06', title: 'See why it flopped', text: 'Your retention, and where people left.', Tile: RetentionTile },
+  { n: '01', title: 'Find what is blowing up', text: 'Pitched as your version, free.', Tile: FindTile },
+  { n: '02', title: 'Steal it while you scroll', text: 'One button on any Short.', Tile: StealTile },
+  { n: '03', title: 'Unlock your version', text: 'The angle, then the outline.', Tile: OutlineTile },
+  { n: '04', title: 'Get the script', text: 'Written in chat. Push back on any line.', Tile: ChatTile },
 ];
 
 export function WorkflowGrid() {
   return (
-    <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-x-4 gap-y-10">
+    <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-x-4 gap-y-10">
       {STEPS.map(s => <Step key={s.n} {...s} />)}
     </div>
   );
@@ -313,7 +241,7 @@ function Step({ n, title, text, Tile: T }: (typeof STEPS)[number]) {
 
 const LEDGER: { what: string; cost: number }[] = [
   { what: 'Wrote a script from a saved idea', cost: 1 },
-  { what: 'Scored a hook', cost: 1 },
+  { what: 'Revealed an angle', cost: 1 },
   { what: 'Stole a format on YouTube', cost: 5 },
   { what: 'Asked why a Short flopped', cost: 1 },
 ];
