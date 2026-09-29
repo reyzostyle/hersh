@@ -1,12 +1,12 @@
 import { useState, useEffect, createContext, useRef } from 'react';
-import { GraphUpOutlineIcon as GraphUp, FolderOutlineIcon as Folder, SettingsOutlineIcon as Settings, LogoutOutlineIcon as LogOut, HamburgerMenuOutlineIcon as Menu, CloseCircleOutlineIcon as X, BoltOutlineIcon as Zap, UsersGroupRoundedOutlineIcon as Users, SidebarMinimalisticOutlineIcon as PanelLeftClose, SidebarMinimalisticOutlineIcon as PanelLeftOpen, VideocameraOutlineIcon as VideoIcon, WidgetOutlineIcon as HubIcon } from '@solar-icons/react';
+import { SettingsOutlineIcon as Settings, LogoutOutlineIcon as LogOut, HamburgerMenuOutlineIcon as Menu, CloseCircleOutlineIcon as X, BoltOutlineIcon as Zap, LightbulbOutlineIcon as Bulb, ChatRoundOutlineIcon as Chat, BookmarkOutlineIcon as Bookmark, SidebarMinimalisticOutlineIcon as PanelLeftClose, SidebarMinimalisticOutlineIcon as PanelLeftOpen, WidgetOutlineIcon as HubIcon } from '@solar-icons/react';
 import { useAuth } from '../contexts/AuthContext';
 
 export const MobileHeaderContext = createContext<{
   setRightAction: (node: React.ReactNode) => void;
 }>({ setRightAction: () => {} });
 
-export type NavTab = 'home' | 'analyze' | 'projects' | 'analytics' | 'competitors' | 'upgrade' | 'settings' | 'partners' | 'admin' | 'affiliate-admin';
+export type NavTab = 'home' | 'analyze' | 'saved' | 'competitors' | 'upgrade' | 'settings' | 'partners' | 'admin' | 'affiliate-admin';
 
 // Feature flags: tabs hidden from ALL users (incl. admin). Kept in code so they
 // can be re-enabled instantly by removing them from this list.
@@ -30,19 +30,18 @@ interface AppShellProps {
 // second column, which cost a whole column on desktop and had nowhere sensible
 // to live on a phone. They are tabs like everything else now.
 const baseNavItems: NavItem[] = [
-  // Hook and Script folded into Analyze. They were three doors into one room:
-  // the chat takes a link, a hook or a script and answers in the same thread,
-  // so splitting them cost a tab each and taught the user a distinction the
-  // product no longer makes.
-  { id: 'analyze', label: 'Analyze', icon: <VideoIcon className="w-4 h-4" /> },
-  { id: 'projects', label: 'Projects', icon: <Folder className="w-4 h-4" /> },
-  { id: 'analytics', label: 'Analytics', icon: <GraphUp className="w-4 h-4" /> },
-  // Labelled Ideas, id still `competitors` - same rule as Affiliate below:
-  // the id is persisted in state, dispatched on the navigate channel and
-  // matched in the DB, and renaming an identifier to match a caption is how
-  // those quietly come apart. Nobody knew what Competitors was a list OF;
-  // what the tab produces is ideas.
-  { id: 'competitors', label: 'Ideas', icon: <Users className="w-4 h-4" /> },
+  // Ideas first: the product is ideas you steal, then talk through, then keep
+  // (2026-09-29). Analytics and Projects were removed that day - the radar was
+  // built from the out-of-100 score the chat no longer gives, and Projects were
+  // folders nobody needed once saved ideas carry their own chats.
+  //
+  // Labelled Ideas, id still `competitors`, and Chat, id still `analyze` - the
+  // ids are persisted in state, dispatched on the navigate channel and matched
+  // in the DB, and renaming an identifier to match a caption is how those
+  // quietly come apart.
+  { id: 'competitors', label: 'Ideas', icon: <Bulb className="w-4 h-4" /> },
+  { id: 'analyze', label: 'Chat', icon: <Chat className="w-4 h-4" /> },
+  { id: 'saved', label: 'Saved', icon: <Bookmark className="w-4 h-4" /> },
   { id: 'upgrade', label: 'Upgrade', icon: <Zap className="w-4 h-4" />, highlight: true },
   { id: 'settings', label: 'Settings', icon: <Settings className="w-4 h-4" /> },
 ];

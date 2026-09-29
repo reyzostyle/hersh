@@ -199,16 +199,14 @@ export function takeRequestedThread(): string | null {
   return id;
 }
 
-// Analyze sends people here to find an older conversation. The hub already
-// lists every thread with rename, delete and filing on it, so Analyze does not
-// need a list of its own - it needs a door. This is the door: the flag says
-// "you came looking for history", and the hub scrolls to it rather than making
-// them find it under the tools.
+// Chat sends people to Saved to find an older conversation. Chat does not need
+// a list of its own - it needs a door. The flag says "you came looking for
+// history", and Saved opens the full list and scrolls to it.
 const WANT_HISTORY_KEY = 'chumoku_want_history';
 
 export function requestHistory() {
   localStorage.setItem(WANT_HISTORY_KEY, '1');
-  window.dispatchEvent(new CustomEvent('chumoku:navigate', { detail: 'home' }));
+  window.dispatchEvent(new CustomEvent('chumoku:navigate', { detail: 'saved' }));
 }
 
 // Read and clear are separate on purpose. The flag is read during render (so

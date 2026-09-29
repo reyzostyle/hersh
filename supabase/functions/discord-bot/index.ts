@@ -106,6 +106,10 @@ Deno.serve(async (req: Request) => {
         {},
         question,
         supabase,
+        undefined,
+        undefined,
+        // The bot posts "NN/100"; the app no longer scores.
+        { scored: true },
       );
 
       // A question beside the link gets answered from the review, in the chat

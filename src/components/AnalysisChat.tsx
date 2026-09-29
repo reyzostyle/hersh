@@ -2,7 +2,7 @@ import { useState, useRef, useEffect, useMemo } from 'react';
 import {
   AddOutlineIcon as Plus, ArrowUpOutlineIcon as ArrowUp,
   CloseCircleOutlineIcon as X, ClapperboardOpenOutlineIcon as Film, GalleryOutlineIcon as ImageIcon,
-  FolderOutlineIcon as FolderIcon, CopyOutlineIcon as Copy, HistoryOutlineIcon as History,
+  CopyOutlineIcon as Copy, HistoryOutlineIcon as History,
   StopOutlineIcon as Stop, RestartOutlineIcon as Restart, PenNewSquareOutlineIcon as NewChat,
 } from '@solar-icons/react';
 import { Check } from './BrandIcons';
@@ -10,11 +10,9 @@ import { FUNCTIONS_URL, supabase, getSessionToken, getUserId, fetchWithRetry, is
 import { ErrorNotice } from './ErrorNotice';
 import { useUsage, CREDIT_COSTS } from '../lib/useUsage';
 import {
-  listProjects, createProject, fileThread, loadThread, loadThreadMessages, takeRequestedThread,
-  requestHistory, type Project, type ThreadAnalysis,
+  loadThreadMessages, takeRequestedThread, requestHistory, type ThreadAnalysis,
 } from '../lib/projects';
 import { uploadChatImages, signChatImages } from '../lib/chatImages';
-import { SaveToProjectModal } from './SaveToProjectModal';
 
 
 // Defined next to the table it is stored in - see lib/projects.ts. The chat
@@ -32,14 +30,6 @@ interface Message {
   // replaying twenty of them when a saved conversation opens is not a
   // conversation arriving, it is a page flickering.
   fresh?: boolean;
-  // On a hook or script result: which of the two it decided this was, and the
-  // text it decided it about. Enough to run the other one from a click.
-  textKind?: 'hook' | 'script';
-  source?: string;
-  // The small mono line above a score card ("Read that as a hook"). Separate
-  // from content since the chat started answering AND scoring in one message:
-  // content is prose to be read, this is a label on the card under it.
-  note?: string;
   // Screenshots sent with this message, ready to render: data URLs while the
   // message is live, signed storage URLs once it comes back out of the
   // database. The files themselves go to the chat-images bucket, so a reopened
@@ -194,7 +184,6 @@ const asFailure = (e: unknown, retry?: () => void): Failure => {
 interface SessionCache {
   messages: Message[];
   threadId: string | null;
-  threadProject: Project | null;
 }
 let session: SessionCache | null = null;
 
@@ -246,100 +235,66 @@ const analysisAsText = (a: Analysis) => [
   a.rewrites?.length ? `Use instead\n${a.rewrites.map(r => `- ${r.hook}${r.why ? ` (${r.why})` : ''}`).join('\n')}` : '',
 ].filter(Boolean).join('\n\n');
 
-// The scored reply. It is a message in the thread rather than a panel over it,
-// so the conversation that follows has something to point at.
-// `fresh` means this review just landed rather than being loaded out of a saved
-// thread. The card then writes itself in the order a person would read it:
-// the score, the verdict revealing a few words at a time, then the two lists
-// dropping in under it.
-//
-// The plain-text answers already did this and the review did not, which is why
-// "still no animations" was a fair report even after the last pass: a 30 second
-// wait ending in a finished card fading up over 260ms is, from the chair, a
-// card that appeared.
-function AnalysisCard({ a, fresh, onAdvance }: { a: Analysis; fresh?: boolean; onAdvance?: () => void }) {
-  const score = a.overall_score;
-  // The lists wait for the verdict to finish writing. Landing under a sentence
-  // that is still being written reads as two things racing.
-  const listsAt = fresh && a.overall_assessment ? REVEAL_MS : 0;
-  const step = (i: number) => (fresh ? { animationDelay: `${listsAt + i * 70}ms` } : undefined);
-  const cls = fresh ? 'animate-msg-in' : '';
+// A review is a message now, not a scorecard. What the creator reads is the
+// short reply the model wrote after watching; every fix it found is still
+// there, one quiet press away, and in the context the follow-ups answer from.
+// The out-of-100 score was dropped on 2026-09-29 - old threads that carry one
+// simply do not show it.
+function ReviewMessage({ a, fresh, onAdvance }: { a: Analysis; fresh?: boolean; onAdvance?: () => void }) {
+  const [open, setOpen] = useState(false);
+  const fixes = a.weak_spots ?? [];
+  const keep = a.strong_spots ?? [];
+  const lines = a.rewrites ?? [];
+  const more = fixes.length + keep.length + lines.length;
 
   return (
-    <div className="rounded-2xl p-5 sm:p-6" style={{ background: 'var(--bg-raised)', border: '1px solid var(--line)' }}>
-      <div className="flex items-start justify-between gap-3 mb-4">
-        {score != null ? (
-          <div className="flex items-baseline gap-2">
-            <span className="text-4xl font-semibold tracking-tight" style={{ color: 'var(--text)' }}>{score}</span>
-            <span className="font-mono text-[11px]" style={{ color: 'var(--text-faint)' }}>/ 100</span>
-          </div>
-        ) : <span />}
-        <div className="flex items-center gap-2">
-          {/* Whose video this was judged to be. On screen because the answers
-              that follow are built on it: if it says the wrong thing, that is
-              worth seeing here rather than discovering three replies later,
-              when the chat congratulates you on someone else's score. */}
-          {a.ownership && a.ownership !== 'unknown' && (
-            <span className="label-mono" style={{ color: 'var(--text-faint)' }}>
-              {a.ownership === 'mine' ? 'Your video' : "Not your video"}
-            </span>
-          )}
-          <CopyButton text={analysisAsText(a)} title="Copy this review" className="-mr-1.5 -mt-1" />
-        </div>
-      </div>
-
+    <div className="flex flex-col items-start gap-1">
       {a.overall_assessment && (
-        /* --text, not --text-muted. Same call as the chat answers: this is the
-           verdict, not a caption on it. */
-        <div className="text-[14px] leading-relaxed whitespace-pre-line mb-5" style={{ color: 'var(--text)' }}>
-          {fresh
-            ? <RevealText text={a.overall_assessment} onAdvance={onAdvance ?? (() => {})} />
-            : a.overall_assessment}
+        <div
+          className="max-w-[85%] rounded-2xl px-4 py-2.5 text-[14px] leading-relaxed whitespace-pre-line break-words"
+          style={{ background: 'var(--bg-raised)', color: 'var(--text)' }}
+        >
+          {fresh ? <RevealText text={a.overall_assessment} onAdvance={onAdvance ?? (() => {})} /> : a.overall_assessment}
         </div>
       )}
-
-      {!!a.strong_spots?.length && (
-        <div className="mb-4">
-          <p className={`label-mono mb-2 ${cls}`} style={step(0)}>Working</p>
-          <ul className="space-y-1.5">
-            {a.strong_spots.map((s, i) => (
-              <li key={i} className={`text-[13px] leading-relaxed ${cls}`} style={{ color: 'var(--text-muted)', ...step(i + 1) }}>{s}</li>
-            ))}
-          </ul>
-        </div>
-      )}
-
-      {!!a.weak_spots?.length && (
-        <div>
-          <p className={`label-mono mb-2 ${cls}`} style={step((a.strong_spots?.length ?? 0) + 1)}>Fix</p>
-          <ul className="space-y-1.5">
-            {a.weak_spots.map((s, i) => (
-              <li key={i} className={`text-[13px] leading-relaxed ${cls}`} style={{ color: 'var(--text)', ...step((a.strong_spots?.length ?? 0) + 2 + i) }}>{s}</li>
-            ))}
-          </ul>
-        </div>
-      )}
-
-      {/* A hook check ends in three finished hooks to use instead. Each gets
-          the line itself in reading weight and the reason under it in the
-          muted one, because the line is the thing being copied - and now it
-          can be, one press per hook. */}
-      {!!a.rewrites?.length && (
-        <div className="mt-5">
-          <p className={`label-mono mb-2 ${cls}`} style={step((a.strong_spots?.length ?? 0) + (a.weak_spots?.length ?? 0) + 2)}>
-            Use instead
-          </p>
-          <ul className="space-y-3">
-            {a.rewrites.map((r, i) => (
-              <li key={i} className={`flex items-start gap-2 ${cls}`} style={step((a.strong_spots?.length ?? 0) + (a.weak_spots?.length ?? 0) + 3 + i)}>
-                <div className="flex-1 min-w-0">
-                  <p className="text-[13px] leading-relaxed" style={{ color: 'var(--text)' }}>{r.hook}</p>
-                  {r.why && <p className="text-[12px] leading-relaxed mt-1" style={{ color: 'var(--text-faint)' }}>{r.why}</p>}
-                </div>
-                <CopyButton text={r.hook} title="Copy this hook" className="flex-shrink-0 -mt-1" />
-              </li>
-            ))}
-          </ul>
+      <div className="flex items-center gap-3 -ml-1">
+        {a.overall_assessment && <CopyButton text={analysisAsText(a)} title="Copy this review" />}
+        {more > 0 && (
+          <button
+            onClick={() => setOpen(o => !o)}
+            className="t-small transition-colors hover:text-[var(--text)]"
+            style={{ color: 'var(--text-faint)' }}
+            aria-expanded={open}
+          >
+            {open ? 'Hide' : `See all ${fixes.length || more} ${fixes.length === 1 ? 'fix' : 'fixes'}`}
+          </button>
+        )}
+      </div>
+      {open && (
+        <div className="max-w-[85%] w-full rounded-2xl px-4 py-3 animate-msg-in" style={{ background: 'var(--bg-raised)' }}>
+          {fixes.length > 0 && (
+            <ul className="space-y-2">
+              {fixes.map((f, i) => <li key={i} className="t-small" style={{ color: 'var(--text)' }}>{f}</li>)}
+            </ul>
+          )}
+          {keep.length > 0 && (
+            <>
+              <p className="t-label mt-4 mb-1.5" style={{ color: 'var(--text-muted)' }}>Keep</p>
+              <ul className="space-y-2">
+                {keep.map((f, i) => <li key={i} className="t-small" style={{ color: 'var(--text-muted)' }}>{f}</li>)}
+              </ul>
+            </>
+          )}
+          {lines.length > 0 && (
+            <ul className="space-y-2 mt-4">
+              {lines.map((r, i) => (
+                <li key={i} className="flex items-start gap-2">
+                  <p className="t-small flex-1" style={{ color: 'var(--text)' }}>{r.hook}</p>
+                  <CopyButton text={r.hook} title="Copy this hook" className="flex-shrink-0 -mt-1" />
+                </li>
+              ))}
+            </ul>
+          )}
         </div>
       )}
     </div>
@@ -361,8 +316,6 @@ const STAGES: Record<string, string[]> = {
   uploading: ['Sending the file over'],
   screenshot: ['Reading the screenshot', 'Working out what happened'],
   upload: ['Waiting on the file to process', 'Watching it through', 'Marking the hook and the drop', 'Writing what to fix'],
-  hook: ['Reading the hook', 'Weighing it against what works', 'Writing the fix'],
-  script: ['Reading the script', 'Finding where attention drops', 'Writing the fix'],
   followup: ['Rereading the review', 'Answering'],
   // Shown while the message is still being worked out. It has to be honest
   // about not knowing yet: "Fetching the video" under a typed question was
@@ -504,7 +457,6 @@ export function AnalysisChat() {
     () => session?.messages.map(m => ({ ...m, fresh: false })) ?? [],
   );
   const [threadId, setThreadId] = useState<string | null>(() => session?.threadId ?? null);
-  const [threadProject, setThreadProject] = useState<Project | null>(() => session?.threadProject ?? null);
   const [composer, setComposer] = useState('');
   const [busy, setBusy] = useState(false);
   // Which pipeline is running, so the working line can name its actual stages.
@@ -523,19 +475,13 @@ export function AnalysisChat() {
   // Reloaded after every send, so the count under the composer is the balance
   // as of the last thing that was actually charged.
   const { usage, reload: reloadUsage } = useUsage();
-  // A conversation is worth keeping next to the video that prompted it, so a
-  // thread can be filed into a project the same way a competitor idea is.
-  // Projects load only when the picker is opened - most threads are never filed.
-  const [projects, setProjects] = useState<Project[]>([]);
-  const [filingOpen, setFilingOpen] = useState(false);
 
   const fileRef = useRef<HTMLInputElement>(null);
   const endRef = useRef<HTMLDivElement>(null);
   // The conversation's own scroller. scrollIntoView used to do this, and it
   // scrolls EVERY ancestor that can scroll - including AppShell's <main> and
   // the side panel's frame - so each new message nudged the whole screen down
-  // and clipped the History / New chips and the Save to project line at the
-  // edges. Scrolling this one box moves nothing else.
+  // and clipped the History / New chips at the edges. Scrolling this one box moves nothing else.
   const scrollRef = useRef<HTMLDivElement>(null);
   const taRef = useRef<HTMLTextAreaElement>(null);
   // The run in flight, so Stop has something to pull on. One at a time by
@@ -576,8 +522,8 @@ export function AnalysisChat() {
   // An empty screen is remembered as nothing at all, which is what makes New
   // stay new: leaving a cleared state cached would restore it on the way back.
   useEffect(() => {
-    session = messages.length || threadId ? { messages, threadId, threadProject } : null;
-  }, [messages, threadId, threadProject]);
+    session = messages.length || threadId ? { messages, threadId } : null;
+  }, [messages, threadId]);
 
   // Everything a saved conversation needs to come back: the messages, the
   // project it is filed under, and signed URLs for the screenshots that went
@@ -591,32 +537,23 @@ export function AnalysisChat() {
     setFailure(null);
     setStopped(false);
     try {
-      const [rows, thread] = await Promise.all([loadThreadMessages(id), loadThread(id)]);
+      const rows = await loadThreadMessages(id);
       const signed = await signChatImages(rows.flatMap(r => r.images ?? []));
 
       setThreadId(id);
       setMessages(rows.map(r => {
         const shots = (r.images ?? []).map(p => signed[p]).filter(Boolean);
-        // Before the chat could answer and score in one message, the label
-        // above a card WAS the message content. Read those back as labels.
+        // Old scored hook and script results stored a label ("Read that as a
+        // hook") as their content. The label is dropped; the review stays.
         const isLabel = !!r.analysis && /^Read that as a (hook|script)$/.test((r.content ?? '').trim());
         return {
           id: r.id,
           role: r.role,
           content: isLabel ? '' : (shots.length ? stripShotTag(r.content) : r.content),
-          note: isLabel ? r.content.trim() : undefined,
           analysis: r.analysis ?? null,
           images: shots.length ? shots : undefined,
         };
       }));
-
-      if (thread?.project_id) {
-        const all = await listProjects();
-        setThreadProject(all.find(p => p.id === thread.project_id) ?? null);
-        setProjects(all);
-      } else {
-        setThreadProject(null);
-      }
     } finally {
       setOpening(false);
     }
@@ -723,7 +660,6 @@ export function AnalysisChat() {
     session = null;
     setMessages([]);
     setThreadId(null);
-    setThreadProject(null);
     setFiles([]);
     setComposer('');
     setFailure(null);
@@ -932,83 +868,10 @@ export function AnalysisChat() {
     }
   };
 
-  // Hook Lab and Script Lab used to be their own tabs. Same functions, same
-  // credits, now answered in the thread so the follow-ups work on them too.
-  // `pushed`  - the message is already on screen (the router put it there).
-  // `stored`  - it is already in the database too, so do not write it twice.
-  // They are separate because the router leaves the bubble on screen without
-  // persisting it, while a re-read has both already done.
-  const runTextAnalysis = async (
-    kind: 'hook' | 'script',
-    text: string,
-    { pushed = false, stored = false }: { pushed?: boolean; stored?: boolean } = {},
-  ) => {
-    const signal = beginRun(kind);
-    if (!pushed) push({ role: 'user', content: text });
-
-    const tid = threadId ?? await startThread(text.slice(0, 60));
-    setThreadId(tid);
-    if (tid && !stored) await persist(tid, 'user', text);
-
-    try {
-      const token = await getSessionToken();
-      if (!token) throw new RunError('server', 'Not authenticated');
-      const res = await fetchWithRetry(`${FUNCTIONS_URL}/analyze-${kind}-text`, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify(kind === 'hook' ? { hook: text, context: '' } : { script: text, context: '' }),
-        signal,
-      });
-      const data = await res.json();
-      if (!res.ok) throw failOf(res.status, data.error || 'Analysis failed');
-
-      // The two endpoints do not answer in the same shape and never have.
-      // analyze-script-text returns overall_score, overall_assessment,
-      // strong_spots and weak_spots; analyze-hook-text returns score, verdict,
-      // issues and rewrites. The client read only the script's names, so every
-      // hook check in the chat rendered an empty card - a scored result with
-      // no score, no verdict and no lines - while the same call from the old
-      // Hook Lab screen showed all of it.
-      //
-      // Normalised here rather than by renaming the function's fields: the
-      // hook shape is what HookLab reads, and its rewrites have no honest home
-      // under "Working" or "Fix" anyway.
-      const a: Analysis = kind === 'hook'
-        ? {
-            overall_score: data.score,
-            overall_assessment: data.verdict,
-            strong_spots: [],
-            weak_spots: data.issues ?? [],
-            rewrites: data.rewrites ?? [],
-          }
-        : {
-            overall_score: data.overall_score,
-            overall_assessment: data.overall_assessment,
-            strong_spots: data.strong_spots ?? [],
-            weak_spots: data.weak_spots ?? [],
-          };
-      push({ role: 'assistant', content: '', note: `Read that as a ${kind}`, analysis: a, textKind: kind, source: text });
-      if (tid) await persist(tid, 'assistant', `Read that as a ${kind}`, a);
-      reloadUsage();
-      // App defers onboarding for anyone who arrived by pasting a link on the
-      // landing page, and puts the offer up when their first result lands. That
-      // event was dispatched by HookAnalysis and by nothing since.
-      window.dispatchEvent(new CustomEvent('chumoku:analysis-done'));
-
-    } catch (e) {
-      if (isAbort(e)) return;
-      reloadUsage();
-      setFailure(asFailure(e, () => runTextAnalysis(kind, text, { pushed: true, stored: true })));
-    } finally {
-      endRun(signal);
-    }
-  };
-
   // Sends the message to the chat and renders whatever comes back.
   //
-  // There is no classifier on the other end any more. One model answers, and
-  // it can look things up in this creator's account and score a hook or a
-  // script while it does - so a reply can be prose, a score card, or both.
+  // There is no classifier on the other end. One model answers, and it can
+  // look things up in this creator's account while it does.
   //
   // There was no router before this: anything without a link went straight to
   // a hook or script check on the strength of "is it longer than 200
@@ -1048,36 +911,7 @@ export function AnalysisChat() {
       const data = await res.json();
       if (!res.ok) throw failOf(res.status, data.error || 'Could not read that');
 
-      // A score, when the chat decided one was wanted, arrives WITH the
-      // answer rather than instead of it. There is no second call and no
-      // second charge: scoring is something the chat did, not a branch the
-      // message fell down, so "here's my hook, and what should I post
-      // tomorrow" now gets both halves answered in one reply.
-      const scored = data.scored as { kind: 'hook' | 'script'; result: Record<string, unknown> } | undefined;
-      const card: Analysis | null = !scored ? null : scored.kind === 'hook'
-        ? {
-            overall_score: scored.result.score as number,
-            overall_assessment: scored.result.verdict as string,
-            strong_spots: [],
-            weak_spots: (scored.result.issues ?? []) as string[],
-            rewrites: (scored.result.rewrites ?? []) as Analysis['rewrites'],
-          }
-        : {
-            overall_score: scored.result.overall_score as number,
-            overall_assessment: scored.result.overall_assessment as string,
-            strong_spots: (scored.result.strong_spots ?? []) as string[],
-            weak_spots: (scored.result.weak_spots ?? []) as string[],
-          };
-
-      push({
-        role: 'assistant',
-        content: data.answer,
-        analysis: card,
-        // Lets the "read that as a script" chip offer the other reading of the
-        // same text, exactly as it does after a manual check.
-        ...(scored ? { textKind: scored.kind, source: text } : {}),
-      });
-      if (card) window.dispatchEvent(new CustomEvent('chumoku:analysis-done'));
+      push({ role: 'assistant', content: data.answer });
 
       // The server only persists into a thread that already exists, because
       // until now there was nothing worth keeping. A question can open a
@@ -1093,7 +927,7 @@ export function AnalysisChat() {
         // images did survive.
         const tag = (images?.length ?? 0) > 1 ? `[${images!.length} screenshots]` : '[screenshot]';
         await persist(opened, 'user', images?.length ? `${tag} ${text}`.trim() : text);
-        await persist(opened, 'assistant', data.answer, card ?? undefined);
+        await persist(opened, 'assistant', data.answer);
       }
 
       // The screenshots are kept once the message they belong to exists. On a
@@ -1153,40 +987,6 @@ export function AnalysisChat() {
       base64: previews[i].slice(previews[i].indexOf(',') + 1),
     }));
     await routeMessage(text, { images, previews, shots });
-  };
-
-  // Reading the same text the other way.
-  //
-  // Hook versus script is the one call the router can reasonably get wrong -
-  // a paragraph that opens AND pays off sits exactly on the line - and until
-  // now there was no way to say so: once a result exists, everything typed
-  // after it is a follow-up question about that result, so "no, that was a
-  // script" got a polite reply rather than a re-read.
-  //
-  // It replaces the result rather than adding a second one. Two scored cards
-  // for one piece of text is a worse answer than one right card, and nobody
-  // clicking this wants a record of the wrong reading kept.
-  const reread = async (messageId: string, source: string, from: 'hook' | 'script') => {
-    if (busy) return;
-    const to = from === 'hook' ? 'script' : 'hook';
-
-    setMessages(prev => prev.filter(m => m.id !== messageId));
-
-    // The stored copy goes too. The client makes its own ids and never sees the
-    // row's, so the row is found the only way it can be: the newest assistant
-    // message in this thread, which is the one just taken off the screen.
-    if (threadId) {
-      const { data } = await supabase
-        .from('chat_messages')
-        .select('id')
-        .eq('thread_id', threadId)
-        .eq('role', 'assistant')
-        .order('created_at', { ascending: false })
-        .limit(1);
-      if (data?.[0]) await supabase.from('chat_messages').delete().eq('id', data[0].id);
-    }
-
-    await runTextAnalysis(to, source, { pushed: true, stored: true });
   };
 
   // Whether the thread already has something to ask about. It decides both
@@ -1260,26 +1060,6 @@ export function AnalysisChat() {
     routeMessage(text);
   };
 
-  const openFiling = async () => {
-    setProjects(await listProjects());
-    setFilingOpen(true);
-  };
-
-  const fileInto = async (projectId: string | null) => {
-    if (!threadId) return;
-    await fileThread(threadId, projectId);
-    // Re-read rather than looking the project up in local state: filing into a
-    // project that was created inside the picker would otherwise miss, because
-    // this closure still holds the list from before it existed.
-    if (projectId) {
-      const all = await listProjects();
-      setProjects(all);
-      setThreadProject(all.find(p => p.id === projectId) ?? null);
-    } else {
-      setThreadProject(null);
-    }
-    setFilingOpen(false);
-  };
 
 
   const empty = messages.length === 0 && !opening;
@@ -1340,7 +1120,7 @@ export function AnalysisChat() {
 
       {empty ? (
         <div className="flex-1 flex flex-col items-center justify-center px-5 pb-10">
-          <p className="label-mono mb-4">Analyze</p>
+          <p className="label-mono mb-4">Chat</p>
           <h1 className="display mb-8 text-center" style={{ color: 'var(--text)' }}>What are we looking at?</h1>
           <div className="w-full max-w-2xl">
             <Composer
@@ -1393,42 +1173,19 @@ export function AnalysisChat() {
                   </div>
                 ) : m.analysis ? (
                   <div key={m.id} className={`space-y-2 ${m.fresh ? 'animate-msg-in' : ''}`}>
-                    {/* The line that states the assumption is also where it is
-                        corrected. Anywhere else and the control is a feature to
-                        be found; here it is the sentence answering itself.
-                        Only on the newest result: offering it on an older card
-                        would rewrite the middle of the conversation. */}
+                    {/* A chat answer that came with a card, from before the
+                        score was dropped: the answer first, the review under. */}
                     {m.content && (
                       <div className="flex flex-col items-start gap-1">
                         <div
                           className="max-w-[85%] rounded-2xl px-4 py-2.5 text-[14px] leading-relaxed whitespace-pre-line break-words"
                           style={{ background: 'var(--bg-raised)', color: 'var(--text)' }}
                         >
-                          {m.fresh
-                            ? <RevealText text={m.content} onAdvance={() => scrollToEnd()} />
-                            : m.content}
+                          {m.fresh ? <RevealText text={m.content} onAdvance={() => scrollToEnd()} /> : m.content}
                         </div>
-                        <CopyButton text={m.content} title="Copy this answer" className="-ml-1" />
                       </div>
                     )}
-                    {(m.note || m.textKind) && (
-                      <div className="flex items-center gap-3 flex-wrap">
-                        {m.note && <p className="label-mono">{m.note}</p>}
-                        {m.textKind && m.source && m.id === messages[messages.length - 1]?.id && (
-                          <button
-                            className="chip"
-                            disabled={busy}
-                            onClick={() => reread(m.id, m.source!, m.textKind!)}
-                          >
-                            Read as a {m.textKind === 'hook' ? 'script' : 'hook'}
-                            <span className="font-mono" style={{ color: 'var(--text-faint)' }}>
-                              {m.textKind === 'hook' ? CREDIT_COSTS.script_check : CREDIT_COSTS.hook_check}
-                            </span>
-                          </button>
-                        )}
-                      </div>
-                    )}
-                    <AnalysisCard a={m.analysis} fresh={m.fresh} onAdvance={() => scrollToEnd()} />
+                    <ReviewMessage a={m.analysis} fresh={m.fresh && !m.content} onAdvance={() => scrollToEnd()} />
                   </div>
                 ) : (
                   /* On a plate, like the creator's own messages and like the
@@ -1472,16 +1229,6 @@ export function AnalysisChat() {
 
           <div className="flex-shrink-0 px-5 pb-5">
             <div className="max-w-2xl mx-auto">
-              {threadId && (
-                <button
-                  onClick={openFiling}
-                  className="flex items-center gap-1.5 mb-2 text-[12px] transition-colors hover:text-[var(--text)]"
-                  style={{ color: threadProject ? 'var(--text)' : 'var(--text-faint)' }}
-                >
-                  <FolderIcon className="w-3.5 h-3.5" />
-                  {threadProject ? threadProject.name : 'Save to project'}
-                </button>
-              )}
               <Composer
                 value={composer} onChange={setComposer} onSubmit={submit} onStop={stop}
                 busy={busy} blocked={broke}
@@ -1495,21 +1242,6 @@ export function AnalysisChat() {
         </>
       )}
 
-      {filingOpen && (
-        <SaveToProjectModal
-          projects={projects}
-          currentProjectId={threadProject?.id ?? null}
-          isSaved={!!threadProject}
-          onPick={fileInto}
-          onUnsave={() => fileInto(null)}
-          onCreateProject={async name => {
-            const project = await createProject(name);
-            if (project) setProjects(prev => [project, ...prev]);
-            return project;
-          }}
-          onClose={() => setFilingOpen(false)}
-        />
-      )}
     </div>
   );
 }

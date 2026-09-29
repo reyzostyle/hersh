@@ -2,8 +2,7 @@ import { useState, useEffect } from 'react';
 import { AppShell, NavTab, HIDDEN_TABS } from './AppShell';
 import { HomePage } from './HomePage';
 import { AnalysisChat } from './AnalysisChat';
-import { ProjectsPage } from './ProjectsPage';
-import { AnalyticsPage } from './AnalyticsPage';
+import { SavedPage } from './SavedPage';
 import { UpgradePage } from './UpgradePage';
 import { SettingsPage } from './SettingsPage';
 import { PartnersPage } from './PartnersPage';
@@ -17,7 +16,11 @@ import { peek, take, PENDING_ANALYZE_KEY, PENDING_STEAL_KEY, PENDING_SHARE_KEY }
 // only reached by entering the admin code in Settings. AdminPage itself
 // re-checks the caller's email before rendering anything or fetching data.
 // 'home' also has no nav entry: it's reached from the brand row in the sidebar.
-const VALID_TABS: NavTab[] = ['home', 'analyze', 'projects', 'analytics', 'competitors', 'upgrade', 'partners', 'settings', 'admin', 'affiliate-admin'];
+const VALID_TABS: NavTab[] = ['home', 'analyze', 'saved', 'competitors', 'upgrade', 'partners', 'settings', 'admin', 'affiliate-admin'];
+
+// Tabs removed on 2026-09-29, and where anything still asking for them lands:
+// Projects became Saved, Analytics' channel numbers moved into Settings.
+const RETIRED_TABS: Record<string, NavTab> = { projects: 'saved', analytics: 'settings' };
 
 // A tab is reachable only if it's known and not feature-flagged off.
 const isTabReachable = (t: string): t is NavTab =>
@@ -59,7 +62,8 @@ export function Dashboard() {
         setActiveTab('settings');
         return;
       }
-      const tab = (e as CustomEvent).detail as NavTab;
+      const asked = (e as CustomEvent).detail as string;
+      const tab = RETIRED_TABS[asked] ?? asked;
       if (tab && isTabReachable(tab)) setActiveTab(tab);
     };
     window.addEventListener('chumoku:navigate', handler);
@@ -82,8 +86,7 @@ export function Dashboard() {
     <AppShell activeTab={activeTab} onTabChange={setActiveTab}>
       {activeTab === 'home' && <HomePage onNavigate={setActiveTab} />}
       {activeTab === 'analyze' && <AnalysisChat />}
-      {activeTab === 'projects' && <ProjectsPage />}
-      {activeTab === 'analytics' && <AnalyticsPage />}
+      {activeTab === 'saved' && <SavedPage />}
       {activeTab === 'competitors' && <CompetitorsPage />}
       {activeTab === 'upgrade' && <UpgradePage />}
       {activeTab === 'partners' && <PartnersPage />}

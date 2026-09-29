@@ -1,15 +1,13 @@
-import { useState } from 'react';
 import {
   AltArrowLeftOutlineIcon as ArrowLeft, SlashCircleOutlineIcon as Dismissed,
   Stars2OutlineIcon as Sparkles, RefreshOutlineIcon as Loader2,
-  SquareArrowRightUpOutlineIcon as ExternalLink, FolderOutlineIcon as Folder,
+  SquareArrowRightUpOutlineIcon as ExternalLink,
   BookmarkOutlineIcon as Bookmark,
 } from '@solar-icons/react';
 import { Check } from './BrandIcons';
 import { formatViews, formatDate, type FeedItem, type CompetitorIdea } from '../lib/competitors';
 import { useIdeaGeneration } from '../lib/useIdeaGeneration';
 import { CREDIT_COSTS } from '../lib/useUsage';
-import { type Project } from '../lib/projects';
 import { Page, PageHead, Panel, Section } from './Page';
 import { ErrorNotice } from './ErrorNotice';
 
@@ -18,23 +16,20 @@ import { ErrorNotice } from './ErrorNotice';
 // step actually became: an outline is a document, and a 384px column with the
 // feed showing through beside it is not where you read one.
 export function CompetitorVideoView({
-  item, projects, onBack, onBreakDown, breaking, onSave, onDismiss, onFile, onUpdated, backLabel = 'Feed',
+  item, onBack, onBreakDown, breaking, onSave, onDismiss, onUpdated, backLabel = 'Feed',
 }: {
   backLabel?: string;
   item: FeedItem;
-  projects: Project[];
   onBack: () => void;
   onBreakDown: () => void;
   breaking: boolean;
   onSave: () => void;
   onDismiss: () => void;
-  onFile: (projectId: string | null) => void;
   onUpdated: (idea: CompetitorIdea) => void;
 }) {
   const idea = item.idea;
   const isSaved = idea?.liked === true;
   const isDismissed = idea?.liked === false;
-  const [filingOpen, setFilingOpen] = useState(false);
 
   const { generatingOutline, generateOutline, error, errorIsPlanLimit } =
     useIdeaGeneration(idea ?? ({ id: '' } as CompetitorIdea), onUpdated);
@@ -86,38 +81,12 @@ export function CompetitorVideoView({
             {isSaved ? <Check className="w-3.5 h-3.5" /> : <Bookmark className="w-3.5 h-3.5" />}
             {isSaved ? 'Saved' : 'Save'}
           </button>
-          <button onClick={() => setFilingOpen(o => !o)} className="chip" title="File this into a project">
-            <Folder className="w-3.5 h-3.5" />
-            {projects.find(p => p.id === idea?.project_id)?.name ?? 'Project'}
-          </button>
           <button onClick={onDismiss} className="chip" data-on={isDismissed}>
             <Dismissed className="w-3.5 h-3.5" />
             {isDismissed ? 'Dismissed' : 'Dismiss'}
           </button>
         </div>
       </div>
-
-      {filingOpen && (
-        <Panel className="mb-8">
-          <p className="label-mono mb-3">File into</p>
-          <div className="flex flex-wrap gap-2">
-            <button onClick={() => { onFile(null); setFilingOpen(false); }} className="chip" data-on={!idea?.project_id}>
-              Unfiled
-            </button>
-            {projects.map(p => (
-              <button key={p.id} onClick={() => { onFile(p.id); setFilingOpen(false); }}
-                      className="chip" data-on={idea?.project_id === p.id}>
-                <Folder className="w-3.5 h-3.5" />{p.name}
-              </button>
-            ))}
-            {projects.length === 0 && (
-              <p className="text-[13px]" style={{ color: 'var(--text-muted)' }}>
-                No projects yet. Make one in the Projects tab.
-              </p>
-            )}
-          </div>
-        </Panel>
-      )}
 
       {/* The two paid steps, in the order you would take them. */}
       {!idea?.concept ? (

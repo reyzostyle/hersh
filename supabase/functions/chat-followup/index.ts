@@ -4,9 +4,7 @@ import { callLLMWithTools } from '../_shared/llm.ts';
 import { parseImages } from '../_shared/images.ts';
 import { loadCreditStatus, canAfford, spendCredits, CREDIT_COSTS } from '../_shared/credits.ts';
 import { CREATOR_TOOLS, runCreatorTool } from '../_shared/creator-tools.ts';
-import { SYSTEM, looksLikeAWriteRequest } from '../_shared/chat-prompt.ts';
-import { scoreHook, scoreScript, MAX_HOOK_CHARS, MAX_SCRIPT_CHARS } from '../_shared/text-scoring.ts';
-import { type ToolSpec } from '../_shared/llm.ts';
+import { SYSTEM } from '../_shared/chat-prompt.ts';
 import { loadBrain, brainLine } from '../_shared/brain.ts';
 
 const CORS = corsHeaders({ methods: 'POST, OPTIONS' });
@@ -68,37 +66,9 @@ const profileBlock = (p: ProfileRow | null) =>
     p?.creator_level && `Level: ${p.creator_level}`,
   ].filter(Boolean).join('\n');
 
-// The two things the chat can DO, next to the six it can look up.
-//
-// They live here rather than in creator-tools.ts on purpose: everything in
-// that file is read-only and free, and these spend the creator's credits. A
-// tool that costs money belongs beside the code that charges for it.
-const SCORING_TOOLS: ToolSpec[] = [
-  {
-    name: 'score_hook',
-    description:
-      'Score a hook the creator handed you - the opening line of a video, written at an audience - out of 100, with the concrete problems and three finished rewrites. Costs the creator credits. Only for text they wrote FOR a video, never for a message they wrote to you and never for something you wrote yourself.',
-    parameters: {
-      type: 'OBJECT',
-      properties: {
-        text: { type: 'STRING', description: 'Their hook, exactly as they wrote it, with nothing added or cleaned up.' },
-      },
-      required: ['text'],
-    },
-  },
-  {
-    name: 'score_script',
-    description:
-      'Score a script the creator handed you - the body of a video, a transcript, a voiceover or a shot list - out of 100, with what works, what to cut and the lines to paste in. Costs the creator credits. Only for text they wrote FOR a video, never for a message they wrote to you and never for something you wrote yourself.',
-    parameters: {
-      type: 'OBJECT',
-      properties: {
-        text: { type: 'STRING', description: 'Their script, exactly as they wrote it.' },
-      },
-      required: ['text'],
-    },
-  },
-];
+// Scoring hooks and scripts out of 100 was removed on 2026-09-29, with the
+// score on video reviews: a number made Chumoku read as a grader. A hook
+// handed over now gets an answer in words and a better line.
 
 Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') return new Response(null, { status: 200, headers: CORS });
@@ -203,29 +173,11 @@ Deno.serve(async (req: Request) => {
       ? (hasImage ? `${shotTag} ${question.trim()}` : question.trim())
       : shotTag;
 
-    // `scored` rides along in the analysis column, normalised into the one
-    // shape the chat draws cards from - so a scored hook is still there when
-    // the conversation is reopened, instead of a reply referring to a card
-    // that was never stored.
-    const persist = async (answer: string, scored: { kind: 'hook' | 'script'; result: Record<string, unknown> } | null) => {
+    const persist = async (answer: string) => {
       if (!threadId) return;
-      const card = !scored ? null : scored.kind === 'hook'
-        ? {
-            overall_score: scored.result.score,
-            overall_assessment: scored.result.verdict,
-            strong_spots: [],
-            weak_spots: scored.result.issues ?? [],
-            rewrites: scored.result.rewrites ?? [],
-          }
-        : {
-            overall_score: scored.result.overall_score,
-            overall_assessment: scored.result.overall_assessment,
-            strong_spots: scored.result.strong_spots ?? [],
-            weak_spots: scored.result.weak_spots ?? [],
-          };
       await supabase.from('chat_messages').insert([
         { thread_id: threadId, user_id: user.id, role: 'user', content: storedQuestion },
-        { thread_id: threadId, user_id: user.id, role: 'assistant', content: answer, ...(card ? { analysis: card } : {}) },
+        { thread_id: threadId, user_id: user.id, role: 'assistant', content: answer },
       ]);
       await supabase.from('chat_threads').update({ updated_at: new Date().toISOString() }).eq('id', threadId);
     };
@@ -233,7 +185,7 @@ Deno.serve(async (req: Request) => {
     // One path. The review, when there is one, is context in the same prompt
     // rather than a branch that skips the classification.
     const a = (analysis ?? {}) as {
-      overall_score?: number; overall_assessment?: string;
+      overall_assessment?: string;
       strong_spots?: string[]; weak_spots?: string[];
       ownership?: 'mine' | 'theirs' | 'unknown';
     };
@@ -264,8 +216,7 @@ Deno.serve(async (req: Request) => {
       ? `${earlierReviews ? `(${earlierReviews} earlier ${earlierReviews === 1 ? 'video was' : 'videos were'} reviewed in this thread. The one below is the latest.)\n\n` : ''}## Whose video this is
 ${ownershipLine}
 
-## The review you gave
-Score: ${a.overall_score ?? 'n/a'} out of 100
+## What you told them after watching
 ${a.overall_assessment ?? ''}
 
 What works:
@@ -283,58 +234,9 @@ ${(a.weak_spots ?? []).map(s => `- ${s}`).join('\n') || '- none noted'}
 
     const prompt = `${block ? `## Who you are talking to\n${block}\n\n` : ''}${reviewBlock}${history ? `## The conversation so far\n${history}\n\n` : ''}${hasImage ? `## Attached\n${images.length === 1 ? 'A screenshot is' : `${images.length} screenshots are`} attached above. They are the evidence for whatever they are asking.\n\n` : ''}${messageBlock}`;
 
-    // One call, tools on it, and the model decides what the message needs.
-    //
-    // A lookup pays for a second round trip only when the answer depends on
-    // something only this account knows; a score runs the same prompt the
-    // Hook Lab endpoint runs, from inside the answer. Both are decisions the
-    // model makes in the open rather than a branch a classifier picked.
+    // One call, tools on it. A lookup pays for a second round trip only when
+    // the answer depends on something only this account knows.
     const toolsUsed: string[] = [];
-
-    // What a scoring tool produced, kept so the client can draw the card the
-    // creator already knows - the same shape the video review uses.
-    let scored: { kind: 'hook' | 'script'; result: Record<string, unknown> } | null = null;
-    let scoringCost = 0;
-
-    // The one thing the model is not allowed to decide: scoring a message that
-    // is plainly a request to write something. The prompt says so twice and it
-    // still did it, and it is the misroute that spends credits to review a
-    // sentence the creator wrote to us. See looksLikeAWriteRequest.
-    const askedForWriting = looksLikeAWriteRequest(question ?? '');
-
-    const runScoring = async (kind: 'hook' | 'script', text: string): Promise<unknown> => {
-      const t = (text ?? '').trim();
-      if (!t) return { error: 'No text was passed. Score only what the creator actually handed you.' };
-      if (hasImage) {
-        return { error: 'A screenshot is not text to score. Read it and answer in words.' };
-      }
-      if (askedForWriting && t.slice(0, 120) === (question ?? '').trim().slice(0, 120)) {
-        return {
-          error: 'That message is a request for you to write something, not a text to judge. Do not score it. Write what they asked for instead.',
-        };
-      }
-      if (scored) {
-        return { error: `Already scored one ${scored.kind} in this reply. Do not score again.` };
-      }
-      const cap = kind === 'hook' ? MAX_HOOK_CHARS : MAX_SCRIPT_CHARS;
-      if (t.length > cap) {
-        return { error: `Too long to score as a ${kind} (max ${cap} characters). Say so and answer in words.` };
-      }
-      const cost = kind === 'hook' ? CREDIT_COSTS.hook_check : CREDIT_COSTS.script_check;
-      if (!canAfford(creditStatus, cost, isAdmin)) {
-        return { error: 'They do not have enough credits left to score this. Tell them plainly and answer in words instead.' };
-      }
-      try {
-        const result = kind === 'hook'
-          ? await scoreHook(supabase, user.id, t)
-          : await scoreScript(supabase, user.id, t);
-        scored = { kind, result: result as unknown as Record<string, unknown> };
-        scoringCost = cost;
-        return result;
-      } catch (e) {
-        return { error: e instanceof Error ? e.message : 'The score could not be read back.' };
-      }
-    };
 
     const answer = await callLLMWithTools(prompt, {
       system: SYSTEM,
@@ -343,36 +245,26 @@ ${(a.weak_spots ?? []).map(s => `- ${s}`).join('\n') || '- none noted'}
       // would have truncated one mid-line.
       maxTokens: 2000,
       images,
-      tools: [...CREATOR_TOOLS, ...SCORING_TOOLS],
+      tools: CREATOR_TOOLS,
       onToolUsed: c => toolsUsed.push(c.name),
-      run: c => (c.name === 'score_hook' || c.name === 'score_script')
-        ? runScoring(c.name === 'score_hook' ? 'hook' : 'script', String(c.args?.text ?? ''))
-        : runCreatorTool(supabase, user.id, c),
+      run: c => runCreatorTool(supabase, user.id, c),
     });
     if (toolsUsed.length) console.log(`[chat-followup] tools: ${toolsUsed.join(', ')}`);
 
-    // The model wrote nothing, which it does on a bare "hey" and sometimes
-    // after a score, where the card says everything. An error notice for
-    // saying hello is worse than a plain opening line.
+    // The model wrote nothing, which it does on a bare "hey". An error notice
+    // for saying hello is worse than a plain opening line.
     const clean = answer.replace(/[\u2014\u2013]/g, '-').trim()
-      || (scored
-        ? ''
-        : hasImage
-          ? 'I can see the screenshot but did not get a clear read on it. Tell me what you want to know about it.'
-          : 'What are you working on?');
+      || (hasImage
+        ? 'I can see the screenshot but did not get a clear read on it. Tell me what you want to know about it.'
+        : 'What are you working on?');
 
-    // A score replaces the message fee rather than being added to it: one
-    // message, one price, and it is the price of the expensive thing that
-    // happened. Without this a scored hook cost 3 where the old two-step cost
-    // 2, and the refactor would have quietly raised the price.
-    await persist(clean, scored);
-    await spendCredits(supabase, user.id, creditStatus, scoringCost || CREDIT_COSTS.chat_followup);
+    await persist(clean);
+    await spendCredits(supabase, user.id, creditStatus, CREDIT_COSTS.chat_followup);
     return new Response(JSON.stringify({
       // Kept for clients from before this shipped: they branch on it, and
       // "question" is the only branch that renders an answer.
       intent: 'question',
       answer: clean,
-      scored: scored ?? undefined,
     }), {
       status: 200, headers: { ...CORS, 'Content-Type': 'application/json' },
     });

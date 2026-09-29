@@ -1,60 +1,26 @@
-// Cases for the write-request guard in _shared/chat-prompt.ts.
+// Invariants of the chat prompt in _shared/chat-prompt.ts.
 //
 // Run: npm run test:routing (needs deno, which the edge functions use anyway).
-// No session, no model call, no credits - this is the part of the routing that
-// is allowed to be deterministic, and the one that keeps costing real credits
-// when it is wrong.
+// No session, no model call, no credits.
+//
+// Until 2026-09-29 this guarded the router that sent hooks and scripts to an
+// out-of-100 scorer. The scorer is gone from the chat; what is guarded now is
+// that it stays gone and that the prompt keeps asking for short replies.
 
-import { looksLikeAWriteRequest, SYSTEM } from '../supabase/functions/_shared/chat-prompt.ts';
-
-// Requests to write something. These must never reach a score.
-const REQUESTS = [
-  'create me a script out of the last saved idea',
-  'Create a script from my last saved idea',
-  'write me a hook for this',
-  'can you write a script for it?',
-  'give me three openings',
-  'make a hook from my last video',
-  'turn this idea into a script',
-  'generate 5 title options',
-  'rewrite the hook please',
-  'напиши скрипт по последней идее',
-  'сделай хук для этого',
-];
-
-// Texts handed over to be judged, and questions that are not requests. These
-// must be left to the model's own routing.
-const NOT_REQUESTS = [
-  'POV: you just quit your job',
-  'how do i write a better hook',
-  'why did this flop',
-  'is this hook good: nobody talks about this',
-  // Opens with an imperative but is the video itself, and runs long.
-  'Write this down before you forget it. The first thing you do when you open the game is head straight for the village, because that is where the loot is. Then you dig down exactly eleven blocks, place a torch, and wait for the sound. If you hear it, you are standing on a mineshaft and the whole run just got easier. Most people quit here, which is why most people never find one.',
-  'hey',
-  'what should i post tomorrow',
-];
+import { SYSTEM } from '../supabase/functions/_shared/chat-prompt.ts';
 
 let failed = 0;
+const fail = (msg: string) => { console.error(msg); failed++; };
 
-// The prompt itself: scoring is a tool the model calls, not a label it picks.
-// A reintroduced "INTENT:" line would put the classifier back and silently
-// disable the tools.
-if (SYSTEM.includes('INTENT:')) {
-  console.error('SYSTEM still routes by an INTENT line - scoring is a tool now');
-  failed++;
+// A tool name or a score in the prompt would put the grader back.
+for (const banned of ['score_hook', 'score_script', 'out of 100', 'INTENT:']) {
+  if (SYSTEM.includes(banned)) fail(`SYSTEM mentions "${banned}" - scoring was removed from the chat`);
 }
-for (const tool of ['score_hook', 'score_script']) {
-  if (!SYSTEM.includes(tool)) { console.error(`SYSTEM never mentions ${tool}`); failed++; }
+// The things the new chat is for.
+for (const required of ['Short.', 'ENDING ON A HOOK', 'PLAIN TEXT ONLY', 'No score']) {
+  if (!SYSTEM.includes(required)) fail(`SYSTEM lost "${required}"`);
 }
-for (const t of REQUESTS) {
-  if (!looksLikeAWriteRequest(t)) { console.error(`MISSED a request: ${t}`); failed++; }
-}
-for (const t of NOT_REQUESTS) {
-  if (looksLikeAWriteRequest(t)) { console.error(`WRONGLY called a request: ${t}`); failed++; }
-}
+if (/[—–]/.test(SYSTEM)) fail('SYSTEM contains an em or en dash, which the model copies');
 
-console.log(failed === 0
-  ? `routing guard: ${REQUESTS.length + NOT_REQUESTS.length} cases pass`
-  : `routing guard: ${failed} failing`);
+console.log(failed === 0 ? 'chat prompt: invariants hold' : `chat prompt: ${failed} failing`);
 if (failed) Deno.exit(1);

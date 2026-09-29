@@ -3,7 +3,6 @@ import { RefreshOutlineIcon as Loader2 } from '@solar-icons/react';
 import { useAuth } from '../contexts/AuthContext';
 import { getSessionToken, supabase } from '../lib/supabase';
 import { stealVideo, itemFromIdea, type CompetitorIdea } from '../lib/competitors';
-import { listProjects, touchProject, type Project } from '../lib/projects';
 import { PENDING_ANALYZE_KEY } from '../lib/intents';
 import { SITE_URL } from '../lib/brand';
 import { AnalysisChat, resetAnalysisSession } from './AnalysisChat';
@@ -192,7 +191,6 @@ function AnalyzeRun({ url }: { url: string }) {
 
 function StealRun({ url }: { url: string }) {
   const [idea, setIdea] = useState<CompetitorIdea | null>(null);
-  const [projects, setProjects] = useState<Project[]>([]);
   const [error, setError] = useState('');
   const [limit, setLimit] = useState<number | null>(null);
   // The card first, the outline behind it. See CompetitorsPage.
@@ -207,8 +205,7 @@ function StealRun({ url }: { url: string }) {
       try {
         const token = await getSessionToken();
         if (!token) throw new Error('Not authenticated');
-        const [result, list] = await Promise.all([stealVideo(url, token), listProjects()]);
-        setProjects(list);
+        const result = await stealVideo(url, token);
         if ('limit' in result) setLimit(result.cost);
         else setIdea(result.idea);
       } catch (e) {
@@ -258,17 +255,12 @@ function StealRun({ url }: { url: string }) {
   return (
     <CompetitorVideoView
       item={itemFromIdea(idea)}
-      projects={projects}
       backLabel="All ideas"
       onBack={() => window.open(`${SITE_URL}/?utm_source=extension`, '_blank', 'noopener')}
       onBreakDown={() => {}}
       breaking={false}
       onSave={() => update({ liked: idea.liked === true ? null : true })}
       onDismiss={() => update({ liked: idea.liked === false ? null : false })}
-      onFile={projectId => {
-        update({ project_id: projectId, liked: true });
-        if (projectId) touchProject(projectId);
-      }}
       onUpdated={setIdea}
     />
   );

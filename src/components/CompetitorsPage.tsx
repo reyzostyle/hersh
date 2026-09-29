@@ -4,7 +4,7 @@ import {
   callFunction, stealVideo, inboxItems, itemFromIdea, filterIdeas,
   type CompetitorChannel, type CompetitorIdea, type FeedItem, type IdeaFilter, type PoolVideo,
 } from '../lib/competitors';
-import { listProjects, touchProject, takeRequestedVideo, type Project } from '../lib/projects';
+import { takeRequestedVideo } from '../lib/projects';
 import { CompetitorsFeed } from './CompetitorsFeed';
 import { CompetitorVideoView } from './CompetitorVideoView';
 import { FindCompetitorsModal } from './FindCompetitorsModal';
@@ -40,7 +40,6 @@ export function CompetitorsPage() {
   // Not a gate any more - it only decides how many channels may be tracked,
   // which the manage panel shows.
   const [userPlan, setUserPlan] = useState<string>('free');
-  const [projects, setProjects] = useState<Project[]>([]);
   const [openVideoId, setOpenVideoId] = useState<string | null>(null);
   const [enrichingId, setEnrichingId] = useState<string | null>(null);
   // Lives up here rather than in the feed because it now steers the enrichment
@@ -57,14 +56,12 @@ export function CompetitorsPage() {
       const userId = await getUserId();
       if (!userId) return;
 
-      const [{ data: planData }, { data: channelData }, { data: ideaData }, projectData] = await Promise.all([
+      const [{ data: planData }, { data: channelData }, { data: ideaData }] = await Promise.all([
         supabase.from('user_tokens').select('plan').eq('user_id', userId).maybeSingle(),
         supabase.from('competitor_channels').select('*').eq('user_id', userId).order('created_at', { ascending: true }),
         supabase.from('competitor_ideas').select('*').eq('user_id', userId),
-        listProjects(),
       ]);
 
-      setProjects(projectData);
       setUserPlan(planData?.plan || 'free');
 
       // The table has carried both spellings of these two columns since the
@@ -269,9 +266,6 @@ export function CompetitorsPage() {
       .from('competitor_ideas')
       .upsert(rows, { onConflict: 'user_id,video_id' })
       .select();
-    // Filing something into a project counts as work on that project, so it
-    // moves up the Projects list.
-    if (projectId) touchProject(projectId);
 
     if (error) {
       console.error('[CompetitorsPage] rule error:', error);
@@ -402,13 +396,11 @@ export function CompetitorsPage() {
     return (
       <CompetitorVideoView
         item={openItem}
-        projects={projects}
         onBack={() => setOpenVideoId(null)}
         onBreakDown={() => enrich(openItem)}
         breaking={enrichingId === openItem.video_id}
         onSave={() => ruleOn([openItem], openItem.idea?.liked === true ? null : true)}
         onDismiss={() => ruleOn([openItem], openItem.idea?.liked === false ? null : false)}
-        onFile={projectId => ruleOn([openItem], true, projectId)}
         onUpdated={handleIdeaUpdated}
       />
     );

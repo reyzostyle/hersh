@@ -7,7 +7,8 @@ import { getSessionToken, fetchWithRetry } from '../lib/supabase';
 import { requestBrain, type ChannelBrain } from '../lib/brain';
 import { syncOwnVideos } from '../lib/ownVideos';
 import { displayNameOf } from '../lib/user';
-import { PageHead, Row, Loading } from './Page';
+import { PageHead, Row, Loading, Tile } from './Page';
+import { formatViews } from '../lib/competitors';
 import { useUsage } from '../lib/useUsage';
 import { CreditsPanel, creditsLeftLine } from './CreditsPanel';
 
@@ -556,6 +557,8 @@ export function SettingsPage() {
           </div>
         ) : null}
 
+        {youtubeStatus?.connected && <ChannelNumbers />}
+
         {/* Disconnect (subtle) — only when connected */}
         {youtubeStatus?.connected && (
           <div className="mt-4 pt-4" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
@@ -932,6 +935,40 @@ function BrainCard({ brain, builtAt, loading, error, onBuild }: {
         {loading && <Loader2 className="w-4 h-4 animate-spin" />}
         {loading ? 'Reading your channel' : brain ? 'Rebuild' : 'Build it'}
       </button>
+    </div>
+  );
+}
+
+// The channel's own numbers. These were the top of the Analytics tab until it
+// was removed on 2026-09-29; the radar under them went with the score it was
+// built from, and four numbers do not need a tab of their own.
+interface ChannelStats {
+  connected: boolean;
+  subscribers?: number;
+  totalViews?: number;
+  views28?: number;
+  subsGained28?: number;
+  watchMinutes28?: number;
+}
+
+function ChannelNumbers() {
+  const [stats, setStats] = useState<ChannelStats | null>(null);
+  useEffect(() => {
+    (async () => {
+      const token = await getSessionToken();
+      if (!token) return;
+      const res = await fetchWithRetry(`${FUNCTIONS_URL}/channel-stats`, { headers: { Authorization: `Bearer ${token}` } });
+      if (res.ok) setStats(await res.json());
+    })().catch(() => {});
+  }, []);
+  if (!stats?.connected) return null;
+  return (
+    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 mt-4">
+      <Tile label="Subscribers" value={formatViews(stats.subscribers ?? 0)}
+            sub={stats.subsGained28 ? `+${formatViews(stats.subsGained28)} in 28d` : undefined} />
+      <Tile label="Views 28d" value={formatViews(stats.views28 ?? 0)} />
+      <Tile label="Watch time 28d" value={`${formatViews(Math.round((stats.watchMinutes28 ?? 0) / 60))}h`} />
+      <Tile label="Total views" value={formatViews(stats.totalViews ?? 0)} />
     </div>
   );
 }

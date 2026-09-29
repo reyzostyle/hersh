@@ -91,6 +91,19 @@ export async function watchVideo(
   return text as string;
 }
 
+// Only for callers that still print a number (the Discord bot). See opts.
+const SCORING = `SCORING (overall_score: integer 1-100). Build the score from components so it actually spreads - do NOT pick a round number and do NOT default to the 70s.
+First score FOUR components honestly, then SUM them into overall_score:
+- Hook strength (0-30): does the first 0-3s stop the scroll for THIS format's hook?
+- Retention & pacing (0-25): does it hold attention - no dead air, no drag, no filler?
+- Payoff & ending (0-25): does it deliver on the hook's promise and end with a reason to stay/act?
+- Clarity & delivery (0-20): audio, visuals, energy, comprehension.
+overall_score = hook + retention + payoff + delivery. Output the EXACT sum. Avoid magnet numbers (50, 70, 75, 80, 85) - if the math lands on 73 or 61, say 73 or 61.
+Bands for sanity-check only: 85-100 exceptional (rare), 70-84 strong, 55-69 decent with clear fixes, 40-54 below average, 25-39 weak, 1-24 broken.
+A genuinely strong Short earns 80+ when each component is high. A weak or average video MUST land below 60. Viral views != good hook. Never inflate to be nice, never hedge a strong one down.
+
+`;
+
 // One call does the whole job: the model watches the video AND writes the
 // verdict. `source` is whatever Gemini can read: a YouTube URL for the paste
 // flow, or a Files API uri for an uploaded file - both paths share this.
@@ -111,6 +124,10 @@ export async function analyzeVideo(
   // connected, that curve exists nowhere this code can reach, and only they
   // can put it on the table.
   extraImages?: AttachedImage[],
+  // The app dropped the out-of-100 score on 2026-09-29: it made Chumoku read
+  // as a grader, and the chat now opens on a short message instead. The
+  // Discord bot still prints "NN/100", so it asks for the score explicitly.
+  opts: { scored?: boolean } = {},
 ) {
   const geminiApiKey = Deno.env.get('GEMINI_API_KEY');
   if (!geminiApiKey) throw new Error('Gemini API key not configured');
@@ -141,24 +158,14 @@ CUTS ARE NOT MOTION. This is the single easiest thing to get wrong. Switching to
 
 HEAR EVERY LAYER. The audio field is an inventory, not a summary. At each beat name every layer you can actually hear: the voiceover, the music, and each sound effect BY NAME. Use the real name a short-form editor would call it, whatever that is - risers and swells, whooshes and transitions, impacts, booms and braams, sub-drops, cash registers, pops and clicks, glitches, vinyl scratches, record rewinds, airhorns, typewriter clacks, camera shutters, bells, applause, laugh tracks, boings, and anything else you hear. Those are examples, not a menu: name what is actually there even when it is not in that list. If a beat has no sound effect, write "no SFX" for that beat. Never write filler like "voiceover and music continue" - it hides exactly the information the fixes depend on. Also note when music sits on top of the voice, or an SFX lands too quiet to register.
 
-STAGE 2: JUDGE. Only now score the video and write the fixes, and anchor every single one to a specific beat from your own timeline.
+STAGE 2: JUDGE. Only now write the fixes, and anchor every single one to a specific beat from your own timeline.
 
 CREATOR LEVEL: ${level}
 - beginner: explain the "why" behind each edit, avoid jargon, focus on the 1-2 fixes that matter most. Encouraging but honest.
 - intermediate: skip fundamentals (they know hook/retention/CTA). Focus on the specific edit to make and exactly where.
 - advanced: reference advanced editing concepts (pattern interrupts via cut rhythm, retention-curve-driven pacing, loop mechanics, cold-open crops). Challenge assumptions, be opinionated.
 
-SCORING (overall_score: integer 1-100). Build the score from components so it actually spreads - do NOT pick a round number and do NOT default to the 70s.
-First score FOUR components honestly, then SUM them into overall_score:
-- Hook strength (0-30): does the first 0-3s stop the scroll for THIS format's hook?
-- Retention & pacing (0-25): does it hold attention - no dead air, no drag, no filler?
-- Payoff & ending (0-25): does it deliver on the hook's promise and end with a reason to stay/act?
-- Clarity & delivery (0-20): audio, visuals, energy, comprehension.
-overall_score = hook + retention + payoff + delivery. Output the EXACT sum. Avoid magnet numbers (50, 70, 75, 80, 85) - if the math lands on 73 or 61, say 73 or 61.
-Bands for sanity-check only: 85-100 exceptional (rare), 70-84 strong, 55-69 decent with clear fixes, 40-54 below average, 25-39 weak, 1-24 broken.
-A genuinely strong Short earns 80+ when each component is high. A weak or average video MUST land below 60. Viral views != good hook. Never inflate to be nice, never hedge a strong one down.
-
-HOOK TYPES (id the type, judge execution for THAT type): curiosity gap, pattern interrupt, contrarian, story cold open, transformation/result-first, direct question, shock/surprise, list/number.
+${opts.scored ? SCORING : ''}HOOK TYPES (id the type, judge execution for THAT type): curiosity gap, pattern interrupt, contrarian, story cold open, transformation/result-first, direct question, shock/surprise, list/number.
 
 FORMATS (id format first, evaluate by its own rules):
 - Storytime: hook = most dramatic moment/stakes, NOT intro
@@ -195,7 +202,12 @@ HARD RULES
 9. Never tell the creator to add something your own timeline already lists at that beat. Check the timeline first: if the zoom, SFX or overlay is already there, either leave it alone or say to strengthen it ("push the existing zoom further", "raise the riser under the voice"), and say plainly that it is already present. Prescribing an effect that is already in the edit is the fastest way to lose their trust.
 10. You watched this video yourself - write as the reviewer. Never name or hint at any AI model, vendor, or pipeline stage (Gemini, Claude, GPT, "the AI", "the model", "visual analysis confirms", etc.). Just say what's on screen and in the audio, plainly, like you saw it with your own eyes.
 
-OUTPUT (overall_assessment): 3-4 sentences, senior editor to a peer editor. No fixed template, vary your opening. Cover the main edit issue, how the hook's footage performs specifically, one pacing/visual observation, and end with the single most important edit to make. Sound like a real person, not a report. Break it into 2-3 short paragraphs separated by a blank line (\\n\\n) so it's easy to read - never one dense block.
+OUTPUT (overall_assessment): this is the chat message the creator reads first, and usually the only thing they read - every other field stays behind a "see all fixes" link. Write it like a sharp friend texting them right after watching.
+- 2 to 4 short sentences, under 60 words, one paragraph. No list, no heading, no rating, no score.
+- Lead with the ONE edit that would change the most, with its timestamp and the words spoken there. Say what to do, not what is wrong in general.
+- Only if it earns the space: one thing that already works and must be kept.
+- End on a hook ONLY when you have something specific you have not said yet - usually the next fix, phrased as an offer: "There is also a dead second at 0:12. Want that fix?" It has to name the thing. Never a generic "want more tips?" - if you have nothing specific, end on the fix.
+- Vary how you open. Never start with "This video" or "Overall".
 
 PUNCTUATION: never use em-dash or en-dash anywhere. Only the regular hyphen (-).
 
@@ -268,9 +280,9 @@ Respond with valid JSON only, no markdown, with the keys in exactly this order -
   "technical_audit": "one line per real defect found while building the timeline (audio balance, dead air, caption sync, visual sync), formatted 'M:SS - CATEGORY: what is wrong + the words spoken there', where CATEGORY is replaced by one of AUDIO BALANCE, DEAD AIR, CAPTION SYNC or VISUAL SYNC - never leave the word CATEGORY in the output. Only these four defect types belong here; a missing graphic or a flat-looking overlay is an editing note, not a sync defect, so it goes in weak_spots instead. Exactly NONE if there are none.",
   "hook_type": "<identified hook type from the list>",
   "video_format": "<identified video format from the list>",
-  "score_breakdown": { "hook": <0-30>, "retention": <0-25>, "payoff": <0-25>, "delivery": <0-20> },
+${opts.scored ? `  "score_breakdown": { "hook": <0-30>, "retention": <0-25>, "payoff": <0-25>, "delivery": <0-20> },
   "overall_score": <integer 1-100, the EXACT sum of the four components>,
-  "overall_assessment": "3-4 sentences, 2-3 short paragraphs",
+` : ''}  "overall_assessment": "the chat message: 2-4 short sentences, under 60 words",
   "strong_spots": [
     "M:SS - an editing choice that works and why (max 2 sentences)"
   ],
@@ -330,6 +342,6 @@ Respond with valid JSON only, no markdown, with the keys in exactly this order -
 
   const parsed = stripDashes(parseModelJson(content, 'Gemini response'));
 
-  console.log(`[gemini] timeline beats: ${parsed.timeline?.length ?? 0}, weak_spots: ${parsed.weak_spots?.length ?? 0}, score: ${parsed.overall_score}`);
+  console.log(`[gemini] timeline beats: ${parsed.timeline?.length ?? 0}, weak_spots: ${parsed.weak_spots?.length ?? 0}`);
   return parsed;
 }
