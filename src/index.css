@@ -835,13 +835,16 @@ button.row:active,
 .idea-step__n[data-done="true"] { background: var(--accent); color: var(--on-accent); box-shadow: none; }
 
 /* ─── Landing shelf (LandingPage HeroShelf) ─────────────────────────────────── */
+/* Full-bleed: it breaks out of the page column so six cards fit on a laptop
+   screen, and only the outermost few percent fade. */
 .shelf {
   display: flex; justify-content: center; gap: 12px; padding-bottom: 32px;
-  -webkit-mask-image: linear-gradient(to right, transparent, #000 10%, #000 90%, transparent);
-  mask-image: linear-gradient(to right, transparent, #000 10%, #000 90%, transparent);
+  width: 100vw; margin-left: calc(50% - 50vw);
+  -webkit-mask-image: linear-gradient(to right, transparent, #000 6%, #000 94%, transparent);
+  mask-image: linear-gradient(to right, transparent, #000 6%, #000 94%, transparent);
 }
 .shelf__item {
-  width: 216px; flex-shrink: 0;
+  width: 196px; flex-shrink: 0;
   animation: fadeInUp 0.6s cubic-bezier(0.22, 1, 0.36, 1) both;
   animation-delay: calc(300ms + var(--i) * 80ms);
 }

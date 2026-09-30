@@ -342,35 +342,43 @@ function AuthModal({ initialMode, onClose, context }: {
 // changes shape, these are wrong, and that is the correct amount of coupling
 // for a page whose whole job is to show the app.
 
-// Real Shorts from the niches this is for, with their real numbers: each
+// Real Shorts across the niches people come from - Roblox, GTA, vibe coding,
+// a founder's office vlog, Minecraft, tech - with their real numbers: each
 // multiple is the video's views over its own channel's median Short, measured
-// 2026-09-29. The pitches are what Chumoku writes for a Minecraft ranking
-// channel. Nothing here is a mock of a number.
+// 2026-09-30 (yt-dlp over each channel's last 40-60 Shorts, or the Ideas
+// pool's own median where the channel is already tracked). The pitches are
+// what a creator in the same niche would make of it. Nothing here is a mock
+// of a number.
 const DEMO: FeedItem[] = [
   {
-    video_id: 'Y1s03EY3UCk', channel_id: 'demo-1', channel_name: 'Olympus Stuff',
+    video_id: 'Y1s03EY3UCk', channel_id: 'demo-roblox', channel_name: 'Olympus Stuff',
     video_title: "When you go to McDonald's (meme) ROBLOX", video_views: 13_691_877, video_published_at: null,
-    outlier_score: 31, idea: { pitch: 'When you join a Minecraft server as a noob', fit: 'yes' } as FeedItem['idea'],
+    outlier_score: 31, idea: { pitch: 'When you join a new server as a noob', fit: 'yes' } as FeedItem['idea'],
   },
   {
-    video_id: '2cYF74YMmGc', channel_id: 'demo-2', channel_name: 'Alexa Real',
+    video_id: 'EocsE3pFnAI', channel_id: 'demo-gta', channel_name: 'Caylus',
+    video_title: 'gta 5 in real life..', video_views: 16_057_410, video_published_at: null,
+    outlier_score: 17, idea: { pitch: 'GTA 6 physics, but in real life', fit: 'yes' } as FeedItem['idea'],
+  },
+  {
+    video_id: '3iUo7bnsN30', channel_id: 'demo-vibe', channel_name: 'InsiderForce',
+    video_title: 'You can now build a full APP for free.', video_views: 265_389, video_published_at: null,
+    outlier_score: 65, idea: { pitch: 'I shipped an app in one evening without writing code', fit: 'yes' } as FeedItem['idea'],
+  },
+  {
+    video_id: 'nGPFYc6eTKw', channel_id: 'demo-office', channel_name: 'Erik Cupsa',
+    video_title: 'Learn How To Code In 90 Days', video_views: 208_327, video_published_at: null,
+    outlier_score: 11, idea: { pitch: 'What 90 days at a startup actually taught me', fit: 'yes' } as FeedItem['idea'],
+  },
+  {
+    video_id: '2cYF74YMmGc', channel_id: 'demo-minecraft', channel_name: 'Alexa Real',
     video_title: 'how different players do MLG water bucket', video_views: 15_548_608, video_published_at: null,
     outlier_score: 20, idea: { pitch: 'How different players build their first house', fit: 'yes' } as FeedItem['idea'],
   },
   {
-    video_id: 'k-JdoUmUMWo', channel_id: 'demo-3', channel_name: 'The Robloxian Baddie',
-    video_title: 'How to Do the GNARLY Obby Trend', video_views: 281_889, video_published_at: null,
-    outlier_score: 24, idea: { pitch: 'Ranking every parkour jump from easy to impossible', fit: 'yes' } as FeedItem['idea'],
-  },
-  {
-    video_id: '1_3WVnRdFYw', channel_id: 'demo-5', channel_name: 'Olympus Stuff',
-    video_title: 'When 5 YEAR OLDS Get Hurt (meme) Roblox', video_views: 10_206_169, video_published_at: null,
-    outlier_score: 23, idea: { pitch: 'When a 5 year old joins your Minecraft world', fit: 'yes' } as FeedItem['idea'],
-  },
-  {
-    video_id: 'fq9MMsCeNhw', channel_id: 'demo-4', channel_name: 'mint.chippie',
-    video_title: 'Herobrine vs XDjames rank up', video_views: 2_163_572, video_published_at: null,
-    outlier_score: null, idea: { pitch: 'Rank 1 Steve vs Rank 100 Warden. Only one walks out.', fit: 'yes' } as FeedItem['idea'],
+    video_id: 'PTd98UnJnnU', channel_id: 'demo-tech', channel_name: 'Marques Brownlee',
+    video_title: 'This TECH Knife is Insane!', video_views: 41_870_837, video_published_at: null,
+    outlier_score: 6.1, idea: { pitch: 'The $20 gadget that replaced half my desk', fit: 'yes' } as FeedItem['idea'],
   },
 ];
 
@@ -400,7 +408,7 @@ const noop = () => {};
 // Every other card sits a little lower, so the row reads as something laid
 // out by hand rather than a table; the edges fade so it has no hard end.
 function HeroShelf() {
-  const order = [DEMO[1], DEMO[0], DEMO[2], DEMO[3], DEMO[4]];
+  const order = DEMO;
   return (
     <div className="shelf">
       {order.map((item, i) => (
@@ -415,7 +423,7 @@ function HeroShelf() {
 function IdeasGrid() {
   return (
     <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5">
-      {DEMO.map((item, i) => (
+      {DEMO.slice(0, 4).map((item, i) => (
         <Reveal key={item.video_id} delay={i * 70}>
           <CompetitorVideoCard item={item} readOnly onOpen={noop} onSave={noop} onDismiss={noop} />
         </Reveal>

@@ -98,9 +98,9 @@ function Tile({ children, className = '' }: { children: React.ReactNode; classNa
 // same measured multiples as the cards at the top of the page.
 function FindTile({ inView }: { inView: boolean | null }) {
   const cards = [
-    { id: '2cYF74YMmGc', m: '20×', r: -9, x: -58 },
-    { id: 'k-JdoUmUMWo', m: '24×', r: 9, x: 58 },
-    { id: 'Y1s03EY3UCk', m: '31×', r: 0, x: 0 },
+    { id: 'EocsE3pFnAI', m: '17×', r: -9, x: -58 },
+    { id: 'nGPFYc6eTKw', m: '11×', r: 9, x: 58 },
+    { id: '3iUo7bnsN30', m: '65×', r: 0, x: 0 },
   ];
   return (
     <Tile className="flex items-center justify-center">
