@@ -414,7 +414,7 @@ export function SettingsPage() {
     <div className="sheet min-h-full max-w-5xl mx-auto px-5 sm:px-8 pt-12 sm:pt-16 pb-20">
 
       <div className="hidden lg:block">
-        <PageHead eyebrow="Settings" title="Your account" subtitle="Your channel profile, your connections, and your subscription." />
+        <PageHead title="Settings" />
       </div>
 
       {loading ? <Loading /> : (

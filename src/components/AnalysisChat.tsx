@@ -1139,7 +1139,6 @@ export function AnalysisChat() {
 
       {empty ? (
         <div className="flex-1 flex flex-col items-center justify-center px-5 pb-10">
-          <p className="label-mono mb-4">Chat</p>
           <h1 className="display mb-8 text-center" style={{ color: 'var(--text)' }}>What are we looking at?</h1>
           <div className="w-full max-w-2xl">
             <Composer

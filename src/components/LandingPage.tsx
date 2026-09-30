@@ -18,7 +18,6 @@ import { SUPPORT_EMAIL } from '../lib/brand';
 import { FAQS } from '../lib/faq';
 import { readLastEmail, forgetLastEmail } from '../lib/user';
 import { arrivedWith, peek, PENDING_ANALYZE_KEY, PENDING_STEAL_KEY } from '../lib/intents';
-import { StealCard } from './StealCard';
 import { CompetitorVideoCard } from './CompetitorVideoCard';
 import type { FeedItem } from '../lib/competitors';
 import { Head, WorkflowGrid, CreditLedger, BrainScan } from './LandingMotion';
@@ -364,6 +363,11 @@ const DEMO: FeedItem[] = [
     outlier_score: 24, idea: { pitch: 'Ranking every parkour jump from easy to impossible', fit: 'yes' } as FeedItem['idea'],
   },
   {
+    video_id: '1_3WVnRdFYw', channel_id: 'demo-5', channel_name: 'Olympus Stuff',
+    video_title: 'When 5 YEAR OLDS Get Hurt (meme) Roblox', video_views: 10_206_169, video_published_at: null,
+    outlier_score: 23, idea: { pitch: 'When a 5 year old joins your Minecraft world', fit: 'yes' } as FeedItem['idea'],
+  },
+  {
     video_id: 'fq9MMsCeNhw', channel_id: 'demo-4', channel_name: 'mint.chippie',
     video_title: 'Herobrine vs XDjames rank up', video_views: 2_163_572, video_published_at: null,
     outlier_score: null, idea: { pitch: 'Rank 1 Steve vs Rank 100 Warden. Only one walks out.', fit: 'yes' } as FeedItem['idea'],
@@ -392,22 +396,18 @@ const testimonials: { quote: string; name: string; on: string }[] = [
 
 const noop = () => {};
 
-// The first thing on the page is what a steal gives you, because that is the
-// product and the thing people film: two ideas from the feed and the card a
-// steal lands on.
-function HeroDemo() {
-  const stolen = DEMO[0];
+// Under the field: a shelf of real ideas, the way the Ideas tab shows them.
+// Every other card sits a little lower, so the row reads as something laid
+// out by hand rather than a table; the edges fade so it has no hard end.
+function HeroShelf() {
+  const order = [DEMO[1], DEMO[0], DEMO[2], DEMO[3], DEMO[4]];
   return (
-    <div className="flex items-end justify-center gap-3 sm:gap-4">
-      <div className="hidden md:block w-[230px]"><CompetitorVideoCard item={DEMO[1]} readOnly onOpen={noop} onSave={noop} onDismiss={noop} /></div>
-      <StealCard
-        idea={{
-          video_id: stolen.video_id, video_thumbnail: null, video_views: stolen.video_views, channel_name: stolen.channel_name,
-          outline: { hook: 'Everyone on this server is rich. I have one dirt block.', sections: [], cta: '' },
-        }}
-        multiplier={stolen.outlier_score}
-      />
-      <div className="hidden md:block w-[230px]"><CompetitorVideoCard item={DEMO[2]} readOnly onOpen={noop} onSave={noop} onDismiss={noop} /></div>
+    <div className="shelf">
+      {order.map((item, i) => (
+        <div key={item.video_id} className="shelf__item" style={{ ['--i' as string]: i }}>
+          <CompetitorVideoCard item={item} readOnly onOpen={noop} onSave={noop} onDismiss={noop} />
+        </div>
+      ))}
     </div>
   );
 }
@@ -793,7 +793,6 @@ export function LandingPage() {
               came from paper.design and read as a document; centred, the page
               opens on a single thing to do. */}
           <div className={`relative ${SECTION} pt-16 sm:pt-28 pb-10 sm:pb-14 flex flex-col items-center text-center`}>
-            <p className="label-mono mb-5 animate-fade-in">For Shorts creators</p>
 
             {/* Bright line, then the same sentence continuing in the muted
                 weight. One headline doing the job the headline plus a
@@ -807,15 +806,10 @@ export function LandingPage() {
                   "AI content producer" named a category and left people asking
                   what it actually does; "script writer" was concrete and too
                   small. The workflow is the middle, and time is what it buys. */}
-              <span className="block text-balance md:whitespace-nowrap" style={{ color: 'var(--text)' }}>Steal the Shorts blowing up in your niche.</span>
-              {/* Off on phones: four lines of headline before the field pushed
-                  the one thing to do below the fold. */}
-              <span className="block text-balance md:whitespace-nowrap" style={{ color: 'var(--text-muted)' }}>Post your version tomorrow.</span>
+              <span className="block text-balance" style={{ color: 'var(--text)' }}>Steal what already works.</span>
             </h1>
 
-            <p className="animate-fade-in-up delay-100 text-[15px] sm:text-base leading-relaxed mt-4 sm:mt-5 mb-7 sm:mb-8 mx-auto max-w-md text-balance" style={{ color: 'var(--text-muted)' }}>
-              Chumoku finds them, rebuilds them for your channel and writes the script.
-            </p>
+            <div className="h-8 sm:h-10" />
 
             {/* The only CTA above the fold, and it is the app's composer, not a
                 marketing input: same plate, same radius, same round send. */}
@@ -852,7 +846,7 @@ export function LandingPage() {
               impression: not a claim about the app, the app. */}
           <div className={`relative ${SECTION} pb-16 sm:pb-24`}>
             <div className="animate-fade-in-up delay-300">
-              <HeroDemo />
+              <HeroShelf />
             </div>
           </div>
         </header>
@@ -865,7 +859,6 @@ export function LandingPage() {
             id="product"
             eyebrow="How it works"
             title="Four steps."
-            muted="None of them is a blank page."
           />
           <WorkflowGrid />
         </section>
@@ -873,7 +866,7 @@ export function LandingPage() {
         {/* ── Showcase ───────────────────────────────────────────────────────── */}
         <section className={`${SECTION} pb-16 sm:pb-24`}>
           <Head
-            eyebrow="One balance"
+            eyebrow="Credits"
             title="One balance."
             muted="Pay for what you use."
           />
@@ -898,14 +891,13 @@ export function LandingPage() {
           <Head
             eyebrow="Chumoku brain"
             title="It learns your channel."
-            muted="In one click."
           />
           <BrainScan />
         </section>
 
         {/* ── Proof ───────────────────────────────────────────────────────── */}
         <section className={`${SECTION} pb-16 sm:pb-24`}>
-          <Head eyebrow="From the Discord" title="Real messages," muted="word for word." />
+          <Head eyebrow="From the Discord" title="Real messages." />
           <div className="grid sm:grid-cols-3 gap-3 sm:gap-4">
             {testimonials.map((t, i) => (
               <Reveal key={t.name} delay={i * 70}>

@@ -12,7 +12,6 @@ interface HomePageProps {
 interface Tool {
   id: NavTab;
   label: string;
-  description: string;
   icon: React.ReactNode;
 }
 
@@ -24,20 +23,17 @@ const tools: Tool[] = [
     // Only the word people read changed - see AppShell for why the id stays.
     id: 'competitors',
     label: 'Ideas',
-    description: 'Shorts blowing up in your niche, rebuilt for your channel.',
     icon: <Bulb className="w-[18px] h-[18px]" />,
   },
   {
     // Still `analyze` underneath, for the same reason.
     id: 'analyze',
     label: 'Chat',
-    description: 'Send a link, a hook, a script or a question and talk it through.',
     icon: <Chat className="w-[18px] h-[18px]" />,
   },
   {
     id: 'saved',
     label: 'Saved',
-    description: 'The ideas you kept and every conversation you have had.',
     icon: <Bookmark className="w-[18px] h-[18px]" />,
   },
 ];
@@ -53,13 +49,7 @@ export function HomePage({ onNavigate }: HomePageProps) {
 
   return (
     <Page>
-      <PageHead
-        eyebrow="Workspace"
-        title={`${fresh ? 'Welcome' : 'Welcome back'}${name ? `, ${name}` : ''}`}
-        subtitle={fresh
-          ? 'Start with Ideas. Pick one that fits your channel and steal it.'
-          : 'Pick a tool and get to work.'}
-      />
+      <PageHead title={`${fresh ? 'Welcome' : 'Welcome back'}${name ? `, ${name}` : ''}`} />
 
       {/* Raised rows rather than ruled ones. The hairline version read as a
           contents page - handsome, and nothing about it said the four lines
@@ -71,7 +61,6 @@ export function HomePage({ onNavigate }: HomePageProps) {
             key={tool.id}
             icon={tool.icon}
             title={tool.label}
-            subtitle={tool.description}
             arrow={<ArrowUpRight className="w-4 h-4 row-arrow" />}
             onClick={() => onNavigate(tool.id)}
           />

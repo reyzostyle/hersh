@@ -453,12 +453,7 @@ export function CompetitorsPage() {
 
   return (
     <Page className="animate-tab-in">
-      <PageHead
-        eyebrow="Ideas"
-        title="Steal what already worked."
-        tagline="Rebuilt for your channel."
-        subtitle="Shorts that beat their own channel, pitched as your version. Browsing is free; opening one up costs a credit."
-      />
+      <PageHead title="Ideas" />
 
       <CompetitorsFeed
         items={items}

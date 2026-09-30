@@ -4,7 +4,6 @@ import { Section, EditActions, Row, Skeleton } from './Page';
 import { listRecentThreads, deleteThread, renameThread, requestOpenThread, peekHistoryRequest, clearHistoryRequest, type RecentThread } from '../lib/projects';
 import { formatDate } from '../lib/competitors';
 
-const HISTORY_NOTE = 'Every conversation you have had. Open one to pick it back up.';
 
 // Chat history lives on the hub and in Saved rather than in Chat. Analyze's empty screen is a
 // headline and a composer, and putting a list under it would turn the one
@@ -67,7 +66,7 @@ export function ChatHistory() {
   if (!loaded) {
     return (
       <div ref={sectionRef}>
-      <Section label="Chat history" note={HISTORY_NOTE}>
+      <Section label="Chat history">
         <div className="row-list">
           {[0, 1, 2].map(i => (
             <div key={i} className="row">
@@ -93,7 +92,7 @@ export function ChatHistory() {
     <div ref={sectionRef}>
     <Section
       label="Chat history"
-      note={HISTORY_NOTE}
+     
       action={threads.length > PREVIEW_COUNT && (
         <button onClick={() => setShowAll(v => !v)} className="chip">
           {showAll ? 'Show less' : `Show all ${threads.length}`}

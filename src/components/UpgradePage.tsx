@@ -119,9 +119,7 @@ export function UpgradePage() {
             already exists for exactly this and costs no vertical space. */}
         <div className="hidden lg:block">
           <PageHead
-            eyebrow="Plans"
-            title="Plans and billing"
-            subtitle="Compare the plans and manage your subscription."
+            title="Plans"
             action={
               <div className="flex flex-col items-end gap-1.5">
                 <div className="seg">

@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState } from 'react';
-import { GraphUpOutlineIcon as TrendingUpIcon } from '@solar-icons/react';
 
 // The landing page's moving parts, after money.x.com.
 //
@@ -94,29 +93,28 @@ function Tile({ children, className = '' }: { children: React.ReactNode; classNa
   );
 }
 
+// Three real ideas fanned out like cards in a hand: the frame and how far it
+// beat its channel, which is all you need to see to want one. Same Shorts,
+// same measured multiples as the cards at the top of the page.
 function FindTile({ inView }: { inView: boolean | null }) {
-  // Your version of each, not their title - the feed's whole point since
-  // 2026-09-30. The multiples are the real ones for the Shorts the demo cards
-  // on this page use (measured against each channel's median, 2026-09-29).
-  const rows = [
-    { t: 'When you join a server as a noob', m: '31x' },
-    { t: 'How different players build a house', m: '20x' },
-    { t: 'Rank 1 Steve vs Rank 100 Warden', m: '24x' },
+  const cards = [
+    { id: '2cYF74YMmGc', m: '20×', r: -9, x: -58 },
+    { id: 'k-JdoUmUMWo', m: '24×', r: 9, x: 58 },
+    { id: 'Y1s03EY3UCk', m: '31×', r: 0, x: 0 },
   ];
   return (
-    <Tile>
-      <p className="label-mono mb-3">Ideas for your channel</p>
-      <div className="space-y-2">
-        {rows.map((r, i) => (
-          <div key={r.t} className="flex items-center gap-2.5 px-2.5 py-2 rounded-lg" style={{ ...enter(inView, i, 150), background: 'var(--bg-app)', border: '1px solid var(--line)' }}>
-            <span className="flex items-center gap-1 font-mono text-[10.5px] px-1.5 py-0.5 rounded tabular-nums flex-shrink-0"
-                  style={{ background: 'rgba(var(--process-rgb),0.12)', color: 'var(--process)' }}>
-              <TrendingUpIcon className="w-3 h-3" />{r.m}
-            </span>
-            <span className="text-[12px] truncate" style={{ color: 'var(--text)' }}>{r.t}</span>
-          </div>
-        ))}
-      </div>
+    <Tile className="flex items-center justify-center">
+      {cards.map((c, i) => (
+        <div key={c.id} className="fan-card"
+             style={{
+               ...enter(inView, i, 150),
+               transform: `translateX(${c.x}px) rotate(${inView === false ? 0 : c.r}deg)`,
+               zIndex: i,
+             }}>
+          <img src={`https://i.ytimg.com/vi/${c.id}/hqdefault.jpg`} alt="" loading="lazy" />
+          <span>{c.m}</span>
+        </div>
+      ))}
     </Tile>
   );
 }
@@ -168,22 +166,22 @@ function StealTile({ inView }: { inView: boolean | null }) {
   );
 }
 
-function OutlineTile({ inView }: { inView: boolean | null }) {
-  const lines = [
-    { k: 'Hook, 0-3s', v: 'Rank the scariest mob before anyone asks why.' },
-    { k: 'Build, 3-18s', v: 'Cut on every rank, number on screen.' },
+// The idea screen's three steps, the first two already open.
+function UnlockTile({ inView }: { inView: boolean | null }) {
+  const steps = [
+    { n: 1, t: 'Your angle', done: true },
+    { n: 2, t: 'Outline', done: true },
+    { n: 3, t: 'Script', done: false },
   ];
   return (
-    <Tile>
-      <p className="label-mono mb-3">Your version</p>
-      <div className="space-y-2.5">
-        {lines.map((l, i) => (
-          <div key={l.k} style={enter(inView, i, 150)}>
-            <p className="font-mono text-[9.5px] uppercase tracking-wider" style={{ color: 'var(--text-faint)' }}>{l.k}</p>
-            <p className="text-[12px] leading-snug mt-0.5" style={{ color: i === 0 ? 'var(--text)' : 'var(--text-muted)' }}>{l.v}</p>
-          </div>
-        ))}
-      </div>
+    <Tile className="flex flex-col justify-center gap-2.5">
+      {steps.map((st, i) => (
+        <div key={st.n} className="flex items-center gap-3 px-3 py-2.5 rounded-xl"
+             style={{ ...enter(inView, i, 250), background: 'var(--bg-app)', border: '1px solid var(--line)' }}>
+          <span className="idea-step__n" data-done={st.done ? 'true' : undefined}>{st.n}</span>
+          <span className="text-[13.5px] font-medium" style={{ color: st.done ? 'var(--text)' : 'var(--text-faint)' }}>{st.t}</span>
+        </div>
+      ))}
     </Tile>
   );
 }
@@ -195,19 +193,22 @@ function ChatTile({ inView }: { inView: boolean | null }) {
         write the script for my saved idea
       </div>
       <div className="max-w-[92%] px-3 py-2 rounded-2xl text-[12px] leading-snug" style={{ ...enter(inView, 1, 500), background: 'var(--bg-app)', border: '1px solid var(--line)', color: 'var(--text-muted)' }}>
-        <span style={{ color: 'var(--text)' }}>Hook:</span> "I ranked every mob by how scary it is. Number one will annoy you."
+        <span style={{ color: 'var(--text)' }}>Hook:</span> "Everyone on this server is rich. I have one dirt block."
       </div>
     </Tile>
   );
 }
 
-const STEPS: { n: string; title: string; text: string; Tile: (p: { inView: boolean | null }) => JSX.Element }[] = [
+const STEPS: { n: string; title: string; Tile: (p: { inView: boolean | null }) => JSX.Element }[] = [
   // One line each at the tile's width. Two-line captions kept ending on a
   // single word, which reads as copy that ran out of room.
-  { n: '01', title: 'Find what is blowing up', text: 'Pitched as your version, free.', Tile: FindTile },
-  { n: '02', title: 'Steal it while you scroll', text: 'One button on any Short.', Tile: StealTile },
-  { n: '03', title: 'Unlock your version', text: 'The angle, then the outline.', Tile: OutlineTile },
-  { n: '04', title: 'Get the script', text: 'Written in chat. Push back on any line.', Tile: ChatTile },
+  // Titles only. A caption under each one explained what the tile already
+  // shows, and Ivan's rule (2026-09-30) is that nothing on the page describes
+  // what is on the page.
+  { n: '01', title: 'Find what is blowing up', Tile: FindTile },
+  { n: '02', title: 'Steal it on YouTube', Tile: StealTile },
+  { n: '03', title: 'Unlock your version', Tile: UnlockTile },
+  { n: '04', title: 'Get the script', Tile: ChatTile },
 ];
 
 export function WorkflowGrid() {
@@ -218,18 +219,15 @@ export function WorkflowGrid() {
   );
 }
 
-function Step({ n, title, text, Tile: T }: (typeof STEPS)[number]) {
+function Step({ n, title, Tile: T }: (typeof STEPS)[number]) {
   const { ref, inView } = useInView<HTMLDivElement>(0.35);
   return (
     <div ref={ref} style={enter(inView)}>
       <T inView={inView} />
-      <div className="flex gap-3 mt-4">
-        <span className="font-mono text-[11px] tabular-nums pt-0.5" style={{ color: 'var(--text-faint)' }}>{n}</span>
-        <div>
-          <p className="text-[14.5px] font-medium" style={{ color: 'var(--text)' }}>{title}</p>
-          <p className="text-[13px] leading-relaxed mt-1" style={{ color: 'var(--text-muted)' }}>{text}</p>
-        </div>
-      </div>
+      <p className="flex gap-3 mt-4 text-[14.5px] font-medium" style={{ color: 'var(--text)' }}>
+        <span className="text-[12px] tabular-nums pt-0.5" style={{ color: 'var(--text-faint)' }}>{n}</span>
+        {title}
+      </p>
     </div>
   );
 }

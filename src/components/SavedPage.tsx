@@ -32,7 +32,7 @@ export function SavedPage() {
 
   return (
     <Page>
-      <PageHead eyebrow="Saved" title="Saved" tagline="What you kept." />
+      <PageHead title="Saved" />
 
       <Section label="Ideas">
         {ideas === null ? (

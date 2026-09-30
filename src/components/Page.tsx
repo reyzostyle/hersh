@@ -57,7 +57,9 @@ export function PageHead({
   subtitle,
   action,
 }: {
-  eyebrow: string;
+  // Optional since 2026-09-30: a label that repeats the title ("Saved / Saved")
+  // says nothing, so most screens drop it.
+  eyebrow?: string;
   title: string;
   // X Money's two-tone headline: a second line at the same size in 60% white.
   tagline?: string;
@@ -66,7 +68,7 @@ export function PageHead({
 }) {
   return (
     <header className="mb-10">
-      <p className="label-mono mb-4">{eyebrow}</p>
+      {eyebrow && <p className="label-mono mb-4">{eyebrow}</p>}
       {/* The action sits beside the title on a wide screen and drops below it on
           a narrow one. Sharing a row with a segmented control was squeezing the
           display line into three ragged lines on a phone. */}
