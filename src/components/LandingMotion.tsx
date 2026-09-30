@@ -111,7 +111,7 @@ function FindTile({ inView }: { inView: boolean | null }) {
                transform: `translateX(${c.x}px) rotate(${inView === false ? 0 : c.r}deg)`,
                zIndex: i,
              }}>
-          <img src={`https://i.ytimg.com/vi/${c.id}/hqdefault.jpg`} alt="" loading="lazy" />
+          <img src={`/landing/${c.id}.webp`} alt="" loading="lazy" />
           <span>{c.m}</span>
         </div>
       ))}

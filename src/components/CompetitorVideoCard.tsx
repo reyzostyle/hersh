@@ -14,9 +14,12 @@ import { Skeleton } from './Page';
 //
 // While the pitch is still being written the line is a skeleton, so the grid
 // fills in rather than arrives.
-export function CompetitorVideoCard({ item, pitching, readOnly, onOpen, onDismiss, onSave }: {
+export function CompetitorVideoCard({ item, pitching, readOnly, thumb, onOpen, onDismiss, onSave }: {
   item: FeedItem;
   pitching?: boolean;
+  // A pre-cropped 4:5 image to use instead of YouTube's letterboxed
+  // hqdefault (the landing ships sharper ones, see scripts/landing-thumbs.py).
+  thumb?: string;
   // The landing page shows real cards with nothing behind them: no buttons,
   // and not announced as a control.
   readOnly?: boolean;
@@ -41,7 +44,7 @@ export function CompetitorVideoCard({ item, pitching, readOnly, onOpen, onDismis
       data-readonly={readOnly ? 'true' : undefined}
     >
       <div className="idea-card__media">
-        <img src={`https://i.ytimg.com/vi/${item.video_id}/hqdefault.jpg`} alt="" loading="lazy" />
+        <img src={thumb ?? `https://i.ytimg.com/vi/${item.video_id}/hqdefault.jpg`} alt="" loading="lazy" data-exact={thumb ? 'true' : undefined} />
         {item.outlier_score != null && item.outlier_score < 1000 && (
           <span className="idea-card__mult" title="Views against this channel's usual">
             {item.outlier_score}×

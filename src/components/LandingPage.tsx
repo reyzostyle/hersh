@@ -380,7 +380,26 @@ const DEMO: FeedItem[] = [
     video_title: 'This TECH Knife is Insane!', video_views: 41_870_837, video_published_at: null,
     outlier_score: 6.1, idea: { pitch: 'The $20 gadget that replaced half my desk', fit: 'yes' } as FeedItem['idea'],
   },
+  {
+    video_id: 'woGWeN2vsuY', channel_id: 'demo-vlog', channel_name: 'Caylus',
+    video_title: 'I Snuck Into MrBeasts PARTY..', video_views: 23_159_389, video_published_at: null,
+    outlier_score: 24, idea: { pitch: 'I snuck into the biggest creator party in my city', fit: 'yes' } as FeedItem['idea'],
+  },
+  {
+    video_id: '0JZtdAtJiyk', channel_id: 'demo-ai', channel_name: 'InsiderForce',
+    video_title: 'Top 3 Claude Code Skills for Non-Designers', video_views: 451_783, video_published_at: null,
+    outlier_score: 110, idea: { pitch: '3 AI tools that make my edits look pro', fit: 'yes' } as FeedItem['idea'],
+  },
+  {
+    video_id: 'k-JdoUmUMWo', channel_id: 'demo-obby', channel_name: 'The Robloxian Baddie',
+    video_title: 'How to Do the GNARLY Obby Trend', video_views: 281_889, video_published_at: null,
+    outlier_score: 24, idea: { pitch: 'Ranking every parkour jump from easy to impossible', fit: 'yes' } as FeedItem['idea'],
+  },
 ];
+
+// Pre-cropped covers served from this site (scripts/landing-thumbs.py): twice
+// the resolution of YouTube's hqdefault after cropping, with the text on them.
+const demoThumb = (id: string) => `/landing/${id}.webp`;
 
 // Verbatim Discord messages, quoted as such. One per surface, so each lands on
 // a different problem rather than three people praising the same thing.
@@ -404,18 +423,22 @@ const testimonials: { quote: string; name: string; on: string }[] = [
 
 const noop = () => {};
 
-// Under the field: a shelf of real ideas, the way the Ideas tab shows them.
-// Every other card sits a little lower, so the row reads as something laid
-// out by hand rather than a table; the edges fade so it has no hard end.
+// Under the field: real ideas drifting past, the way the Ideas tab fills up.
+// The track holds the list twice and slides by exactly half its width, so the
+// loop has no seam; hovering stops it so a card can be read. Every other card
+// sits a little lower so the row reads as laid out by hand, and the edges fade.
 function HeroShelf() {
-  const order = DEMO;
+  const loop = [...DEMO, ...DEMO];
   return (
     <div className="shelf">
-      {order.map((item, i) => (
-        <div key={item.video_id} className="shelf__item" style={{ ['--i' as string]: i }}>
-          <CompetitorVideoCard item={item} readOnly onOpen={noop} onSave={noop} onDismiss={noop} />
-        </div>
-      ))}
+      <div className="shelf__track">
+        {loop.map((item, i) => (
+          <div key={`${item.video_id}-${i}`} className="shelf__item" data-low={(i % DEMO.length) % 2 ? 'true' : undefined}
+               aria-hidden={i >= DEMO.length ? 'true' : undefined}>
+            <CompetitorVideoCard item={item} thumb={demoThumb(item.video_id)} readOnly onOpen={noop} onSave={noop} onDismiss={noop} />
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
@@ -425,7 +448,7 @@ function IdeasGrid() {
     <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5">
       {DEMO.slice(0, 4).map((item, i) => (
         <Reveal key={item.video_id} delay={i * 70}>
-          <CompetitorVideoCard item={item} readOnly onOpen={noop} onSave={noop} onDismiss={noop} />
+          <CompetitorVideoCard item={item} thumb={demoThumb(item.video_id)} readOnly onOpen={noop} onSave={noop} onDismiss={noop} />
         </Reveal>
       ))}
     </div>

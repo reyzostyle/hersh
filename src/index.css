@@ -791,6 +791,9 @@ button.row:active,
 .idea-card__media { position: relative; aspect-ratio: 4 / 5; overflow: hidden; background: #000; }
 .idea-card__media img { width: 100%; height: 100%; object-fit: cover; transform: scale(1.35); transition: transform 0.4s ease; }
 .idea-card:hover .idea-card__media img { transform: scale(1.4); }
+/* Already cropped to the card: no letterbox to scale away. */
+.idea-card__media img[data-exact="true"] { transform: none; }
+.idea-card:hover .idea-card__media img[data-exact="true"] { transform: scale(1.04); }
 .idea-card__mult {
   position: absolute; left: 10px; bottom: 10px;
   font-size: 20px; font-weight: 500; letter-spacing: -0.02em; line-height: 1;
@@ -834,27 +837,29 @@ button.row:active,
 }
 .idea-step__n[data-done="true"] { background: var(--accent); color: var(--on-accent); box-shadow: none; }
 
-/* ─── Landing shelf (LandingPage HeroShelf) ─────────────────────────────────── */
-/* Full-bleed: it breaks out of the page column so six cards fit on a laptop
-   screen, and only the outermost few percent fade. */
+/* ─── Landing shelf (LandingPage HeroShelf) ───────────────────────────────────
+   Full-bleed marquee: breaks out of the page column, the track holds the list
+   twice and slides by half its width forever. The stagger is keyed to a card's
+   place in the list, not in the track, so a card never changes height when
+   the loop wraps. The trailing padding equals the gap, which is what makes
+   half the track exactly one copy. */
 .shelf {
-  display: flex; justify-content: center; gap: 12px; padding-bottom: 32px;
-  width: 100vw; margin-left: calc(50% - 50vw);
+  width: 100vw; margin-left: calc(50% - 50vw); overflow: hidden; padding-bottom: 32px;
   -webkit-mask-image: linear-gradient(to right, transparent, #000 6%, #000 94%, transparent);
   mask-image: linear-gradient(to right, transparent, #000 6%, #000 94%, transparent);
 }
-.shelf__item {
-  width: 196px; flex-shrink: 0;
-  animation: fadeInUp 0.6s cubic-bezier(0.22, 1, 0.36, 1) both;
-  animation-delay: calc(300ms + var(--i) * 80ms);
+.shelf__track {
+  display: flex; gap: 12px; width: max-content; padding-right: 12px;
+  animation: marquee 70s linear infinite;
 }
-.shelf__item:nth-child(even) { margin-top: 28px; }
+.shelf:hover .shelf__track { animation-play-state: paused; }
+.shelf__item { width: 196px; flex-shrink: 0; }
+.shelf__item[data-low="true"] { margin-top: 28px; }
 @media (max-width: 639px) {
-  .shelf { justify-content: flex-start; overflow-x: auto; scroll-snap-type: x mandatory; padding-left: 20px; padding-right: 20px; -webkit-mask-image: none; mask-image: none; scrollbar-width: none; }
-  .shelf::-webkit-scrollbar { display: none; }
-  .shelf__item { width: 60vw; scroll-snap-align: center; }
+  .shelf__item { width: 52vw; }
+  .shelf__track { animation-duration: 55s; }
 }
-@media (prefers-reduced-motion: reduce) { .shelf__item { animation: none; } }
+@media (prefers-reduced-motion: reduce) { .shelf__track { animation: none; } }
 
 /* Fanned thumbnails in the landing's first step tile. */
 .fan-card {
@@ -862,7 +867,7 @@ button.row:active,
   background: #000; box-shadow: 0 12px 30px -10px rgba(0, 0, 0, 0.8), inset 0 0 0 1px var(--line);
   transition: transform 0.7s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.5s ease;
 }
-.fan-card img { width: 100%; height: 100%; object-fit: cover; transform: scale(1.35); }
+.fan-card img { width: 100%; height: 100%; object-fit: cover; }
 .fan-card span {
   position: absolute; left: 6px; bottom: 6px; font-size: 12px; font-weight: 500; line-height: 1;
   padding: 4px 7px; border-radius: 999px; background: rgba(0, 0, 0, 0.62); color: #fff;
