@@ -7,7 +7,7 @@ import {
 import { CompetitorVideoCard } from './CompetitorVideoCard';
 import { CompetitorsChannels } from './CompetitorsChannels';
 import { ErrorNotice } from './ErrorNotice';
-import { Empty } from './Page';
+import { Empty, Seg, Collapse } from './Page';
 
 interface Props {
   items: FeedItem[];
@@ -93,13 +93,12 @@ export function CompetitorsFeed({
       <div className="space-y-2 sm:space-y-0 sm:flex sm:items-center sm:gap-2">
         <div className="flex items-center gap-2 sm:contents">
           <div className="flex-1 min-w-0 overflow-x-auto pb-0.5 -mb-0.5 sm:flex-none sm:overflow-visible sm:pb-0 sm:mb-0 sm:flex-shrink-0 sm:order-1">
-            <div className="seg w-max">
-              {TABS.map(t => (
-                <button key={t.id} onClick={() => onFilterChange(t.id)} data-on={filter === t.id}>
-                  {t.label} ({counts[t.id]})
-                </button>
-              ))}
-            </div>
+            <Seg
+              className="w-max"
+              options={TABS.map(t => ({ id: t.id, label: `${t.label} (${counts[t.id]})` }))}
+              value={filter}
+              onChange={onFilterChange}
+            />
           </div>
 
           {showClear && (
@@ -170,7 +169,10 @@ export function CompetitorsFeed({
         </div>
       </div>
 
-      {manageOpen && (
+      {/* !mt-0 and the padding inside: a shut Collapse is zero height, and the
+          list's space-y would otherwise still leave a gap where it sits. */}
+      <Collapse open={manageOpen} className="!mt-0">
+        <div className="pt-3">
         <CompetitorsChannels
           channels={channels}
           pool={pool}
@@ -185,7 +187,8 @@ export function CompetitorsFeed({
           adaptForProfile={adaptForProfile}
           onAdaptChange={onAdaptChange}
         />
-      )}
+        </div>
+      </Collapse>
 
       {fetchError && <ErrorNotice message={fetchError} />}
       {fetchNotice && (

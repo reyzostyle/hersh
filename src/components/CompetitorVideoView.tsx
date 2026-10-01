@@ -1,4 +1,5 @@
 import { AltArrowLeftOutlineIcon as ArrowLeft, SquareArrowRightUpOutlineIcon as ExternalLink, LockKeyholeMinimalisticOutlineIcon as Lock } from '@solar-icons/react';
+import { ShortThumb } from './ShortThumb';
 import { formatViews, type FeedItem, type CompetitorIdea } from '../lib/competitors';
 import { useIdeaGeneration } from '../lib/useIdeaGeneration';
 import { CREDIT_COSTS } from '../lib/useUsage';
@@ -63,7 +64,7 @@ export function CompetitorVideoView({
 
       <div className="flex flex-col sm:flex-row gap-6 sm:gap-8 mb-12">
         <div className="idea-hero__media">
-          <img src={`https://i.ytimg.com/vi/${item.video_id}/hqdefault.jpg`} alt="" />
+          <ShortThumb videoId={item.video_id} eager />
           {item.outlier_score != null && item.outlier_score < 1000 && (
             <span className="idea-card__mult">{item.outlier_score}×</span>
           )}

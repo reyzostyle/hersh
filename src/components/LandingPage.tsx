@@ -19,6 +19,8 @@ import { FAQS } from '../lib/faq';
 import { readLastEmail, forgetLastEmail } from '../lib/user';
 import { arrivedWith, peek, PENDING_ANALYZE_KEY, PENDING_STEAL_KEY } from '../lib/intents';
 import { CompetitorVideoCard } from './CompetitorVideoCard';
+import { BillingSeg } from './BillingSeg';
+import { Collapse } from './Page';
 import type { FeedItem } from '../lib/competitors';
 import { Head, WorkflowGrid, CreditLedger, BrainScan } from './LandingMotion';
 
@@ -549,23 +551,7 @@ const proPercentOff = Math.round(((proPlan.monthlyPrice * 12 - proPlan.yearlyTot
 
 function BillingToggle({ interval, onChange }: { interval: Interval; onChange: (v: Interval) => void }) {
   return (
-    <div className="flex items-center gap-3">
-      {/* The app's segmented control, not a bespoke pill with a sliding thumb.
-          Same .seg class Competitors and Analytics use for their filters. */}
-      <div className="seg">
-        {(['month', 'year'] as const).map(iv => (
-          <button key={iv} onClick={() => onChange(iv)} data-on={interval === iv}>
-            {iv === 'month' ? 'Monthly' : 'Yearly'}
-          </button>
-        ))}
-      </div>
-      <span
-        className="font-mono text-[11px] transition-opacity duration-200"
-        style={{ color: 'var(--process)', opacity: interval === 'year' ? 1 : 0 }}
-      >
-        −{proPercentOff}%
-      </span>
-    </div>
+    <BillingSeg interval={interval} onChange={onChange} percentOff={proPercentOff} />
   );
 }
 
@@ -631,14 +617,16 @@ function PricingCard({ plan, interval, onSelect }: { plan: Plan; interval: Inter
           <ChevronDown className="w-3.5 h-3.5 transition-transform duration-200" style={{ transform: open ? 'rotate(180deg)' : 'none' }} />
         </button>
       )}
-      <ul className={`space-y-2 mb-5 ${plan.features.length > 2 && !open ? 'hidden' : 'block'}`}>
-        {plan.features.map(f => (
-          <li key={f} className="flex items-start gap-2 text-[13px]" style={{ color: 'var(--text-muted)' }}>
-            <Check className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" style={{ color: 'var(--text-faint)' }} />
-            {f}
-          </li>
-        ))}
-      </ul>
+      <Collapse open={plan.features.length <= 2 || open}>
+        <ul className="space-y-2 pb-5">
+          {plan.features.map(f => (
+            <li key={f} className="flex items-start gap-2 text-[13px]" style={{ color: 'var(--text-muted)' }}>
+              <Check className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" style={{ color: 'var(--text-faint)' }} />
+              {f}
+            </li>
+          ))}
+        </ul>
+      </Collapse>
 
       {/* The highlighted plan's button used to be `background: var(--accent)`
           with `color: white` — which was white on white from the moment the

@@ -23,7 +23,7 @@ export function ShareChooser({
 
   return createPortal(
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/70" onClick={onClose}
+      <div className="absolute inset-0 bg-black/70 animate-fade-in" onClick={onClose}
            style={{ backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)' }} />
       <div
         className="relative w-full max-w-md p-5 animate-scale-in"

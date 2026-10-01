@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Collapse } from './Page';
 import { AltArrowDownOutlineIcon as ChevronDown, AltArrowUpOutlineIcon as ChevronUp, ChatRoundOutlineIcon as MessageCircle, CopyOutlineIcon as Copy } from '@solar-icons/react';
 import { Check } from './BrandIcons';
 
@@ -44,7 +45,7 @@ export function ErrorNotice({ message, className = '' }: { message: string; clas
         {expanded ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
         {expanded ? 'Hide error details' : 'Show error details'}
       </button>
-      {expanded && (
+      <Collapse open={expanded}>
         <div className="mx-4 mb-3 rounded-lg overflow-hidden" style={{ background: 'rgba(0,0,0,0.2)' }}>
           <div className="flex items-center justify-between px-3 py-1.5 border-b border-white/5">
             <span className="text-[10px] uppercase tracking-widest text-gray-500">For the report</span>
@@ -57,7 +58,7 @@ export function ErrorNotice({ message, className = '' }: { message: string; clas
             {message}
           </pre>
         </div>
-      )}
+      </Collapse>
     </div>
   );
 }

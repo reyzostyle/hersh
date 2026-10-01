@@ -193,12 +193,13 @@ export function AppShell({ activeTab, onTabChange, children }: AppShellProps) {
         </div>
       </aside>
 
-      {mobileOpen && (
-        <div
-          className="fixed inset-0 z-40 bg-black/60 lg:hidden"
-          onClick={() => setMobileOpen(false)}
-        />
-      )}
+      {/* Always mounted so it can fade out as the drawer slides away, rather
+          than vanishing the instant the drawer starts to close. */}
+      <div
+        className={`fixed inset-0 z-40 bg-black/60 lg:hidden transition-opacity duration-300 ${mobileOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
+        onClick={() => setMobileOpen(false)}
+        aria-hidden="true"
+      />
 
       {/* Collapse toggle: lives outside the sidebar, like Higgsfield's — hangs
           just past the sidebar's edge when open, and at the far left when closed. */}

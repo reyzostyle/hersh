@@ -7,7 +7,7 @@ import { getSessionToken, fetchWithRetry } from '../lib/supabase';
 import { requestBrain, type ChannelBrain } from '../lib/brain';
 import { syncOwnVideos } from '../lib/ownVideos';
 import { displayNameOf } from '../lib/user';
-import { PageHead, Row, Loading, Tile } from './Page';
+import { PageHead, Row, Loading, Tile, Button, Collapse, Skeleton } from './Page';
 import { formatViews } from '../lib/competitors';
 import { useUsage } from '../lib/useUsage';
 import { CreditsPanel, creditsLeftLine } from './CreditsPanel';
@@ -53,14 +53,16 @@ function SettingsCard({ icon, iconBg, title, subtitle, open, onToggle, children 
           style={{ color: 'var(--text-faint)', transform: open ? 'rotate(180deg)' : 'none' }}
         />
       </button>
-      {open && <div className="row-group-body">{children}</div>}
+      <Collapse open={open}><div className="row-group-body">{children}</div></Collapse>
     </div>
   );
 }
 
-// Small uppercase label for fields inside a card.
+// Label for a field inside a card. Sentence case like every other label in
+// the product since the X Money pass; the uppercase tracked version was the
+// last one left.
 function FieldLabel({ children }: { children: React.ReactNode }) {
-  return <label className="block text-xs font-medium text-gray-500 mb-2 uppercase tracking-wide">{children}</label>;
+  return <label className="block t-label mb-2" style={{ color: 'var(--text-muted)' }}>{children}</label>;
 }
 
 const CREATOR_LEVELS = [
@@ -85,17 +87,22 @@ export function SettingsPage() {
 
   // Accordion: name of the single expanded card, or null when all collapsed.
   // Opens on Credits when something sent the user here for their balance
-  // (the old Usage tab, the chat's "Get more").
+  // (the old Usage tab, the chat's "Get more"), and on YouTube or the brain
+  // from the hub.
   const [openCard, setOpenCard] = useState<string | null>(() => {
+    // The hub's setup row asks for YouTube or the brain the same way.
     try {
-      if (localStorage.getItem('chumoku_open_settings') === 'credits') {
-        localStorage.removeItem('chumoku_open_settings');
-        return 'credits';
-      }
+      const asked = localStorage.getItem('chumoku_open_settings');
+      if (asked && ['credits', 'youtube', 'brain'].includes(asked)) return asked;
     } catch { /* storage blocked: open nothing */ }
     return null;
   });
-  const { usage } = useUsage();
+  // Consumed after mount, not inside the initializer: an initializer must be
+  // pure (StrictMode runs it twice, and the second run found the key gone).
+  useEffect(() => {
+    try { localStorage.removeItem('chumoku_open_settings'); } catch { /* ignore */ }
+  }, []);
+  const { usage, loading: usageLoading } = useUsage();
   const cardProps = (name: string) => ({
     open: openCard === name,
     onToggle: () => setOpenCard(c => (c === name ? null : name)),
@@ -211,13 +218,25 @@ export function SettingsPage() {
     if (!user?.id) return;
     let cancelled = false;
 
+    // The channel's numbers are asked for in the same breath as the row
+    // rather than when the YouTube card is opened. They used to start loading
+    // only once the card was open, so the tiles dropped in a second after
+    // everything else and pushed the card's own buttons down.
+    const stats = loadChannelStats(user.id);
+
     (async () => {
       try {
-        const { data, error } = await supabase
-          .from('user_tokens')
-          .select('updated_at, access_token, plan, youtube_channel_name, youtube_channel_thumbnail, channel_description, creator_level, brain, brain_at')
-          .eq('user_id', user.id)
-          .maybeSingle();
+        const [{ data, error }] = await Promise.all([
+          supabase
+            .from('user_tokens')
+            .select('updated_at, access_token, plan, youtube_channel_name, youtube_channel_thumbnail, channel_description, creator_level, brain, brain_at')
+            .eq('user_id', user.id)
+            .maybeSingle(),
+          // Waited on, but not forever: it goes out to YouTube, and a slow
+          // YouTube should not hold the whole page behind a skeleton. Past the
+          // cap the tiles fill in on their own.
+          Promise.race([stats, new Promise(r => setTimeout(r, STATS_WAIT_MS))]),
+        ]);
         if (cancelled) return;
         // A failed read leaves every field at its empty default, and Save
         // would then write those empties over a profile that is perfectly
@@ -417,7 +436,7 @@ export function SettingsPage() {
         <PageHead title="Settings" />
       </div>
 
-      {loading ? <Loading /> : (
+      {loading || usageLoading ? <Loading rows={8} /> : (
       <div className="space-y-2.5 animate-fade-in">
 
       {/* ── Channel profile ── */}
@@ -481,14 +500,9 @@ export function SettingsPage() {
               </p>
             )}
 
-            <button
-              onClick={saveContext}
-              disabled={contextSaving || loadFailed}
-              className="w-full py-2.5 text-white rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
-              style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.12)' }}
-            >
-              {contextSaving ? 'Saving...' : contextSaved ? 'Saved!' : 'Save'}
-            </button>
+            <Button variant="primary" onClick={saveContext} disabled={contextSaving || loadFailed}>
+              {contextSaving ? 'Saving' : contextSaved ? 'Saved' : 'Save'}
+            </Button>
           </div>
         )}
       </SettingsCard>
@@ -522,9 +536,7 @@ export function SettingsPage() {
         title="YouTube account"
         subtitle="Your own numbers, your own videos, and a read of what you publish."
       >
-        {youtubeStatus === null ? (
-          <Loader2 className="w-4 h-4 text-gray-500 animate-spin" />
-        ) : youtubeStatus.connected ? (
+        {youtubeStatus?.connected ? (
           <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-3 min-w-0">
               {youtubeStatus.channelThumbnail ? (
@@ -546,14 +558,10 @@ export function SettingsPage() {
                 )}
               </div>
             </div>
-            <button
-              onClick={connectYouTube}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-400 rounded-lg hover:text-gray-200 transition-colors flex-shrink-0"
-              style={{ border: '1px solid rgba(255,255,255,0.12)' }}
-            >
-              <RefreshCw className="w-3 h-3" />
+            <Button variant="ghost" size="sm" onClick={connectYouTube} className="flex-shrink-0">
+              <RefreshCw className="w-3.5 h-3.5" />
               Reconnect
-            </button>
+            </Button>
           </div>
         ) : null}
 
@@ -563,31 +571,24 @@ export function SettingsPage() {
         {youtubeStatus?.connected && (
           <div className="mt-4 pt-4" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
             {confirmDisconnect ? (
-              <div className="flex items-center gap-4">
-                <span className="text-xs text-gray-400">Disconnect this YouTube account?</span>
-                <button
-                  onClick={disconnectYouTube}
-                  disabled={disconnecting}
-                  className="text-xs text-gray-500 hover:text-red-400 transition-colors disabled:opacity-50"
-                >
-                  {disconnecting ? 'Disconnecting…' : 'Yes, disconnect'}
-                </button>
-                <button onClick={() => setConfirmDisconnect(false)} className="text-xs text-gray-500 hover:text-gray-300 transition-colors">
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+                <span className="t-small w-full sm:w-auto" style={{ color: 'var(--text-muted)' }}>Disconnect this YouTube account?</span>
+                <Button variant="secondary" size="sm" onClick={() => setConfirmDisconnect(false)}>
                   Keep
-                </button>
+                </Button>
+                <Button variant="text" onClick={disconnectYouTube} disabled={disconnecting} className="t-small hover:!text-red-400">
+                  {disconnecting ? 'Disconnecting' : 'Yes, disconnect'}
+                </Button>
               </div>
             ) : (
-              <button
-                onClick={() => setConfirmDisconnect(true)}
-                className="text-xs text-gray-500 hover:text-gray-300 transition-colors underline decoration-gray-700 underline-offset-2"
-              >
+              <Button variant="text" onClick={() => setConfirmDisconnect(true)} className="t-small">
                 Disconnect account
-              </button>
+              </Button>
             )}
           </div>
         )}
 
-        {youtubeStatus !== null && !youtubeStatus.connected && (
+        {!youtubeStatus?.connected && (
           <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-3 min-w-0">
               <div className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}>
@@ -595,14 +596,10 @@ export function SettingsPage() {
               </div>
               <p className="text-sm text-gray-500">No account connected</p>
             </div>
-            <button
-              onClick={connectYouTube}
-              className="flex items-center gap-1.5 px-4 py-2 text-xs font-semibold text-white rounded-lg transition-colors flex-shrink-0"
-              style={{ background: '#FF0000' }}
-            >
-              <Link className="w-3 h-3" />
+            <Button variant="primary" size="sm" onClick={connectYouTube} className="flex-shrink-0">
+              <Link className="w-3.5 h-3.5" />
               Connect
-            </button>
+            </Button>
           </div>
         )}
       </SettingsCard>
@@ -633,14 +630,9 @@ export function SettingsPage() {
                 onFocus={e => { e.currentTarget.style.borderColor = 'var(--accent)'; }}
                 onBlur={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)'; }}
               />
-              <button
-                onClick={saveDisplayName}
-                disabled={nameSaving || !displayName.trim()}
-                className="px-4 py-2.5 text-white rounded-lg text-sm font-medium transition-colors disabled:opacity-40 flex-shrink-0"
-                style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.12)' }}
-              >
-                {nameSaving ? 'Saving...' : nameSaved ? 'Saved!' : 'Save'}
-              </button>
+              <Button variant="secondary" onClick={saveDisplayName} disabled={nameSaving || !displayName.trim()} className="flex-shrink-0">
+                {nameSaving ? 'Saving' : nameSaved ? 'Saved' : 'Save'}
+              </Button>
             </div>
             {nameError && <p className="text-red-400 text-sm mt-2">{nameError}</p>}
             <p className="mt-2 text-xs" style={{ color: 'var(--text-faint)' }}>
@@ -689,14 +681,9 @@ export function SettingsPage() {
                 </button>
               </div>
               {pwError && <p className="text-red-400 text-sm">{pwError}</p>}
-              <button
-                onClick={changePassword}
-                disabled={pwSaving || !currentPassword || !newPassword}
-                className="px-4 py-2 text-white rounded-lg text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.12)' }}
-              >
-                {pwSaving ? 'Updating...' : pwSaved ? 'Updated!' : 'Update password'}
-              </button>
+              <Button variant="secondary" onClick={changePassword} disabled={pwSaving || !currentPassword || !newPassword}>
+                {pwSaving ? 'Updating' : pwSaved ? 'Updated' : 'Update password'}
+              </Button>
             </div>
           </div>
         </div>
@@ -757,29 +744,18 @@ export function SettingsPage() {
                     Cancel your subscription? You'll keep full access until the end of the current billing period.
                   </p>
                   <div className="flex items-center gap-4 mt-3">
-                    <button
-                      onClick={() => setConfirmCancel(false)}
-                      className="px-4 py-2 text-sm font-medium text-white rounded-lg transition-colors"
-                      style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.12)' }}
-                    >
+                    <Button variant="secondary" size="sm" onClick={() => setConfirmCancel(false)}>
                       Keep plan
-                    </button>
-                    <button
-                      onClick={cancelSubscription}
-                      disabled={cancelLoading}
-                      className="text-xs text-gray-500 hover:text-red-400 transition-colors disabled:opacity-50"
-                    >
-                      {cancelLoading ? 'Cancelling…' : 'Yes, cancel'}
-                    </button>
+                    </Button>
+                    <Button variant="text" onClick={cancelSubscription} disabled={cancelLoading} className="t-small hover:!text-red-400">
+                      {cancelLoading ? 'Cancelling' : 'Yes, cancel'}
+                    </Button>
                   </div>
                 </div>
               ) : (
-                <button
-                  onClick={() => setConfirmCancel(true)}
-                  className="text-xs text-gray-500 hover:text-gray-300 transition-colors underline decoration-gray-700 underline-offset-2"
-                >
+                <Button variant="text" onClick={() => setConfirmCancel(true)} className="t-small">
                   Cancel subscription
-                </button>
+                </Button>
               )}
             </div>
           )}
@@ -812,11 +788,11 @@ export function SettingsPage() {
           href="https://discord.gg/N8S6C95Ry2"
           target="_blank"
           rel="noopener noreferrer"
-          className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#5865F2] text-white rounded-lg text-sm font-semibold hover:bg-[#5865F2]/90 transition-colors"
+          className="btn btn--secondary"
         >
           <MessageCircle className="w-4 h-4" />
           Join Discord
-          <ExternalLink className="w-3.5 h-3.5 opacity-70" />
+          <ExternalLink className="w-3.5 h-3.5 opacity-60" />
         </a>
       </SettingsCard>
 
@@ -834,19 +810,14 @@ export function SettingsPage() {
             onChange={e => { setRedeemCode(e.target.value); setRedeemMsg(null); }}
             onKeyDown={e => { if (e.key === 'Enter') redeem(); }}
             placeholder="Enter a code"
-            className="glass-field flex-1 px-4 py-2.5 rounded-lg text-white placeholder-gray-600 text-sm focus:outline-none transition-colors"
+            className="glass-field flex-1 min-w-0 px-4 py-2.5 rounded-lg text-white placeholder-gray-600 text-sm focus:outline-none transition-colors"
             style={glassInput}
             onFocus={e => { e.currentTarget.style.borderColor = 'var(--accent)'; }}
             onBlur={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)'; }}
           />
-          <button
-            onClick={redeem}
-            disabled={!redeemCode.trim() || redeeming}
-            className="px-4 py-2.5 text-white rounded-lg text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0"
-            style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.12)' }}
-          >
-            {redeeming ? 'Redeeming...' : 'Redeem'}
-          </button>
+          <Button variant="secondary" onClick={redeem} disabled={!redeemCode.trim() || redeeming} className="flex-shrink-0">
+            {redeeming ? 'Redeeming' : 'Redeem'}
+          </Button>
         </div>
         {redeemMsg && (
           <p className={`mt-2 text-xs ${redeemMsg.type === 'success' ? 'text-emerald-400' : 'text-red-400'}`}>
@@ -926,15 +897,10 @@ function BrainCard({ brain, builtAt, loading, error, onBuild }: {
 
       {error && <p className="text-red-400 text-sm">{error}</p>}
 
-      <button
-        onClick={onBuild}
-        disabled={loading}
-        className="w-full py-2.5 text-white rounded-lg text-sm font-medium transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
-        style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.12)' }}
-      >
+      <Button variant={brain ? 'secondary' : 'primary'} onClick={onBuild} disabled={loading}>
         {loading && <Loader2 className="w-4 h-4 animate-spin" />}
         {loading ? 'Reading your channel' : brain ? 'Rebuild' : 'Build it'}
-      </button>
+      </Button>
     </div>
   );
 }
@@ -951,17 +917,49 @@ interface ChannelStats {
   watchMinutes28?: number;
 }
 
-function ChannelNumbers() {
-  const [stats, setStats] = useState<ChannelStats | null>(null);
-  useEffect(() => {
-    (async () => {
+// One request per visit to the app, shared by every mount of Settings: leaving
+// and coming back shows the numbers straight away instead of fetching them
+// again. A failed request is forgotten so the next visit can retry.
+const STATS_WAIT_MS = 3500;
+let statsRequest: Promise<ChannelStats | null> | null = null;
+let statsValue: ChannelStats | null = null;
+let statsUser: string | undefined;
+
+// Keyed on the account so signing out and into another one never shows the
+// first account's numbers.
+function loadChannelStats(userId?: string): Promise<ChannelStats | null> {
+  if (userId !== statsUser) { statsUser = userId; statsRequest = null; statsValue = null; }
+  if (!statsRequest) {
+    statsRequest = (async () => {
       const token = await getSessionToken();
-      if (!token) return;
+      if (!token) return null;
       const res = await fetchWithRetry(`${FUNCTIONS_URL}/channel-stats`, { headers: { Authorization: `Bearer ${token}` } });
-      if (res.ok) setStats(await res.json());
-    })().catch(() => {});
-  }, []);
-  if (!stats?.connected) return null;
+      if (!res.ok) throw new Error('channel-stats failed');
+      statsValue = await res.json();
+      return statsValue;
+    })().catch(() => { statsRequest = null; return null; });
+  }
+  return statsRequest;
+}
+
+function ChannelNumbers() {
+  const { user } = useAuth();
+  const [stats, setStats] = useState<ChannelStats | null>(statsUser === user?.id ? statsValue : null);
+  useEffect(() => {
+    let alive = true;
+    loadChannelStats(user?.id).then(v => { if (alive && v) setStats(v); });
+    return () => { alive = false; };
+  }, [user?.id]);
+  // Still on its way (only past the page's wait): hold the tiles' space so
+  // they fill in rather than push the card open further.
+  if (!stats) {
+    return (
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 mt-4" aria-busy="true">
+        {[0, 1, 2, 3].map(i => <Skeleton key={i} className="h-[98px]" style={{ borderRadius: 'var(--r-md)' }} />)}
+      </div>
+    );
+  }
+  if (!stats.connected) return null;
   return (
     <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 mt-4">
       <Tile label="Subscribers" value={formatViews(stats.subscribers ?? 0)}

@@ -142,7 +142,7 @@ export function AnalysisProgressModal({ open, mode, done, speed = 1, onStagesCom
   return createPortal(
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div
-        className="absolute inset-0 bg-black/70"
+        className="absolute inset-0 bg-black/70 animate-fade-in"
         style={{ backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)' }}
       />
       {card}

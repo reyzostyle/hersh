@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { RefreshOutlineIcon as Loader2, AddOutlineIcon as Plus } from '@solar-icons/react';
 import { ErrorNotice } from './ErrorNotice';
+import { Button } from './Page';
 import { FUNCTIONS_URL, getSessionToken, fetchWithRetry } from '../lib/supabase';
 import { type useUsage } from '../lib/useUsage';
 
@@ -82,10 +83,10 @@ export function CreditsPanel({ usage }: { usage: Usage }) {
         <p className="text-[13px]" style={{ color: 'var(--text-muted)' }}>
           {CREDIT_PACK.credits} more for {CREDIT_PACK.price}, on top of your plan, never expire.
         </p>
-        <button onClick={buy} disabled={buying} className="chip" data-on>
+        <Button variant="secondary" size="sm" onClick={buy} disabled={buying}>
           {buying ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Plus className="w-3.5 h-3.5" />}
           Buy credits
-        </button>
+        </Button>
       </div>
       {buyError && <ErrorNotice message={buyError} className="mt-3" />}
     </div>

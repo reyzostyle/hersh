@@ -163,10 +163,10 @@ body { overflow-x: clip; max-width: 100vw; background-color: rgb(var(--surface-r
 /* ─── Animation utilities ────────────────────────────────────────────────────── */
 
 .animate-fade-in-up    { animation: fadeInUp    0.5s ease-out both; }
-.animate-fade-in       { animation: fadeIn      0.4s ease-out both; }
+.animate-fade-in       { animation: fadeIn      0.25s ease-out both; }
 .animate-msg-in        { animation: msgIn       0.26s cubic-bezier(0.22, 1, 0.36, 1) both; }
 .animate-slide-in-right{ animation: slideInRight 0.4s ease-out both; }
-.animate-scale-in      { animation: scaleIn     0.3s ease-out both; }
+.animate-scale-in      { animation: scaleIn     0.3s cubic-bezier(0.32, 0.72, 0, 1) both; }
 .animate-float         { animation: float       3s ease-in-out infinite; }
 .animate-tab-in        { animation: tabFadeIn   0.25s ease-out both; }
 .animate-unfold-down   { animation: unfoldDown  0.3s cubic-bezier(0.22, 1, 0.36, 1) both; }
@@ -623,6 +623,27 @@ button.row:active,
 }
 .seg > button:hover { color: var(--text-muted); }
 .seg > button[data-on="true"] { background: var(--bg-raised-hover); color: var(--text); }
+/* With a sliding thumb (Seg in Page.tsx) the thumb is the lift, not the
+   button. Without JS the static background above still marks the choice. */
+.seg { position: relative; }
+.seg > button { position: relative; z-index: 1; transition: color 0.2s ease; }
+.seg[data-thumb="true"] > button[data-on="true"] { background: transparent; }
+.seg__thumb {
+  position: absolute; top: 3px; bottom: 3px; left: 0;
+  border-radius: 7px; background: var(--bg-raised-hover);
+  transition: transform 0.32s cubic-bezier(0.32, 0.72, 0, 1), width 0.32s cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+/* ─── Collapse (Page.tsx) ─────────────────────────────────────────────────── */
+.fold {
+  display: grid; grid-template-rows: 0fr; opacity: 0;
+  transition: grid-template-rows 0.32s cubic-bezier(0.32, 0.72, 0, 1), opacity 0.2s ease;
+}
+.fold[data-open="true"] { grid-template-rows: 1fr; opacity: 1; transition: grid-template-rows 0.32s cubic-bezier(0.32, 0.72, 0, 1), opacity 0.25s ease 0.06s; }
+.fold__inner { min-height: 0; overflow: hidden; }
+@media (prefers-reduced-motion: reduce) {
+  .seg__thumb, .fold, .fold[data-open="true"] { transition: none; }
+}
 
 /* ─── Working line ────────────────────────────────────────────────────────────
    The status text while something is running. A spinner says "wait"; this says
@@ -794,6 +815,10 @@ button.row:active,
 /* Already cropped to the card: no letterbox to scale away. */
 .idea-card__media img[data-exact="true"] { transform: none; }
 .idea-card:hover .idea-card__media img[data-exact="true"] { transform: scale(1.04); }
+/* Covers fade up as they arrive instead of popping in row by row. The black
+   behind them is the media box's own, so an unloaded card is a dark frame. */
+.idea-card__media img, .idea-hero__media img { opacity: 0; transition: opacity 0.35s ease, transform 0.4s ease; }
+.idea-card__media img[data-loaded="true"], .idea-hero__media img[data-loaded="true"] { opacity: 1; }
 .idea-card__mult {
   position: absolute; left: 10px; bottom: 10px;
   font-size: 20px; font-weight: 500; letter-spacing: -0.02em; line-height: 1;
@@ -815,7 +840,7 @@ button.row:active,
 }
 .idea-card__actions button:hover { color: var(--text); background: rgba(255, 255, 255, 0.06); }
 .idea-card__actions button[data-on="true"] { color: var(--on-accent); background: var(--accent); }
-@media (prefers-reduced-motion: reduce) { .idea-card__media img, .idea-card:hover .idea-card__media img { transition: none; transform: scale(1.35); } }
+@media (prefers-reduced-motion: reduce) { .idea-card__media img, .idea-card:hover .idea-card__media img { transition: none; transform: scale(1.35); } .idea-card__media img[data-exact="true"] { transform: none; } }
 
 /* ─── Idea steps (CompetitorVideoView.tsx) ──────────────────────────────────── */
 .idea-hero__media {

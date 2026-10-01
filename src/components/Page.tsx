@@ -1,4 +1,5 @@
 import { RefreshOutlineIcon as Loader2, CloseCircleOutlineIcon as Cancel, AltArrowLeftOutlineIcon as ArrowLeft } from '@solar-icons/react';
+import { useLayoutEffect, useRef, useState } from 'react';
 import { Check } from './BrandIcons';
 
 // ─── Page primitives ─────────────────────────────────────────────────────────
@@ -347,6 +348,67 @@ export function Empty({ icon, children }: { icon?: React.ReactNode; children: Re
     >
       {icon}
       <p className="text-[13px] max-w-sm text-balance" style={{ color: 'var(--text-muted)' }}>{children}</p>
+    </div>
+  );
+}
+
+// The segmented control, with the lifted option sliding between choices rather
+// than jumping. The thumb is measured off the active button, so labels of any
+// width (and counts that change under it) still land exactly; the first
+// placement is not animated, or every screen would open with a slide.
+export function Seg<T extends string>({ options, value, onChange, className = '' }: {
+  options: { id: T; label: React.ReactNode }[];
+  value: T;
+  onChange: (v: T) => void;
+  className?: string;
+}) {
+  const track = useRef<HTMLDivElement>(null);
+  const [thumb, setThumb] = useState<{ x: number; w: number; animate: boolean } | null>(null);
+
+  useLayoutEffect(() => {
+    const el = track.current;
+    if (!el) return;
+    const place = () => {
+      const on = el.querySelector<HTMLElement>('button[data-on="true"]');
+      if (!on) return;
+      setThumb(t => ({ x: on.offsetLeft, w: on.offsetWidth, animate: t !== null }));
+    };
+    place();
+    const ro = new ResizeObserver(place);
+    el.querySelectorAll('button').forEach(b => ro.observe(b));
+    return () => ro.disconnect();
+  }, [value, options.length]);
+
+  return (
+    <div ref={track} className={`seg ${className}`} data-thumb={thumb ? 'true' : undefined}>
+      {thumb && (
+        <span
+          className="seg__thumb"
+          aria-hidden="true"
+          style={{ width: thumb.w, transform: `translateX(${thumb.x}px)`, transition: thumb.animate ? undefined : 'none' }}
+        />
+      )}
+      {options.map(o => (
+        <button key={o.id} type="button" onClick={() => onChange(o.id)} data-on={value === o.id}>
+          {o.label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+// Opening and closing that moves instead of snapping. The body is always in
+// the DOM so it can animate both ways (grid rows 0fr -> 1fr is the one height
+// transition CSS can do without measuring); while shut it is inert, so nothing
+// inside can be tabbed to or read out.
+export function Collapse({ open, children, className = '' }: {
+  open: boolean;
+  children: React.ReactNode;
+  className?: string;
+}) {
+  return (
+    <div className={`fold ${className}`} data-open={open ? 'true' : undefined} {...(open ? {} : { inert: '' })}>
+      <div className="fold__inner">{children}</div>
     </div>
   );
 }

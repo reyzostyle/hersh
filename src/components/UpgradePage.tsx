@@ -4,7 +4,8 @@ import { BoltOutlineIcon as Zap, RefreshOutlineIcon as Loader2 } from '@solar-ic
 import { Check } from './BrandIcons';
 import { ErrorNotice } from './ErrorNotice';
 import { useUsage } from '../lib/useUsage';
-import { PageHead } from './Page';
+import { PageHead, Button } from './Page';
+import { BillingSeg } from './BillingSeg';
 
 type Interval = 'month' | 'year';
 
@@ -120,41 +121,15 @@ export function UpgradePage() {
         <div className="hidden lg:block">
           <PageHead
             title="Plans"
-            action={
-              <div className="flex flex-col items-end gap-1.5">
-                <div className="seg">
-                  {(['month', 'year'] as Interval[]).map(iv => (
-                    <button key={iv} onClick={() => setBillingInterval(iv)} data-on={interval === iv}>
-                      {iv === 'month' ? 'Monthly' : 'Yearly'}
-                    </button>
-                  ))}
-                </div>
-                {interval === 'year' && proYearlySavings > 0 && (
-                  <p className="font-mono text-[11px]" style={{ color: 'var(--process)' }}>
-                    save ${proYearlySavings.toFixed(2)}/yr on Pro, {proYearlyPercentOff}% off
-                  </p>
-                )}
-              </div>
-            }
+            action={<BillingSeg interval={interval} onChange={setBillingInterval} percentOff={proYearlyPercentOff} />}
           />
         </div>
       <div>
         {error && <ErrorNotice message={error} className="mb-6" />}
 
         {/* On a phone the header is hidden, so the toggle needs its own row. */}
-        <div className="lg:hidden flex flex-col items-center gap-1.5 mb-6">
-          <div className="seg">
-            {(['month', 'year'] as Interval[]).map(iv => (
-              <button key={iv} onClick={() => setBillingInterval(iv)} data-on={interval === iv}>
-                {iv === 'month' ? 'Monthly' : 'Yearly'}
-              </button>
-            ))}
-          </div>
-          {interval === 'year' && proYearlySavings > 0 && (
-            <p className="font-mono text-[11px]" style={{ color: 'var(--process)' }}>
-              save ${proYearlySavings.toFixed(2)}/yr on Pro, {proYearlyPercentOff}% off
-            </p>
-          )}
+        <div className="lg:hidden flex justify-center mb-6">
+          <BillingSeg interval={interval} onChange={setBillingInterval} percentOff={proYearlyPercentOff} />
         </div>
 
         {/* Plans grid */}
@@ -211,6 +186,15 @@ export function UpgradePage() {
                         <p className="text-xs text-gray-600 mt-0.5">
                           {billedYearly ?? 'billed monthly'}
                         </p>
+                        {/* What yearly is worth, on the card it is worth it on.
+                            Plus's yearly is twelve months at the monthly rate,
+                            so it gets nothing to show. */}
+                        {plan.id === 'agency' && proYearlySavings > 0 && (
+                          <p className="mt-2 inline-flex items-center px-2 py-0.5 rounded-full text-[12px] font-medium tabular-nums transition-opacity duration-200"
+                             style={{ background: 'rgba(245,196,81,0.12)', color: 'var(--upgrade)', opacity: isYearly ? 1 : 0.55 }}>
+                            {isYearly ? `You save $${proYearlySavings.toFixed(2)} a year` : `Save $${proYearlySavings.toFixed(2)} with yearly`}
+                          </p>
+                        )}
                       </>
                     );
                   })()}
@@ -234,31 +218,24 @@ export function UpgradePage() {
                   ))}
                 </ul>
 
+                {/* The three button levels, not hand-rolled rectangles. Plus's
+                    button was `bg-[var(--accent)]/60`: Tailwind cannot put an
+                    opacity on a CSS variable, so it rendered as black text on
+                    the dark card - an upgrade button you could barely see. */}
                 {isCurrent ? (
-                  <div className="w-full py-2.5 text-center text-sm font-medium text-gray-500 rounded-lg" style={{ border: '1px solid rgba(255,255,255,0.1)' }}>
-                    Current Plan
-                  </div>
+                  <Button variant="ghost" disabled className="w-full !opacity-60">Current plan</Button>
                 ) : isHigher ? (
-                  <button
+                  <Button
+                    variant={isPopular ? 'primary' : 'secondary'}
                     onClick={() => handleUpgrade(plan.id)}
                     disabled={checkingOut === plan.id}
-                    className={`w-full flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
-                      isPopular
-                        ? 'bg-[var(--accent)] text-[var(--on-accent)] hover:bg-[var(--accent)]/90'
-                        : 'bg-[var(--accent)]/60 text-[var(--on-accent)] hover:bg-[var(--accent)]/70'
-                    }`}
+                    className="w-full"
                   >
-                    {checkingOut === plan.id ? (
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                    ) : (
-                      <Zap className="w-4 h-4" />
-                    )}
-                    {checkingOut === plan.id ? 'Redirecting...' : plan.cta}
-                  </button>
+                    {checkingOut === plan.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Zap className="w-4 h-4" />}
+                    {checkingOut === plan.id ? 'Redirecting' : plan.cta}
+                  </Button>
                 ) : (
-                  <div className="w-full py-2.5 text-center text-sm font-medium text-gray-600 rounded-lg" style={{ border: '1px solid rgba(255,255,255,0.06)' }}>
-                    Downgrade
-                  </div>
+                  <Button variant="ghost" disabled className="w-full">Included in your plan</Button>
                 )}
               </div>
             );
@@ -272,3 +249,4 @@ export function UpgradePage() {
     </div>
   );
 }
+

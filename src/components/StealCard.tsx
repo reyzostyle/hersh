@@ -1,4 +1,5 @@
 import type { CompetitorIdea } from '../lib/competitors';
+import { ShortThumb } from './ShortThumb';
 import { formatViews } from '../lib/competitors';
 
 // The result of a steal, drawn to be filmed: a phone pointed at a laptop has
@@ -16,7 +17,6 @@ export interface StealCardProps {
 }
 
 export function StealCard({ idea, multiplier, onOpen }: StealCardProps) {
-  const thumb = idea.video_thumbnail || `https://i.ytimg.com/vi/${idea.video_id}/sddefault.jpg`;
   // Four digits of multiplier is true for a tiny channel and reads as a bug;
   // the server already refuses tiny baselines, this covers rows scored before.
   const ratio = multiplier !== null && multiplier < 1000 ? multiplier : null;
@@ -25,7 +25,7 @@ export function StealCard({ idea, multiplier, onOpen }: StealCardProps) {
 
   return (
     <article className="sc">
-      <div className="sc__media"><img src={thumb} alt="" /></div>
+      <div className="sc__media"><ShortThumb videoId={idea.video_id} eager /></div>
       <div className="sc__body">
         <p className="sc__source">{idea.channel_name} · {formatViews(idea.video_views)} views</p>
         <p className="sc__big">{big}</p>

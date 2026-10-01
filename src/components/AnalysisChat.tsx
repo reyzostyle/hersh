@@ -8,6 +8,7 @@ import {
 import { Check } from './BrandIcons';
 import { FUNCTIONS_URL, supabase, getSessionToken, getUserId, fetchWithRetry, isAbort } from '../lib/supabase';
 import { ErrorNotice } from './ErrorNotice';
+import { Collapse } from './Page';
 import { useUsage, CREDIT_COSTS } from '../lib/useUsage';
 import {
   loadThreadMessages, takeRequestedThread, requestHistory, type ThreadAnalysis,
@@ -271,8 +272,8 @@ function ReviewMessage({ a, fresh, onAdvance }: { a: Analysis; fresh?: boolean; 
           </button>
         )}
       </div>
-      {open && (
-        <div className="max-w-[85%] w-full rounded-2xl px-4 py-3 animate-msg-in" style={{ background: 'var(--bg-raised)' }}>
+      <Collapse open={open} className="max-w-[85%] w-full">
+        <div className="rounded-2xl px-4 py-3" style={{ background: 'var(--bg-raised)' }}>
           {fixes.length > 0 && (
             <ul className="space-y-2">
               {fixes.map((f, i) => <li key={i} className="t-small" style={{ color: 'var(--text)' }}>{f}</li>)}
@@ -297,7 +298,7 @@ function ReviewMessage({ a, fresh, onAdvance }: { a: Analysis; fresh?: boolean; 
             </ul>
           )}
         </div>
-      )}
+      </Collapse>
     </div>
   );
 }

@@ -1,5 +1,6 @@
 import { formatViews, type FeedItem } from '../lib/competitors';
 import { Skeleton } from './Page';
+import { ShortThumb } from './ShortThumb';
 
 // A card in the Ideas feed, rebuilt 2026-09-30 around one question: is this an
 // idea for ME?
@@ -17,8 +18,8 @@ import { Skeleton } from './Page';
 export function CompetitorVideoCard({ item, pitching, readOnly, thumb, onOpen, onDismiss, onSave }: {
   item: FeedItem;
   pitching?: boolean;
-  // A pre-cropped 4:5 image to use instead of YouTube's letterboxed
-  // hqdefault (the landing ships sharper ones, see scripts/landing-thumbs.py).
+  // A pre-cropped 4:5 image to use instead of YouTube's letterboxed frame
+  // (the landing ships its own, see scripts/landing-thumbs.py).
   thumb?: string;
   // The landing page shows real cards with nothing behind them: no buttons,
   // and not announced as a control.
@@ -44,7 +45,7 @@ export function CompetitorVideoCard({ item, pitching, readOnly, thumb, onOpen, o
       data-readonly={readOnly ? 'true' : undefined}
     >
       <div className="idea-card__media">
-        <img src={thumb ?? `https://i.ytimg.com/vi/${item.video_id}/hqdefault.jpg`} alt="" loading="lazy" data-exact={thumb ? 'true' : undefined} />
+        <ShortThumb videoId={item.video_id} src={thumb} />
         {item.outlier_score != null && item.outlier_score < 1000 && (
           <span className="idea-card__mult" title="Views against this channel's usual">
             {item.outlier_score}×
