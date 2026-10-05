@@ -842,6 +842,48 @@ button.row:active,
 .idea-card__actions button[data-on="true"] { color: var(--on-accent); background: var(--accent); }
 @media (prefers-reduced-motion: reduce) { .idea-card__media img, .idea-card:hover .idea-card__media img { transition: none; transform: scale(1.35); } .idea-card__media img[data-exact="true"] { transform: none; } }
 
+/* ─── Daily drop (DailyStack.tsx) ─────────────────────────────────────────────
+   One card at a time, the next one peeking from behind. touch-action keeps a
+   vertical drag scrolling the page; only a sideways drag becomes a swipe. */
+.daily { width: 100%; max-width: 340px; margin: 0 auto 28px; }
+.daily--done { max-width: none; margin-bottom: 16px; }
+.daily__done {
+  font-size: 13px; color: var(--text-muted); text-align: center;
+  padding: 12px 16px; border-radius: var(--r-md); background: var(--bg-raised); box-shadow: inset 0 0 0 1px var(--line);
+}
+.daily__head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 10px; font-size: 15px; font-weight: 500; color: var(--text); }
+.daily__count { font-size: 13px; color: var(--text-faint); font-variant-numeric: tabular-nums; }
+.daily__deck { position: relative; }
+.daily__card {
+  position: relative; display: flex; flex-direction: column; overflow: hidden;
+  border-radius: var(--r-lg); background: var(--bg-raised); box-shadow: inset 0 0 0 1px var(--line);
+  cursor: grab; touch-action: pan-y; user-select: none; -webkit-user-select: none; will-change: transform;
+}
+.daily__card:active { cursor: grabbing; }
+.daily__card:focus-visible { outline: 2px solid var(--text); outline-offset: 2px; }
+.daily__card--under { position: absolute; inset: 0; transform-origin: 50% 100%; transform: translateY(10px) scale(0.95); opacity: 0.5; pointer-events: none; }
+.daily__media { position: relative; aspect-ratio: 4 / 5; overflow: hidden; background: #000; }
+.daily__media img { width: 100%; height: 100%; object-fit: cover; transform: scale(1.35); pointer-events: none; -webkit-user-drag: none; opacity: 0; transition: opacity 0.35s ease; }
+.daily__media img[data-loaded="true"] { opacity: 1; }
+.daily__body { display: flex; flex-direction: column; gap: 6px; padding: 14px 16px 16px; }
+.daily__pitch { font-size: 18px; line-height: 24px; font-weight: 500; letter-spacing: -0.01em; color: var(--text); text-wrap: pretty; }
+.daily__stamp {
+  position: absolute; top: 14px; padding: 6px 12px; border-radius: 999px;
+  font-size: 14px; font-weight: 500; pointer-events: none;
+}
+.daily__stamp--keep { left: 14px; background: var(--accent); color: var(--on-accent); }
+.daily__stamp--skip { right: 14px; background: rgba(0, 0, 0, 0.62); color: #fff; backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); }
+.daily__actions { display: flex; align-items: center; justify-content: center; gap: 20px; margin-top: 16px; }
+.daily__round {
+  width: 52px; height: 52px; border-radius: 999px; display: inline-flex; align-items: center; justify-content: center;
+  color: var(--text); background: rgba(255, 255, 255, 0.08); transition: background-color 0.15s ease, transform 0.1s ease;
+}
+.daily__round:hover { background: rgba(255, 255, 255, 0.12); }
+.daily__round:active { transform: scale(0.94); }
+.daily__round--keep { background: var(--accent); color: var(--on-accent); }
+.daily__round--keep:hover { background: var(--accent); opacity: 0.88; }
+.daily__round:focus-visible { outline: 2px solid var(--text); outline-offset: 2px; }
+
 /* ─── Idea steps (CompetitorVideoView.tsx) ──────────────────────────────────── */
 .idea-hero__media {
   position: relative; width: 100%; max-width: 240px; aspect-ratio: 4 / 5; flex-shrink: 0;

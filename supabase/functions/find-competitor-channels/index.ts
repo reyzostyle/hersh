@@ -1,6 +1,6 @@
 import { corsHeaders } from '../_shared/http.ts';
 import { createClient } from 'npm:@supabase/supabase-js@2.57.4';
-import { callLLM } from '../_shared/llm.ts';
+import { buildQuery } from '../_shared/niche-query.ts';
 import { loadChannelScan } from '../_shared/channel-scan.ts';
 import { loadBrain } from '../_shared/brain.ts';
 
@@ -39,27 +39,6 @@ const median = (xs: number[]) => {
   const mid = Math.floor(a.length / 2);
   return a.length % 2 ? a[mid] : Math.round((a[mid - 1] + a[mid]) / 2);
 };
-
-// deno-lint-ignore no-explicit-any
-async function buildQuery(scan: any, niche: string, description: string): Promise<string> {
-  const titles = (scan?.videos ?? []).slice(0, 20).map((v: any) => `- ${v.title}`).join('\n');
-
-  // Raw titles make terrible queries: they are full of hashtags, emoji and
-  // in-jokes. One cheap call turns them into the phrase a viewer would type.
-  const prompt = `A creator wants to find other YouTube channels making short-form videos on their subject.
-
-What they say their channel is about:
-Niche: ${niche || 'not set'}
-Description: ${description || 'not set'}
-
-The titles of their own recent uploads:
-${titles || 'none available'}
-
-Write ONE YouTube search phrase in ENGLISH that would surface popular Shorts on the same subject, made by other people. Two to five words, the words an English-speaking viewer would actually type, no hashtags, no emoji, no channel names, no quotes. Reply with the phrase and nothing else.`;
-
-  const raw = await callLLM(prompt, { maxTokens: 40 });
-  return raw.replace(/["'\n#]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 60);
-}
 
 Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') return new Response(null, { status: 200, headers: CORS });

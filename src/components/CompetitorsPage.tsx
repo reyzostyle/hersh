@@ -1,11 +1,12 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase, getSessionToken, getUserId } from '../lib/supabase';
 import {
-  callFunction, stealVideo, pitchIdeas, inboxItems, itemFromIdea, filterIdeas,
+  callFunction, stealVideo, pitchIdeas, fetchDailyDrop, inboxItems, itemFromIdea, filterIdeas,
   type CompetitorChannel, type CompetitorIdea, type FeedItem, type IdeaFilter, type PoolVideo,
 } from '../lib/competitors';
 import { takeRequestedVideo } from '../lib/projects';
 import { CompetitorsFeed } from './CompetitorsFeed';
+import { DailyStack } from './DailyStack';
 import { CompetitorVideoView } from './CompetitorVideoView';
 import { FindCompetitorsModal } from './FindCompetitorsModal';
 import { Page, PageHead, Loading } from './Page';
@@ -54,6 +55,11 @@ export function CompetitorsPage() {
   // id already asked for, so a re-render never sends the same batch twice.
   const [pitchingIds, setPitchingIds] = useState<Set<string>>(new Set());
   const pitchAsked = useRef<Set<string>>(new Set());
+  // Today's drop. Only the ids and the clock live here: the rows themselves
+  // go into `ideas`, so a save or a skip in the stack is the same write the
+  // grid makes and both views agree.
+  const [drop, setDrop] = useState<{ ids: string[]; nextAt: string } | null>(null);
+  const [dropLoading, setDropLoading] = useState(true);
 
   const loadData = useCallback(async () => {
     try {
@@ -106,6 +112,29 @@ export function CompetitorsPage() {
   }, []);
 
   useEffect(() => { loadData(); }, [loadData]);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const token = await getSessionToken();
+        if (!token) return;
+        const d = await fetchDailyDrop(token);
+        if (!d) return;
+        setIdeas(prev => {
+          const next = [...prev];
+          for (const row of d.items) {
+            const at = next.findIndex(i => i.video_id === row.video_id);
+            if (at >= 0) next[at] = { ...next[at], ...row };
+            else next.push(row);
+          }
+          return next;
+        });
+        setDrop({ ids: d.items.map(i => i.video_id), nextAt: d.nextAt });
+      } finally {
+        setDropLoading(false);
+      }
+    })();
+  }, []);
 
   // Pitch the top of the inbox: one free call writes "your version" and a fit
   // for up to thirty videos the creator has not seen pitched yet. Runs again
@@ -375,7 +404,14 @@ export function CompetitorsPage() {
       .then(({ error }) => { if (error) console.error('[CompetitorsPage] persist idea error:', error); });
   };
 
-  const inbox = inboxItems(pool, ideas);
+  // Ideas still waiting in today's stack stay out of the grid below it, so
+  // nothing shows twice. Once ruled on they live in Saved or Dismissed as usual.
+  const dropIdeas = (drop?.ids ?? [])
+    .map(id => ideas.find(i => i.video_id === id))
+    .filter((i): i is CompetitorIdea => !!i);
+  const dropRemaining = dropIdeas.filter(i => i.liked == null);
+  const inDrop = new Set(dropRemaining.map(i => i.video_id));
+  const inbox = inboxItems(pool, ideas).filter(i => !inDrop.has(i.video_id));
 
   // Dismisses what is on screen, not the whole pool. Clearing the inbox is now
   // an act of triage rather than a reset: the next batch of outliers is already
@@ -454,6 +490,18 @@ export function CompetitorsPage() {
   return (
     <Page className="animate-tab-in">
       <PageHead title="Ideas" />
+
+      {ideaFilter === 'new' && (
+        <DailyStack
+          remaining={dropRemaining}
+          total={dropIdeas.length}
+          nextAt={drop?.nextAt ?? null}
+          loading={dropLoading && !drop}
+          onSave={idea => ruleOn([itemFromIdea(idea)], true)}
+          onDismiss={idea => ruleOn([itemFromIdea(idea)], false)}
+          onOpen={idea => setOpenVideoId(idea.video_id)}
+        />
+      )}
 
       <CompetitorsFeed
         items={items}

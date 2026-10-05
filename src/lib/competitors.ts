@@ -108,6 +108,29 @@ export async function pitchIdeas(videoIds: string[], token: string): Promise<Com
   return (data.ideas ?? []) as CompetitorIdea[];
 }
 
+// Today's drop: a few fresh ideas picked and pitched for this creator, turning
+// over at 9:00 their time. The server builds it on the first call of the day,
+// so the first open can take a few seconds. Null when the call fails or the
+// function is not there, and the page simply goes without.
+export interface DailyDrop {
+  date: string;
+  nextAt: string;
+  size: number;
+  items: CompetitorIdea[];
+}
+
+export async function fetchDailyDrop(token: string): Promise<DailyDrop | null> {
+  try {
+    const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    const res = await callFunction('daily-ideas', token, { timezone });
+    if (!res.ok) return null;
+    const data = await res.json();
+    return Array.isArray(data.items) ? data as DailyDrop : null;
+  } catch {
+    return null;
+  }
+}
+
 // ─── The pool ────────────────────────────────────────────────────────────────
 
 // A candidate straight off YouTube: what it is, how it did, and how far it beat

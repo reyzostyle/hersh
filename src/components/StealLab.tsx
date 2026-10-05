@@ -1,4 +1,7 @@
+import { useState } from 'react';
 import { StealCard } from './StealCard';
+import { DailyStack } from './DailyStack';
+import type { CompetitorIdea } from '../lib/competitors';
 import { StealProgress } from './StealProgress';
 import { Page, PageHead, Panel, Row, Section, Skeleton, Button, Empty, Tile } from './Page';
 
@@ -22,10 +25,45 @@ const SWATCHES: [string, string, string][] = [
   ['Worked', 'var(--process)', 'outliers, success'],
 ];
 
+// The daily drop with real Shorts, so the swipe can be tried without a build.
+const DROP: CompetitorIdea[] = ([
+  ['Y1s03EY3UCk', 'Olympus Stuff', 31, 'When you join a new server as a noob', 2_400_000],
+  ['2cYF74YMmGc', 'Alexa Real', 20, 'How different players build their first house', 1_100_000],
+  ['EocsE3pFnAI', 'Caylus', 17, 'GTA 6 physics, but in real life', 5_300_000],
+  ['0JZtdAtJiyk', 'InsiderForce', 110, '3 AI tools that make my edits look pro', 870_000],
+] as const).map(([video_id, channel_name, outlier_score, pitch, video_views]) => ({
+  id: video_id, video_id, channel_id: video_id, channel_name, outlier_score, pitch, fit: 'yes', video_views,
+  video_title: null, video_thumbnail: null, video_published_at: null, concept: null, adapted_idea: null,
+  outline: null, script: null, liked: null, project_id: null, created_at: '',
+}));
+
+function DropDemo() {
+  const [ideas, setIdeas] = useState(DROP);
+  const rule = (id: string, liked: boolean) => setIdeas(prev => prev.map(i => i.video_id === id ? { ...i, liked } : i));
+  return (
+    <>
+      <DailyStack
+        remaining={ideas.filter(i => i.liked == null)}
+        total={ideas.length}
+        nextAt={null}
+        loading={false}
+        onSave={i => rule(i.video_id, true)}
+        onDismiss={i => rule(i.video_id, false)}
+        onOpen={() => {}}
+      />
+      <Button variant="text" size="sm" className="mx-auto flex" onClick={() => setIdeas(DROP)}>Reset</Button>
+    </>
+  );
+}
+
 export function StealLab() {
   return (
     <Page>
       <PageHead eyebrow="Design system" title="One language." tagline="Every screen speaks it." subtitle="Everything below is the real component, not a picture of one." />
+
+      <Section label="Daily drop">
+        <DropDemo />
+      </Section>
 
       <Section label="Type">
         <Panel>

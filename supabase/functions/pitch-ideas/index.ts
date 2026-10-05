@@ -1,9 +1,6 @@
 import { corsHeaders } from '../_shared/http.ts';
 import { createClient } from 'npm:@supabase/supabase-js@2.57.4';
-import { callLLM } from '../_shared/llm.ts';
-import { parseModelJson } from '../_shared/json.ts';
-import { loadBrain, brainBlock } from '../_shared/brain.ts';
-import { loadChannelScan, channelScanBlock } from '../_shared/channel-scan.ts';
+import { pitchVideos } from '../_shared/pitch.ts';
 
 const CORS = corsHeaders({ methods: 'POST, OPTIONS' });
 
@@ -66,64 +63,7 @@ Deno.serve(async (req: Request) => {
     const todo = pooled.filter(p => !done.has(p.video_id));
     if (todo.length === 0) return json({ ideas: [] });
 
-    const brain = await loadBrain(supabase, user.id);
-    const scan = channelScanBlock(await loadChannelScan(supabase, user.id));
-    const who = brain ? brainBlock(brain) : '';
-    if (!who && !scan) {
-      // Nothing to adapt against. Better no pitch than a pitch for nobody.
-      return json({ ideas: [] });
-    }
-
-    const list = todo.map((p, i) => `${i + 1}. [${p.video_id}] "${p.title ?? ''}" (${p.channel_name ?? 'unknown channel'})`).join('\n');
-
-    const prompt = `You help one Shorts creator decide which viral Shorts from other channels are worth stealing the format of.
-
-${who}${scan}
-
-Below are Shorts that beat their own channel's usual views. You only have the titles. For each one:
-- pitch: ONE line, under 90 characters, saying what THIS creator's version would be. Their subject, the other video's format. Written like a working title or a one-line premise, not advice. Never reuse the other video's subject.
-- fit: "yes" if this creator could film their version this week with what they already make, "stretch" if it would need a real change of subject or setup, "no" if it does not transfer to their channel at all.
-
-Be strict with fit. Most creators have one niche; a format from far outside it is a stretch at best. If a title is too vague to judge, give your best pitch and mark it "stretch".
-
-Shorts:
-${list}
-
-Respond with JSON only, one entry per Short, same ids:
-{"ideas":[{"id":"<video id>","pitch":"...","fit":"yes|stretch|no"}]}
-
-Never use an em-dash or en-dash, only the regular hyphen.`;
-
-    const raw = await callLLM(prompt, { maxTokens: 2400 });
-    const parsed = parseModelJson(raw, 'pitch-ideas') as { ideas?: Array<{ id?: string; pitch?: string; fit?: string }> };
-    const byId = new Map(todo.map(p => [p.video_id, p]));
-
-    const rows = (parsed.ideas ?? [])
-      .filter(r => r.id && byId.has(r.id) && r.pitch)
-      .map(r => {
-        const p = byId.get(r.id!)!;
-        return {
-          user_id: user.id,
-          video_id: p.video_id,
-          channel_id: p.channel_id,
-          channel_name: p.channel_name,
-          video_title: p.title,
-          video_views: p.views,
-          video_published_at: p.published_at,
-          outlier_score: p.outlier_score,
-          pitch: String(r.pitch).replace(/[—–]/g, '-').trim().slice(0, 140),
-          fit: r.fit === 'yes' || r.fit === 'no' ? r.fit : 'stretch',
-        };
-      });
-    if (rows.length === 0) return json({ ideas: [] });
-
-    // liked is not in the row, so an upsert never touches a save or a dismiss.
-    const { data: saved, error } = await supabase
-      .from('competitor_ideas')
-      .upsert(rows, { onConflict: 'user_id,video_id' })
-      .select();
-    if (error) throw error;
-
+    const saved = await pitchVideos(supabase, user.id, todo);
     return json({ ideas: saved ?? [] });
   } catch (error) {
     console.error('[pitch-ideas]', error);

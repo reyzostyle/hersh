@@ -1,0 +1,329 @@
+// deno-lint-ignore-file no-explicit-any
+import { corsHeaders } from '../_shared/http.ts';
+import { createClient } from 'npm:@supabase/supabase-js@2.57.4';
+import { syncChannelPool, isEnglish, OUTLIER_THRESHOLD } from '../_shared/channel-pool.ts';
+import { pitchVideos, type PitchSource } from '../_shared/pitch.ts';
+import { buildQuery } from '../_shared/niche-query.ts';
+import { loadBrain } from '../_shared/brain.ts';
+import { loadChannelScan } from '../_shared/channel-scan.ts';
+
+const CORS = corsHeaders({ methods: 'POST, OPTIONS' });
+
+// The daily drop: a short stack of fresh ideas, picked and pitched for one
+// creator, that turns over at 9:00 their time.
+//
+// Until now nothing in Ideas happened unless someone opened the tab and
+// pressed Refresh, so the positioning line "a ready idea is waiting for you"
+// was not true. This makes it true, and gives a reason to come back daily.
+//
+// Where the ideas come from matters more than the schedule. Measured
+// 2026-10-06: 12 tracked channels across all users, most people tracking one,
+// and ONE new outlier across all of them in the past week. A drop built from
+// tracked channels alone would be empty by Wednesday. So it also searches the
+// creator's niche (the same phrase auto-find uses), pools the channels that
+// search turns up, and draws from both. Those channels are not added to the
+// creator's tracked list; they only feed the drop.
+//
+// Two callers:
+// - the app, with the user's JWT, when Ideas opens: builds today's drop if it
+//   is missing and returns it. This alone is enough for the feature to work.
+// - pg_cron, hourly, with x-cron-secret: prebuilds for everyone seen in the
+//   last two weeks whose 9:00 has passed, so the stack is there on arrival
+//   (and so a badge or an email can say so).
+
+const DROP_SIZE = 7;
+const DROP_HOUR = 9;
+const PITCH_POOL = 20;                       // candidates pitched to pick DROP_SIZE from
+const TRACKED_TTL_MS = 6 * 60 * 60 * 1000;   // tracked channels refresh before a drop
+const NICHE_TTL_MS = 24 * 60 * 60 * 1000;    // niche channels refresh at most daily
+const SEARCH_TTL_MS = 3 * 24 * 60 * 60 * 1000;
+const QUERY_TTL_MS = 7 * 24 * 60 * 60 * 1000;
+const SEARCH_WINDOW_DAYS = 30;
+const MAX_NICHE_CHANNELS = 12;
+const ACTIVE_WINDOW_MS = 14 * 24 * 60 * 60 * 1000;
+const CRON_BUDGET_MS = 110_000;
+
+function json(body: unknown, status = 200) {
+  return new Response(JSON.stringify(body), { status, headers: { ...CORS, 'Content-Type': 'application/json' } });
+}
+
+function validTz(tz: unknown): string | null {
+  if (typeof tz !== 'string' || !tz || tz.length > 64) return null;
+  try { new Intl.DateTimeFormat('en-US', { timeZone: tz }); return tz; } catch { return null; }
+}
+
+function localParts(tz: string, at: Date): { date: string; hour: number; minute: number } {
+  const parts = Object.fromEntries(new Intl.DateTimeFormat('en-CA', {
+    timeZone: tz, year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', hourCycle: 'h23',
+  }).formatToParts(at).map(p => [p.type, p.value]));
+  return { date: `${parts.year}-${parts.month}-${parts.day}`, hour: Number(parts.hour), minute: Number(parts.minute) };
+}
+
+// The drop a moment belongs to is the local date DROP_HOUR hours earlier:
+// before 9:00 you are still looking at yesterday's.
+function dropDateFor(tz: string, now = new Date()): string {
+  return localParts(tz, new Date(now.getTime() - DROP_HOUR * 3_600_000)).date;
+}
+
+function nextDropAt(tz: string, now = new Date()): string {
+  const { hour, minute } = localParts(tz, now);
+  let mins = ((DROP_HOUR - hour + 24) % 24) * 60 - minute;
+  if (mins <= 0) mins += 24 * 60;
+  return new Date(now.getTime() + mins * 60_000).toISOString();
+}
+
+async function ensureTokensRow(supabase: any, userId: string) {
+  const { data } = await supabase.from('user_tokens').select('user_id').eq('user_id', userId).maybeSingle();
+  if (!data) await supabase.from('user_tokens').insert({ user_id: userId, access_token: '', refresh_token: '' });
+}
+
+// The search phrase for this creator's niche, rewritten at most weekly.
+async function nicheQuery(supabase: any, userId: string, profile: any): Promise<string | null> {
+  if (profile?.idea_query && profile?.idea_query_at
+    && Date.now() - new Date(profile.idea_query_at).getTime() < QUERY_TTL_MS) {
+    return profile.idea_query;
+  }
+  const scan = await loadChannelScan(supabase, userId);
+  const brain = await loadBrain(supabase, userId);
+  const niche = brain?.niche || profile?.channel_niche || '';
+  const description = brain
+    ? [brain.summary, brain.format].filter(Boolean).join(' ')
+    : (profile?.channel_description || '');
+  if (!scan?.videos?.length && !niche && !description) return null;
+
+  const query = (await buildQuery(scan, niche, description)).toLowerCase();
+  if (!query) return null;
+  await supabase.from('user_tokens')
+    .update({ idea_query: query, idea_query_at: new Date().toISOString() }).eq('user_id', userId);
+  return query;
+}
+
+// Channels winning on this phrase lately, from cache when it is fresh.
+async function nicheChannels(supabase: any, query: string, ytApiKey: string): Promise<{ id: string; name: string }[]> {
+  const { data: cached } = await supabase
+    .from('idea_search_cache').select('searched_at, channels').eq('query', query).maybeSingle();
+  if (cached && Date.now() - new Date(cached.searched_at).getTime() < SEARCH_TTL_MS) {
+    return cached.channels ?? [];
+  }
+
+  const publishedAfter = new Date(Date.now() - SEARCH_WINDOW_DAYS * 86_400_000).toISOString();
+  const searchRes = await fetch(`https://www.googleapis.com/youtube/v3/search`
+    + `?part=snippet&type=video&videoDuration=short&order=viewCount&maxResults=50`
+    + `&relevanceLanguage=en&regionCode=US`
+    + `&publishedAfter=${publishedAfter}&q=${encodeURIComponent(query)}&key=${ytApiKey}`);
+  if (!searchRes.ok) {
+    console.error('[daily-ideas] search failed:', await searchRes.text());
+    return cached?.channels ?? [];
+  }
+  const items = (await searchRes.json()).items || [];
+  const ids = items.map((it: any) => it.id?.videoId).filter(Boolean).slice(0, 50);
+
+  // Language check on the hits themselves, same rule the pool uses.
+  const english = new Set<string>();
+  if (ids.length) {
+    const res = await fetch(`https://www.googleapis.com/youtube/v3/videos?id=${ids.join(',')}&part=snippet&key=${ytApiKey}`);
+    if (res.ok) for (const v of (await res.json()).items || []) if (isEnglish(v)) english.add(v.id);
+  }
+
+  // In ranking order (by views), one entry per channel.
+  const seen = new Set<string>();
+  const channels: { id: string; name: string }[] = [];
+  for (const it of items) {
+    const id = it.snippet?.channelId;
+    if (!id || seen.has(id)) continue;
+    if (english.size && !english.has(it.id?.videoId)) continue;
+    seen.add(id);
+    channels.push({ id, name: it.snippet?.channelTitle || id });
+    if (channels.length >= MAX_NICHE_CHANNELS) break;
+  }
+
+  await supabase.from('idea_search_cache')
+    .upsert({ query, searched_at: new Date().toISOString(), channels }, { onConflict: 'query' });
+  return channels;
+}
+
+// Builds one creator's drop for `dropDate`. Assumes the claim on
+// user_tokens.idea_drop_date is already held. Returns how many ideas landed.
+async function buildDrop(supabase: any, userId: string, dropDate: string, profile: any, ytApiKey: string): Promise<number> {
+  // 1. Tracked channels, refreshed if stale.
+  const { data: tracked } = await supabase
+    .from('competitor_channels').select('channel_id, channel_name').eq('user_id', userId);
+  const trackedIds = (tracked ?? []).map((c: any) => c.channel_id);
+
+  // 2. Channels the niche search turns up.
+  let niche: { id: string; name: string }[] = [];
+  try {
+    const query = await nicheQuery(supabase, userId, profile);
+    if (query) niche = await nicheChannels(supabase, query, ytApiKey);
+  } catch (e) {
+    console.error('[daily-ideas] niche search error:', e);
+  }
+
+  // Own channel never counts as a competitor.
+  const scan = await loadChannelScan(supabase, userId);
+  const ownTitle = (scan?.channelTitle || '').toLowerCase();
+  niche = niche.filter(c => !trackedIds.includes(c.id) && c.name.toLowerCase() !== ownTitle);
+
+  const all = [
+    ...(tracked ?? []).map((c: any) => ({ id: c.channel_id, name: c.channel_name, ttl: TRACKED_TTL_MS })),
+    ...niche.map(c => ({ id: c.id, name: c.name, ttl: NICHE_TTL_MS })),
+  ];
+  if (all.length === 0) return 0;
+
+  const { data: syncRows } = await supabase
+    .from('competitor_channel_pool').select('channel_id, synced_at').in('channel_id', all.map(c => c.id));
+  const syncedAt = new Map((syncRows ?? []).map((r: any) => [r.channel_id, new Date(r.synced_at).getTime()]));
+  for (const c of all) {
+    const last = syncedAt.get(c.id) as number | undefined;
+    if (last && Date.now() - last < c.ttl) continue;
+    try {
+      await syncChannelPool(supabase, c.id, c.name, ytApiKey);
+    } catch (e) {
+      console.error(`[daily-ideas] pool ${c.id} failed:`, e);
+    }
+  }
+
+  // 3. Candidates: outliers from all of them, minus anything already ruled on
+  //    or already shown in an earlier drop.
+  const { data: pooled } = await supabase
+    .from('competitor_videos')
+    .select('video_id, channel_id, channel_name, title, views, published_at, outlier_score')
+    .in('channel_id', all.map(c => c.id))
+    .gte('outlier_score', OUTLIER_THRESHOLD);
+  if (!pooled?.length) return 0;
+
+  const { data: known } = await supabase
+    .from('competitor_ideas').select('video_id, liked, drop_date, pitch, fit')
+    .eq('user_id', userId).in('video_id', pooled.map((p: any) => p.video_id));
+  const knownBy = new Map((known ?? []).map((k: any) => [k.video_id, k]));
+
+  // Fresh beats old at the same multiple: last month's format is still live,
+  // last spring's might not be.
+  const freshness = (iso: string | null) => {
+    if (!iso) return 0.6;
+    const days = (Date.now() - new Date(iso).getTime()) / 86_400_000;
+    return days <= 30 ? 1.6 : days <= 90 ? 1 : 0.6;
+  };
+  const ranked = (pooled as PitchSource[])
+    .filter(p => {
+      const k: any = knownBy.get(p.video_id);
+      return !k || (k.liked == null && !k.drop_date && k.fit !== 'no');
+    })
+    .sort((a, b) =>
+      Math.log(b.outlier_score ?? 1) * freshness(b.published_at)
+      - Math.log(a.outlier_score ?? 1) * freshness(a.published_at))
+    .slice(0, PITCH_POOL);
+  if (ranked.length === 0) return 0;
+
+  // 4. Pitch what has no pitch yet (one call), then pick: fits first.
+  const unpitched = ranked.filter(p => !(knownBy.get(p.video_id) as any)?.pitch);
+  const fresh = await pitchVideos(supabase, userId, unpitched);
+  const fitBy = new Map<string, string | null>();
+  for (const k of known ?? []) fitBy.set(k.video_id, k.fit);
+  for (const r of fresh) fitBy.set(r.video_id, r.fit);
+
+  const pitchedRank = ranked.filter(p => fitBy.has(p.video_id) && fitBy.get(p.video_id) !== 'no');
+  const chosen = [
+    ...pitchedRank.filter(p => fitBy.get(p.video_id) === 'yes'),
+    ...pitchedRank.filter(p => fitBy.get(p.video_id) === 'stretch'),
+  ].slice(0, DROP_SIZE).map(p => p.video_id);
+  if (chosen.length === 0) return 0;
+
+  const { error } = await supabase.from('competitor_ideas')
+    .update({ drop_date: dropDate }).eq('user_id', userId).in('video_id', chosen);
+  if (error) throw error;
+  return chosen.length;
+}
+
+// Takes the claim and builds. A second caller that loses the race returns
+// without building: the first one's drop is on its way.
+async function claimAndBuild(supabase: any, userId: string, dropDate: string, ytApiKey: string): Promise<number | null> {
+  const { data: profile } = await supabase
+    .from('user_tokens')
+    .select('idea_drop_date, idea_query, idea_query_at, channel_niche, channel_description')
+    .eq('user_id', userId).maybeSingle();
+  if (profile?.idea_drop_date === dropDate) return null;
+
+  const { data: claimed } = await supabase
+    .from('user_tokens').update({ idea_drop_date: dropDate })
+    .eq('user_id', userId)
+    .or(`idea_drop_date.is.null,idea_drop_date.neq.${dropDate}`)
+    .select('user_id');
+  if (!claimed?.length) return null;
+
+  try {
+    return await buildDrop(supabase, userId, dropDate, profile, ytApiKey);
+  } catch (e) {
+    // Give the claim back so the next open can try again.
+    await supabase.from('user_tokens')
+      .update({ idea_drop_date: profile?.idea_drop_date ?? null }).eq('user_id', userId);
+    throw e;
+  }
+}
+
+Deno.serve(async (req: Request) => {
+  if (req.method === 'OPTIONS') return new Response(null, { status: 200, headers: CORS });
+
+  try {
+    const ytApiKey = Deno.env.get('YOUTUBE_API_KEY');
+    if (!ytApiKey) throw new Error('YouTube API key not configured');
+    const supabase = createClient(
+      Deno.env.get('SUPABASE_URL')!,
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
+      { auth: { autoRefreshToken: false, persistSession: false, detectSessionInUrl: false } },
+    );
+
+    // ── Cron: prebuild for everyone whose morning has come ──
+    const cronSecret = Deno.env.get('CRON_SECRET');
+    const provided = req.headers.get('x-cron-secret');
+    if (provided) {
+      if (!cronSecret || provided !== cronSecret) return json({ error: 'Unauthorized' }, 401);
+      const started = Date.now();
+      const { data: users } = await supabase
+        .from('user_tokens').select('user_id, timezone, idea_drop_date')
+        .gte('idea_seen_at', new Date(Date.now() - ACTIVE_WINDOW_MS).toISOString());
+      let built = 0, skipped = 0;
+      for (const u of users ?? []) {
+        if (Date.now() - started > CRON_BUDGET_MS) { skipped++; continue; }
+        const tz = validTz(u.timezone) ?? 'UTC';
+        const dropDate = dropDateFor(tz);
+        if (u.idea_drop_date === dropDate) continue;
+        try {
+          const n = await claimAndBuild(supabase, u.user_id, dropDate, ytApiKey);
+          if (n != null) built++;
+        } catch (e) {
+          console.error(`[daily-ideas] cron build ${u.user_id} failed:`, e);
+        }
+      }
+      return json({ ok: true, built, skipped });
+    }
+
+    // ── App: today's drop for this user, built on the spot if missing ──
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader?.startsWith('Bearer ')) return json({ error: 'Unauthorized' }, 401);
+    const { data: { user }, error: authErr } = await supabase.auth.getUser(authHeader.replace('Bearer ', ''));
+    if (authErr || !user) return json({ error: 'Unauthorized' }, 401);
+
+    const body = await req.json().catch(() => ({}));
+    await ensureTokensRow(supabase, user.id);
+    const { data: row } = await supabase
+      .from('user_tokens').select('timezone').eq('user_id', user.id).maybeSingle();
+    const tz = validTz(body.timezone) ?? validTz(row?.timezone) ?? 'UTC';
+    await supabase.from('user_tokens')
+      .update({ timezone: tz, idea_seen_at: new Date().toISOString() }).eq('user_id', user.id);
+
+    const dropDate = dropDateFor(tz);
+    await claimAndBuild(supabase, user.id, dropDate, ytApiKey);
+
+    const { data: items } = await supabase
+      .from('competitor_ideas').select('*')
+      .eq('user_id', user.id).eq('drop_date', dropDate)
+      .order('outlier_score', { ascending: false, nullsFirst: false });
+
+    return json({ date: dropDate, nextAt: nextDropAt(tz), size: DROP_SIZE, items: items ?? [] });
+  } catch (error) {
+    console.error('[daily-ideas]', error);
+    return json({ error: error instanceof Error ? error.message : 'Internal server error' }, 500);
+  }
+});
