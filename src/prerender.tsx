@@ -108,12 +108,13 @@ export function render(): PrerenderRoute[] {
       // returns a Japanese timber company, and "the shorts workspace" does not
       // tell a search result or an answer engine which industry this is - the
       // nouns that separate them are "video" and "creators". The description
-      // opens "Chumoku is a ..." for the same reason: that is the sentence an
-      // answer engine lifts when asked what Chumoku is.
+      // opens "Chumoku finds the YouTube Shorts ..." for the same reason: that
+      // is the sentence an answer engine lifts when asked what Chumoku is. Keep
+      // it under ~155 characters, Google cut the longer one mid-sentence.
       path: '/',
       title: 'Chumoku - Steal viral Shorts ideas for your YouTube channel',
       description:
-        "Chumoku is a tool for YouTube Shorts creators. It finds the Shorts blowing up in your niche and rebuilds them for your channel: your version of the idea, an outline, then the script.",
+        "Chumoku finds the YouTube Shorts blowing up in your niche and turns each one into your idea, outline and script. Never wonder what to post next.",
       html: wrap(<LandingPage />),
     },
     {
