@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { StealCard } from './StealCard';
 import { CompetitorsFeed } from './CompetitorsFeed';
+import { BrainCard } from './SettingsPage';
+import type { BrainOverrides } from '../lib/brain';
 import { itemFromIdea, type CompetitorIdea, type IdeaFilter } from '../lib/competitors';
 import { StealProgress } from './StealProgress';
 import { Page, PageHead, Panel, Row, Section, Skeleton, Button, Empty, Tile } from './Page';
@@ -78,10 +80,42 @@ function DropDemo() {
   );
 }
 
+function BrainDemo() {
+  const [overrides, setOverrides] = useState<BrainOverrides>({});
+  return (
+    <Panel>
+      <BrainCard
+        brain={{
+          summary: 'Your uploads split between AI coding experiments and commentary on growing Shorts. Practical Claude shortcuts pull the views; diary episodes do not.',
+          niche: 'commentary, tech',
+          format: 'Under 60s, voiceover over screen recordings, fast cuts.',
+          audience: 'Developers and micro-creators 18-35 who want AI coding shortcuts.',
+          voice: 'Direct, informal, fast.',
+          strengths: ['Specific tool walkthroughs', 'Opening on the result'],
+          watch_outs: ['Personal diary episodes'],
+          adapt_rules: ['Swap any subject for a Claude Code build', 'Keep it under 45 seconds'],
+          source: 'uploads',
+        }}
+        overrides={overrides}
+        heardVoice="Talks straight to camera in short plain sentences, 'here's what I would do' openings, says 'literally' a lot."
+        builtAt={new Date().toISOString()}
+        loading={false}
+        error=""
+        onBuild={() => {}}
+        onSaveEdits={async next => setOverrides(next)}
+      />
+    </Panel>
+  );
+}
+
 export function StealLab() {
   return (
     <Page>
       <PageHead eyebrow="Design system" title="One language." tagline="Every screen speaks it." subtitle="Everything below is the real component, not a picture of one." />
+
+      <Section label="Brain">
+        <BrainDemo />
+      </Section>
 
       <Section label="Ideas">
         <DropDemo />

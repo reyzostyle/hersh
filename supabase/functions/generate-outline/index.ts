@@ -1,5 +1,5 @@
 import { corsHeaders } from '../_shared/http.ts';
-import { loadVoice, voiceBlock } from '../_shared/voice.ts';
+import { loadVoiceBlock } from '../_shared/voice.ts';
 import { createClient } from 'npm:@supabase/supabase-js@2.57.4';
 import { loadCreditStatus, canAfford, spendCredits, CREDIT_COSTS } from '../_shared/credits.ts';
 import { loadChannelScan, channelScanBlock } from '../_shared/channel-scan.ts';
@@ -106,7 +106,7 @@ Extra context: ${profile?.channel_context || 'not set'}`;
       idea.adapted_idea || '',
       profileBlock,
       scanBlock,
-      voiceBlock(await loadVoice(supabase, userId)),
+      await loadVoiceBlock(supabase, userId),
     );
 
     const { data: updated, error: updateError } = await supabase

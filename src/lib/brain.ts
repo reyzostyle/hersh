@@ -17,6 +17,11 @@ export interface ChannelBrain {
   source: 'uploads' | 'stated';
 }
 
+// What the creator corrected by hand in Settings (user_tokens.brain_overrides).
+// The server merges these over the read whenever it loads the brain.
+export type BrainOverrides = Partial<Pick<ChannelBrain,
+  'summary' | 'niche' | 'format' | 'audience' | 'voice' | 'strengths' | 'watch_outs' | 'adapt_rules'>>;
+
 export interface BrainResult {
   brain: ChannelBrain | null;
   // The server refused to rebuild because the last build was under a minute

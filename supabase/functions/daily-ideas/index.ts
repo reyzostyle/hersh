@@ -4,9 +4,9 @@ import { createClient } from 'npm:@supabase/supabase-js@2.57.4';
 import { syncChannelPool, isEnglish, OUTLIER_THRESHOLD } from '../_shared/channel-pool.ts';
 import { pitchVideos, type PitchSource } from '../_shared/pitch.ts';
 import { buildQueries } from '../_shared/niche-query.ts';
-import { loadBrain } from '../_shared/brain.ts';
 import { loadChannelScan } from '../_shared/channel-scan.ts';
 import { buildVoice, VOICE_TTL_MS } from '../_shared/voice.ts';
+import { buildBrain, loadBrain } from '../_shared/brain.ts';
 
 const CORS = corsHeaders({ methods: 'POST, OPTIONS' });
 
@@ -324,7 +324,7 @@ Deno.serve(async (req: Request) => {
       if (!cronSecret || provided !== cronSecret) return json({ error: 'Unauthorized' }, 401);
       const started = Date.now();
       const { data: users } = await supabase
-        .from('user_tokens').select('user_id, timezone, idea_drop_date, voice_at')
+        .from('user_tokens').select('user_id, timezone, idea_drop_date')
         .gte('idea_seen_at', new Date(Date.now() - ACTIVE_WINDOW_MS).toISOString());
       let built = 0, skipped = 0;
       for (const u of users ?? []) {
@@ -340,22 +340,47 @@ Deno.serve(async (req: Request) => {
         }
       }
 
-      // With whatever time is left: learn how a couple of creators talk, from
-      // their own Shorts (see _shared/voice.ts). Two watches per creator, so at
-      // most two creators a run; the hourly schedule gets through everyone.
-      let voices = 0;
-      for (const u of users ?? []) {
-        if (voices >= 2 || Date.now() - started > CRON_BUDGET_MS - 40_000) break;
-        if (u.voice_at && Date.now() - new Date(u.voice_at).getTime() < VOICE_TTL_MS) continue;
+      // With the time left, keep everyone's profile current, not just the
+      // people who open Ideas. The brain is rebuilt weekly from their latest
+      // and best uploads (one cheap call each, five a run); the voice is
+      // checked weekly and only re-heard when the month's top Shorts changed
+      // (two a run, since that means watching video). Created at signup by
+      // onboarding; these keep it from going stale.
+      const WEEK = 7 * 24 * 60 * 60 * 1000;
+      const { data: everyone } = await supabase
+        .from('user_tokens').select('user_id, brain_at, voice_at, access_token, channel_description');
+      const hasChannel = (u: any) => !!u.access_token;
+      const due = (at: string | null) => !at || Date.now() - new Date(at).getTime() > WEEK;
+
+      let brains = 0;
+      for (const u of everyone ?? []) {
+        if (brains >= 5 || Date.now() - started > CRON_BUDGET_MS - 30_000) break;
+        if (!due(u.brain_at) || (!hasChannel(u) && !u.channel_description)) continue;
         try {
+          brains++;
+          // Nothing to read still counts as a visit, so it is not retried hourly.
+          if (!await buildBrain(supabase, u.user_id)) {
+            await supabase.from('user_tokens').update({ brain_at: new Date().toISOString() }).eq('user_id', u.user_id);
+          }
+        } catch (e) {
+          console.error(`[daily-ideas] brain ${u.user_id} failed:`, e);
+        }
+      }
+
+      let voices = 0;
+      for (const u of everyone ?? []) {
+        if (voices >= 2 || Date.now() - started > CRON_BUDGET_MS - 40_000) break;
+        if (!hasChannel(u) || u.voice_at && Date.now() - new Date(u.voice_at).getTime() < VOICE_TTL_MS) continue;
+        try {
+          voices++;
           // Stamped first, so a creator with no Shorts is not retried hourly.
           await supabase.from('user_tokens').update({ voice_at: new Date().toISOString() }).eq('user_id', u.user_id);
-          if (await buildVoice(supabase, u.user_id)) voices++;
+          await buildVoice(supabase, u.user_id);
         } catch (e) {
           console.error(`[daily-ideas] voice ${u.user_id} failed:`, e);
         }
       }
-      return json({ ok: true, built, skipped, voices });
+      return json({ ok: true, built, skipped, brains, voices });
     }
 
     // ── App: today's drop for this user, built on the spot if missing ──

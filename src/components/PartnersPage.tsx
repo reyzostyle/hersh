@@ -9,7 +9,6 @@ import { Check } from './BrandIcons';
 import { useAuth } from '../contexts/AuthContext';
 import { FUNCTIONS_URL, getSessionToken, fetchWithRetry } from '../lib/supabase';
 import { Page, PageHead, Panel, Section, Loading, BackLink } from './Page';
-import { ErrorNotice } from './ErrorNotice';
 import { SITE_HOST } from '../lib/brand';
 
 
@@ -83,7 +82,7 @@ function PartnerSide({ userId }: { userId?: string }) {
   }
 
   return stats
-    ? <Dashboard stats={stats} onChanged={load} />
+    ? <Dashboard stats={stats} />
     : <Pitch onClaimed={load} />;
 }
 
@@ -167,7 +166,7 @@ function Pitch({ onClaimed }: { onClaimed: () => void }) {
         <ul className="space-y-2 text-[13px] leading-relaxed" style={{ color: 'var(--text-muted)' }}>
           <li>30% of net revenue for twelve months from each subscriber you bring.</li>
           <li>Earnings settle 30 days after the payment they came from, which is what covers refunds.</li>
-          <li>Withdraw from $10, by PayPal. Or take it in credits, worth double the cash.</li>
+          <li>Withdraw from $10 by opening a ticket in our Discord. Or take it in credits, worth double the cash.</li>
           <li>Refunds and chargebacks are not counted.</li>
           <li>Referring yourself, coupon sites and ads on our brand terms are not eligible.</li>
         </ul>
@@ -240,7 +239,7 @@ function ClaimLink({ onClaimed }: { onClaimed: () => void }) {
 
 // ─── Screen two: the dashboard ───────────────────────────────────────────────
 
-function Dashboard({ stats, onChanged }: { stats: PartnerStats; onChanged: () => void }) {
+function Dashboard({ stats }: { stats: PartnerStats }) {
   // Built from the current origin so the link keeps working after a domain move.
   const refLink = `${window.location.origin}?ref=${stats.code}`;
   const [copied, setCopied] = useState(false);
@@ -275,7 +274,7 @@ function Dashboard({ stats, onChanged }: { stats: PartnerStats; onChanged: () =>
         </div>
         <p className="mt-4 text-[12px] text-balance" style={{ color: 'var(--text-faint)' }}>
           Earnings settle 30 days after the payment they came from, which covers refunds.
-          Once settled you can withdraw from {money(stats.min_payout_cents ?? 1000)}, by PayPal.
+          Once settled you can withdraw from {money(stats.min_payout_cents ?? 1000)} by opening a ticket in our Discord.
         </p>
       </Section>
 
@@ -287,7 +286,7 @@ function Dashboard({ stats, onChanged }: { stats: PartnerStats; onChanged: () =>
       </Section>
 
       <Section label="Getting paid">
-        <PayoutSettings stats={stats} onSaved={onChanged} />
+        <Payout />
       </Section>
     </Page>
   );
@@ -308,68 +307,26 @@ function Figure({ icon, label, value, accent }: {
   );
 }
 
-// Where the money goes, plus the credits option: taking it in credits is worth
-// double, which suits partners who use the product themselves.
-function PayoutSettings({ stats, onSaved }: { stats: PartnerStats; onSaved: () => void }) {
-  const [details, setDetails] = useState(stats.payout_details || '');
-  const [inCredits, setInCredits] = useState(!!stats.payout_in_credits);
-  const [saving, setSaving] = useState(false);
-  const [saved, setSaved] = useState(false);
-  const [error, setError] = useState('');
+// Payouts are handled by hand in Discord: a partner opens a ticket, says how
+// much and whether they want cash or credits (worth double), and it is paid
+// from there. There used to be a PayPal email field here; Ivan dropped it
+// 2026-10-10 because every payout went through a conversation anyway.
+const DISCORD_URL = 'https://discord.com/invite/N8S6C95Ry2';
 
-  const save = async () => {
-    setSaving(true);
-    setError('');
-    try {
-      const token = await getSessionToken();
-      if (!token) return;
-      const res = await fetchWithRetry(`${FUNCTIONS_URL}/referral-stats`, {
-        method: 'PUT',
-        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ payout_method: 'paypal', payout_details: details, payout_in_credits: inCredits }),
-      });
-      const data = await res.json();
-      if (!res.ok) { setError(data.error || 'Could not save that'); return; }
-      setSaved(true);
-      setTimeout(() => setSaved(false), 2000);
-      onSaved();
-    } finally {
-      setSaving(false);
-    }
-  };
-
+function Payout() {
   return (
-    <div>
-      <div className="flex flex-col sm:flex-row gap-3">
-        <input
-          value={details}
-          onChange={e => setDetails(e.target.value)}
-          placeholder="Your PayPal email"
-          className="flex-1 px-4 py-2.5 rounded-[var(--r-sm)] text-sm focus:outline-none"
-          style={{ background: 'var(--bg-raised)', border: '1px solid var(--line)', color: 'var(--text)' }}
-        />
-        <button
-          onClick={save}
-          disabled={saving}
-          className="btn-primary px-4 py-2.5 text-sm font-medium rounded-[var(--r-sm)] disabled:opacity-40"
-        >
-          {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : saved ? <Check className="w-4 h-4" /> : 'Save'}
-        </button>
-      </div>
-
-      <label className="flex items-start gap-2.5 mt-4 cursor-pointer">
-        <input
-          type="checkbox"
-          checked={inCredits}
-          onChange={e => setInCredits(e.target.checked)}
-          className="mt-0.5 accent-[var(--accent)]"
-        />
-        <span className="text-[12px] text-balance" style={{ color: 'var(--text-muted)' }}>
-          Pay me in credits instead, worth double the cash amount.
-        </span>
-      </label>
-
-      {error && <div className="mt-3"><ErrorNotice message={error} /></div>}
+    <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+      <p className="flex-1 text-[13px] text-balance" style={{ color: 'var(--text-muted)' }}>
+        Open a ticket in our Discord with the amount and whether you want cash or credits, worth double.
+      </p>
+      <a
+        href={DISCORD_URL}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="btn btn--primary btn--sm flex-shrink-0"
+      >
+        Open a ticket
+      </a>
     </div>
   );
 }

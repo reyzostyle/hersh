@@ -4,7 +4,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { RefreshOutlineIcon as Loader2, EyeOutlineIcon as Eye, EyeClosedOutlineIcon as EyeOff, RefreshOutlineIcon as RefreshCw, LinkOutlineIcon as Link, AltArrowDownOutlineIcon as ChevronDown, Stars2OutlineIcon as Sparkles, UserOutlineIcon as User, BoltOutlineIcon as Zap, ChatRoundOutlineIcon as MessageCircle, SquareArrowRightUpOutlineIcon as ExternalLink, TicketOutlineIcon as Ticket, CpuBoltOutlineIcon as Brain, HandShakeOutlineIcon as Handshake, ArrowRightUpOutlineIcon as ArrowUpRight } from '@solar-icons/react';
 import { getSessionToken, fetchWithRetry } from '../lib/supabase';
 
-import { requestBrain, type ChannelBrain } from '../lib/brain';
+import { requestBrain, type ChannelBrain, type BrainOverrides } from '../lib/brain';
 import { syncOwnVideos } from '../lib/ownVideos';
 import { displayNameOf } from '../lib/user';
 import { PageHead, Row, Loading, Tile, Button, Collapse, Skeleton } from './Page';
@@ -136,6 +136,11 @@ export function SettingsPage() {
   const [brainAt, setBrainAt] = useState<string | null>(null);
   const [brainBuilding, setBrainBuilding] = useState(false);
   const [brainError, setBrainError] = useState('');
+  // The creator's own edits, kept apart from the read so the weekly rebuild
+  // never overwrites them; and the voice heard in their Shorts, which is what
+  // the Voice line shows when there is one.
+  const [brainOverrides, setBrainOverrides] = useState<BrainOverrides>({});
+  const [heardVoice, setHeardVoice] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [contextSaving, setContextSaving] = useState(false);
   const [contextSaved, setContextSaved] = useState(false);
@@ -229,7 +234,7 @@ export function SettingsPage() {
         const [{ data, error }] = await Promise.all([
           supabase
             .from('user_tokens')
-            .select('updated_at, access_token, plan, youtube_channel_name, youtube_channel_thumbnail, channel_description, creator_level, brain, brain_at')
+            .select('updated_at, access_token, plan, youtube_channel_name, youtube_channel_thumbnail, channel_description, creator_level, brain, brain_at, brain_overrides, voice')
             .eq('user_id', user.id)
             .maybeSingle(),
           // Waited on, but not forever: it goes out to YouTube, and a slow
@@ -258,6 +263,8 @@ export function SettingsPage() {
         setCreatorLevel(data?.creator_level || 'intermediate');
         setBrain((data?.brain as ChannelBrain) ?? null);
         setBrainAt(data?.brain_at ?? null);
+        setBrainOverrides((data?.brain_overrides as BrainOverrides) ?? {});
+        setHeardVoice((data?.voice as { how_they_talk?: string } | null)?.how_they_talk ?? null);
       } catch {
         if (!cancelled) {
           setYoutubeStatus({ connected: false });
@@ -521,10 +528,17 @@ export function SettingsPage() {
       >
         <BrainCard
           brain={brain}
+          overrides={brainOverrides}
+          heardVoice={heardVoice}
           builtAt={brainAt}
           loading={brainBuilding}
           error={brainError}
           onBuild={() => buildBrain(false)}
+          onSaveEdits={async next => {
+            const { error } = await supabase.from('user_tokens').update({ brain_overrides: next }).eq('user_id', user?.id);
+            if (error) throw error;
+            setBrainOverrides(next);
+          }}
         />
       </SettingsCard>
 
@@ -839,68 +853,196 @@ export function SettingsPage() {
 // can see and nobody can correct, is the same trap as the four boxes it
 // replaced, only harder to argue with. Shown, it is checkable: if it has the
 // channel wrong, the fix is a line in the box above and a rebuild.
-function BrainCard({ brain, builtAt, loading, error, onBuild }: {
+const BRAIN_TEXT: { key: 'niche' | 'format' | 'audience' | 'voice'; label: string }[] = [
+  { key: 'niche', label: 'Niche' },
+  { key: 'format', label: 'Format' },
+  { key: 'audience', label: 'Audience' },
+  { key: 'voice', label: 'Voice' },
+];
+const BRAIN_LISTS: { key: 'strengths' | 'watch_outs' | 'adapt_rules'; label: string }[] = [
+  { key: 'strengths', label: 'What already works' },
+  { key: 'watch_outs', label: 'What we will not suggest' },
+  { key: 'adapt_rules', label: 'How ideas get remade for you' },
+];
+
+// The summary up front, the rest one tap away, and every part editable.
+//
+// Shown in full it took most of a screen (Ivan, 2026-10-10). Edits are stored
+// as overrides beside the read rather than written into it: the brain rebuilds
+// itself weekly, and a rebuild that wiped what someone corrected by hand would
+// teach them not to bother.
+export function BrainCard({ brain, overrides, heardVoice, builtAt, loading, error, onBuild, onSaveEdits }: {
   brain: ChannelBrain | null;
+  overrides: BrainOverrides;
+  heardVoice: string | null;
   builtAt: string | null;
   loading: boolean;
   error: string;
   onBuild: () => void;
+  onSaveEdits: (next: BrainOverrides) => Promise<void>;
 }) {
-  const Field = ({ label, value }: { label: string; value: string }) =>
-    value ? (
-      <div>
+  const [open, setOpen] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState<Record<string, string>>({});
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState('');
+
+  // What the read says, before edits. The heard voice beats the brain's own
+  // one-liner, which is written from titles.
+  const base = (k: string): string | string[] => {
+    if (!brain) return '';
+    if (k === 'voice') return heardVoice || brain.voice;
+    return (brain as unknown as Record<string, string | string[]>)[k] ?? '';
+  };
+  const shown = (k: string): string | string[] => {
+    const o = (overrides as Record<string, string | string[] | undefined>)[k];
+    return (Array.isArray(o) ? o.length : o?.trim()) ? o! : base(k);
+  };
+  const asText = (v: string | string[]) => Array.isArray(v) ? v.join('\n') : v;
+  const edited = Object.keys(overrides).length > 0;
+
+  const startEdit = () => {
+    const d: Record<string, string> = { summary: asText(shown('summary')) };
+    for (const f of [...BRAIN_TEXT, ...BRAIN_LISTS]) d[f.key] = asText(shown(f.key));
+    setDraft(d);
+    setSaveError('');
+    setEditing(true);
+    setOpen(true);
+  };
+
+  const save = async () => {
+    const next: BrainOverrides = {};
+    for (const key of ['summary', ...BRAIN_TEXT.map(f => f.key)] as const) {
+      const v = (draft[key] ?? '').trim();
+      if (v && v !== asText(base(key)).trim()) (next as Record<string, string>)[key] = v;
+    }
+    for (const { key } of BRAIN_LISTS) {
+      const v = (draft[key] ?? '').split('\n').map(x => x.replace(/^\s*-\s*/, '').trim()).filter(Boolean);
+      if (v.length && v.join('\n') !== asText(base(key))) (next as Record<string, string[]>)[key] = v;
+    }
+    setSaving(true);
+    setSaveError('');
+    try {
+      await onSaveEdits(next);
+      setEditing(false);
+    } catch {
+      setSaveError('Could not save that. Try again.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const field = (label: string, value: string | string[]) =>
+    (Array.isArray(value) ? value.length : value) ? (
+      <div key={label}>
         <FieldLabel>{label}</FieldLabel>
-        <p className="text-sm leading-relaxed" style={{ color: 'var(--text-muted)' }}>{value}</p>
+        {Array.isArray(value) ? (
+          <ul className="space-y-1.5">
+            {value.map((x, i) => (
+              <li key={i} className="text-sm leading-relaxed flex gap-2" style={{ color: 'var(--text-muted)' }}>
+                <span style={{ color: 'var(--text-faint)' }}>-</span>
+                <span>{x}</span>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="text-sm leading-relaxed" style={{ color: 'var(--text-muted)' }}>{value}</p>
+        )}
       </div>
     ) : null;
 
-  const List = ({ label, items }: { label: string; items: string[] }) =>
-    items?.length ? (
-      <div>
-        <FieldLabel>{label}</FieldLabel>
-        <ul className="space-y-1.5">
-          {items.map((x, i) => (
-            <li key={i} className="text-sm leading-relaxed flex gap-2" style={{ color: 'var(--text-muted)' }}>
-              <span style={{ color: 'var(--text-faint)' }}>-</span>
-              <span>{x}</span>
-            </li>
-          ))}
-        </ul>
-      </div>
-    ) : null;
+  const input = (key: string, label: string, rows: number, hint?: string) => (
+    <div key={key}>
+      <FieldLabel>{label}</FieldLabel>
+      <textarea
+        value={draft[key] ?? ''}
+        onChange={e => setDraft(d => ({ ...d, [key]: e.target.value }))}
+        rows={rows}
+        className="glass-field w-full px-4 py-3 rounded-lg text-white text-sm focus:outline-none resize-y leading-relaxed"
+        style={glassInput}
+      />
+      {hint && <p className="mt-1.5 text-xs" style={{ color: 'var(--text-faint)' }}>{hint}</p>}
+    </div>
+  );
 
-  return (
-    <div className="space-y-4">
-      {brain ? (
-        <>
-          <p className="text-sm leading-relaxed" style={{ color: 'var(--text)' }}>{brain.summary}</p>
-          <Field label="Niche" value={brain.niche} />
-          <Field label="Format" value={brain.format} />
-          <Field label="Audience" value={brain.audience} />
-          <Field label="Voice" value={brain.voice} />
-          <List label="What already works" items={brain.strengths} />
-          <List label="What we will not suggest" items={brain.watch_outs} />
-          <List label="How ideas get remade for you" items={brain.adapt_rules} />
-          <p className="text-xs" style={{ color: 'var(--text-faint)' }}>
-            {brain.source === 'uploads'
-              ? 'Read off your last uploads and what you wrote.'
-              : 'Written from what you wrote. Connect your channel and this gets read off your real uploads instead.'}
-            {builtAt && ` Built ${new Date(builtAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}.`}
-          </p>
-        </>
-      ) : (
+  if (!brain) {
+    return (
+      <div className="space-y-4">
         <p className="text-sm leading-relaxed" style={{ color: 'var(--text-muted)' }}>
           Nothing here yet. Build it and every idea, outline and rewrite after that is
           written for your channel instead of for a generic one.
         </p>
-      )}
+        {error && <p className="text-red-400 text-sm">{error}</p>}
+        <Button variant="primary" onClick={onBuild} disabled={loading}>
+          {loading && <Loader2 className="w-4 h-4 animate-spin" />}
+          {loading ? 'Reading your channel' : 'Build it'}
+        </Button>
+      </div>
+    );
+  }
 
-      {error && <p className="text-red-400 text-sm">{error}</p>}
+  if (editing) {
+    return (
+      <div className="space-y-4">
+        {input('summary', 'Summary', 4)}
+        {BRAIN_TEXT.map(f => input(f.key, f.label, f.key === 'niche' ? 1 : 3))}
+        {BRAIN_LISTS.map(f => input(f.key, f.label, 4, 'One per line.'))}
+        {saveError && <p className="text-red-400 text-sm">{saveError}</p>}
+        <div className="flex flex-wrap items-center gap-2">
+          <Button variant="primary" onClick={save} disabled={saving}>
+            {saving && <Loader2 className="w-4 h-4 animate-spin" />}
+            Save
+          </Button>
+          <Button variant="text" onClick={() => setEditing(false)} disabled={saving}>Cancel</Button>
+        </div>
+      </div>
+    );
+  }
 
-      <Button variant={brain ? 'secondary' : 'primary'} onClick={onBuild} disabled={loading}>
-        {loading && <Loader2 className="w-4 h-4 animate-spin" />}
-        {loading ? 'Reading your channel' : brain ? 'Rebuild' : 'Build it'}
-      </Button>
+  return (
+    <div className="space-y-4">
+      <p className="text-sm leading-relaxed" style={{ color: 'var(--text)' }}>{shown('summary') as string}</p>
+
+      <button
+        type="button"
+        onClick={() => setOpen(o => !o)}
+        className="flex items-center gap-1.5 text-[13px] font-medium transition-colors hover:text-[var(--text)]"
+        style={{ color: 'var(--text-muted)' }}
+        aria-expanded={open}
+      >
+        {open ? 'Hide details' : 'Details'}
+        <ChevronDown className="w-3.5 h-3.5 transition-transform" style={{ transform: open ? 'rotate(180deg)' : undefined }} />
+      </button>
+
+      <Collapse open={open} className="!mt-0">
+        <div className="space-y-4 pt-4">
+          {BRAIN_TEXT.map(f => field(f.label, shown(f.key)))}
+          {BRAIN_LISTS.map(f => field(f.label, shown(f.key)))}
+        </div>
+      </Collapse>
+
+      <p className="text-xs" style={{ color: 'var(--text-faint)' }}>
+        {brain.source === 'uploads'
+          ? 'Updates itself every week from your uploads.'
+          : 'Written from what you wrote. Connect your channel and this gets read off your real uploads instead.'}
+        {edited && ' Your edits stay.'}
+        {builtAt && ` Last read ${new Date(builtAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}.`}
+      </p>
+
+      {(error || saveError) && <p className="text-red-400 text-sm">{error || saveError}</p>}
+
+      <div className="flex flex-wrap items-center gap-2">
+        <Button variant="secondary" onClick={startEdit}>Edit</Button>
+        <Button variant="secondary" onClick={onBuild} disabled={loading}>
+          {loading && <Loader2 className="w-4 h-4 animate-spin" />}
+          {loading ? 'Reading your channel' : 'Rebuild'}
+        </Button>
+        {edited && (
+          <Button variant="text" onClick={() => onSaveEdits({}).catch(() => setSaveError('Could not reset.'))}>
+            Undo my edits
+          </Button>
+        )}
+      </div>
     </div>
   );
 }

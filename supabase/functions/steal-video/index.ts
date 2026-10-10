@@ -1,5 +1,5 @@
 import { corsHeaders } from '../_shared/http.ts';
-import { loadVoice, voiceBlock } from '../_shared/voice.ts';
+import { loadVoiceBlock } from '../_shared/voice.ts';
 import { createClient } from 'npm:@supabase/supabase-js@2.57.4';
 import { loadCreditStatus, canAfford, spendCredits, CREDIT_COSTS } from '../_shared/credits.ts';
 import { loadChannelScan, channelScanBlock } from '../_shared/channel-scan.ts';
@@ -139,7 +139,7 @@ Extra context: ${profile?.channel_context || 'not set'}`;
     }
     if (!concept && !adaptedIdea) throw new Error('Could not read that video. Nothing was charged.');
 
-    const outline = await generateOutline(videoId, title, adaptedIdea, profileBlock, scanBlock, voiceBlock(await loadVoice(supabase, user.id)));
+    const outline = await generateOutline(videoId, title, adaptedIdea, profileBlock, scanBlock, await loadVoiceBlock(supabase, user.id));
 
     const { data: idea, error: upsertError } = await supabase
       .from('competitor_ideas')

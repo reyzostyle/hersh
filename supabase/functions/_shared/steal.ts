@@ -198,7 +198,8 @@ Rules:
 - Sections should build logically toward a payoff
 - CTA should feel natural, not forced. If they do not usually end on a call to action, the CTA is just their usual last line
 - Every section names something visual, not just a line to say
-- The hook and every line to be said are in THEIR words${voice ? ', matching the verbatim lines above' : ''}: how a person talks to a camera, not how a copywriter writes. Short, plain, contractions, their slang
+- The hook and every line to be said sound like THEM${voice ? ' (their register is described above)' : ''}: how a person talks to a camera, not how a copywriter writes. Short, plain, contractions. Sounding like them is not quoting them: no example lines, at most one of their usual words
+- What you know about their channel is background. Use what fits this idea; do not drag in their recent topics or force their niche into a format that does not need it
 - Never: "In this video", "Let's dive in", "Here's the thing", "game-changer", "unlock", "level up", "ever wondered", "you won't believe", rhetorical triplets, or any line that sounds like an ad
 - No em-dash or en-dash, only regular hyphen (-)
 - Respond with JSON only, no markdown`;

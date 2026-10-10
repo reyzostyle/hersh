@@ -75,11 +75,28 @@ ${titles ? `Their last ${scan.videos.length} uploads, newest first:\n${titles}` 
 export async function buildBrain(supabase: any, userId: string): Promise<ChannelBrain | null> {
   const { data: row } = await supabase
     .from('user_tokens')
-    .select('creator_level, channel_description, channel_niche, target_audience, channel_context')
+    .select('creator_level, channel_description, channel_niche, target_audience, channel_context, brain, brain_overrides')
     .eq('user_id', userId)
     .maybeSingle();
 
-  const scan = await loadChannelScan(supabase, userId);
+  // A day old at most: this runs weekly from the cron, and the scan's own
+  // week-long cache would otherwise hand it last week's uploads.
+  const scan = await loadChannelScan(supabase, userId, 24 * 60 * 60 * 1000);
+
+  // Their best videos ever, beside the latest twenty. The latest alone made
+  // the read follow whatever they posted this week; what the channel is shows
+  // across both.
+  const { data: best } = await supabase
+    .from('videos').select('video_id, title, views')
+    .eq('user_id', userId).order('views', { ascending: false }).limit(25);
+  const bestTitles = (best ?? [])
+    .filter((v: { video_id: string }) => /^[\w-]{11}$/.test(v.video_id))
+    .slice(0, 10)
+    .map((v: { title: string; views: number }) => `- ${v.title} (${(v.views ?? 0).toLocaleString()} views)`)
+    .join('\n');
+
+  const previous = row?.brain as ChannelBrain | null;
+  const edits = row?.brain_overrides as BrainOverrides | null;
 
   // Legacy accounts filled in four boxes; those are still the only thing some
   // of them have said about themselves, so they go in as "what they wrote"
@@ -103,6 +120,17 @@ ${stated}
 
 ## What they actually publish
 ${scanEvidence(scan)}
+${bestTitles ? `\nTheir most viewed videos of all time:\n${bestTitles}\n` : ''}${previous?.summary ? `
+## The previous read (last week)
+${previous.summary}
+Niche: ${previous.niche} | Format: ${previous.format}
+Keep what still holds. Change it only where the uploads have actually moved, not because of one new video.
+` : ''}${edits && Object.keys(edits).length ? `
+## Corrections the creator made by hand
+${Object.entries(edits).map(([k, v]) => `${k}: ${Array.isArray(v) ? v.join('; ') : v}`).join('\n')}
+These are true. Build around them; never contradict them.
+` : ''}
+Describe what is STABLE across many uploads. A topic, joke, guest or format that shows up once, or only in the last few videos, is not the channel: do not name it in the profile and do not build rules around it. Rules and strengths have to hold for the next ten videos, not describe the last two.
 
 Read the uploads before the self-description. What someone writes about their channel is intent; the titles and the view counts are evidence. Where the two disagree, the uploads win, and say so plainly in the summary rather than splitting the difference. If there are no uploads, work from what they wrote and keep every claim to what it supports - do not invent a format, a voice or an audience out of one sentence.
 
@@ -120,7 +148,7 @@ Answer with JSON and nothing else:
   "adapt_rules": ["3-5 instructions for remaking someone else's video on THIS channel: what to keep, what to swap, what will never fit. Written as orders to whoever is doing the adapting, not as advice to the creator."]
 }`;
 
-  const raw = await callLLM(prompt, { maxTokens: 1200 });
+  const raw = await callLLM(prompt, { maxTokens: 1200, tier: 'writer' });
   const parsed = parseModelJson<Partial<ChannelBrain>>(raw, 'channel brain');
 
   const asList = (v: unknown): string[] =>
@@ -154,11 +182,27 @@ Answer with JSON and nothing else:
   return brain;
 }
 
+// What the creator changed by hand in Settings. Kept apart from the brain so a
+// rebuild (weekly, by the cron) can never overwrite it: the read is merged
+// with the edits every time it is loaded, and the edits win.
+export type BrainOverrides = Partial<Pick<ChannelBrain,
+  'summary' | 'niche' | 'format' | 'audience' | 'voice' | 'strengths' | 'watch_outs' | 'adapt_rules'>>;
+
+export function mergeBrain(brain: ChannelBrain | null, overrides: BrainOverrides | null): ChannelBrain | null {
+  if (!brain) return null;
+  if (!overrides) return brain;
+  const out = { ...brain };
+  for (const [k, v] of Object.entries(overrides)) {
+    if (Array.isArray(v) ? v.length : typeof v === 'string' && v.trim()) (out as Record<string, unknown>)[k] = v;
+  }
+  return out;
+}
+
 // deno-lint-ignore no-explicit-any
 export async function loadBrain(supabase: any, userId: string): Promise<ChannelBrain | null> {
   const { data } = await supabase
-    .from('user_tokens').select('brain').eq('user_id', userId).maybeSingle();
-  return (data?.brain as ChannelBrain) ?? null;
+    .from('user_tokens').select('brain, brain_overrides').eq('user_id', userId).maybeSingle();
+  return mergeBrain((data?.brain as ChannelBrain) ?? null, (data?.brain_overrides as BrainOverrides) ?? null);
 }
 
 // The prompt block. One shape for every caller, so "their channel" means the
@@ -178,7 +222,8 @@ ${brain.watch_outs.length ? `\nDo not suggest:\n${list(brain.watch_outs)}` : ''}
 ${brain.adapt_rules.length ? `\nWhen remaking anything for this channel:\n${list(brain.adapt_rules)}` : ''}
 ${brain.source === 'stated'
   ? '\nThis profile was written from what they told us; their channel is not connected, so none of it is confirmed by real uploads. Do not treat it as fact about their audience or their numbers.'
-  : '\nThis profile was read off their real uploads. Trust it over anything the video in front of you implies about them.'}`;
+  : '\nThis profile was read off their real uploads. Trust it over anything the video in front of you implies about them.'}
+This is background on who they are, not a checklist. Use the parts that matter for what is being asked and leave the rest out; do not work every point into every idea.`;
 }
 
 // The short form, for prompts that are deliberately cheap.

@@ -99,7 +99,7 @@ async function buildScan(supabase: any, userId: string, row: any): Promise<Chann
 }
 
 // deno-lint-ignore no-explicit-any
-export async function loadChannelScan(supabase: any, userId: string): Promise<ChannelScan | null> {
+export async function loadChannelScan(supabase: any, userId: string, maxAgeMs = SCAN_TTL_MS): Promise<ChannelScan | null> {
   const { data: row } = await supabase
     .from('user_tokens')
     .select('access_token, refresh_token, token_expiry, channel_scan, channel_scan_at')
@@ -107,7 +107,7 @@ export async function loadChannelScan(supabase: any, userId: string): Promise<Ch
     .maybeSingle();
 
   const cachedAt = row?.channel_scan_at ? new Date(row.channel_scan_at).getTime() : 0;
-  if (row?.channel_scan && Date.now() - cachedAt < SCAN_TTL_MS) {
+  if (row?.channel_scan && Date.now() - cachedAt < maxAgeMs) {
     return row.channel_scan as ChannelScan;
   }
 

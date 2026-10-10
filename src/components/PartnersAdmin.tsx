@@ -59,7 +59,7 @@ export function PartnersAdmin() {
   const [payingCode, setPayingCode] = useState<string | null>(null);
   const markPaid = async (p: PartnerStats) => {
     const amount = money(p.available_cents);
-    if (!window.confirm(`Mark ${amount} as paid out to ${p.partner_name}? Do this after the PayPal transfer has actually gone through.`)) return;
+    if (!window.confirm(`Mark ${amount} as paid out to ${p.partner_name}? Do this after the payout has actually gone through.`)) return;
     setPayingCode(p.code);
     try {
       const token = await getSessionToken();
