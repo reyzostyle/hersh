@@ -1,6 +1,7 @@
 import type { AttachedImage } from './images.ts';
 import { parseModelJson } from './json.ts';
 import { brainLine, type ChannelBrain } from './brain.ts';
+import { geminiGenerationConfig } from './llm.ts';
 
 // Shared video analysis: one Gemini call that both WATCHES the video and writes
 // the verdict. Used by analyze-with-gemini (pasted YouTube link) and
@@ -9,7 +10,9 @@ import { brainLine, type ChannelBrain } from './brain.ts';
 // analysis, so this list can't lead with Flash-Lite any more: it was fine at
 // "describe what you see", but the verdict is the product. Plain Flash first,
 // Flash-Lite kept only as a last-resort degrade instead of a hard failure.
-const GEMINI_MODELS = ['gemini-3.5-flash', 'gemini-2.5-flash', 'gemini-3.5-flash-lite'];
+// 3.8 Flash first since 2026-10-10: it writes less like a template, and
+// thinking stays off at level "low" (see geminiGenerationConfig in llm.ts).
+const GEMINI_MODELS = ['gemini-3.8-flash', 'gemini-3.5-flash', 'gemini-3.5-flash-lite'];
 const sleep = (ms: number) => new Promise(r => setTimeout(r, ms));
 
 // Resilient Gemini call: rotates through models and retries transient errors
@@ -60,7 +63,6 @@ export async function watchVideo(
   // the first time, which is exactly how it failed - an outline request came
   // back with nothing parseable in it.
   const buildBody = (model: string) => {
-    const isFlashLite = /flash-lite/i.test(model);
     return JSON.stringify({
       ...(opts.system ? { systemInstruction: { parts: [{ text: opts.system }] } } : {}),
       contents: [{
@@ -72,8 +74,7 @@ export async function watchVideo(
       }],
       generationConfig: {
         temperature: 0.7,
-        maxOutputTokens: opts.maxTokens,
-        ...(isFlashLite ? {} : { thinkingConfig: { thinkingBudget: 0 } }),
+        ...geminiGenerationConfig(model, opts.maxTokens),
       },
     });
   };
@@ -82,7 +83,8 @@ export async function watchVideo(
   if (!res.ok) throw new Error(`Gemini video call failed (${res.status}): ${await res.text()}`);
   const data = await res.json();
   const cand = data.candidates?.[0];
-  const text = cand?.content?.parts?.[0]?.text;
+  // deno-lint-ignore no-explicit-any
+  const text = (cand?.content?.parts ?? []).filter((p: any) => p.text && !p.thought).map((p: any) => p.text).join('') || undefined;
   if (!text) {
     // finishReason names the actual cause - MAX_TOKENS, SAFETY, RECITATION -
     // instead of leaving every failure looking the same from the outside.
@@ -299,7 +301,6 @@ ${opts.scored ? `  "score_breakdown": { "hook": <0-30>, "retention": <0-25>, "pa
   // visible output, so thinking is turned off for those models and left alone
   // for Flash-Lite (3.5 Flash-Lite 400s on an explicit thinkingBudget: 0).
   const buildGeminiBody = (model: string) => {
-    const isFlashLite = /flash-lite/i.test(model);
     return JSON.stringify({
       systemInstruction: { parts: [{ text: systemPrompt }] },
       contents: [{
@@ -314,8 +315,7 @@ ${opts.scored ? `  "score_breakdown": { "hook": <0-30>, "retention": <0-25>, "pa
         temperature: 0.2,
         // Roomy on purpose: the timeline, the transcript and the verdict all
         // share this budget now, and a truncation loses the entire analysis.
-        maxOutputTokens: 12288,
-        ...(isFlashLite ? {} : { thinkingConfig: { thinkingBudget: 0 } }),
+        ...geminiGenerationConfig(model, 12288),
       },
     });
   };
@@ -326,7 +326,8 @@ ${opts.scored ? `  "score_breakdown": { "hook": <0-30>, "retention": <0-25>, "pa
   }
 
   const data = await response.json();
-  const content = data.candidates?.[0]?.content?.parts?.[0]?.text;
+  // deno-lint-ignore no-explicit-any
+  const content = (data.candidates?.[0]?.content?.parts ?? []).filter((p: any) => p.text && !p.thought).map((p: any) => p.text).join('') || undefined;
   if (!content) throw new Error('Empty response from Gemini');
 
   const stripDashes = (s: any): any => {

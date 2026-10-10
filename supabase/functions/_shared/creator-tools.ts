@@ -20,9 +20,10 @@
 // SECOND: everything here is READ-ONLY. The model can look; it cannot write,
 // delete, spend or file anything. Giving a language model the ability to change
 // a creator's saved work on the strength of a sentence it read is not a feature
-// anybody asked for.
+// anybody asked for. (search_web reads the public web, not the database, and
+// sends only the model's query to Google.)
 
-import { type ToolSpec, type ToolCall } from './llm.ts';
+import { type ToolSpec, type ToolCall, searchWeb } from './llm.ts';
 import { searchCreatorContent } from './embeddings.ts';
 
 // Deliberately small. Every row here is tokens the answer is paying for, and a
@@ -81,6 +82,16 @@ export const CREATOR_TOOLS: ToolSpec[] = [
     parameters: {
       type: 'OBJECT',
       properties: { query: { type: 'STRING', description: 'Words to look for in past messages.' } },
+      required: ['query'],
+    },
+  },
+  {
+    name: 'search_web',
+    description:
+      "Search the web for what is true today. Your own memory of products, AI models and their versions, app features, prices, platform rules and trends is out of date. Use this BEFORE naming any specific model, version, app feature, price or current trend as if it were current, and whenever they ask about something recent. Not needed for general advice about making videos.",
+    parameters: {
+      type: 'OBJECT',
+      properties: { query: { type: 'STRING', description: 'What to look up, as a search query.' } },
       required: ['query'],
     },
   },
@@ -285,6 +296,8 @@ export async function runCreatorTool(supabase: DB, userId: string, call: ToolCal
     case 'recent_analyses': return await recentAnalyses(supabase, userId);
     case 'my_videos': return await myVideos(supabase, userId);
     case 'search_conversations': return await searchConversations(supabase, userId, arg('query'));
+    // Public web, nothing of the creator's goes out except the query.
+    case 'search_web': return await searchWeb(arg('query'));
     // Not an exception: the model asking for a tool that does not exist is
     // something it can recover from if it is told so.
     default: return { error: `No tool called ${call.name}.` };

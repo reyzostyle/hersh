@@ -1,4 +1,5 @@
 import { corsHeaders } from '../_shared/http.ts';
+import { loadVoice, voiceBlock } from '../_shared/voice.ts';
 import { createClient } from 'npm:@supabase/supabase-js@2.57.4';
 import { callLLMWithTools } from '../_shared/llm.ts';
 import { parseImages } from '../_shared/images.ts';
@@ -256,7 +257,9 @@ End: ${o.cta ?? ''}` : ''}
       ? `## Their message\n"""\n${question.trim()}\n"""`
       : '## Their message\nThey sent the screenshot with no text.';
 
-    const prompt = `${block ? `## Who you are talking to\n${block}\n\n` : ''}${ideaBlock}${reviewBlock}${history ? `## The conversation so far\n${history}\n\n` : ''}${hasImage ? `## Attached\n${images.length === 1 ? 'A screenshot is' : `${images.length} screenshots are`} attached above. They are the evidence for whatever they are asking.\n\n` : ''}${messageBlock}`;
+    const voice = voiceBlock(await loadVoice(supabase, user.id));
+    const today = new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+    const prompt = `## Today\n${today}\n\n${block ? `## Who you are talking to\n${block}\n\n` : ''}${voice}${ideaBlock}${reviewBlock}${history ? `## The conversation so far\n${history}\n\n` : ''}${hasImage ? `## Attached\n${images.length === 1 ? 'A screenshot is' : `${images.length} screenshots are`} attached above. They are the evidence for whatever they are asking.\n\n` : ''}${messageBlock}`;
 
     // One call, tools on it. A lookup pays for a second round trip only when
     // the answer depends on something only this account knows.
@@ -264,6 +267,7 @@ End: ${o.cta ?? ''}` : ''}
 
     const answer = await callLLMWithTools(prompt, {
       system: SYSTEM,
+      tier: 'writer',
       // Roomier than a follow-up needs, because the same call has to be able
       // to return a finished script. 900 was sized for "a few sentences" and
       // would have truncated one mid-line.

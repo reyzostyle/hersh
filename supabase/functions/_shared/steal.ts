@@ -112,7 +112,7 @@ Rules:
   // alternative to a paid AI coding tool". Storing it would mean a column, and
   // the value is in the model having had to write it, not in reading it back.
   const content = transcript
-    ? await callLLM(prompt, { maxTokens: 1400 })
+    ? await callLLM(prompt, { maxTokens: 1400, tier: 'writer' })
     : await watchVideo(
         { fileUri: `https://www.youtube.com/watch?v=${videoId}`, mimeType: 'video/mp4' },
         prompt,
@@ -167,13 +167,14 @@ export async function generateOutline(
   adaptedIdea: string,
   profileBlock: string,
   scanBlock: string,
+  voice = '',
 ): Promise<Outline> {
   const prompt = `You are watching a competitor's YouTube Short that outperformed its channel. Write the outline for the version THIS creator should make.
 
 The angle already worked out for them: ${adaptedIdea}
 The video you are watching: "${videoTitle}"
 
-${profileBlock}${scanBlock}
+${profileBlock}${scanBlock}${voice}
 
 Watch it properly first. Note how the first frame is composed, what is on screen in the opening second, where the cuts land, what any text overlay says, and how long it sits before the payoff. Those are the parts that do not survive into a transcript, and they are what you are here to carry over.
 
@@ -195,8 +196,10 @@ Rules:
 - 3 to 4 sections total
 - Hook must be the first thing said, not an intro
 - Sections should build logically toward a payoff
-- CTA should feel natural, not forced
+- CTA should feel natural, not forced. If they do not usually end on a call to action, the CTA is just their usual last line
 - Every section names something visual, not just a line to say
+- The hook and every line to be said are in THEIR words${voice ? ', matching the verbatim lines above' : ''}: how a person talks to a camera, not how a copywriter writes. Short, plain, contractions, their slang
+- Never: "In this video", "Let's dive in", "Here's the thing", "game-changer", "unlock", "level up", "ever wondered", "you won't believe", rhetorical triplets, or any line that sounds like an ad
 - No em-dash or en-dash, only regular hyphen (-)
 - Respond with JSON only, no markdown`;
 

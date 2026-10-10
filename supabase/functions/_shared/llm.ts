@@ -37,6 +37,48 @@ export interface LLMCallOptions {
   system?: string;
   maxTokens: number;
   images?: LLMImage[];
+  // 'writer' is for text a creator reads and films: chat replies, outlines,
+  // scripts. It can run on a stronger model than the bulk work (pitching
+  // titles, search phrases) via WRITER_PROVIDER / WRITER_MODEL, and falls back
+  // to ANALYSIS_* when those are not set.
+  tier?: 'bulk' | 'writer';
+}
+
+function resolveModel(tier: LLMCallOptions['tier']): { provider: string; model: string } {
+  const provider = Deno.env.get('ANALYSIS_PROVIDER') || 'anthropic';
+  const model = Deno.env.get('ANALYSIS_MODEL') || 'claude-sonnet-5';
+  if (tier !== 'writer') return { provider, model };
+  return {
+    provider: Deno.env.get('WRITER_PROVIDER') || provider,
+    model: Deno.env.get('WRITER_MODEL') || model,
+  };
+}
+
+// Thinking and output budget per Gemini model. Thinking tokens come out of
+// maxOutputTokens, so a model that thinks by default silently truncates a
+// JSON answer sized for one that does not.
+// - Flash-Lite (2.5, 3.5): does not think; 3.5 Flash-Lite 400s on an explicit
+//   thinkingBudget, so it gets no thinking config at all.
+// - Flash 3.6 and later: thinkingLevel "low". Measured 2026-10-10 on 3.8 Flash:
+//   no thought tokens reported, and the writing is noticeably less stiff than
+//   Flash-Lite's. It rejects "minimal". Headroom added in case low still thinks.
+// - Older plain Flash (2.5, 3.5): thinkingBudget 0, as before.
+// - Pro cannot go below a minimum budget, so it gets a wider ceiling instead.
+export function geminiGenerationConfig(model: string, maxTokens: number): Record<string, unknown> {
+  if (/flash-lite/i.test(model)) return { maxOutputTokens: maxTokens };
+  const newFlash = /gemini-(3\.[6-9]|[4-9])[\d.]*-flash/i.test(model);
+  if (newFlash) return { maxOutputTokens: maxTokens + 2048, thinkingConfig: { thinkingLevel: 'low' } };
+  if (/flash/i.test(model)) return { maxOutputTokens: maxTokens, thinkingConfig: { thinkingBudget: 0 } };
+  return { maxOutputTokens: maxTokens * 4 };
+}
+
+// The visible answer: every text part that is not a thought, joined. Gemini 3
+// can split an answer across parts, and taking parts[0] dropped the rest.
+// deno-lint-ignore no-explicit-any
+function geminiText(data: any): string {
+  // deno-lint-ignore no-explicit-any
+  const parts: any[] = data?.candidates?.[0]?.content?.parts ?? [];
+  return parts.filter(p => p.text && !p.thought).map(p => p.text).join('');
 }
 
 // 529 is Anthropic's overloaded signal; 429/500/502/503 are the general
@@ -45,8 +87,7 @@ const RETRYABLE_STATUS = new Set([429, 500, 502, 503, 529]);
 const RETRIES = 3;
 
 export async function callLLM(prompt: string, opts: LLMCallOptions): Promise<string> {
-  const provider = Deno.env.get('ANALYSIS_PROVIDER') || 'anthropic';
-  const model = Deno.env.get('ANALYSIS_MODEL') || 'claude-sonnet-5';
+  const { provider, model } = resolveModel(opts.tier);
 
   let response: Response | null = null;
   for (let attempt = 0; attempt < RETRIES; attempt++) {
@@ -95,16 +136,6 @@ async function callOnce(provider: string, model: string, prompt: string, opts: L
     case 'google': {
       const apiKey = Deno.env.get('GEMINI_API_KEY');
       if (!apiKey) throw new Error('GEMINI_API_KEY not configured');
-      // Plain Flash (2.5 and 3.5) thinks by default, and thinking tokens draw
-      // from the same maxOutputTokens budget as the visible answer — a budget
-      // sized for Claude's answer-only output silently truncates the JSON
-      // mid-object before Gemini gets to finish it. Flash-Lite (both
-      // generations) doesn't think by default, so it needs no override — and
-      // 3.5 Flash-Lite actively 400s if sent thinkingBudget: 0 (2.5 Flash-Lite
-      // tolerates it, but it's a no-op either way). Pro can't go below a
-      // minimum thinking budget, so it gets a wider output budget instead.
-      const isFlashLite = /flash-lite/i.test(model);
-      const isPlainFlash = /flash/i.test(model) && !isFlashLite;
       return fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -119,10 +150,7 @@ async function callOnce(provider: string, model: string, prompt: string, opts: L
                 ]
               : [{ text: prompt }],
           }],
-          generationConfig: {
-            maxOutputTokens: isFlashLite || isPlainFlash ? opts.maxTokens : opts.maxTokens * 4,
-            ...(isPlainFlash ? { thinkingConfig: { thinkingBudget: 0 } } : {}),
-          },
+          generationConfig: geminiGenerationConfig(model, opts.maxTokens),
         }),
       });
     }
@@ -161,7 +189,7 @@ function extractText(provider: string, data: any): string {
     case 'anthropic':
       return data.content?.[0]?.text || '';
     case 'google':
-      return data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+      return geminiText(data);
     case 'openai_compat':
       return data.choices?.[0]?.message?.content || '';
     default:
@@ -212,8 +240,7 @@ export interface LLMToolOptions extends LLMCallOptions {
 const DEFAULT_MAX_ROUNDS = 3;
 
 export async function callLLMWithTools(prompt: string, opts: LLMToolOptions): Promise<string> {
-  const provider = Deno.env.get('ANALYSIS_PROVIDER') || 'anthropic';
-  const model = Deno.env.get('ANALYSIS_MODEL') || 'claude-sonnet-5';
+  const { provider, model } = resolveModel(opts.tier);
 
   if (provider !== 'google') {
     throw new Error(
@@ -224,9 +251,6 @@ export async function callLLMWithTools(prompt: string, opts: LLMToolOptions): Pr
 
   const apiKey = Deno.env.get('GEMINI_API_KEY');
   if (!apiKey) throw new Error('GEMINI_API_KEY not configured');
-
-  const isFlashLite = /flash-lite/i.test(model);
-  const isPlainFlash = /flash/i.test(model) && !isFlashLite;
 
   // deno-lint-ignore no-explicit-any
   const contents: any[] = [{
@@ -243,10 +267,7 @@ export async function callLLMWithTools(prompt: string, opts: LLMToolOptions): Pr
     ...(opts.system ? { systemInstruction: { parts: [{ text: opts.system }] } } : {}),
     tools: [{ functionDeclarations: opts.tools }],
     contents,
-    generationConfig: {
-      maxOutputTokens: isFlashLite || isPlainFlash ? opts.maxTokens : opts.maxTokens * 4,
-      ...(isPlainFlash ? { thinkingConfig: { thinkingBudget: 0 } } : {}),
-    },
+    generationConfig: geminiGenerationConfig(model, opts.maxTokens),
   });
 
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
@@ -275,7 +296,7 @@ export async function callLLMWithTools(prompt: string, opts: LLMToolOptions): Pr
     const calls = parts.filter(p => p.functionCall).map(p => p.functionCall as ToolCall);
 
     if (!calls.length) {
-      return parts.find(p => p.text)?.text || '';
+      return parts.filter(p => p.text && !p.thought).map(p => p.text).join('');
     }
 
     // The model's turn goes back VERBATIM. Gemini 3.x rejects a rebuilt
@@ -305,4 +326,44 @@ export async function callLLMWithTools(prompt: string, opts: LLMToolOptions): Pr
   // Out of rounds with no prose. Better an honest empty string, which the
   // caller already handles, than a half-finished tool transcript.
   return '';
+}
+
+// ─── Web search ──────────────────────────────────────────────────────────────
+
+// What is true right now, from Google, for the chat to answer with.
+//
+// Every model's memory stops somewhere. Asked the newest Claude Sonnet on
+// 2026-10-10, 3.8 Flash said "3.7 Sonnet" and Flash-Lite said "3.5" - and the
+// chat had been recommending exactly that to a creator whose channel is about
+// these tools. The same model with Google Search grounding said "Sonnet 5.5".
+//
+// A separate call rather than google_search beside the chat's own tools:
+// combining built-in and custom tools is preview-only and on another API. Here
+// it is a plain function tool that happens to run a grounded request.
+export async function searchWeb(query: string): Promise<{ answer: string; sources: { title: string; url: string }[] }> {
+  const apiKey = Deno.env.get('GEMINI_API_KEY');
+  if (!apiKey) throw new Error('GEMINI_API_KEY not configured');
+  const model = Deno.env.get('SEARCH_MODEL') || 'gemini-3.8-flash';
+  const today = new Date().toISOString().slice(0, 10);
+
+  const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      contents: [{ role: 'user', parts: [{ text: `Today is ${today}. Search the web and answer in a few factual sentences, with dates and version numbers where they matter. Prefer the newest information.\n\n${query}` }] }],
+      tools: [{ google_search: {} }],
+      generationConfig: geminiGenerationConfig(model, 800),
+    }),
+  });
+  if (!res.ok) throw new Error(`search failed (${res.status})`);
+  const data = await res.json();
+  // deno-lint-ignore no-explicit-any
+  const chunks: any[] = data?.candidates?.[0]?.groundingMetadata?.groundingChunks ?? [];
+  return {
+    answer: geminiText(data),
+    sources: chunks
+      .map(c => ({ title: String(c.web?.title ?? ''), url: String(c.web?.uri ?? '') }))
+      .filter(c => c.url)
+      .slice(0, 5),
+  };
 }

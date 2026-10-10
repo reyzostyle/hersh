@@ -6,6 +6,7 @@ import { pitchVideos, type PitchSource } from '../_shared/pitch.ts';
 import { buildQueries } from '../_shared/niche-query.ts';
 import { loadBrain } from '../_shared/brain.ts';
 import { loadChannelScan } from '../_shared/channel-scan.ts';
+import { buildVoice, VOICE_TTL_MS } from '../_shared/voice.ts';
 
 const CORS = corsHeaders({ methods: 'POST, OPTIONS' });
 
@@ -323,7 +324,7 @@ Deno.serve(async (req: Request) => {
       if (!cronSecret || provided !== cronSecret) return json({ error: 'Unauthorized' }, 401);
       const started = Date.now();
       const { data: users } = await supabase
-        .from('user_tokens').select('user_id, timezone, idea_drop_date')
+        .from('user_tokens').select('user_id, timezone, idea_drop_date, voice_at')
         .gte('idea_seen_at', new Date(Date.now() - ACTIVE_WINDOW_MS).toISOString());
       let built = 0, skipped = 0;
       for (const u of users ?? []) {
@@ -338,7 +339,23 @@ Deno.serve(async (req: Request) => {
           console.error(`[daily-ideas] cron build ${u.user_id} failed:`, e);
         }
       }
-      return json({ ok: true, built, skipped });
+
+      // With whatever time is left: learn how a couple of creators talk, from
+      // their own Shorts (see _shared/voice.ts). Two watches per creator, so at
+      // most two creators a run; the hourly schedule gets through everyone.
+      let voices = 0;
+      for (const u of users ?? []) {
+        if (voices >= 2 || Date.now() - started > CRON_BUDGET_MS - 40_000) break;
+        if (u.voice_at && Date.now() - new Date(u.voice_at).getTime() < VOICE_TTL_MS) continue;
+        try {
+          // Stamped first, so a creator with no Shorts is not retried hourly.
+          await supabase.from('user_tokens').update({ voice_at: new Date().toISOString() }).eq('user_id', u.user_id);
+          if (await buildVoice(supabase, u.user_id)) voices++;
+        } catch (e) {
+          console.error(`[daily-ideas] voice ${u.user_id} failed:`, e);
+        }
+      }
+      return json({ ok: true, built, skipped, voices });
     }
 
     // ── App: today's drop for this user, built on the spot if missing ──
