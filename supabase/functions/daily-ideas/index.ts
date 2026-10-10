@@ -3,7 +3,7 @@ import { corsHeaders } from '../_shared/http.ts';
 import { createClient } from 'npm:@supabase/supabase-js@2.57.4';
 import { syncChannelPool, isEnglish, OUTLIER_THRESHOLD } from '../_shared/channel-pool.ts';
 import { pitchVideos, type PitchSource } from '../_shared/pitch.ts';
-import { buildQuery } from '../_shared/niche-query.ts';
+import { buildQueries } from '../_shared/niche-query.ts';
 import { loadBrain } from '../_shared/brain.ts';
 import { loadChannelScan } from '../_shared/channel-scan.ts';
 
@@ -19,10 +19,11 @@ const CORS = corsHeaders({ methods: 'POST, OPTIONS' });
 // Where the ideas come from matters more than the schedule. Measured
 // 2026-10-06: 12 tracked channels across all users, most people tracking one,
 // and ONE new outlier across all of them in the past week. A drop built from
-// tracked channels alone would be empty by Wednesday. So it also searches the
-// creator's niche (the same phrase auto-find uses), pools the channels that
-// search turns up, and draws from both. Those channels are not added to the
-// creator's tracked list; they only feed the drop.
+// tracked channels alone would be empty by Wednesday. So it finds its own:
+// three search phrases for the creator's niche, each from a different angle,
+// up to twenty channels winning on them, pooled and drawn from alongside the
+// tracked ones. Nobody has to go and find competitors first. Those channels
+// are not added to the tracked list; they only feed the drop.
 //
 // Two callers:
 // - the app, with the user's JWT, when Ideas opens: builds today's drop if it
@@ -39,7 +40,9 @@ const NICHE_TTL_MS = 24 * 60 * 60 * 1000;    // niche channels refresh at most d
 const SEARCH_TTL_MS = 3 * 24 * 60 * 60 * 1000;
 const QUERY_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 const SEARCH_WINDOW_DAYS = 30;
-const MAX_NICHE_CHANNELS = 12;
+const MAX_NICHE_CHANNELS = 10;       // per phrase
+const MAX_NICHE_TOTAL = 20;          // across phrases
+const SYNC_BATCH = 5;                // channels refreshed in parallel
 const ACTIVE_WINDOW_MS = 14 * 24 * 60 * 60 * 1000;
 const CRON_BUDGET_MS = 110_000;
 
@@ -78,11 +81,12 @@ async function ensureTokensRow(supabase: any, userId: string) {
   if (!data) await supabase.from('user_tokens').insert({ user_id: userId, access_token: '', refresh_token: '' });
 }
 
-// The search phrase for this creator's niche, rewritten at most weekly.
-async function nicheQuery(supabase: any, userId: string, profile: any): Promise<string | null> {
+// Search phrases for this creator's niche, rewritten at most weekly. Stored
+// one per line in user_tokens.idea_query.
+async function nicheQueries(supabase: any, userId: string, profile: any): Promise<string[]> {
   if (profile?.idea_query && profile?.idea_query_at
     && Date.now() - new Date(profile.idea_query_at).getTime() < QUERY_TTL_MS) {
-    return profile.idea_query;
+    return String(profile.idea_query).split('\n').filter(Boolean);
   }
   const scan = await loadChannelScan(supabase, userId);
   const brain = await loadBrain(supabase, userId);
@@ -90,13 +94,13 @@ async function nicheQuery(supabase: any, userId: string, profile: any): Promise<
   const description = brain
     ? [brain.summary, brain.format].filter(Boolean).join(' ')
     : (profile?.channel_description || '');
-  if (!scan?.videos?.length && !niche && !description) return null;
+  if (!scan?.videos?.length && !niche && !description) return [];
 
-  const query = (await buildQuery(scan, niche, description)).toLowerCase();
-  if (!query) return null;
+  const queries = await buildQueries(scan, niche, description);
+  if (!queries.length) return [];
   await supabase.from('user_tokens')
-    .update({ idea_query: query, idea_query_at: new Date().toISOString() }).eq('user_id', userId);
-  return query;
+    .update({ idea_query: queries.join('\n'), idea_query_at: new Date().toISOString() }).eq('user_id', userId);
+  return queries;
 }
 
 // Channels winning on this phrase lately, from cache when it is fresh.
@@ -152,10 +156,20 @@ async function buildDrop(supabase: any, userId: string, dropDate: string, profil
   const trackedIds = (tracked ?? []).map((c: any) => c.channel_id);
 
   // 2. Channels the niche search turns up.
+  //    Every phrase, merged: the top of each list first, so no single angle
+  //    crowds out the others.
   let niche: { id: string; name: string }[] = [];
   try {
-    const query = await nicheQuery(supabase, userId, profile);
-    if (query) niche = await nicheChannels(supabase, query, ytApiKey);
+    const queries = await nicheQueries(supabase, userId, profile);
+    const lists = await Promise.all(queries.map(q =>
+      nicheChannels(supabase, q, ytApiKey).catch(e => { console.error('[daily-ideas] search', q, e); return []; })));
+    const seen = new Set<string>();
+    for (let i = 0; i < MAX_NICHE_CHANNELS; i++) {
+      for (const list of lists) {
+        const c = list[i];
+        if (c && !seen.has(c.id)) { seen.add(c.id); niche.push(c); }
+      }
+    }
   } catch (e) {
     console.error('[daily-ideas] niche search error:', e);
   }
@@ -163,7 +177,7 @@ async function buildDrop(supabase: any, userId: string, dropDate: string, profil
   // Own channel never counts as a competitor.
   const scan = await loadChannelScan(supabase, userId);
   const ownTitle = (scan?.channelTitle || '').toLowerCase();
-  niche = niche.filter(c => !trackedIds.includes(c.id) && c.name.toLowerCase() !== ownTitle);
+  niche = niche.filter(c => !trackedIds.includes(c.id) && c.name.toLowerCase() !== ownTitle).slice(0, MAX_NICHE_TOTAL);
 
   const all = [
     ...(tracked ?? []).map((c: any) => ({ id: c.channel_id, name: c.channel_name, ttl: TRACKED_TTL_MS })),
@@ -174,14 +188,14 @@ async function buildDrop(supabase: any, userId: string, dropDate: string, profil
   const { data: syncRows } = await supabase
     .from('competitor_channel_pool').select('channel_id, synced_at').in('channel_id', all.map(c => c.id));
   const syncedAt = new Map((syncRows ?? []).map((r: any) => [r.channel_id, new Date(r.synced_at).getTime()]));
-  for (const c of all) {
+  const stale = all.filter(c => {
     const last = syncedAt.get(c.id) as number | undefined;
-    if (last && Date.now() - last < c.ttl) continue;
-    try {
-      await syncChannelPool(supabase, c.id, c.name, ytApiKey);
-    } catch (e) {
-      console.error(`[daily-ideas] pool ${c.id} failed:`, e);
-    }
+    return !last || Date.now() - last >= c.ttl;
+  });
+  for (let i = 0; i < stale.length; i += SYNC_BATCH) {
+    await Promise.all(stale.slice(i, i + SYNC_BATCH).map(c =>
+      syncChannelPool(supabase, c.id, c.name, ytApiKey)
+        .catch(e => console.error(`[daily-ideas] pool ${c.id} failed:`, e))));
   }
 
   // 3. Candidates: outliers from all of them, minus anything already ruled on

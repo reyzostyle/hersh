@@ -10,9 +10,23 @@ import { Skeleton } from './Page';
 // The stack is finite on purpose. Seven, then "next ones at 9:00": the end of
 // the pile is what brings someone back tomorrow, which an endless feed never
 // does.
+//
+// Motion, in the order it matters:
+// - the card follows the finger in both axes and tilts with the drag;
+// - the card underneath rises as you drag, so by the time the top one is gone
+//   the next is already in place and simply becomes the top (same element,
+//   cover already loaded);
+// - a quick flick counts even short of the threshold;
+// - let go early and it springs back with a little overshoot.
 
-const THRESHOLD = 90;   // px of drag that counts as a decision
-const FLY_MS = 220;
+const THRESHOLD = 100;      // px of drag that counts as a decision
+const FLICK = 0.55;         // px/ms that counts as a decision from 30px on
+const FLY_MS = 300;
+const SPRING = 'cubic-bezier(0.34, 1.56, 0.64, 1)';
+const OUT = 'cubic-bezier(0.2, 0.7, 0.3, 1)';
+
+const reducedMotion = () =>
+  typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
 
 export function DailyStack({ remaining, total, nextAt, loading, onSave, onDismiss, onOpen }: {
   remaining: CompetitorIdea[];
@@ -27,18 +41,19 @@ export function DailyStack({ remaining, total, nextAt, loading, onSave, onDismis
   const next = remaining[1];
   // Drag and flight belong to one card by id, so the card that rises to the
   // top never inherits the last one's offset.
-  const [dx, setDx] = useState(0);
+  const [drag, setDrag] = useState({ x: 0, y: 0 });
   const [dragging, setDragging] = useState(false);
-  const [flying, setFlying] = useState<{ id: string; dir: 1 | -1 } | null>(null);
+  const [flying, setFlying] = useState<{ id: string; dir: 1 | -1; y: number } | null>(null);
   const start = useRef<{ x: number; y: number; id: number } | null>(null);
   const moved = useRef(false);
+  const last = useRef<{ x: number; t: number; vx: number }>({ x: 0, t: 0, vx: 0 });
 
-  const decide = (dir: 1 | -1) => {
+  const decide = (dir: 1 | -1, y = 0) => {
     if (!top || flying?.id === top.video_id) return;
-    setFlying({ id: top.video_id, dir });
-    setDx(0);
+    setFlying({ id: top.video_id, dir, y });
+    setDrag({ x: 0, y: 0 });
     const idea = top;
-    window.setTimeout(() => (dir === 1 ? onSave(idea) : onDismiss(idea)), FLY_MS);
+    window.setTimeout(() => (dir === 1 ? onSave(idea) : onDismiss(idea)), reducedMotion() ? 0 : FLY_MS);
   };
 
   useEffect(() => {
@@ -74,12 +89,26 @@ export function DailyStack({ remaining, total, nextAt, loading, onSave, onDismis
     );
   }
 
-  const flight = flying?.id === top.video_id ? flying.dir * 640 : 0;
-  const offset = flight || dx;
-  const lean = Math.max(-1, Math.min(1, offset / THRESHOLD));
+  const isFlying = flying?.id === top.video_id;
+  const flyX = typeof window !== 'undefined' ? Math.max(window.innerWidth, 640) : 640;
+  const x = isFlying ? flying!.dir * flyX : drag.x;
+  const y = isFlying ? flying!.y + 40 : drag.y * 0.4;
+  const rot = isFlying ? flying!.dir * 24 : drag.x / 18;
+  const lean = Math.max(-1, Math.min(1, drag.x / THRESHOLD));
+  // How far the card underneath has risen: all the way once the top one is
+  // on its way out.
+  const rise = isFlying ? 1 : Math.min(1, Math.abs(drag.x) / (THRESHOLD * 1.4));
+
+  const motion = reducedMotion();
+  const topTransition = dragging || motion
+    ? 'none'
+    : isFlying
+      ? `transform ${FLY_MS}ms ${OUT}, opacity ${FLY_MS}ms ${OUT}`
+      : `transform 420ms ${SPRING}`;
+  const underTransition = dragging || motion ? 'none' : `transform 360ms ${OUT}, opacity 360ms ${OUT}`;
 
   // Two cards, keyed by video: when the top one leaves, the one underneath is
-  // the same element moving up, cover already loaded, rather than a new one.
+  // the same element moving up rather than a new one fading in.
   const deck = [top, next].filter((i): i is CompetitorIdea => !!i);
 
   return (
@@ -91,12 +120,19 @@ export function DailyStack({ remaining, total, nextAt, loading, onSave, onDismis
 
       <div className="daily__deck">
         {[...deck].reverse().map(idea => {
-          const isTop = idea.video_id === top.video_id;
-          if (!isTop) {
+          if (idea.video_id !== top.video_id) {
             return (
-              <div key={idea.video_id} className="daily__card daily__card--under" aria-hidden="true">
-                <div className="daily__media"><ShortThumb videoId={idea.video_id} eager /></div>
-                <div className="daily__body"><p className="daily__pitch">{idea.pitch ?? idea.video_title}</p></div>
+              <div
+                key={idea.video_id}
+                className="daily__card daily__card--under"
+                aria-hidden="true"
+                style={{
+                  transform: `translateY(${12 * (1 - rise)}px) scale(${0.94 + 0.06 * rise})`,
+                  opacity: 0.45 + 0.55 * rise,
+                  transition: underTransition,
+                }}
+              >
+                <CardFace idea={idea} />
               </div>
             );
           }
@@ -108,55 +144,49 @@ export function DailyStack({ remaining, total, nextAt, loading, onSave, onDismis
               tabIndex={0}
               aria-label={top.pitch ?? top.video_title ?? 'Idea'}
               style={{
-                transform: `translateX(${offset}px) rotate(${offset / 22}deg)`,
-                transition: dragging ? 'none' : `transform ${FLY_MS}ms ease-out, opacity ${FLY_MS}ms ease-out`,
+                transform: `translate(${x}px, ${y}px) rotate(${rot}deg)`,
+                opacity: isFlying ? 0 : 1,
+                transition: topTransition,
               }}
               onPointerDown={e => {
+                if (isFlying) return;
                 start.current = { x: e.clientX, y: e.clientY, id: e.pointerId };
+                last.current = { x: e.clientX, t: e.timeStamp, vx: 0 };
                 moved.current = false;
                 setDragging(true);
               }}
               onPointerMove={e => {
                 if (!start.current || start.current.id !== e.pointerId) return;
-                const ddx = e.clientX - start.current.x;
-                const ddy = e.clientY - start.current.y;
+                const dx = e.clientX - start.current.x;
+                const dy = e.clientY - start.current.y;
                 // A vertical drag is the page scrolling, not a swipe.
-                if (!moved.current && Math.abs(ddy) > Math.abs(ddx) && Math.abs(ddy) > 8) {
-                  start.current = null; setDragging(false); setDx(0); return;
+                if (!moved.current && Math.abs(dy) > Math.abs(dx) && Math.abs(dy) > 8) {
+                  start.current = null; setDragging(false); setDrag({ x: 0, y: 0 }); return;
                 }
-                if (Math.abs(ddx) > 5 && !moved.current) {
+                if (Math.abs(dx) > 5 && !moved.current) {
                   moved.current = true;
                   e.currentTarget.setPointerCapture(e.pointerId);
                 }
-                if (moved.current) setDx(ddx);
+                const dt = e.timeStamp - last.current.t;
+                if (dt > 0) last.current = { x: e.clientX, t: e.timeStamp, vx: (e.clientX - last.current.x) / dt };
+                if (moved.current) setDrag({ x: dx, y: dy });
               }}
-              onPointerUp={() => {
+              onPointerUp={e => {
                 const wasDrag = moved.current;
                 start.current = null;
                 setDragging(false);
                 if (!wasDrag) { onOpen(top); return; }
-                if (dx > THRESHOLD) decide(1);
-                else if (dx < -THRESHOLD) decide(-1);
-                else setDx(0);
+                // A stale velocity (finger rested before lifting) is not a flick.
+                const vx = e.timeStamp - last.current.t < 80 ? last.current.vx : 0;
+                const flick = Math.abs(drag.x) > 30 && Math.abs(vx) > FLICK && Math.sign(vx) === Math.sign(drag.x);
+                if (drag.x > THRESHOLD || (flick && vx > 0)) decide(1, drag.y * 0.4);
+                else if (drag.x < -THRESHOLD || (flick && vx < 0)) decide(-1, drag.y * 0.4);
+                else setDrag({ x: 0, y: 0 });
               }}
-              onPointerCancel={() => { start.current = null; setDragging(false); setDx(0); }}
+              onPointerCancel={() => { start.current = null; setDragging(false); setDrag({ x: 0, y: 0 }); }}
               onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onOpen(top); } }}
             >
-              <div className="daily__media">
-                <ShortThumb videoId={top.video_id} eager />
-                {top.outlier_score != null && top.outlier_score < 1000 && (
-                  <span className="idea-card__mult">{top.outlier_score}×</span>
-                )}
-                <span className="daily__stamp daily__stamp--keep" style={{ opacity: Math.max(0, lean) }}>Save</span>
-                <span className="daily__stamp daily__stamp--skip" style={{ opacity: Math.max(0, -lean) }}>Skip</span>
-              </div>
-              <div className="daily__body">
-                <p className="daily__pitch">{top.pitch ?? top.video_title}</p>
-                <p className="idea-card__meta">
-                  {top.fit === 'yes' && <><span className="idea-card__fit">Fits your channel</span> · </>}
-                  {[top.channel_name, top.video_views != null ? formatViews(top.video_views) : null].filter(Boolean).join(' · ')}
-                </p>
-              </div>
+              <CardFace idea={top} lean={lean} />
             </div>
           );
         })}
@@ -172,5 +202,33 @@ export function DailyStack({ remaining, total, nextAt, loading, onSave, onDismis
         </button>
       </div>
     </div>
+  );
+}
+
+// The same face on both cards, so promoting the under card changes nothing
+// but its position. `lean` only exists on the top one.
+function CardFace({ idea, lean }: { idea: CompetitorIdea; lean?: number }) {
+  return (
+    <>
+      <div className="daily__media">
+        <ShortThumb videoId={idea.video_id} eager />
+        {idea.outlier_score != null && idea.outlier_score < 1000 && (
+          <span className="idea-card__mult">{idea.outlier_score}×</span>
+        )}
+        {lean !== undefined && (
+          <>
+            <span className="daily__stamp daily__stamp--keep" style={{ opacity: Math.max(0, lean), transform: `rotate(-8deg) scale(${0.85 + 0.15 * Math.max(0, lean)})` }}>Save</span>
+            <span className="daily__stamp daily__stamp--skip" style={{ opacity: Math.max(0, -lean), transform: `rotate(8deg) scale(${0.85 + 0.15 * Math.max(0, -lean)})` }}>Skip</span>
+          </>
+        )}
+      </div>
+      <div className="daily__body">
+        <p className="daily__pitch">{idea.pitch ?? idea.video_title}</p>
+        <p className="idea-card__meta">
+          {idea.fit === 'yes' && <><span className="idea-card__fit">Fits your channel</span> · </>}
+          {[idea.channel_name, idea.video_views != null ? formatViews(idea.video_views) : null].filter(Boolean).join(' · ')}
+        </p>
+      </div>
+    </>
   );
 }
