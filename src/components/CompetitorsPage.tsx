@@ -1,12 +1,11 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase, getSessionToken, getUserId } from '../lib/supabase';
 import {
-  callFunction, stealVideo, pitchIdeas, fetchDailyDrop, inboxItems, itemFromIdea, filterIdeas,
+  callFunction, stealVideo, fetchDailyDrop, itemFromIdea, filterIdeas,
   type CompetitorChannel, type CompetitorIdea, type FeedItem, type IdeaFilter, type PoolVideo,
 } from '../lib/competitors';
 import { takeRequestedVideo } from '../lib/projects';
 import { CompetitorsFeed } from './CompetitorsFeed';
-import { DailyStack } from './DailyStack';
 import { CompetitorVideoView } from './CompetitorVideoView';
 import { FindCompetitorsModal } from './FindCompetitorsModal';
 import { Page, PageHead, Loading } from './Page';
@@ -14,26 +13,18 @@ import { StealProgress } from './StealProgress';
 import { StealCard } from './StealCard';
 import { take, PENDING_STEAL_KEY } from '../lib/intents';
 
-// Two layers, and the difference is the whole point of this screen.
-//
-// `pool` is every outlier the tracked channels have produced across their last
-// 50 uploads: free, refreshed from YouTube, shared between everyone who tracks
-// the same competitor. `ideas` is the much smaller set this user has actually
-// ruled on or paid to have read. The inbox is the first minus the second, so
-// dismissing something uncovers the next best video instead of emptying the
-// tab - which is what used to happen when the feed WAS the paid list.
+// The Ideas tab. `ideas` is every row this user has: today's drop (built and
+// pitched server-side by daily-ideas), everything saved or dismissed, and the
+// steals. `pool` is still loaded, but only for the channels panel: the inbox is
+// today's drop now, not the tracked channels' back catalogue (see
+// CompetitorsFeed for why).
 export function CompetitorsPage() {
   const [channels, setChannels] = useState<CompetitorChannel[]>([]);
   const [pool, setPool] = useState<PoolVideo[]>([]);
   const [ideas, setIdeas] = useState<CompetitorIdea[]>([]);
   const [addingChannel, setAddingChannel] = useState(false);
-  const [refreshing, setRefreshing] = useState(false);
-  const [clearing, setClearing] = useState(false);
   const [addError, setAddError] = useState('');
   const [fetchError, setFetchError] = useState('');
-  // "Everything is already up to date" is the expected outcome of most
-  // refreshes now, so it reads as a status line rather than a failure.
-  const [fetchNotice, setFetchNotice] = useState('');
   const [initialLoading, setInitialLoading] = useState(true);
   const [removingId, setRemovingId] = useState<string | null>(null);
   const [syncingChannelId, setSyncingChannelId] = useState<string | null>(null);
@@ -51,14 +42,10 @@ export function CompetitorsPage() {
   // A finished steal lands on its card first - the result at a glance, the
   // thing that gets filmed - and the outline is one press further.
   const [stolen, setStolen] = useState<CompetitorIdea | null>(null);
-  // Feed videos whose one-line pitch is being written. A ref remembers every
-  // id already asked for, so a re-render never sends the same batch twice.
-  const [pitchingIds, setPitchingIds] = useState<Set<string>>(new Set());
-  const pitchAsked = useRef<Set<string>>(new Set());
   // Today's drop. Only the ids and the clock live here: the rows themselves
   // go into `ideas`, so a save or a skip in the stack is the same write the
   // grid makes and both views agree.
-  const [drop, setDrop] = useState<{ ids: string[]; nextAt: string } | null>(null);
+  const [drop, setDrop] = useState<{ ids: string[]; nextAt: string; needsProfile: boolean } | null>(null);
   const [dropLoading, setDropLoading] = useState(true);
 
   const loadData = useCallback(async () => {
@@ -129,53 +116,12 @@ export function CompetitorsPage() {
           }
           return next;
         });
-        setDrop({ ids: d.items.map(i => i.video_id), nextAt: d.nextAt });
+        setDrop({ ids: d.items.map(i => i.video_id), nextAt: d.nextAt, needsProfile: !!d.needsProfile });
       } finally {
         setDropLoading(false);
       }
     })();
   }, []);
-
-  // Pitch the top of the inbox: one free call writes "your version" and a fit
-  // for up to thirty videos the creator has not seen pitched yet. Runs again
-  // whenever the pool grows (a refresh, a new channel), and only for what is
-  // missing.
-  useEffect(() => {
-    if (initialLoading) return;
-    const pitched = new Set(ideas.filter(i => i.pitch).map(i => i.video_id));
-    const want = inboxItems(pool, ideas)
-      .filter(i => !pitched.has(i.video_id) && !pitchAsked.current.has(i.video_id))
-      .sort((a, b) => (b.outlier_score ?? 0) - (a.outlier_score ?? 0))
-      .slice(0, 30)
-      .map(i => i.video_id);
-    if (want.length === 0) return;
-    want.forEach(id => pitchAsked.current.add(id));
-    setPitchingIds(prev => new Set([...prev, ...want]));
-    (async () => {
-      try {
-        const token = await getSessionToken();
-        if (!token) return;
-        const rows = await pitchIdeas(want, token);
-        if (rows.length) {
-          setIdeas(prev => {
-            const next = [...prev];
-            for (const row of rows) {
-              const at = next.findIndex(i => i.video_id === row.video_id);
-              if (at >= 0) next[at] = { ...next[at], pitch: row.pitch, fit: row.fit };
-              else next.push(row);
-            }
-            return next;
-          });
-        }
-      } finally {
-        setPitchingIds(prev => {
-          const next = new Set(prev);
-          want.forEach(id => next.delete(id));
-          return next;
-        });
-      }
-    })();
-  }, [pool, ideas, initialLoading]);
 
   // A saved idea opened from its project. Read once on mount and cleared, the
   // same handoff Analyze uses for a filed conversation. The lookup below falls
@@ -275,29 +221,6 @@ export function CompetitorsPage() {
       console.error('[CompetitorsPage] remove channel error:', e);
     } finally {
       setRemovingId(null);
-    }
-  };
-
-  const handleRefresh = async () => {
-    setRefreshing(true);
-    setFetchError('');
-    setFetchNotice('');
-    try {
-      const token = await getSessionToken();
-      if (!token) throw new Error('Not authenticated');
-      const res = await callFunction('fetch-competitor-ideas', token, {});
-      const data = await res.json();
-      if (data.error === 'upgrade_required') {
-        window.dispatchEvent(new CustomEvent('chumoku:navigate', { detail: 'upgrade' }));
-        return;
-      }
-      if (!res.ok) throw new Error(data.error || 'Could not refresh');
-      setPool(data.videos || []);
-      if (data.message) setFetchNotice(data.message);
-    } catch (e) {
-      setFetchError(e instanceof Error ? e.message : 'Something went wrong');
-    } finally {
-      setRefreshing(false);
     }
   };
 
@@ -404,25 +327,12 @@ export function CompetitorsPage() {
       .then(({ error }) => { if (error) console.error('[CompetitorsPage] persist idea error:', error); });
   };
 
-  // Ideas still waiting in today's stack stay out of the grid below it, so
-  // nothing shows twice. Once ruled on they live in Saved or Dismissed as usual.
+  // Today's drop in the order the server ranked it, minus what has been ruled
+  // on. Rows come from `ideas`, so a save anywhere shows here at once.
   const dropIdeas = (drop?.ids ?? [])
     .map(id => ideas.find(i => i.video_id === id))
     .filter((i): i is CompetitorIdea => !!i);
   const dropRemaining = dropIdeas.filter(i => i.liked == null);
-  const inDrop = new Set(dropRemaining.map(i => i.video_id));
-  const inbox = inboxItems(pool, ideas).filter(i => !inDrop.has(i.video_id));
-
-  // Dismisses what is on screen, not the whole pool. Clearing the inbox is now
-  // an act of triage rather than a reset: the next batch of outliers is already
-  // sitting behind these, and dismissing costs nothing either way.
-  const handleClearInbox = async (visible: FeedItem[]) => {
-    if (visible.length === 0) return;
-    if (!window.confirm(`Dismiss ${visible.length} idea${visible.length !== 1 ? 's' : ''}? The next best ones take their place.`)) return;
-    setClearing(true);
-    await ruleOn(visible, false);
-    setClearing(false);
-  };
 
   // A steal from the extension or the share sheet takes the page while it
   // runs: the same checklist the side panel shows, not a modal over the feed.
@@ -456,19 +366,11 @@ export function CompetitorsPage() {
     );
   }
 
-  // One list, three states. `filter` decides which of them is on screen, and
-  // the counts are what the tabs show.
   const dismissedItems = filterIdeas(ideas, 'dismissed').map(itemFromIdea);
   const savedItems = filterIdeas(ideas, 'saved').map(itemFromIdea);
-  const items = ideaFilter === 'new' ? inbox : ideaFilter === 'saved' ? savedItems : dismissedItems;
-  const counts: Record<IdeaFilter, number> = {
-    new: inbox.length, saved: savedItems.length, dismissed: dismissedItems.length,
-  };
 
   const openItem = openVideoId
-    ? items.find(i => i.video_id === openVideoId)
-      ?? inbox.find(i => i.video_id === openVideoId)
-      ?? (ideas.find(i => i.video_id === openVideoId) ? itemFromIdea(ideas.find(i => i.video_id === openVideoId)!) : null)
+    ? (ideas.find(i => i.video_id === openVideoId) ? itemFromIdea(ideas.find(i => i.video_id === openVideoId)!) : null)
     : null;
 
   // Working on a video takes over the whole screen rather than sliding a tray
@@ -491,21 +393,16 @@ export function CompetitorsPage() {
     <Page className="animate-tab-in">
       <PageHead title="Ideas" />
 
-      {ideaFilter === 'new' && (
-        <DailyStack
-          remaining={dropRemaining}
-          total={dropIdeas.length}
-          nextAt={drop?.nextAt ?? null}
-          loading={dropLoading && !drop}
-          onSave={idea => ruleOn([itemFromIdea(idea)], true)}
-          onDismiss={idea => ruleOn([itemFromIdea(idea)], false)}
-          onOpen={idea => setOpenVideoId(idea.video_id)}
-        />
-      )}
-
       <CompetitorsFeed
-        items={items}
-        counts={counts}
+        today={{
+          loading: dropLoading && !drop,
+          remaining: dropRemaining,
+          total: dropIdeas.length,
+          nextAt: drop?.nextAt ?? null,
+          needsProfile: drop?.needsProfile ?? false,
+        }}
+        saved={savedItems}
+        dismissed={dismissedItems}
         pool={pool}
         channels={channels}
         filter={ideaFilter}
@@ -513,8 +410,6 @@ export function CompetitorsPage() {
         onOpen={item => setOpenVideoId(item.video_id)}
         onDismiss={item => ruleOn([item], item.idea?.liked === false ? null : false)}
         onSave={item => ruleOn([item], item.idea?.liked === true ? null : true)}
-        onClear={handleClearInbox}
-        clearing={clearing}
         addingChannel={addingChannel}
         addError={addError}
         removingId={removingId}
@@ -523,13 +418,9 @@ export function CompetitorsPage() {
         onRemoveChannel={handleRemoveChannel}
         onAutoFind={() => setFindOpen(true)}
         channelLimit={userPlan === 'free' ? 3 : 5}
-        refreshing={refreshing}
         fetchError={fetchError}
-        fetchNotice={fetchNotice}
-        onRefresh={handleRefresh}
         adaptForProfile={adaptForProfile}
         onAdaptChange={setAdaptForProfile}
-        pitchingIds={pitchingIds}
       />
 
       {findOpen && (

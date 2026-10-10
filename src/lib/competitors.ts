@@ -98,16 +98,6 @@ export async function stealVideo(url: string, token: string): Promise<StealResul
   return { idea: data.idea as CompetitorIdea };
 }
 
-// Free one-line pitches for up to thirty feed videos at once. Returns the
-// idea rows it wrote; anything already pitched is skipped server-side.
-export async function pitchIdeas(videoIds: string[], token: string): Promise<CompetitorIdea[]> {
-  if (videoIds.length === 0) return [];
-  const res = await callFunction('pitch-ideas', token, { videoIds });
-  if (!res.ok) return [];
-  const data = await res.json().catch(() => ({}));
-  return (data.ideas ?? []) as CompetitorIdea[];
-}
-
 // Today's drop: a few fresh ideas picked and pitched for this creator, turning
 // over at 9:00 their time. The server builds it on the first call of the day,
 // so the first open can take a few seconds. Null when the call fails or the
@@ -117,6 +107,8 @@ export interface DailyDrop {
   nextAt: string;
   size: number;
   items: CompetitorIdea[];
+  // Nothing to search for yet: no brain and no connected channel.
+  needsProfile?: boolean;
 }
 
 export async function fetchDailyDrop(token: string): Promise<DailyDrop | null> {
@@ -161,19 +153,6 @@ export interface FeedItem {
   idea: CompetitorIdea | null;
 }
 
-function itemFromPool(v: PoolVideo, idea: CompetitorIdea | null): FeedItem {
-  return {
-    video_id: v.video_id,
-    channel_id: v.channel_id,
-    channel_name: v.channel_name,
-    video_title: v.title,
-    video_views: v.views,
-    video_published_at: v.published_at,
-    outlier_score: v.outlier_score,
-    idea,
-  };
-}
-
 export function itemFromIdea(idea: CompetitorIdea): FeedItem {
   return {
     video_id: idea.video_id,
@@ -189,11 +168,8 @@ export function itemFromIdea(idea: CompetitorIdea): FeedItem {
 
 // ─── Feed filtering / sorting ────────────────────────────────────────────────
 
-// Triage state, not a quality filter. The inbox is the pool minus everything
-// you have already ruled on, so clearing it uncovers the next best video rather
-// than emptying the tab. There is no staleness cut-off any more: a video that
-// tripled its channel is worth seeing whether it went up last week or in March,
-// and age is already an input to the sort.
+// Triage state. 'new' is today's drop minus what has been ruled on; what is
+// not saved by the next drop is gone.
 export type IdeaFilter = 'new' | 'saved' | 'dismissed';
 
 export function filterIdeas(ideas: CompetitorIdea[], filter: IdeaFilter): CompetitorIdea[] {
@@ -202,52 +178,3 @@ export function filterIdeas(ideas: CompetitorIdea[], filter: IdeaFilter): Compet
   return ideas.filter(i => i.liked == null);
 }
 
-// The inbox. A pooled video drops out once it carries a decision (saved or
-// dismissed); one that has merely been read stays, because reading it is not
-// the same as ruling on it.
-export function inboxItems(pool: PoolVideo[], ideas: CompetitorIdea[]): FeedItem[] {
-  const byVideo = new Map(ideas.map(i => [i.video_id, i]));
-  return pool
-    .filter(v => byVideo.get(v.video_id)?.liked == null)
-    .map(v => itemFromPool(v, byVideo.get(v.video_id) ?? null));
-}
-
-// The axis every competitor tool leads with (TubeLab ships 5x/10x/25x/50x
-// buttons, 1of10 filters on outlier score) and the one this feed was missing:
-// how far above its own channel's pace a video actually landed. Kept to 2x/5x
-// because the backend only surfaces videos that already beat their average,
-// so the interesting range starts higher than a generic tool's.
-export type OutlierFloor = 0 | 2 | 5;
-export type IdeaSort = 'outlier' | 'recent' | 'views';
-
-export function sortAndFilterFeed(
-  items: FeedItem[],
-  { floor, sort, channelId }: { floor: OutlierFloor; sort: IdeaSort; channelId: string | null }
-): FeedItem[] {
-  const out = items.filter(i => {
-    if (channelId && i.channel_id !== channelId) return false;
-    // An unscored video has no claim to a floor above zero, so it drops out
-    // as soon as one is set rather than silently ranking as 0x.
-    if (floor > 0 && (i.outlier_score ?? 0) < floor) return false;
-    return true;
-  });
-
-  return out.sort((a, b) => {
-    // What fits this channel comes first whatever the sort: the feed is ideas
-    // for you before it is a leaderboard.
-    const byFit = fitRank(a) - fitRank(b);
-    if (byFit !== 0) return byFit;
-    if (sort === 'views') return (b.video_views ?? 0) - (a.video_views ?? 0);
-    if (sort === 'recent') {
-      const at = a.video_published_at ? new Date(a.video_published_at).getTime() : 0;
-      const bt = b.video_published_at ? new Date(b.video_published_at).getTime() : 0;
-      return bt - at;
-    }
-    return (b.outlier_score ?? 0) - (a.outlier_score ?? 0);
-  });
-}
-
-const FIT_RANK: Record<string, number> = { yes: 0, stretch: 1, no: 3 };
-function fitRank(i: FeedItem): number {
-  return i.idea?.fit ? FIT_RANK[i.idea.fit] ?? 2 : 2;
-}

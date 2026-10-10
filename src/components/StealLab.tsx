@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { StealCard } from './StealCard';
-import { DailyStack } from './DailyStack';
-import type { CompetitorIdea } from '../lib/competitors';
+import { CompetitorsFeed } from './CompetitorsFeed';
+import { itemFromIdea, type CompetitorIdea, type IdeaFilter } from '../lib/competitors';
 import { StealProgress } from './StealProgress';
 import { Page, PageHead, Panel, Row, Section, Skeleton, Button, Empty, Tile } from './Page';
 
@@ -39,19 +39,41 @@ const DROP: CompetitorIdea[] = ([
 
 function DropDemo() {
   const [ideas, setIdeas] = useState(DROP);
-  const rule = (id: string, liked: boolean) => setIdeas(prev => prev.map(i => i.video_id === id ? { ...i, liked } : i));
+  const [filter, setFilter] = useState<IdeaFilter>('new');
+  const rule = (id: string, liked: boolean) => setIdeas(prev => prev.map(i => i.video_id === id ? { ...i, liked: i.liked === liked ? null : liked } : i));
+  const noop = () => {};
   return (
     <>
-      <DailyStack
-        remaining={ideas.filter(i => i.liked == null)}
-        total={ideas.length}
-        nextAt={null}
-        loading={false}
-        onSave={i => rule(i.video_id, true)}
-        onDismiss={i => rule(i.video_id, false)}
-        onOpen={() => {}}
+      <CompetitorsFeed
+        today={{
+          loading: false,
+          remaining: ideas.filter(i => i.liked == null),
+          total: ideas.length,
+          nextAt: new Date(Date.now() + 5.2 * 3_600_000).toISOString(),
+          needsProfile: false,
+        }}
+        saved={ideas.filter(i => i.liked === true).map(itemFromIdea)}
+        dismissed={ideas.filter(i => i.liked === false).map(itemFromIdea)}
+        pool={[]}
+        channels={[]}
+        filter={filter}
+        onFilterChange={setFilter}
+        onOpen={noop}
+        onSave={item => rule(item.video_id, true)}
+        onDismiss={item => rule(item.video_id, false)}
+        addingChannel={false}
+        addError=""
+        removingId={null}
+        syncingChannelId={null}
+        onAddChannel={noop}
+        onRemoveChannel={noop}
+        onAutoFind={noop}
+        channelLimit={3}
+        fetchError=""
+        adaptForProfile
+        onAdaptChange={noop}
       />
-      <Button variant="text" size="sm" className="mx-auto flex" onClick={() => setIdeas(DROP)}>Reset</Button>
+      <Button variant="text" size="sm" className="mx-auto flex mt-3" onClick={() => setIdeas(DROP)}>Reset</Button>
     </>
   );
 }
@@ -61,7 +83,7 @@ export function StealLab() {
     <Page>
       <PageHead eyebrow="Design system" title="One language." tagline="Every screen speaks it." subtitle="Everything below is the real component, not a picture of one." />
 
-      <Section label="Daily drop">
+      <Section label="Ideas">
         <DropDemo />
       </Section>
 

@@ -1,17 +1,39 @@
-import { useState } from 'react';
-import { LightbulbOutlineIcon as Lightbulb, TrashBinMinimalisticOutlineIcon as Trash2, RefreshOutlineIcon as Loader2, AddOutlineIcon as Plus, RefreshOutlineIcon as RefreshCw, AltArrowUpOutlineIcon as ChevronUp, AltArrowDownOutlineIcon as ChevronDown, UsersGroupRoundedOutlineIcon as Users, FilterOutlineIcon as Filter } from '@solar-icons/react';
+import { useEffect, useState } from 'react';
+import { LightbulbOutlineIcon as Lightbulb, AddOutlineIcon as Plus, AltArrowUpOutlineIcon as ChevronUp } from '@solar-icons/react';
 import {
-  sortAndFilterFeed,
-  type CompetitorChannel, type FeedItem, type IdeaFilter, type IdeaSort, type PoolVideo,
+  itemFromIdea,
+  type CompetitorChannel, type CompetitorIdea, type FeedItem, type IdeaFilter, type PoolVideo,
 } from '../lib/competitors';
 import { CompetitorVideoCard } from './CompetitorVideoCard';
 import { CompetitorsChannels } from './CompetitorsChannels';
+import { DailyStack } from './DailyStack';
 import { ErrorNotice } from './ErrorNotice';
-import { Empty, Seg, Collapse } from './Page';
+import { Empty, Seg, Collapse, Skeleton, Button } from './Page';
+
+// The Ideas tab, rebuilt 2026-10-10 around the daily drop.
+//
+// The inbox used to be every outlier the tracked channels had ever produced,
+// which meant it showed the same cards for two weeks. Now it is today's ideas
+// and nothing else: a fresh set at 9:00, found and pitched for this creator,
+// and whatever is not saved by then is gone. That is the reason to open it
+// every day, and the countdown says so.
+//
+// Grid and swipe are two ways through the same set, not two features.
+
+export interface Today {
+  loading: boolean;
+  // Today's ideas nobody has ruled on yet, best first.
+  remaining: CompetitorIdea[];
+  total: number;
+  nextAt: string | null;
+  // No brain and no connected channel: there is nothing to search for.
+  needsProfile: boolean;
+}
 
 interface Props {
-  items: FeedItem[];
-  counts: Record<IdeaFilter, number>;
+  today: Today;
+  saved: FeedItem[];
+  dismissed: FeedItem[];
   pool: PoolVideo[];
   channels: CompetitorChannel[];
   filter: IdeaFilter;
@@ -19,8 +41,6 @@ interface Props {
   onOpen: (item: FeedItem) => void;
   onDismiss: (item: FeedItem) => void;
   onSave: (item: FeedItem) => void;
-  onClear: (visible: FeedItem[]) => void;
-  clearing: boolean;
   addingChannel: boolean;
   addError: string;
   removingId: string | null;
@@ -29,207 +49,172 @@ interface Props {
   onRemoveChannel: (channel: CompetitorChannel) => void;
   onAutoFind: () => void;
   channelLimit: number;
-  refreshing: boolean;
   fetchError: string;
-  fetchNotice: string;
-  onRefresh: () => void;
   adaptForProfile: boolean;
   onAdaptChange: (v: boolean) => void;
-  // Videos whose one-line pitch is being written right now.
-  pitchingIds: Set<string>;
 }
 
-const SORTS: { value: IdeaSort; label: string }[] = [
-  { value: 'outlier', label: 'Top outliers' },
-  { value: 'views', label: 'Most viewed' },
-  { value: 'recent', label: 'Newest' },
-];
+type View = 'grid' | 'swipe';
+const VIEW_KEY = 'chumoku:ideas-view';
 
-const TABS: { id: IdeaFilter; label: string }[] = [
-  { id: 'new', label: 'Inbox' },
-  { id: 'saved', label: 'Saved' },
-  { id: 'dismissed', label: 'Dismissed' },
-];
+function readView(): View {
+  try { return localStorage.getItem(VIEW_KEY) === 'swipe' ? 'swipe' : 'grid'; } catch { return 'grid'; }
+}
 
-// One row of controls above the grid, and the channel list stays out of the way
-// until you ask for it. There used to be four rows before the first card: a
-// channel list that is identity rather than a filter, a Feed/Saved switch in
-// the page header AND an Inbox/Dismissed switch below it for the same axis, and
-// a multiplier floor nobody set twice.
+// "5h 12m", "38m". Ticks once a minute: enough for a countdown in hours.
+function useCountdown(to: string | null): string | null {
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const t = window.setInterval(() => setNow(Date.now()), 60_000);
+    return () => window.clearInterval(t);
+  }, []);
+  if (!to) return null;
+  const mins = Math.max(0, Math.round((new Date(to).getTime() - now) / 60_000));
+  const h = Math.floor(mins / 60);
+  return h > 0 ? `${h}h ${mins % 60}m` : `${mins}m`;
+}
+
 export function CompetitorsFeed({
-  items, counts, pool, channels, filter, onFilterChange, onOpen, onDismiss, onSave,
-  onClear, clearing,
+  today, saved, dismissed, pool, channels, filter, onFilterChange, onOpen, onDismiss, onSave,
   addingChannel, addError, removingId, syncingChannelId, onAddChannel, onRemoveChannel,
-  onAutoFind, channelLimit, refreshing, fetchError, fetchNotice, onRefresh,
-  adaptForProfile, onAdaptChange, pitchingIds,
+  onAutoFind, channelLimit, fetchError, adaptForProfile, onAdaptChange,
 }: Props) {
   const [manageOpen, setManageOpen] = useState(false);
-  const [sort, setSort] = useState<IdeaSort>('outlier');
+  const [view, setView] = useState<View>(readView);
+  const left = useCountdown(today.nextAt);
 
-  // Ideas that do not transfer to this channel stay out of the way unless
-  // asked for. They are still there - a tracked channel from another niche
-  // occasionally has a format worth taking - but they no longer fill the grid.
-  const [showOffNiche, setShowOffNiche] = useState(false);
-  const sorted = sortAndFilterFeed(items, { floor: 0, sort, channelId: null });
-  const offNiche = filter === 'new' ? sorted.filter(i => i.idea?.fit === 'no').length : 0;
-  const visible = showOffNiche || filter !== 'new' ? sorted : sorted.filter(i => i.idea?.fit !== 'no');
-  // Clearing only makes sense on the inbox, and only with something in it. It
-  // decides the layout as well as its own visibility: whichever control comes
-  // first on the right takes the auto margin that pushes the group there.
-  const showClear = filter === 'new' && visible.length > 0;
-  const nothingAnywhere = counts.new + counts.saved + counts.dismissed === 0;
+  const changeView = (v: View) => {
+    setView(v);
+    try { localStorage.setItem(VIEW_KEY, v); } catch { /* per-viewer nicety only */ }
+  };
+
+  const tabs: { id: IdeaFilter; label: string }[] = [
+    { id: 'new', label: today.loading ? 'Today' : `Today (${today.remaining.length})` },
+    { id: 'saved', label: `Saved (${saved.length})` },
+    { id: 'dismissed', label: `Dismissed (${dismissed.length})` },
+  ];
+
+  const nextLabel = today.nextAt
+    ? new Date(today.nextAt).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })
+    : '9:00';
 
   return (
     <div className="space-y-3">
-      {/* One row on a desktop, two on a phone.
-          The second line was still overflowing on a phone, because four
-          controls do not fit across 350 points and the row simply ran off the
-          edge - Refresh, the button this screen exists to press, was cut in
-          half. The bin moves up beside the tabs, which have room to spare, and
-          the second line is left with three.
-          On a desktop both wrappers dissolve into the outer row (sm:contents)
-          and the explicit order puts everything back where it was: tabs, sort,
-          bin, Manage, Refresh. */}
-      <div className="space-y-2 sm:space-y-0 sm:flex sm:items-center sm:gap-2">
-        <div className="flex items-center gap-2 sm:contents">
-          <div className="flex-1 min-w-0 overflow-x-auto pb-0.5 -mb-0.5 sm:flex-none sm:overflow-visible sm:pb-0 sm:mb-0 sm:flex-shrink-0 sm:order-1">
-            <Seg
-              className="w-max"
-              options={TABS.map(t => ({ id: t.id, label: `${t.label} (${counts[t.id]})` }))}
-              value={filter}
-              onChange={onFilterChange}
-            />
-          </div>
-
-          {showClear && (
-            <button
-              onClick={() => onClear(visible)}
-              disabled={clearing}
-              title="Dismiss everything on screen. The next best outliers take their place."
-              className="ml-auto flex-shrink-0 p-[7px] rounded-[var(--r-sm)] transition-colors disabled:opacity-50 sm:order-3"
-              style={{ border: '1px solid rgba(var(--danger-rgb),0.25)', color: 'rgb(var(--danger-rgb))' }}
-            >
-              {clearing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
-            </button>
-          )}
+      <div className="flex items-center gap-2 flex-wrap">
+        <div className="min-w-0 overflow-x-auto pb-0.5 -mb-0.5">
+          <Seg className="w-max" options={tabs} value={filter} onChange={onFilterChange} />
         </div>
-
-        <div className="flex items-center gap-2 sm:contents">
-          {/* The sort read as a heading rather than as something you could
-              press: bare text, no border cue that carried at a glance. The
-              funnel is the part that says this list can be reordered. */}
-          <div className="relative min-w-0 flex-shrink sm:order-2">
-            <Filter
-              className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none"
-              style={{ color: 'var(--text-muted)' }}
+        <div className="ml-auto flex items-center gap-2">
+          {filter === 'new' && today.remaining.length > 0 && (
+            <Seg
+              options={[{ id: 'grid' as View, label: 'Grid' }, { id: 'swipe' as View, label: 'Swipe' }]}
+              value={view}
+              onChange={changeView}
             />
-            {/* The browser's own arrow is drawn at the end of the TEXT, so on a
-                phone, where the label truncates, it floated in the middle of
-                the control instead of sitting at its edge - and Safari renders
-                it in a grey nothing can change. appearance:none takes it away
-                so this one can be pinned to the right and given a colour that
-                reads at arm's length. Tapping still opens the native picker. */}
-            <ChevronDown
-              className="w-3.5 h-3.5 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none"
-              style={{ color: 'var(--text)' }}
-            />
-            <select
-              value={sort}
-              onChange={e => setSort(e.target.value as IdeaSort)}
-              aria-label="Sort the feed"
-              className="w-full appearance-none pl-8 pr-8 py-[7px] rounded-[var(--r-sm)] text-xs font-medium focus:outline-none cursor-pointer"
-              style={{
-                WebkitAppearance: 'none',
-                background: 'var(--bg-raised)',
-                border: '1px solid var(--line)',
-                color: 'var(--text-muted)',
-              }}
-            >
-              {SORTS.map(s => <option key={s.value} value={s.value} style={{ background: 'var(--bg-raised)' }}>{s.label}</option>)}
-            </select>
-          </div>
-
-          <button
-            onClick={() => setManageOpen(o => !o)}
-            className={`chip ml-auto flex-shrink-0 sm:order-4 ${showClear ? 'sm:ml-0' : ''}`}
-            style={{ borderStyle: 'dashed' }}
-          >
+          )}
+          <button onClick={() => setManageOpen(o => !o)} className="chip flex-shrink-0" style={{ borderStyle: 'dashed' }}>
             {manageOpen ? <ChevronUp className="w-3.5 h-3.5" /> : <Plus className="w-3.5 h-3.5" />}
-            {channels.length === 0 ? 'Add channel' : 'Manage'}
-          </button>
-          <button
-            onClick={onRefresh}
-            disabled={refreshing}
-            title="Check the tracked channels for new outliers. Costs nothing."
-            className="btn-primary flex-shrink-0 flex items-center gap-1.5 px-3 py-[7px] rounded-[var(--r-sm)] text-xs font-medium disabled:opacity-40 sm:order-5"
-          >
-            {refreshing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
-            {refreshing ? 'Checking' : 'Refresh'}
+            Channels
           </button>
         </div>
       </div>
 
-      {/* !mt-0 and the padding inside: a shut Collapse is zero height, and the
-          list's space-y would otherwise still leave a gap where it sits. */}
       <Collapse open={manageOpen} className="!mt-0">
         <div className="pt-3">
-        <CompetitorsChannels
-          channels={channels}
-          pool={pool}
-          addingChannel={addingChannel}
-          addError={addError}
-          removingId={removingId}
-          syncingChannelId={syncingChannelId}
-          onAddChannel={onAddChannel}
-          onRemoveChannel={onRemoveChannel}
-          onAutoFind={onAutoFind}
-          channelLimit={channelLimit}
-          adaptForProfile={adaptForProfile}
-          onAdaptChange={onAdaptChange}
-        />
+          <CompetitorsChannels
+            channels={channels}
+            pool={pool}
+            addingChannel={addingChannel}
+            addError={addError}
+            removingId={removingId}
+            syncingChannelId={syncingChannelId}
+            onAddChannel={onAddChannel}
+            onRemoveChannel={onRemoveChannel}
+            onAutoFind={onAutoFind}
+            channelLimit={channelLimit}
+            adaptForProfile={adaptForProfile}
+            onAdaptChange={onAdaptChange}
+          />
         </div>
       </Collapse>
 
       {fetchError && <ErrorNotice message={fetchError} />}
-      {fetchNotice && (
-        <p className="text-[13px] rounded-[var(--r-sm)] px-4 py-3" style={{ background: 'var(--bg-raised)', border: '1px solid var(--line)', color: 'var(--text-muted)' }}>
-          {fetchNotice}
-        </p>
-      )}
 
-      {visible.length > 0 ? (
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2.5">
-          {visible.map(item => (
-            <CompetitorVideoCard
-              key={item.video_id}
-              item={item}
-              pitching={pitchingIds.has(item.video_id)}
-              onOpen={() => onOpen(item)}
-              onDismiss={() => onDismiss(item)}
-              onSave={() => onSave(item)}
-            />
-          ))}
-        </div>
-      ) : null}
-
-      {offNiche > 0 && (
-        <button onClick={() => setShowOffNiche(v => !v)} className="btn btn--text btn--sm mx-auto flex">
-          {showOffNiche ? 'Hide the ones outside your niche' : `Show ${offNiche} outside your niche`}
-        </button>
-      )}
-
-      {visible.length > 0 ? null : channels.length === 0 ? (
-        <Empty icon={<Users className="w-7 h-7" style={{ color: 'var(--text-faint)' }} />}>
-          Add a competitor channel to start tracking what actually works on their channel.
-        </Empty>
-      ) : nothingAnywhere ? (
-        <Empty icon={<Lightbulb className="w-7 h-7" style={{ color: 'var(--text-faint)' }} />}>
-          Nothing pooled yet. Hit Refresh - it costs nothing.
-        </Empty>
+      {filter === 'new' ? (
+        today.loading ? (
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2.5" aria-busy="true">
+            {Array.from({ length: 8 }, (_, i) => (
+              <Skeleton key={i} className="w-full" style={{ aspectRatio: '4 / 6.2', borderRadius: 'var(--r-lg)' }} />
+            ))}
+          </div>
+        ) : today.needsProfile && today.total === 0 ? (
+          <Empty icon={<Lightbulb className="w-7 h-7" style={{ color: 'var(--text-faint)' }} />}>
+            <span className="block mb-3">Connect your YouTube or describe your channel, and new ideas arrive every morning.</span>
+            <Button
+              variant="primary"
+              size="sm"
+              onClick={() => window.dispatchEvent(new CustomEvent('chumoku:navigate', { detail: 'settings' }))}
+            >
+              Open Settings
+            </Button>
+          </Empty>
+        ) : today.remaining.length === 0 ? (
+          <Empty icon={<Lightbulb className="w-7 h-7" style={{ color: 'var(--text-faint)' }} />}>
+            {today.total > 0 ? `That's today's ${today.total}. Next ones at ${nextLabel}.` : `Nothing new today. Next ones at ${nextLabel}.`}
+          </Empty>
+        ) : (
+          <>
+            {left && (
+              <p className="text-[13px]" style={{ color: 'var(--text-muted)' }}>
+                New ideas in {left} · unsaved ones disappear
+              </p>
+            )}
+            {view === 'swipe' ? (
+              <DailyStack
+                remaining={today.remaining}
+                total={today.total}
+                nextAt={today.nextAt}
+                loading={false}
+                onSave={idea => onSave(itemFromIdea(idea))}
+                onDismiss={idea => onDismiss(itemFromIdea(idea))}
+                onOpen={idea => onOpen(itemFromIdea(idea))}
+              />
+            ) : (
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2.5">
+                {today.remaining.map(idea => {
+                  const item = itemFromIdea(idea);
+                  return (
+                    <CompetitorVideoCard
+                      key={idea.video_id}
+                      item={item}
+                      onOpen={() => onOpen(item)}
+                      onDismiss={() => onDismiss(item)}
+                      onSave={() => onSave(item)}
+                    />
+                  );
+                })}
+              </div>
+            )}
+          </>
+        )
       ) : (
-        <Empty icon={<Lightbulb className="w-7 h-7" style={{ color: 'var(--text-faint)' }} />}>
-          {filter === 'new' ? 'Inbox zero.' : filter === 'saved' ? 'Nothing saved yet.' : 'Nothing dismissed.'}
-        </Empty>
+        (filter === 'saved' ? saved : dismissed).length > 0 ? (
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2.5">
+            {(filter === 'saved' ? saved : dismissed).map(item => (
+              <CompetitorVideoCard
+                key={item.video_id}
+                item={item}
+                onOpen={() => onOpen(item)}
+                onDismiss={() => onDismiss(item)}
+                onSave={() => onSave(item)}
+              />
+            ))}
+          </div>
+        ) : (
+          <Empty icon={<Lightbulb className="w-7 h-7" style={{ color: 'var(--text-faint)' }} />}>
+            {filter === 'saved' ? 'Nothing saved yet.' : 'Nothing dismissed.'}
+          </Empty>
+        )
       )}
     </div>
   );

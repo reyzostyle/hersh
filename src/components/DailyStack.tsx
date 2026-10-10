@@ -7,7 +7,7 @@ import { Skeleton } from './Page';
 // lets it go, a tap opens it. Arrow keys do the same on a desktop, and the
 // buttons under the card are there for anyone who does not think to drag.
 //
-// The stack is finite on purpose. Seven, then "next ones at 9:00": the end of
+// The stack is finite on purpose. Ten, then "next ones at 9:00": the end of
 // the pile is what brings someone back tomorrow, which an endless feed never
 // does.
 //
@@ -70,7 +70,6 @@ export function DailyStack({ remaining, total, nextAt, loading, onSave, onDismis
   if (loading) {
     return (
       <div className="daily" aria-busy="true">
-        <div className="daily__head"><span>Today</span></div>
         <Skeleton className="daily__card" style={{ aspectRatio: '4 / 6.1', borderRadius: 'var(--r-lg)' }} />
       </div>
     );
@@ -114,8 +113,7 @@ export function DailyStack({ remaining, total, nextAt, loading, onSave, onDismis
   return (
     <div className="daily">
       <div className="daily__head">
-        <span>Today</span>
-        <span className="daily__count">{seen + 1} of {total}</span>
+        <span className="daily__count ml-auto">{seen + 1} of {total}</span>
       </div>
 
       <div className="daily__deck">

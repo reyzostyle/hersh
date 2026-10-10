@@ -9,7 +9,7 @@ import { loadChannelScan } from '../_shared/channel-scan.ts';
 
 const CORS = corsHeaders({ methods: 'POST, OPTIONS' });
 
-// The daily drop: a short stack of fresh ideas, picked and pitched for one
+// The daily drop: ten fresh ideas, picked and pitched for one
 // creator, that turns over at 9:00 their time.
 //
 // Until now nothing in Ideas happened unless someone opened the tab and
@@ -32,7 +32,7 @@ const CORS = corsHeaders({ methods: 'POST, OPTIONS' });
 //   last two weeks whose 9:00 has passed, so the stack is there on arrival
 //   (and so a badge or an email can say so).
 
-const DROP_SIZE = 7;
+const DROP_SIZE = 10;
 const DROP_HOUR = 9;
 const PITCH_POOL = 30;                       // candidates pitched to pick DROP_SIZE from
 const PER_CHANNEL = 2;
@@ -287,7 +287,15 @@ async function claimAndBuild(supabase: any, userId: string, dropDate: string, yt
   if (!claimed?.length) return null;
 
   try {
-    return await buildDrop(supabase, userId, dropDate, profile, ytApiKey);
+    const n = await buildDrop(supabase, userId, dropDate, profile, ytApiKey);
+    // An empty drop is usually "nothing to search for yet". Hand the claim
+    // back so it is tried again once they connect a channel or fill in the
+    // brain, instead of waiting for tomorrow.
+    if (n === 0) {
+      await supabase.from('user_tokens')
+        .update({ idea_drop_date: profile?.idea_drop_date ?? null }).eq('user_id', userId);
+    }
+    return n;
   } catch (e) {
     // Give the claim back so the next open can try again.
     await supabase.from('user_tokens')
@@ -355,7 +363,13 @@ Deno.serve(async (req: Request) => {
       .eq('user_id', user.id).eq('drop_date', dropDate)
       .order('outlier_score', { ascending: false, nullsFirst: false });
 
-    return json({ date: dropDate, nextAt: nextDropAt(tz), size: DROP_SIZE, items: items ?? [] });
+    let needsProfile = false;
+    if (!items?.length) {
+      const [brain, scan] = await Promise.all([loadBrain(supabase, user.id), loadChannelScan(supabase, user.id)]);
+      needsProfile = !brain && !scan?.videos?.length;
+    }
+
+    return json({ date: dropDate, nextAt: nextDropAt(tz), size: DROP_SIZE, items: items ?? [], needsProfile });
   } catch (error) {
     console.error('[daily-ideas]', error);
     return json({ error: error instanceof Error ? error.message : 'Internal server error' }, 500);
