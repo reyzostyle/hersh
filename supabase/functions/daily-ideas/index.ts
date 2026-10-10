@@ -34,7 +34,8 @@ const CORS = corsHeaders({ methods: 'POST, OPTIONS' });
 
 const DROP_SIZE = 7;
 const DROP_HOUR = 9;
-const PITCH_POOL = 20;                       // candidates pitched to pick DROP_SIZE from
+const PITCH_POOL = 30;                       // candidates pitched to pick DROP_SIZE from
+const PER_CHANNEL = 2;
 const TRACKED_TTL_MS = 6 * 60 * 60 * 1000;   // tracked channels refresh before a drop
 const NICHE_TTL_MS = 24 * 60 * 60 * 1000;    // niche channels refresh at most daily
 const SEARCH_TTL_MS = 3 * 24 * 60 * 60 * 1000;
@@ -227,6 +228,8 @@ async function buildDrop(supabase: any, userId: string, dropDate: string, profil
     .sort((a, b) =>
       Math.log(b.outlier_score ?? 1) * freshness(b.published_at)
       - Math.log(a.outlier_score ?? 1) * freshness(a.published_at))
+    // Spread the pitching budget too: no channel takes more than four seats.
+    .filter((p, _i, all) => all.filter(q => q.channel_id === p.channel_id).indexOf(p) < PER_CHANNEL * 2)
     .slice(0, PITCH_POOL);
   if (ranked.length === 0) return 0;
 
@@ -238,10 +241,27 @@ async function buildDrop(supabase: any, userId: string, dropDate: string, profil
   for (const r of fresh) fitBy.set(r.video_id, r.fit);
 
   const pitchedRank = ranked.filter(p => fitBy.has(p.video_id) && fitBy.get(p.video_id) !== 'no');
-  const chosen = [
+  const ordered = [
     ...pitchedRank.filter(p => fitBy.get(p.video_id) === 'yes'),
     ...pitchedRank.filter(p => fitBy.get(p.video_id) === 'stretch'),
-  ].slice(0, DROP_SIZE).map(p => p.video_id);
+  ];
+  // At most two per channel, or one prolific channel fills the whole drop
+  // (first live run: five of seven from the same one). Topped up past the
+  // cap only if there is nothing else.
+  const perChannel = new Map<string, number>();
+  const picked: string[] = [];
+  for (const p of ordered) {
+    if (picked.length >= DROP_SIZE) break;
+    const n = perChannel.get(p.channel_id) ?? 0;
+    if (n >= PER_CHANNEL) continue;
+    perChannel.set(p.channel_id, n + 1);
+    picked.push(p.video_id);
+  }
+  for (const p of ordered) {
+    if (picked.length >= DROP_SIZE) break;
+    if (!picked.includes(p.video_id)) picked.push(p.video_id);
+  }
+  const chosen = picked;
   if (chosen.length === 0) return 0;
 
   const { error } = await supabase.from('competitor_ideas')
