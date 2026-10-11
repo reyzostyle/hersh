@@ -57,22 +57,38 @@ Deno.serve(async (req: Request) => {
         { status: 200, headers: { ...CORS, 'Content-Type': 'application/json' } });
     }
 
-    // The video has to be in the pool of a channel this user tracks. Without
-    // this, videoId is an arbitrary string from the browser and the endpoint
-    // would happily run the model on anything on YouTube.
-    const { data: pooled } = await supabase
+    // The video has to be one this user was shown: in the pool of a channel
+    // they track, or already a row of theirs. Without this, videoId is an
+    // arbitrary string from the browser and the endpoint would happily run the
+    // model on anything on YouTube.
+    //
+    // The second case is the daily drop (2026-10-12): most of its ideas come
+    // from channels a niche search found, which the user does not track, so
+    // "My angle" on a swiped card failed with "not in your feed". Those rows
+    // are written server-side by daily-ideas, so their existence is the proof.
+    const { data: inPool } = await supabase
       .from('competitor_videos').select('*').eq('video_id', videoId).maybeSingle();
-    if (!pooled) {
-      return new Response(JSON.stringify({ error: 'That video is not in your feed.' }),
-        { status: 404, headers: { ...CORS, 'Content-Type': 'application/json' } });
+    let allowed = !!existing;
+    if (!allowed && inPool) {
+      const { data: tracked } = await supabase
+        .from('competitor_channels').select('id')
+        .eq('user_id', user.id).eq('channel_id', inPool.channel_id).maybeSingle();
+      allowed = !!tracked;
     }
-    const { data: tracked } = await supabase
-      .from('competitor_channels').select('id')
-      .eq('user_id', user.id).eq('channel_id', pooled.channel_id).maybeSingle();
-    if (!tracked) {
+    if (!allowed) {
       return new Response(JSON.stringify({ error: 'That video is not in your feed.' }),
         { status: 403, headers: { ...CORS, 'Content-Type': 'application/json' } });
     }
+    // The pool row when it is still there; the idea row's copy when the pool
+    // has since been pruned.
+    const pooled = inPool ?? {
+      channel_id: existing.channel_id,
+      channel_name: existing.channel_name,
+      title: existing.video_title,
+      views: existing.video_views,
+      published_at: existing.video_published_at,
+      outlier_score: existing.outlier_score,
+    };
 
     const isAdmin = user.email === 'reyzostyle@gmail.com';
     const creditStatus = await loadCreditStatus(supabase, user.id);
