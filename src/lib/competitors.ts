@@ -109,12 +109,15 @@ export interface DailyDrop {
   items: CompetitorIdea[];
   // Nothing to search for yet: no brain and no connected channel.
   needsProfile?: boolean;
+  // Only on a "more" request: how many were added, or why none were.
+  more?: { added: number; error?: string };
 }
 
-export async function fetchDailyDrop(token: string): Promise<DailyDrop | null> {
+// `more` asks for ten extra ideas on top of today's, for credits.
+export async function fetchDailyDrop(token: string, more = false): Promise<DailyDrop | null> {
   try {
     const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-    const res = await callFunction('daily-ideas', token, { timezone });
+    const res = await callFunction('daily-ideas', token, { timezone, ...(more ? { more: true } : {}) });
     if (!res.ok) return null;
     const data = await res.json();
     return Array.isArray(data.items) ? data as DailyDrop : null;

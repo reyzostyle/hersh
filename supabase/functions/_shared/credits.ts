@@ -50,6 +50,9 @@ export const CREDIT_COSTS = {
   // shorter.
   competitor_outline: 4,
   competitor_script: 1,
+  // Ten more ideas once today's are used up (2026-10-11). Pitching is one
+  // cheap call, but finding them reads YouTube, which is the scarce part.
+  more_ideas: 3,
   // A follow-up answers from the analysis already in the thread, so it is a
   // short text call rather than another look at the video.
   chat_followup: 1,

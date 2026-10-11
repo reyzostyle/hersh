@@ -5,6 +5,7 @@ import {
   type CompetitorChannel, type CompetitorIdea, type FeedItem, type IdeaFilter, type PoolVideo,
 } from '../lib/competitors';
 import { takeRequestedVideo } from '../lib/projects';
+import { CREDIT_COSTS } from '../lib/useUsage';
 import { CompetitorsFeed } from './CompetitorsFeed';
 import { CompetitorVideoView } from './CompetitorVideoView';
 import { FindCompetitorsModal } from './FindCompetitorsModal';
@@ -100,6 +101,39 @@ export function CompetitorsPage() {
 
   useEffect(() => { loadData(); }, [loadData]);
 
+  const [findingMore, setFindingMore] = useState(false);
+  const [moreNote, setMoreNote] = useState('');
+
+  const applyDrop = (d: NonNullable<Awaited<ReturnType<typeof fetchDailyDrop>>>) => {
+    setIdeas(prev => {
+      const next = [...prev];
+      for (const row of d.items) {
+        const at = next.findIndex(i => i.video_id === row.video_id);
+        if (at >= 0) next[at] = { ...next[at], ...row };
+        else next.push(row);
+      }
+      return next;
+    });
+    setDrop({ ids: d.items.map(i => i.video_id), nextAt: d.nextAt, needsProfile: !!d.needsProfile });
+  };
+
+  // Ten more for credits, once today's are used up.
+  const findMore = async () => {
+    setFindingMore(true);
+    setMoreNote('');
+    try {
+      const token = await getSessionToken();
+      if (!token) return;
+      const d = await fetchDailyDrop(token, true);
+      if (!d) { setMoreNote('Could not look just now. Try again in a minute.'); return; }
+      applyDrop(d);
+      if (d.more?.error === 'limit_reached') setMoreNote(`That costs ${CREDIT_COSTS.more_ideas} credits and you're out for this month.`);
+      else if (!d.more?.added) setMoreNote('Nothing new right now. More arrive with the next drop.');
+    } finally {
+      setFindingMore(false);
+    }
+  };
+
   useEffect(() => {
     (async () => {
       try {
@@ -107,16 +141,7 @@ export function CompetitorsPage() {
         if (!token) return;
         const d = await fetchDailyDrop(token);
         if (!d) return;
-        setIdeas(prev => {
-          const next = [...prev];
-          for (const row of d.items) {
-            const at = next.findIndex(i => i.video_id === row.video_id);
-            if (at >= 0) next[at] = { ...next[at], ...row };
-            else next.push(row);
-          }
-          return next;
-        });
-        setDrop({ ids: d.items.map(i => i.video_id), nextAt: d.nextAt, needsProfile: !!d.needsProfile });
+        applyDrop(d);
       } finally {
         setDropLoading(false);
       }
@@ -396,8 +421,12 @@ export function CompetitorsPage() {
       <CompetitorsFeed
         today={{
           loading: dropLoading && !drop,
+          all: dropIdeas,
           remaining: dropRemaining,
           total: dropIdeas.length,
+          findingMore,
+          moreNote,
+          onMore: findMore,
           nextAt: drop?.nextAt ?? null,
           needsProfile: drop?.needsProfile ?? false,
         }}

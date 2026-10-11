@@ -1,5 +1,6 @@
 // deno-lint-ignore-file no-explicit-any
 import { corsHeaders } from '../_shared/http.ts';
+import { loadCreditStatus, canAfford, spendCredits, CREDIT_COSTS } from '../_shared/credits.ts';
 import { createClient } from 'npm:@supabase/supabase-js@2.57.4';
 import { syncChannelPool, isEnglish, OUTLIER_THRESHOLD } from '../_shared/channel-pool.ts';
 import { pitchVideos, type PitchSource } from '../_shared/pitch.ts';
@@ -340,6 +341,26 @@ Deno.serve(async (req: Request) => {
         }
       }
 
+      // Tidy Saved and Dismissed so they stay short (Ivan, 2026-10-11).
+      // Nothing is deleted: the row keeps a drop_date, which is what stops the
+      // same video coming back in a later drop. It just leaves both tabs.
+      // - dismissed: after a week;
+      // - saved: after a month, but only if nothing was done with it. An idea
+      //   with an outline, a read or a project is work someone paid for.
+      const weekAgo = new Date(Date.now() - 7 * 86_400_000).toISOString();
+      const monthAgo = new Date(Date.now() - 30 * 86_400_000).toISOString();
+      const today = new Date().toISOString().slice(0, 10);
+      const { data: oldDismissed } = await supabase.from('competitor_ideas')
+        .select('id, drop_date').eq('liked', false).lt('created_at', weekAgo).limit(500);
+      const { data: oldSaved } = await supabase.from('competitor_ideas')
+        .select('id, drop_date').eq('liked', true).lt('created_at', monthAgo)
+        .is('outline', null).is('concept', null).is('project_id', null).limit(500);
+      let tidied = 0;
+      for (const r of [...(oldDismissed ?? []), ...(oldSaved ?? [])]) {
+        await supabase.from('competitor_ideas').update({ liked: null, drop_date: r.drop_date ?? today }).eq('id', r.id);
+        tidied++;
+      }
+
       // With the time left, keep everyone's profile current, not just the
       // people who open Ideas. The brain is rebuilt weekly from their latest
       // and best uploads (one cheap call each, five a run); the voice is
@@ -380,7 +401,7 @@ Deno.serve(async (req: Request) => {
           console.error(`[daily-ideas] voice ${u.user_id} failed:`, e);
         }
       }
-      return json({ ok: true, built, skipped, brains, voices });
+      return json({ ok: true, built, skipped, tidied, brains, voices });
     }
 
     // ── App: today's drop for this user, built on the spot if missing ──
@@ -400,6 +421,27 @@ Deno.serve(async (req: Request) => {
     const dropDate = dropDateFor(tz);
     await claimAndBuild(supabase, user.id, dropDate, ytApiKey);
 
+    // Ten more, for credits, once today's are used up. Same pipeline and the
+    // same date, so they sit with today's and go at the next drop like the
+    // rest. Charged only when something was actually found.
+    let more: { added: number; error?: string } | undefined;
+    if (body.more === true) {
+      const isAdmin = user.email === 'reyzostyle@gmail.com';
+      const status = await loadCreditStatus(supabase, user.id);
+      const cost = CREDIT_COSTS.more_ideas;
+      if (!canAfford(status, cost, isAdmin)) {
+        more = { added: 0, error: 'limit_reached' };
+      } else {
+        const { data: profile } = await supabase
+          .from('user_tokens')
+          .select('idea_query, idea_query_at, channel_niche, channel_description')
+          .eq('user_id', user.id).maybeSingle();
+        const added = await buildDrop(supabase, user.id, dropDate, profile, ytApiKey);
+        if (added > 0) await spendCredits(supabase, user.id, status, cost);
+        more = { added };
+      }
+    }
+
     const { data: items } = await supabase
       .from('competitor_ideas').select('*')
       .eq('user_id', user.id).eq('drop_date', dropDate)
@@ -411,7 +453,7 @@ Deno.serve(async (req: Request) => {
       needsProfile = !brain && !scan?.videos?.length;
     }
 
-    return json({ date: dropDate, nextAt: nextDropAt(tz), size: DROP_SIZE, items: items ?? [], needsProfile });
+    return json({ date: dropDate, nextAt: nextDropAt(tz), size: DROP_SIZE, items: items ?? [], needsProfile, more });
   } catch (error) {
     console.error('[daily-ideas]', error);
     return json({ error: error instanceof Error ? error.message : 'Internal server error' }, 500);

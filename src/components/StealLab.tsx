@@ -49,7 +49,11 @@ function DropDemo() {
       <CompetitorsFeed
         today={{
           loading: false,
+          all: ideas,
           remaining: ideas.filter(i => i.liked == null),
+          findingMore: false,
+          moreNote: '',
+          onMore: () => setIdeas(DROP),
           total: ideas.length,
           nextAt: new Date(Date.now() + 5.2 * 3_600_000).toISOString(),
           needsProfile: false,

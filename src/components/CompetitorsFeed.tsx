@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { LightbulbOutlineIcon as Lightbulb, AddOutlineIcon as Plus, AltArrowUpOutlineIcon as ChevronUp } from '@solar-icons/react';
+import { LightbulbOutlineIcon as Lightbulb, AddOutlineIcon as Plus, AltArrowUpOutlineIcon as ChevronUp, RefreshOutlineIcon as Loader2 } from '@solar-icons/react';
 import {
   itemFromIdea,
   type CompetitorChannel, type CompetitorIdea, type FeedItem, type IdeaFilter, type PoolVideo,
@@ -9,6 +9,7 @@ import { CompetitorsChannels } from './CompetitorsChannels';
 import { DailyStack } from './DailyStack';
 import { ErrorNotice } from './ErrorNotice';
 import { Empty, Seg, Collapse, Skeleton, Button } from './Page';
+import { CREDIT_COSTS } from '../lib/useUsage';
 
 // The Ideas tab, rebuilt 2026-10-10 around the daily drop.
 //
@@ -22,12 +23,18 @@ import { Empty, Seg, Collapse, Skeleton, Button } from './Page';
 
 export interface Today {
   loading: boolean;
-  // Today's ideas nobody has ruled on yet, best first.
+  // Every idea of today's, ruled on or not: the grid keeps showing what was
+  // saved or skipped in the swipe, marked, so the day's set stays visible.
+  all: CompetitorIdea[];
+  // Today's ideas nobody has ruled on yet, best first. What the swipe deals.
   remaining: CompetitorIdea[];
   total: number;
   nextAt: string | null;
   // No brain and no connected channel: there is nothing to search for.
   needsProfile: boolean;
+  findingMore: boolean;
+  moreNote: string;
+  onMore: () => void;
 }
 
 interface Props {
@@ -105,7 +112,7 @@ export function CompetitorsFeed({
           <Seg className="w-max" options={tabs} value={filter} onChange={onFilterChange} />
         </div>
         <div className="ml-auto flex items-center gap-2">
-          {filter === 'new' && today.remaining.length > 0 && (
+          {filter === 'new' && today.total > 0 && (
             <Seg
               options={[{ id: 'grid' as View, label: 'Grid' }, { id: 'swipe' as View, label: 'Swipe' }]}
               value={view}
@@ -158,18 +165,33 @@ export function CompetitorsFeed({
               Open Settings
             </Button>
           </Empty>
-        ) : today.remaining.length === 0 ? (
+        ) : today.total === 0 ? (
           <Empty icon={<Lightbulb className="w-7 h-7" style={{ color: 'var(--text-faint)' }} />}>
-            {today.total > 0 ? `That's today's ${today.total}. Next ones at ${nextLabel}.` : `Nothing new today. Next ones at ${nextLabel}.`}
+            {`Nothing new today. Next ones at ${nextLabel}.`}
           </Empty>
         ) : (
           <>
-            {left && (
-              <p className="text-[13px]" style={{ color: 'var(--text-muted)' }}>
-                New ideas in {left} · unsaved ones disappear
-              </p>
+            {today.remaining.length > 0 ? (
+              left && (
+                <p className="text-[13px]" style={{ color: 'var(--text-muted)' }}>
+                  New ideas in {left} · unsaved ones disappear
+                </p>
+              )
+            ) : (
+              // Today's are all ruled on: say when the next ones come, and
+              // offer more now for credits.
+              <div className="flex flex-col sm:flex-row sm:items-center gap-3 rounded-[var(--r-md)] px-4 py-3"
+                style={{ background: 'var(--bg-raised)', boxShadow: 'inset 0 0 0 1px var(--line)' }}>
+                <p className="flex-1 text-[13px]" style={{ color: 'var(--text-muted)' }}>
+                  {today.moreNote || `That's all for today. Next ones at ${nextLabel}.`}
+                </p>
+                <Button variant="primary" size="sm" onClick={today.onMore} disabled={today.findingMore}>
+                  {today.findingMore && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                  {today.findingMore ? 'Finding ideas' : `Find 10 more · ${CREDIT_COSTS.more_ideas} credits`}
+                </Button>
+              </div>
             )}
-            {view === 'swipe' ? (
+            {view === 'swipe' && today.remaining.length > 0 ? (
               <DailyStack
                 remaining={today.remaining}
                 total={today.total}
@@ -181,7 +203,7 @@ export function CompetitorsFeed({
               />
             ) : (
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2.5">
-                {today.remaining.map(idea => {
+                {today.all.map(idea => {
                   const item = itemFromIdea(idea);
                   return (
                     <CompetitorVideoCard

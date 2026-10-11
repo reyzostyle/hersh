@@ -20,6 +20,9 @@ export const CREDIT_COSTS = {
   // costs. Mirrors _shared/credits.ts.
   competitor_outline: 4,
   competitor_script: 1,
+  // Ten more ideas once today's are used up (2026-10-11). Pitching is one
+  // cheap call, but finding them reads YouTube, which is the scarce part.
+  more_ideas: 3,
   // Analyze is the whole product now: a link, a hook, a script and every
   // follow-up all land in the one thread. A follow-up answers from the
   // analysis already in the thread rather than watching the video again, so
