@@ -48,7 +48,8 @@ export function resolvePlan(clips: Clip[], raw: RawPlan): Plan {
   const rank = new Map<WordKey, number>();
   const valid = (c: number, i: number) => Number.isInteger(c) && Number.isInteger(i) && !!clips[c]?.words && i >= 0 && i < clips[c].words!.length;
   (raw.keep ?? []).forEach((r, n) => {
-    const from = Math.min(r.from, r.to), to = Math.max(r.from, r.to);
+    const from = Math.min(Number(r.from), Number(r.to)), to = Math.max(Number(r.from), Number(r.to));
+    r = { ...r, clip: Number(r.clip) };
     for (let i = from; i <= to; i++) {
       if (!valid(r.clip, i)) continue;
       const k = wkey(r.clip, i);
@@ -57,10 +58,10 @@ export function resolvePlan(clips: Clip[], raw: RawPlan): Plan {
       rank.set(k, n * 1e5 + i);
     }
   });
-  if (kept.size === 0) throw new Error('The plan kept nothing. Try again or check the script.');
+  if (kept.size === 0) throw new Error(`The plan kept nothing.${raw.note ? ` ${raw.note}` : ''}`);
   const fixes: Record<WordKey, string> = {};
-  for (const f of raw.fix ?? []) if (valid(f.clip, f.i) && f.text?.trim()) fixes[wkey(f.clip, f.i)] = f.text.trim();
+  for (const f of raw.fix ?? []) if (valid(Number(f.clip), Number(f.i)) && f.text?.trim()) fixes[wkey(Number(f.clip), Number(f.i))] = f.text.trim();
   const hot = new Set<WordKey>();
-  for (const h of raw.hot ?? []) if (valid(h.clip, h.i)) hot.add(wkey(h.clip, h.i));
+  for (const h of raw.hot ?? []) if (valid(Number(h.clip), Number(h.i))) hot.add(wkey(Number(h.clip), Number(h.i)));
   return { kept, rank, fixes, hot, note: raw.note ?? '' };
 }
