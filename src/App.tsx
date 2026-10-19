@@ -10,8 +10,10 @@ import { postBySlug } from './lib/blog';
 import { PanelPage } from './components/PanelPage';
 import { StealLab } from './components/StealLab';
 import { RefreshOutlineIcon as Loader2 } from '@solar-icons/react';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, lazy, Suspense } from 'react';
 import { supabase, getSessionToken } from './lib/supabase';
+
+const EditPage = lazy(() => import('./components/EditPage'));
 
 function SetNewPasswordForm() {
   const [password, setPassword] = useState('');
@@ -335,6 +337,8 @@ function AppContent() {
   // states, and must never fall through to the landing page or onboarding.
   if (window.location.pathname === '/panel') return <PanelPage />;
   if (import.meta.env.DEV && window.location.pathname === '/lab') return <StealLab />;
+  // The editor without signing in, for local testing. Cutting needs a session.
+  if (import.meta.env.DEV && window.location.pathname === '/lab/edit') return <Suspense fallback={null}><EditPage /></Suspense>;
   // The landing page as a guest sees it, while signed in. Dev only.
   if (import.meta.env.DEV && window.location.pathname === '/lab/landing') return <LandingPage />;
 

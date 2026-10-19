@@ -1,5 +1,6 @@
-import { useState, useEffect } from 'react';
-import { AppShell, NavTab, HIDDEN_TABS } from './AppShell';
+import { useState, useEffect, lazy, Suspense } from 'react';
+import { AppShell, NavTab, HIDDEN_TABS, OWNER_EMAIL, OWNER_ONLY_TABS } from './AppShell';
+import { useAuth } from '../contexts/AuthContext';
 import { HomePage } from './HomePage';
 import { AnalysisChat } from './AnalysisChat';
 import { SavedPage } from './SavedPage';
@@ -12,11 +13,15 @@ import { AdminPage } from './AdminPage';
 import { ShareChooser } from './ShareChooser';
 import { peek, take, PENDING_ANALYZE_KEY, PENDING_STEAL_KEY, PENDING_SHARE_KEY } from '../lib/intents';
 
+// Loaded on first open: the editor pulls in a video decoder/encoder that no
+// other screen needs.
+const EditPage = lazy(() => import('./EditPage'));
+
 // 'admin' is intentionally reachable but has no sidebar entry (see AppShell) —
 // only reached by entering the admin code in Settings. AdminPage itself
 // re-checks the caller's email before rendering anything or fetching data.
 // 'home' also has no nav entry: it's reached from the brand row in the sidebar.
-const VALID_TABS: NavTab[] = ['home', 'analyze', 'saved', 'competitors', 'upgrade', 'partners', 'settings', 'admin', 'affiliate-admin'];
+const VALID_TABS: NavTab[] = ['home', 'analyze', 'saved', 'competitors', 'edit', 'upgrade', 'partners', 'settings', 'admin', 'affiliate-admin'];
 
 // Tabs removed on 2026-09-29, and where anything still asking for them lands:
 // Projects became Saved, Analytics' channel numbers moved into Settings.
@@ -27,6 +32,8 @@ const isTabReachable = (t: string): t is NavTab =>
   (VALID_TABS as string[]).includes(t) && !HIDDEN_TABS.includes(t as NavTab);
 
 export function Dashboard() {
+  const { user } = useAuth();
+  const isOwner = user?.email === OWNER_EMAIL;
   // Always opens on the hub rather than restoring the last tab: it's where
   // new tools and announcements surface, so it's what should greet you on
   // every entry. (Deliberately not persisted — a reload lands here too.)
@@ -64,11 +71,11 @@ export function Dashboard() {
       }
       const asked = (e as CustomEvent).detail as string;
       const tab = RETIRED_TABS[asked] ?? asked;
-      if (tab && isTabReachable(tab)) setActiveTab(tab);
+      if (tab && isTabReachable(tab) && (isOwner || !OWNER_ONLY_TABS.includes(tab))) setActiveTab(tab);
     };
     window.addEventListener('chumoku:navigate', handler);
     return () => window.removeEventListener('chumoku:navigate', handler);
-  }, []);
+  }, [isOwner]);
 
   // Handle return from Notion OAuth (callback redirects to /?notion=connected|error)
   useEffect(() => {
@@ -87,6 +94,7 @@ export function Dashboard() {
       {activeTab === 'home' && <HomePage onNavigate={setActiveTab} />}
       {activeTab === 'analyze' && <AnalysisChat />}
       {activeTab === 'saved' && <SavedPage />}
+      {activeTab === 'edit' && isOwner && <Suspense fallback={null}><EditPage /></Suspense>}
       {activeTab === 'competitors' && <CompetitorsPage />}
       {activeTab === 'upgrade' && <UpgradePage />}
       {activeTab === 'partners' && <PartnersPage />}
