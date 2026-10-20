@@ -5,6 +5,8 @@ struct IdeaDetailView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.openURL) private var openURL
     let idea: Idea
+    @Environment(FilmStore.self) private var films
+    @State private var filming: Shoot?
 
     // The store holds the live row; the one passed in may already be stale.
     private var current: Idea {
@@ -60,12 +62,17 @@ struct IdeaDetailView: View {
         .background(Color.bg.ignoresSafeArea())
         .safeAreaInset(edge: .bottom) {
             HStack(spacing: 10) {
-                Button(current.liked == false ? "Dismissed" : "Dismiss") {
+                // Dismiss and Save as icons, so filming is the one wide action.
+                iconButton(current.liked == false ? "xmark.circle.fill" : "xmark", on: current.liked == false) {
                     Task { await store.rule(current, liked: current.liked == false ? nil : false); if current.liked == false { dismiss() } }
                 }
-                .buttonStyle(.pillGhost)
-                Button(current.liked == true ? "Saved" : "Save") {
+                iconButton(current.liked == true ? "bookmark.fill" : "bookmark", on: current.liked == true) {
                     Task { await store.rule(current, liked: current.liked == true ? nil : true) }
+                }
+                Button(current.outline == nil ? "Film" : "Film this") {
+                    // Filming an idea keeps it, the same as saving it.
+                    if current.liked != true { Task { await store.rule(current, liked: true) } }
+                    filming = films.create(title: current.outline?.hook ?? current.headline, script: current.outline?.script ?? "", ideaId: current.id)
                 }
                 .buttonStyle(.pill)
             }
@@ -83,8 +90,20 @@ struct IdeaDetailView: View {
             }
         }
         .toolbar(.hidden, for: .tabBar)
+        .fullScreenCover(item: $filming) { shoot in FilmView(shootId: shoot.id) }
         .toolbarBackground(Color.bg, for: .navigationBar)
         .navigationBarTitleDisplayMode(.inline)
+    }
+
+    private func iconButton(_ icon: String, on: Bool, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Image(systemName: icon)
+                .font(.system(size: 17, weight: .medium))
+                .foregroundStyle(Color.text)
+                .frame(width: 48, height: 48)
+                .background(Circle().fill(on ? Color.white.opacity(0.16) : Color.white.opacity(0.08)))
+        }
+        .sensoryFeedback(.selection, trigger: on)
     }
 
     private var sourceLine: String? {

@@ -41,6 +41,9 @@ targets:
           UIColorName: Background
         UIUserInterfaceStyle: Dark
         UISupportedInterfaceOrientations: [UIInterfaceOrientationPortrait]
+        NSCameraUsageDescription: Chumoku films your takes.
+        NSMicrophoneUsageDescription: Chumoku records your voice with each take.
+        NSPhotoLibraryAddUsageDescription: Chumoku saves your takes and finished videos to Photos.
         UIAppFonts:
           - Geist-Regular.ttf
           - Geist-Medium.ttf

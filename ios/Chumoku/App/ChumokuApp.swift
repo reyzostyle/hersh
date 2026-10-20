@@ -4,12 +4,14 @@ import SwiftUI
 struct ChumokuApp: App {
     @State private var auth = AuthModel()
     @State private var ideas = IdeasStore()
+    @State private var films = FilmStore()
 
     var body: some Scene {
         WindowGroup {
             RootView()
                 .environment(auth)
                 .environment(ideas)
+                .environment(films)
                 .preferredColorScheme(.dark)
                 .tint(.white)
         }
@@ -45,6 +47,7 @@ struct MainTabs: View {
     var body: some View {
         TabView {
             Tab("Ideas", systemImage: "lightbulb") { IdeasView() }
+            Tab("Film", systemImage: "video") { FilmHome() }
             Tab("Settings", systemImage: "gearshape") { SettingsView() }
         }
     }
