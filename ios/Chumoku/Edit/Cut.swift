@@ -6,9 +6,25 @@ import Supabase
 // pushed out to where the sound really starts and stops, and two pieces that
 // both reach into a voiced pause are merged instead of playing it twice.
 
-nonisolated struct WKey: Hashable, Codable, Sendable {
+nonisolated struct WKey: Hashable, Codable, Sendable, CodingKeyRepresentable {
     let c: Int // take
     let i: Int // word
+    init(c: Int, i: Int) { self.c = c; self.i = i }
+    // So [WKey: ...] encodes as a JSON object ("2:14": ...), not a flat array.
+    var codingKey: CodingKey { AnyKey("\(c):\(i)") }
+    init?<T: CodingKey>(codingKey: T) {
+        let p = codingKey.stringValue.split(separator: ":").compactMap { Int($0) }
+        guard p.count == 2 else { return nil }
+        c = p[0]; i = p[1]
+    }
+}
+
+nonisolated struct AnyKey: CodingKey {
+    var stringValue: String
+    var intValue: Int? { nil }
+    init(_ s: String) { stringValue = s }
+    init?(stringValue: String) { self.stringValue = stringValue }
+    init?(intValue: Int) { nil }
 }
 
 nonisolated struct Plan: Sendable {
@@ -48,11 +64,10 @@ nonisolated struct CapGroup: Hashable, Sendable {
     var t1: Double
 }
 
-enum Pace: String, CaseIterable, Sendable { case tight, natural }
-enum CaptionStyle: String, CaseIterable, Sendable { case pop, bold, word, clean, none }
+nonisolated enum Pace: String, CaseIterable, Codable, Sendable { case tight, natural }
+nonisolated enum CaptionStyle: String, CaseIterable, Codable, Sendable { case pop, bold, word, clean, none }
 
 nonisolated struct EditSettings: Equatable, Sendable {
-    var captions: CaptionStyle = .pop
     var pace: Pace = .tight
     var speed: Double = 1.1
     var zoom = true
@@ -165,15 +180,11 @@ enum Cutter {
     }
 
     // Words into the phrases that share the screen.
-    static func groups(_ caps: [CapWord], style: CaptionStyle) -> [CapGroup] {
-        let (maxWords, maxChars): (Int, Int) = switch style {
-        case .pop: (3, 18)
-        case .bold: (2, 14)
-        case .word: (1, 99)
-        case .clean: (6, 30)
-        case .none: (0, 0)
-        }
+    static func groups(_ caps: [CapWord], captions c: CaptionSettings) -> [CapGroup] {
+        let style = c.preset
         guard style != .none else { return [] }
+        let maxWords = max(1, c.maxWords)
+        let maxChars = maxWords == 1 ? 99 : max(14, maxWords * 6)
         var groups: [CapGroup] = []
         var cur: [CapWord] = []
         func flush() { if let f = cur.first, let l = cur.last { groups.append(CapGroup(words: cur, t0: f.t0, t1: l.t1)) }; cur = [] }
@@ -186,7 +197,7 @@ enum Cutter {
                 || (style == .pop && (prev.map { $0.text.hasSuffix(",") } ?? false)) {
                 flush()
             }
-            cur.append(CapWord(key: w.key, text: clean(w.text, style), t0: w.t0, t1: w.t1, hot: w.hot))
+            cur.append(CapWord(key: w.key, text: clean(w.text, c), t0: w.t0, t1: w.t1, hot: w.hot))
         }
         flush()
         for i in groups.indices {
@@ -196,11 +207,11 @@ enum Cutter {
         return groups
     }
 
-    private static func clean(_ text: String, _ style: CaptionStyle) -> String {
+    private static func clean(_ text: String, _ c: CaptionSettings) -> String {
         var t = text.trimmingCharacters(in: .whitespaces)
-        if style != .clean { t = t.trimmingCharacters(in: CharacterSet(charactersIn: ".,;:")) }
-        if style == .word { t = t.trimmingCharacters(in: CharacterSet(charactersIn: "\"'()")) }
-        return style == .pop || style == .bold ? t.uppercased() : t
+        if c.preset != .clean { t = t.trimmingCharacters(in: CharacterSet(charactersIn: ".,;:")) }
+        if c.maxWords == 1 { t = t.trimmingCharacters(in: CharacterSet(charactersIn: "\"'()")) }
+        return c.upper ? t.uppercased() : t
     }
 }
 
