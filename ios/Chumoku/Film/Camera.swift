@@ -50,14 +50,15 @@ final class Camera: NSObject {
         self.finished = finished
         isRecording = true
         recordingStarted = .now
-        let front = position == .front
+        // Settings → Filming; mirrored by default.
+        let mirror = position == .front && (UserDefaults.standard.object(forKey: "film.mirror") as? Bool ?? true)
         queue.async { [self] in
             if let conn = output.connection(with: .video) {
                 if conn.isVideoRotationAngleSupported(90) { conn.videoRotationAngle = 90 }
                 // The front take is saved mirrored, the way you saw yourself
                 // while filming. People are used to their mirror face; the
                 // un-mirrored one the Camera app saves looks subtly off to them.
-                if conn.isVideoMirroringSupported { conn.automaticallyAdjustsVideoMirroring = false; conn.isVideoMirrored = front }
+                if conn.isVideoMirroringSupported { conn.automaticallyAdjustsVideoMirroring = false; conn.isVideoMirrored = mirror }
             }
             output.startRecording(to: url, recordingDelegate: self)
         }
@@ -80,7 +81,8 @@ final class Camera: NSObject {
         session.addInput(video)
         // 4K where the camera has it (the front camera on every iPhone since
         // the 11 does): the edit crops and zooms, and 1080p ran out of detail.
-        if session.canSetSessionPreset(.hd4K3840x2160) { session.sessionPreset = .hd4K3840x2160 }
+        let want4K = UserDefaults.standard.object(forKey: "film.4k") as? Bool ?? true
+        if want4K, session.canSetSessionPreset(.hd4K3840x2160) { session.sessionPreset = .hd4K3840x2160 }
         else if session.canSetSessionPreset(.hd1920x1080) { session.sessionPreset = .hd1920x1080 }
         if let mic = AVCaptureDevice.default(for: .audio), let audio = try? AVCaptureDeviceInput(device: mic), session.canAddInput(audio) {
             session.addInput(audio)

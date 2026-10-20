@@ -88,6 +88,18 @@ final class FilmStore {
         if let data = try? JSONEncoder().encode(shoots) { try? data.write(to: Self.index, options: .atomic) }
     }
 
+    // How much room the raw takes take, for Settings.
+    func diskUsage() -> String {
+        let keys: Set<URLResourceKey> = [.fileSizeKey]
+        var total: Int64 = 0
+        if let e = FileManager.default.enumerator(at: Self.root, includingPropertiesForKeys: Array(keys)) {
+            for case let url as URL in e {
+                total += Int64((try? url.resourceValues(forKeys: keys))?.fileSize ?? 0)
+            }
+        }
+        return ByteCountFormatter.string(fromByteCount: total, countStyle: .file)
+    }
+
     // A still from early in the take, for lists.
     static func thumbnail(for url: URL) async -> UIImage? {
         let gen = AVAssetImageGenerator(asset: AVURLAsset(url: url))
