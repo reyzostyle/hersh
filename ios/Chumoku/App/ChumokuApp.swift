@@ -5,6 +5,7 @@ struct ChumokuApp: App {
     @State private var auth = AuthModel()
     @State private var ideas = IdeasStore()
     @State private var films = FilmStore()
+    @State private var notes = NotesStore.shared
 
     var body: some Scene {
         WindowGroup {
@@ -12,6 +13,7 @@ struct ChumokuApp: App {
                 .environment(auth)
                 .environment(ideas)
                 .environment(films)
+                .environment(notes)
                 .preferredColorScheme(.dark)
                 .tint(.white)
         }
@@ -44,12 +46,20 @@ struct RootView: View {
 }
 
 struct MainTabs: View {
+    @Environment(NotesStore.self) private var notes
+    enum T: Hashable { case ideas, create, edit, analytics, settings }
+    @State private var tab: T = .ideas
+
     var body: some View {
-        TabView {
-            Tab("Ideas", systemImage: "lightbulb") { IdeasView() }
-            Tab("Film", systemImage: "video") { FilmHome() }
-            Tab("Edit", systemImage: "scissors") { EditHome() }
-            Tab("Settings", systemImage: "gearshape") { SettingsView() }
+        TabView(selection: $tab) {
+            Tab("Ideas", systemImage: "lightbulb", value: T.ideas) { IdeasView() }
+            Tab("Edit", systemImage: "scissors", value: T.edit) { EditHome() }
+            Tab("Create", systemImage: "plus", value: T.create) { FilmHome() }
+            Tab("Analytics", systemImage: "chart.bar", value: T.analytics) { AnalyticsView() }
+            Tab("Settings", systemImage: "gearshape", value: T.settings) { SettingsView() }
         }
+        .sensoryFeedback(.selection, trigger: tab)
+        // "Record an idea" from Siri or the Lock Screen lands in Notes.
+        .onChange(of: notes.recordNow) { _, now in if now { tab = .ideas } }
     }
 }

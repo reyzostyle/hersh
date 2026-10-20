@@ -225,7 +225,7 @@ extension IdeasStore {
 }
 
 extension ISO8601DateFormatter {
-    static let withFractions: ISO8601DateFormatter = {
+    nonisolated(unsafe) static let withFractions: ISO8601DateFormatter = {
         let f = ISO8601DateFormatter()
         f.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
         return f

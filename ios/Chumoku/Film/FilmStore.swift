@@ -66,6 +66,20 @@ final class FilmStore {
         update(shootId) { $0.takes.append(Take(id: UUID().uuidString, file: url.lastPathComponent, duration: duration, createdAt: .now)) }
     }
 
+    // A video from Photos becomes a take: moved into the shoot's folder.
+    func importTake(_ file: URL, to shootId: String) async {
+        let dest = nextTakeURL(for: shootId).deletingPathExtension().appendingPathExtension(file.pathExtension.isEmpty ? "mov" : file.pathExtension)
+        do { try FileManager.default.moveItem(at: file, to: dest) } catch { return }
+        await addTake(dest, to: shootId)
+    }
+
+    // Settings → Delete all takes.
+    func deleteAll() {
+        for s in shoots { try? FileManager.default.removeItem(at: folder(s)) }
+        shoots = []
+        save()
+    }
+
     func deleteTake(_ take: Take, from shootId: String) {
         guard let s = shoot(shootId) else { return }
         try? FileManager.default.removeItem(at: url(take, in: s))

@@ -1,21 +1,37 @@
 import SwiftUI
+import PhotosUI
 
-// The Film tab: start a shoot from a saved idea's script or your own words,
-// and come back to earlier shoots and their takes.
+// The Create tab (the + in the tab bar): film against a script, bring in
+// takes you shot in the Camera app, or catch an idea by voice; below, the
+// shoots you have going.
 struct FilmHome: View {
     @Environment(FilmStore.self) private var films
+    @Environment(NotesStore.self) private var notes
     @State private var newShoot = false
     @State private var filming: Shoot?
+    @State private var importing: [PhotosPickerItem] = []
+    @State private var importBusy = false
+    @State private var recording = false
 
     var body: some View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 0) {
-                    Text("Film").font(.tTitle).foregroundStyle(Color.text).padding(.top, 8)
+                    Text("Create").font(.tTitle).foregroundStyle(Color.text).padding(.top, 8)
 
                     Button("New shoot") { newShoot = true }
                         .buttonStyle(.pill)
                         .padding(.top, 24)
+
+                    HStack(spacing: 10) {
+                        PhotosPicker(selection: $importing, maxSelectionCount: 20, matching: .videos) {
+                            Label(importBusy ? "Importing…" : "Import takes", systemImage: "photo.on.rectangle")
+                        }
+                        .buttonStyle(.pillSecondary)
+                        Button { recording = true } label: { Label("Voice idea", systemImage: "mic") }
+                            .buttonStyle(.pillSecondary)
+                    }
+                    .padding(.top, 10)
 
                     if !films.shoots.isEmpty {
                         Text("Shoots").font(.tLabel).foregroundStyle(Color.textMuted).padding(.top, 36).padding(.bottom, 12)
@@ -41,6 +57,21 @@ struct FilmHome: View {
             }
         }
         .fullScreenCover(item: $filming) { shoot in FilmView(shootId: shoot.id) }
+        .sheet(isPresented: $recording) { RecorderSheet().presentationDetents([.height(320)]) }
+        .onChange(of: importing) { _, items in if !items.isEmpty { Task { await importTakes(items) } } }
+        .sensoryFeedback(.success, trigger: films.shoots.count)
+    }
+
+    // Videos shot in the Camera app become one new shoot, ready to edit.
+    private func importTakes(_ items: [PhotosPickerItem]) async {
+        importBusy = true
+        defer { importBusy = false; importing = [] }
+        let shoot = films.create(title: "Imported \(Date.now.formatted(date: .abbreviated, time: .shortened))", script: "")
+        for item in items {
+            if let movie = try? await item.loadTransferable(type: PickedMovie.self) {
+                await films.importTake(movie.url, to: shoot.id)
+            }
+        }
     }
 }
 

@@ -45,6 +45,8 @@ struct SettingsView: View {
     @State private var account: Account?
     @State private var loading = true
     @State private var storage: String = "…"
+    @State private var brainOpen = false
+    @State private var confirmClear = false
     @AppStorage("film.countdown") private var countdown = true
     @AppStorage("film.mirror") private var mirror = true
     @AppStorage("film.4k") private var fourK = true
@@ -96,6 +98,11 @@ struct SettingsView: View {
                                 Text("YouTube").font(.tSmall).foregroundStyle(Color.textFaint)
                             }
                             Spacer()
+                            if account?.youtubeChannelName != nil {
+                                Image(systemName: "checkmark.circle.fill")
+                                    .font(.system(size: 20))
+                                    .foregroundStyle(Color.process)
+                            }
                         }
                         .padding(16)
                         if account?.youtubeChannelName == nil && !loading {
@@ -106,22 +113,38 @@ struct SettingsView: View {
 
                     if let brain = account?.brain {
                         section("What Chumoku knows about you") {
-                            if let summary = brain.summary {
-                                Text(summary).font(.tBody).foregroundStyle(Color.text).lineSpacing(3).padding(16)
-                                divider
-                            }
-                            ForEach([("Niche", brain.niche), ("Format", brain.format), ("Audience", brain.audience), ("Voice", brain.voice)], id: \.0) { item in
-                                if let value = item.1, !value.isEmpty {
-                                    VStack(alignment: .leading, spacing: 4) {
-                                        Text(item.0).font(.tLabel).foregroundStyle(Color.textMuted)
-                                        Text(value).font(.tSmall).foregroundStyle(Color.text)
-                                    }
-                                    .frame(maxWidth: .infinity, alignment: .leading)
-                                    .padding(16)
-                                    divider
+                            Button { withAnimation(.ui) { brainOpen.toggle() } } label: {
+                                HStack(alignment: .top) {
+                                    Text(brain.summary ?? brain.niche ?? "Your channel")
+                                        .font(.tBody).foregroundStyle(Color.text)
+                                        .lineLimit(brainOpen ? nil : 2)
+                                        .multilineTextAlignment(.leading)
+                                    Spacer()
+                                    Image(systemName: "chevron.down")
+                                        .font(.system(size: 13, weight: .semibold)).foregroundStyle(Color.textFaint)
+                                        .rotationEffect(.degrees(brainOpen ? 180 : 0))
+                                        .padding(.top, 4)
                                 }
+                                .padding(16)
+                                .contentShape(Rectangle())
                             }
-                            linkRow("Edit on chumoku.co", url: "https://chumoku.co")
+                            .buttonStyle(.plain)
+                            .sensoryFeedback(.selection, trigger: brainOpen)
+                            if brainOpen {
+                                ForEach([("Niche", brain.niche), ("Format", brain.format), ("Audience", brain.audience), ("Voice", brain.voice)], id: \.0) { item in
+                                    if let value = item.1, !value.isEmpty {
+                                        divider
+                                        VStack(alignment: .leading, spacing: 4) {
+                                            Text(item.0).font(.tLabel).foregroundStyle(Color.textMuted)
+                                            Text(value).font(.tSmall).foregroundStyle(Color.text)
+                                        }
+                                        .frame(maxWidth: .infinity, alignment: .leading)
+                                        .padding(16)
+                                    }
+                                }
+                                divider
+                                linkRow("Edit on chumoku.co", url: "https://chumoku.co")
+                            }
                         }
                     }
 
@@ -133,11 +156,35 @@ struct SettingsView: View {
                         toggle("Record in 4K", $fourK)
                         divider
                         row("Takes on this iPhone", storage)
+                        divider
+                        Button { confirmClear = true } label: {
+                            Text("Delete all takes").font(.tBody).foregroundStyle(Color.danger)
+                                .frame(maxWidth: .infinity, alignment: .leading).padding(16).contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
                     }
 
+                    Button { if let u = URL(string: "https://discord.com/invite/N8S6C95Ry2") { openURL(u) } } label: {
+                        HStack(spacing: 14) {
+                            Image(systemName: "bubble.left.and.bubble.right.fill")
+                                .font(.system(size: 20)).foregroundStyle(.white)
+                                .frame(width: 46, height: 46)
+                                .background(Circle().fill(Color(red: 0.35, green: 0.4, blue: 0.95)))
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("Join the Discord").font(.geist(16, .medium)).foregroundStyle(Color.text)
+                                Text("Creators, feedback, early features").font(.tSmall).foregroundStyle(Color.textMuted)
+                            }
+                            Spacer()
+                            Image(systemName: "arrow.up.right").font(.system(size: 13, weight: .semibold)).foregroundStyle(Color.textFaint)
+                        }
+                        .padding(16)
+                        .background(RoundedRectangle(cornerRadius: Radius.md, style: .continuous).fill(Color(red: 0.35, green: 0.4, blue: 0.95).opacity(0.12)))
+                        .overlay(RoundedRectangle(cornerRadius: Radius.md, style: .continuous).strokeBorder(Color(red: 0.35, green: 0.4, blue: 0.95).opacity(0.35), lineWidth: 1))
+                    }
+                    .buttonStyle(.plain)
+                    .padding(.top, 28)
+
                     section("Chumoku") {
-                        linkRow("Discord", url: "https://discord.com/invite/N8S6C95Ry2")
-                        divider
                         linkRow("Privacy", url: "https://chumoku.co/privacy")
                         divider
                         linkRow("Terms", url: "https://chumoku.co/terms")
@@ -153,6 +200,10 @@ struct SettingsView: View {
             .background(Color.bg.ignoresSafeArea())
             .toolbar(.hidden, for: .navigationBar)
             .refreshable { await load() }
+            .confirmationDialog("Delete every take on this iPhone?", isPresented: $confirmClear, titleVisibility: .visible) {
+                Button("Delete all takes", role: .destructive) { films.deleteAll(); storage = films.diskUsage() }
+            } message: { Text("Finished videos already in Photos stay.") }
+            .sensoryFeedback(.warning, trigger: confirmClear) { _, on in on }
         }
         .task { await load() }
     }

@@ -2,27 +2,46 @@ import SwiftUI
 
 struct IdeasView: View {
     @Environment(IdeasStore.self) private var store
-    enum Tab: Hashable { case today, saved }
+    @Environment(NotesStore.self) private var notes
+    enum Tab: Hashable { case today, saved, notes }
     @State private var tab: Tab = .today
+    @State private var path = NavigationPath()
+    @AppStorage("ideas.swipe") private var swipe = false
 
     private let columns = [GridItem(.flexible(), spacing: 12, alignment: .top), GridItem(.flexible(), spacing: 12, alignment: .top)]
 
     var body: some View {
-        NavigationStack {
+        NavigationStack(path: $path) {
             ScrollView {
                 VStack(alignment: .leading, spacing: 0) {
                     HStack(alignment: .firstTextBaseline) {
                         Text("Ideas").font(.tTitle).foregroundStyle(Color.text)
                         Spacer()
-                        Seg(options: [(Tab.today, "Today"), (Tab.saved, "Saved")], value: $tab)
+                        Seg(options: [(Tab.today, "Today"), (Tab.saved, "Saved"), (Tab.notes, "Notes")], value: $tab)
                     }
                     .padding(.top, 8)
 
-                    if tab == .today, let next = store.nextAt, !store.today.isEmpty {
-                        Countdown(until: next).padding(.top, 10)
+                    if tab == .today, !store.today.isEmpty {
+                        HStack {
+                            if let next = store.nextAt { Countdown(until: next) }
+                            Spacer()
+                            // Grid or one at a time.
+                            Button { withAnimation(.ui) { swipe.toggle() } } label: {
+                                Image(systemName: swipe ? "square.grid.2x2" : "rectangle.stack")
+                                    .font(.system(size: 15, weight: .medium)).foregroundStyle(Color.text)
+                                    .frame(width: 36, height: 36).background(Circle().fill(Color.white.opacity(0.08)))
+                            }
+                            .sensoryFeedback(.selection, trigger: swipe)
+                        }
+                        .padding(.top, 10)
                     }
 
-                    content.padding(.top, 20)
+                    Group {
+                        if tab == .notes { NotesView() }
+                        else if tab == .today && swipe && !store.today.isEmpty { SwipeStack { path.append($0) } }
+                        else { content }
+                    }
+                    .padding(.top, 20)
                 }
                 .padding(.horizontal, 20)
                 .padding(.bottom, 32)
@@ -35,6 +54,8 @@ struct IdeasView: View {
             .toolbar(.hidden, for: .navigationBar)
         }
         .task { await store.loadToday() }
+        .onChange(of: notes.recordNow) { _, now in if now { path = NavigationPath(); tab = .notes } }
+        .onAppear { if notes.recordNow { tab = .notes } }
         .task(id: tab) { if tab == .saved { await store.loadSaved() } }
     }
 
