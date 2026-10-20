@@ -18,25 +18,16 @@ nonisolated enum SafeZone {
     static func holds(_ r: CGRect) -> Bool { box.insetBy(dx: -0.01, dy: -0.01).contains(r) }
 }
 
-// The covered strips, dimmed, with the safe box outlined.
+// The edge of the area the feed leaves alone: a thin line, nothing dimmed.
 struct SafeZoneGuide: View {
     var warn = false
     var body: some View {
         GeometryReader { geo in
             let b = SafeZone.box
-            let r = CGRect(x: b.minX * geo.size.width, y: b.minY * geo.size.height,
-                           width: b.width * geo.size.width, height: b.height * geo.size.height)
-            ZStack(alignment: .topLeading) {
-                Path { p in
-                    p.addRect(CGRect(origin: .zero, size: geo.size))
-                    p.addRoundedRect(in: r, cornerSize: CGSize(width: 10, height: 10))
-                }
-                .fill(Color.black.opacity(0.35), style: FillStyle(eoFill: true))
-                RoundedRectangle(cornerRadius: 10, style: .continuous)
-                    .strokeBorder(warn ? Color.danger : Color.white.opacity(0.7), style: StrokeStyle(lineWidth: 1, dash: [5, 4]))
-                    .frame(width: r.width, height: r.height)
-                    .offset(x: r.minX, y: r.minY)
-            }
+            Rectangle()
+                .strokeBorder(warn ? Color.danger : Color.white.opacity(0.55), style: StrokeStyle(lineWidth: 1, dash: [4, 4]))
+                .frame(width: b.width * geo.size.width, height: b.height * geo.size.height)
+                .offset(x: b.minX * geo.size.width, y: b.minY * geo.size.height)
         }
         .allowsHitTesting(false)
     }

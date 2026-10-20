@@ -41,6 +41,7 @@
 		BD0C9502BC488A761514F1AB /* FilmView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2E63E403A9584D838E26F59E /* FilmView.swift */; };
 		C05088C44ADDE960B3CA1B92 /* ChumokuApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = E2948B37EAD4EE894BB410B4 /* ChumokuApp.swift */; };
 		CE4D9B2D412763E15B26E0E3 /* IdeasView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D56C0D4A1A7A7E84AB0AB375 /* IdeasView.swift */; };
+		D39ADF16822DA38F996BD70D /* ClipsPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = ED22D639FC87026C99887CDA /* ClipsPanel.swift */; };
 		DBA32E4BF8C03A4E9041E9EB /* Config.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3640ACCED4A4ACA7ADE00AAC /* Config.swift */; };
 		FF8CC40304304397A5FB4564 /* SignInView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F8930EC00926E2C82F16B94A /* SignInView.swift */; };
 /* End PBXBuildFile section */
@@ -80,6 +81,7 @@
 		DFB10D360B0C302A87407E38 /* Notes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Notes.swift; sourceTree = "<group>"; };
 		E2948B37EAD4EE894BB410B4 /* ChumokuApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChumokuApp.swift; sourceTree = "<group>"; };
 		E62F4F5CB345EE71077C9847 /* Teleprompter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Teleprompter.swift; sourceTree = "<group>"; };
+		ED22D639FC87026C99887CDA /* ClipsPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipsPanel.swift; sourceTree = "<group>"; };
 		F87231E5DB13DDAC53F91E3A /* FilmStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FilmStore.swift; sourceTree = "<group>"; };
 		F8930EC00926E2C82F16B94A /* SignInView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SignInView.swift; sourceTree = "<group>"; };
 		FC7271B1789C137EA0971F4F /* Captions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Captions.swift; sourceTree = "<group>"; };
@@ -167,6 +169,7 @@
 			children = (
 				FC7271B1789C137EA0971F4F /* Captions.swift */,
 				0505CDACCA9454D5BC0A3492 /* Clean.swift */,
+				ED22D639FC87026C99887CDA /* ClipsPanel.swift */,
 				5D7517D2C34A1A734C5F0E8A /* Cut.swift */,
 				B1FBAE247585302FBF48D8C3 /* EditHome.swift */,
 				231EF926315A9DC3002D9275 /* EditModel.swift */,
@@ -330,6 +333,7 @@
 				2435A443CDEAD15CABC3FC2D /* Captions.swift in Sources */,
 				C05088C44ADDE960B3CA1B92 /* ChumokuApp.swift in Sources */,
 				58DFCA46A7692CEC1959D511 /* Clean.swift in Sources */,
+				D39ADF16822DA38F996BD70D /* ClipsPanel.swift in Sources */,
 				DBA32E4BF8C03A4E9041E9EB /* Config.swift in Sources */,
 				A12CF398B62C6CF25312C1B1 /* Cut.swift in Sources */,
 				98717BC3AAF35CE61BF943D5 /* DemoData.swift in Sources */,

@@ -18,12 +18,13 @@ struct EditorView: View {
     @State private var checking = false
 
     enum Tool: String, CaseIterable, Identifiable {
-        case cut, captions, text, overlay, audio, words
+        case cut, clips, captions, text, overlay, audio, words
         var id: String { rawValue }
         var label: String { rawValue.capitalized }
         var icon: String {
             switch self {
             case .cut: "scissors"
+            case .clips: "film.stack"
             case .captions: "captions.bubble"
             case .text: "textformat"
             case .overlay: "photo.on.rectangle"
@@ -146,6 +147,7 @@ struct EditorView: View {
     @ViewBuilder private var panel: some View {
         switch tool {
         case .cut: CutPanel(model: model, notes: $notes, script: shoot?.script ?? "")
+        case .clips: ClipsPanel(model: model)
         case .captions: CaptionsPanel(model: model)
         case .text: TextPanel(model: model, selected: $selected)
         case .overlay: OverlayPanel(model: model, selected: $selected)
@@ -165,7 +167,6 @@ private struct Stage: View {
     @Binding var selected: String?
     @Binding var tool: EditorView.Tool
     @Binding var full: Bool
-    @AppStorage("edit.guides") private var guides = true
     @State private var snapTick = 0
     @State private var dragStart: CGPoint?
     @State private var snapping = false
@@ -204,9 +205,8 @@ private struct Stage: View {
                         .onTapGesture { selected = "captions"; tool = .captions }
                 }
 
-                // What the feed's buttons will cover: while moving anything, or
-                // always when the guides are on.
-                if guides || dragStart != nil || pinchStart != nil {
+                // Where the feed's buttons will sit, only while you move something.
+                if moving {
                     SafeZoneGuide(warn: covered != nil)
                 }
 
@@ -224,7 +224,7 @@ private struct Stage: View {
         .clipShape(RoundedRectangle(cornerRadius: Radius.md, style: .continuous))
         .overlay(RoundedRectangle(cornerRadius: Radius.md, style: .continuous).strokeBorder(Color.line, lineWidth: 1))
         .overlay(alignment: .top) {
-            if let c = covered {
+            if moving, let c = covered {
                 Text(c).font(.geist(11, .semibold)).foregroundStyle(.white).lineLimit(1).fixedSize()
                     .padding(.horizontal, 10).padding(.vertical, 5)
                     .background(Capsule().fill(Color.danger))
@@ -232,18 +232,16 @@ private struct Stage: View {
                     .transition(.opacity)
             }
         }
-        .overlay(alignment: .bottomLeading) {
-            corner(guides ? "rectangle.dashed" : "rectangle") { guides.toggle() }
-        }
         .overlay(alignment: .bottomTrailing) {
             corner("arrow.up.left.and.arrow.down.right") { full = true }
         }
         .animation(.ui, value: covered)
         .sensoryFeedback(.impact(weight: .light), trigger: snapTick)
         .sensoryFeedback(.selection, trigger: selected)
-        .sensoryFeedback(.selection, trigger: guides)
-        .sensoryFeedback(.warning, trigger: covered != nil) { _, now in now }
+        .sensoryFeedback(.warning, trigger: moving && covered != nil) { _, now in now }
     }
+
+    private var moving: Bool { dragStart != nil || pinchStart != nil }
 
     private var currentGroup: CapGroup? { model.groups.first { model.time >= $0.t0 && model.time < $0.t1 } }
 
@@ -426,9 +424,12 @@ private struct CutPanel: View {
                 Button("Keep everything") { model.keepEverything() }.font(.tSmall).foregroundStyle(Color.textFaint)
             }
             HStack(alignment: .top, spacing: 20) {
-                Labeled("Pauses") {
-                    Seg(options: [(Pace.tight, "Tight"), (Pace.natural, "Natural")],
-                        value: Binding(get: { model.settings.pace }, set: { model.settings.pace = $0; model.rebuild() }))
+                // Hand-placed clips keep exactly the edges you gave them.
+                if model.clips == nil {
+                    Labeled("Pauses") {
+                        Seg(options: [(Pace.tight, "Tight"), (Pace.natural, "Natural")],
+                            value: Binding(get: { model.settings.pace }, set: { model.settings.pace = $0; model.rebuild() }))
+                    }
                 }
                 Labeled("Speed") {
                     Seg(options: [(1.0, "1×"), (1.1, "1.1×"), (1.2, "1.2×")],
@@ -712,7 +713,7 @@ private struct WordsPanel: View {
             ForEach(Array(model.heard.enumerated()), id: \.offset) { c, h in
                 VStack(alignment: .leading, spacing: 6) {
                     if model.heard.count > 1 { Text("Take \(c + 1)").font(.tLabel).foregroundStyle(Color.textMuted) }
-                    WordFlow(words: h.words, take: c, plan: model.plan, speaking: speakingKey,
+                    WordFlow(words: h.words, take: c, plan: model.plan, kept: model.isKept, speaking: speakingKey,
                              toggle: { key, hot in model.toggle(key, hot: hot) },
                              edit: { key in
                                  draft = model.plan.fixes[key] ?? h.words[key.i].text
@@ -826,6 +827,7 @@ private struct WordFlow: View {
     let words: [Word]
     let take: Int
     let plan: Plan
+    let kept: (WKey) -> Bool
     let speaking: WKey?
     let toggle: (WKey, Bool) -> Void
     let edit: (WKey) -> Void
@@ -834,7 +836,7 @@ private struct WordFlow: View {
         FlowLayout(spacing: 4, lineSpacing: 6) {
             ForEach(Array(words.enumerated()), id: \.offset) { i, w in
                 let key = WKey(c: take, i: i)
-                let kept = plan.kept.contains(key)
+                let kept = kept(key)
                 let hot = plan.hot.contains(key)
                 Text(plan.fixes[key] ?? w.text)
                     .font(.geist(15, hot ? .semibold : .regular))

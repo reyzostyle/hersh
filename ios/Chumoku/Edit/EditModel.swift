@@ -15,6 +15,7 @@ final class EditModel {
     var folder: URL?
 
     var plan = Plan()
+    var clips: [ClipEdit]? // the edit by hand, once you touch a clip
     var settings = EditSettings()
     var captions = CaptionSettings()
     var texts: [TextOverlay] = []
@@ -104,13 +105,18 @@ final class EditModel {
         texts = doc.texts
         media = doc.media
         audio = doc.audio
+        // Hand-placed clips only if they still point inside these takes.
+        if let c = doc.clips, !c.isEmpty,
+           c.allSatisfy({ durations.indices.contains($0.take) && $0.src0 >= 0 && $0.src1 <= durations[$0.take] + 0.5 && $0.length > 0.05 }) {
+            clips = c
+        }
     }
 
     func save() {
         guard let url = docURL else { return }
         let doc = EditDoc(kept: Array(plan.kept), rank: plan.rank, fixes: plan.fixes, hot: Array(plan.hot), note: plan.note,
                           pace: settings.pace, speed: settings.speed, zoom: settings.zoom,
-                          captions: captions, texts: texts, media: media, audio: audio)
+                          captions: captions, texts: texts, media: media, audio: audio, clips: clips)
         if let data = try? JSONEncoder().encode(doc) { try? data.write(to: url, options: .atomic) }
     }
 
@@ -124,6 +130,7 @@ final class EditModel {
         defer { planning = false; planStarted = nil }
         do {
             plan = try await Planner.plan(heard.map(\.words), script: script, notes: notes)
+            clips = nil
             trace("cut: applied, \(plan.kept.count) words kept")
             rebuild()
         } catch {
@@ -133,6 +140,13 @@ final class EditModel {
     }
 
     func toggle(_ key: WKey, hot: Bool) {
+        if clips != nil {
+            if hot {
+                if plan.hot.contains(key) { plan.hot.remove(key) } else { plan.hot.insert(key); if !isKept(key) { keepWord(key) } }
+            } else if isKept(key) { cutWord(key) } else { keepWord(key) }
+            rebuild()
+            return
+        }
         if hot {
             if plan.hot.contains(key) { plan.hot.remove(key) } else { plan.hot.insert(key); plan.kept.insert(key) }
         } else {
@@ -151,7 +165,184 @@ final class EditModel {
 
     func keepEverything() {
         plan = Plan.keepAll(heard.map(\.words))
+        clips = nil
         rebuild()
+    }
+
+    // Whether a word plays in the edit as it stands.
+    func isKept(_ key: WKey) -> Bool {
+        guard let clips else { return plan.kept.contains(key) }
+        guard let w = word(key) else { return false }
+        let mid = (w.s + w.e) / 2
+        return clips.contains { $0.take == key.c && mid >= $0.src0 && mid <= $0.src1 }
+    }
+
+    private func word(_ key: WKey) -> Word? {
+        heard.indices.contains(key.c) && heard[key.c].words.indices.contains(key.i) ? heard[key.c].words[key.i] : nil
+    }
+
+    // MARK: clips by hand
+
+    // The clips as they play now; the first hand edit starts from these.
+    var editableClips: [ClipEdit] {
+        // Ids are fixed by position, so a clip picked in the automatic cut is
+        // still the same clip after the first edit.
+        clips ?? timeline.segments.enumerated().map { ClipEdit(id: "a\($0.offset)", take: $0.element.take, src0: $0.element.src0, src1: $0.element.src1) }
+    }
+
+    private func setClips(_ c: [ClipEdit]) {
+        clips = c.filter { $0.length > 0.05 }
+        rebuild()
+    }
+
+    // Where the clip starts in the finished video.
+    func outStart(of id: String) -> Double {
+        var t = 0.0
+        for c in editableClips {
+            if c.id == id { return t }
+            t += c.length / settings.speed
+        }
+        return t
+    }
+
+    // Moves one edge of a clip by `delta` source seconds, within its take.
+    func trim(_ id: String, start: Bool, by delta: Double) {
+        var c = editableClips
+        guard let i = c.firstIndex(where: { $0.id == id }) else { return }
+        let dur = durations.indices.contains(c[i].take) ? durations[c[i].take] : c[i].src1
+        if start { c[i].src0 = min(max(0, c[i].src0 + delta), c[i].src1 - 0.15) }
+        else { c[i].src1 = max(min(dur, c[i].src1 + delta), c[i].src0 + 0.15) }
+        setClips(c)
+    }
+
+    // Splits the clip under the playhead in two; returns the new right half.
+    @discardableResult
+    func split(at t: Double) -> String? {
+        var c = editableClips
+        var start = 0.0
+        for i in c.indices {
+            let len = c[i].length / settings.speed
+            if t > start + 0.08 && t < start + len - 0.08 {
+                let cut = c[i].src0 + (t - start) * settings.speed
+                let right = ClipEdit(take: c[i].take, src0: cut, src1: c[i].src1)
+                c[i].src1 = cut
+                c.insert(right, at: i + 1)
+                setClips(c)
+                return right.id
+            }
+            start += len
+        }
+        return nil
+    }
+
+    func delete(_ id: String) {
+        var c = editableClips
+        c.removeAll { $0.id == id }
+        guard !c.isEmpty else { message = "That's the last clip. Keep at least one."; return }
+        setClips(c)
+    }
+
+    func move(_ id: String, by step: Int) {
+        var c = editableClips
+        guard let i = c.firstIndex(where: { $0.id == id }), c.indices.contains(i + step) else { return }
+        c.swapAt(i, i + step)
+        setClips(c)
+    }
+
+    func duplicate(_ id: String) {
+        var c = editableClips
+        guard let i = c.firstIndex(where: { $0.id == id }) else { return }
+        c.insert(ClipEdit(take: c[i].take, src0: c[i].src0, src1: c[i].src1), at: i + 1)
+        setClips(c)
+    }
+
+    // Back to the cut the app made, dropping the hand edits.
+    func resetClips() {
+        clips = nil
+        rebuild()
+    }
+
+    // Cuts everything that plays before `t` in the finished video.
+    func cutBefore(_ t: Double) {
+        var c = editableClips
+        var start = 0.0
+        var out: [ClipEdit] = []
+        for var clip in c {
+            let len = clip.length / settings.speed
+            if start + len <= t { start += len; continue }
+            if start < t { clip.src0 += (t - start) * settings.speed }
+            out.append(clip)
+            start += len
+        }
+        c = out
+        if !c.isEmpty { setClips(c) }
+    }
+
+    private func cutWord(_ key: WKey) {
+        guard let w = word(key) else { return }
+        var c = editableClips
+        guard let i = c.firstIndex(where: { $0.take == key.c && (w.s + w.e) / 2 >= $0.src0 && (w.s + w.e) / 2 <= $0.src1 }) else { return }
+        let clip = c[i]
+        let a = ClipEdit(take: clip.take, src0: clip.src0, src1: max(clip.src0, w.s - 0.02))
+        let b = ClipEdit(take: clip.take, src0: min(clip.src1, w.e + 0.02), src1: clip.src1)
+        c.remove(at: i)
+        c.insert(contentsOf: [a, b].filter { $0.length > 0.1 }, at: i)
+        clips = c
+    }
+
+    private func keepWord(_ key: WKey) {
+        guard let w = word(key) else { return }
+        var c = editableClips
+        let piece = ClipEdit(take: key.c, src0: max(0, w.s - 0.04), src1: w.e + 0.06)
+        // After the clip holding the nearest kept word before it in the same take.
+        let before = c.lastIndex { $0.take == key.c && $0.src0 <= w.s }
+        let at = before.map { $0 + 1 } ?? 0
+        c.insert(piece, at: at)
+        // Joins it to its neighbours when they run on in the same take.
+        var merged: [ClipEdit] = []
+        for x in c {
+            if var last = merged.last, last.take == x.take, x.src0 <= last.src1 + 0.05, x.src0 >= last.src0 {
+                last.src1 = max(last.src1, x.src1)
+                merged[merged.count - 1] = last
+            } else {
+                merged.append(x)
+            }
+        }
+        clips = merged
+    }
+
+    // A frame of a take for the clip strip.
+    @ObservationIgnored private var thumbs: [String: UIImage] = [:]
+    @ObservationIgnored private var generators: [Int: AVAssetImageGenerator] = [:]
+
+    func thumb(take: Int, at t: Double) async -> UIImage? {
+        let key = "\(take):\(Int(t * 2))"
+        if let i = thumbs[key] { return i }
+        guard urls.indices.contains(take) else { return nil }
+        let gen = generators[take] ?? {
+            let g = AVAssetImageGenerator(asset: AVURLAsset(url: urls[take]))
+            g.appliesPreferredTrackTransform = true
+            g.maximumSize = CGSize(width: 160, height: 160)
+            g.requestedTimeToleranceBefore = CMTime(seconds: 0.4, preferredTimescale: 600)
+            g.requestedTimeToleranceAfter = CMTime(seconds: 0.4, preferredTimescale: 600)
+            generators[take] = g
+            return g
+        }()
+        guard let cg = await Self.frame(gen, at: t) else { return nil }
+        let img = UIImage(cgImage: cg)
+        thumbs[key] = img
+        return img
+    }
+
+    // Off the main actor: the generator calls back on its own thread.
+    nonisolated private static func frame(_ gen: AVAssetImageGenerator, at t: Double) async -> CGImage? {
+        nonisolated(unsafe) let g = gen
+        return await withCheckedContinuation { cont in
+            g.generateCGImageAsynchronously(for: CMTime(seconds: t, preferredTimescale: 600)) { img, _, _ in
+                nonisolated(unsafe) let i = img
+                cont.resume(returning: i)
+            }
+        }
     }
 
     // Captions only re-group; nothing in the picture changes.
@@ -170,7 +361,8 @@ final class EditModel {
 
     // Recomputes the cut and the composition, keeping the playhead.
     func rebuild() {
-        timeline = Cutter.build(heard, durations: durations, plan: plan, settings: settings)
+        timeline = clips.map { Cutter.build(heard, clips: $0, plan: plan, settings: settings) }
+            ?? Cutter.build(heard, durations: durations, plan: plan, settings: settings)
         groups = Cutter.groups(timeline.caps, captions: captions)
         changed()
         save()
@@ -373,6 +565,7 @@ final class EditModel {
         case "trim_start":
             // Everything said before the real start goes.
             guard let at, at > 0.2 else { return }
+            if clips != nil { cutBefore(at); return }
             for w in timeline.caps where w.t1 <= at + 0.05 { plan.kept.remove(w.key) }
             rebuild()
         default: break

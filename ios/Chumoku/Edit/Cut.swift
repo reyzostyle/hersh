@@ -64,6 +64,17 @@ nonisolated struct CapGroup: Hashable, Sendable {
     var t1: Double
 }
 
+// A piece of a take placed by hand, in source seconds. Once you trim, split,
+// delete or move a clip yourself, the edit is this list in this order, and
+// the automatic cut no longer decides anything.
+nonisolated struct ClipEdit: Codable, Hashable, Identifiable, Sendable {
+    var id = UUID().uuidString
+    var take: Int
+    var src0: Double
+    var src1: Double
+    var length: Double { src1 - src0 }
+}
+
 nonisolated enum Pace: String, CaseIterable, Codable, Sendable { case tight, natural }
 
 nonisolated struct EditSettings: Equatable, Sendable {
@@ -170,6 +181,32 @@ enum Cutter {
                 tl.caps.append(CapWord(key: key, text: plan.fixes[key] ?? w.text,
                                        t0: out + (max(w.s, pc.src0) - pc.src0) / settings.speed,
                                        t1: out + (min(w.e, pc.src1) - pc.src0) / settings.speed,
+                                       hot: plan.hot.contains(key)))
+            }
+            out += len
+        }
+        tl.duration = out
+        return tl
+    }
+
+    // The timeline from clips placed by hand: each clip plays in order, with
+    // every word said inside it as a caption.
+    static func build(_ takes: [Heard], clips: [ClipEdit], plan: Plan, settings: EditSettings) -> Timeline {
+        var tl = Timeline()
+        var out = 0.0
+        for (n, clip) in clips.enumerated() where takes.indices.contains(clip.take) {
+            let len = clip.length / settings.speed
+            guard len > 0.04 else { continue }
+            let zoom = settings.zoom ? (n % 2 == 0 ? 1.0 : 1.12) : 1.0
+            tl.segments.append(Segment(take: clip.take, src0: clip.src0, src1: clip.src1, out0: out, out1: out + len, zoom: zoom))
+            for (i, w) in takes[clip.take].words.enumerated() {
+                // A word counts when most of it is inside the clip.
+                let mid = (w.s + w.e) / 2
+                guard mid >= clip.src0, mid <= clip.src1 else { continue }
+                let key = WKey(c: clip.take, i: i)
+                tl.caps.append(CapWord(key: key, text: plan.fixes[key] ?? w.text,
+                                       t0: out + (max(w.s, clip.src0) - clip.src0) / settings.speed,
+                                       t1: out + (min(w.e, clip.src1) - clip.src0) / settings.speed,
                                        hot: plan.hot.contains(key)))
             }
             out += len

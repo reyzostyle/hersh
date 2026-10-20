@@ -98,4 +98,5 @@ nonisolated struct EditDoc: Codable, Sendable {
     var texts: [TextOverlay] = []
     var media: [MediaOverlay] = []
     var audio = AudioSettings()
+    var clips: [ClipEdit]? // set once the clips were edited by hand
 }
