@@ -50,12 +50,14 @@ final class Camera: NSObject {
         self.finished = finished
         isRecording = true
         recordingStarted = .now
+        let front = position == .front
         queue.async { [self] in
             if let conn = output.connection(with: .video) {
                 if conn.isVideoRotationAngleSupported(90) { conn.videoRotationAngle = 90 }
-                // The preview is mirrored (it is a mirror while you film); the
-                // take is not, so text behind you reads the right way round.
-                if conn.isVideoMirroringSupported { conn.automaticallyAdjustsVideoMirroring = false; conn.isVideoMirrored = false }
+                // The front take is saved mirrored, the way you saw yourself
+                // while filming. People are used to their mirror face; the
+                // un-mirrored one the Camera app saves looks subtly off to them.
+                if conn.isVideoMirroringSupported { conn.automaticallyAdjustsVideoMirroring = false; conn.isVideoMirrored = front }
             }
             output.startRecording(to: url, recordingDelegate: self)
         }
@@ -70,13 +72,16 @@ final class Camera: NSObject {
     nonisolated private func configure(position: AVCaptureDevice.Position) -> Bool {
         session.beginConfiguration()
         defer { session.commitConfiguration() }
-        if session.canSetSessionPreset(.hd1920x1080) { session.sessionPreset = .hd1920x1080 }
 
         for input in session.inputs { session.removeInput(input) }
         guard let device = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: position),
               let video = try? AVCaptureDeviceInput(device: device),
               session.canAddInput(video) else { return false }
         session.addInput(video)
+        // 4K where the camera has it (the front camera on every iPhone since
+        // the 11 does): the edit crops and zooms, and 1080p ran out of detail.
+        if session.canSetSessionPreset(.hd4K3840x2160) { session.sessionPreset = .hd4K3840x2160 }
+        else if session.canSetSessionPreset(.hd1920x1080) { session.sessionPreset = .hd1920x1080 }
         if let mic = AVCaptureDevice.default(for: .audio), let audio = try? AVCaptureDeviceInput(device: mic), session.canAddInput(audio) {
             session.addInput(audio)
         }
@@ -89,10 +94,14 @@ final class Camera: NSObject {
             if conn.isVideoStabilizationSupported { conn.preferredVideoStabilizationMode = .standard }
             if conn.isVideoRotationAngleSupported(90) { conn.videoRotationAngle = 90 }
         }
-        // Continuous focus and exposure on the face area.
+        // Continuous focus and exposure (face-driven by default), 30 fps, and the
+        // camera's own low-light boost for rooms that are darker than they look.
         if (try? device.lockForConfiguration()) != nil {
             if device.isFocusModeSupported(.continuousAutoFocus) { device.focusMode = .continuousAutoFocus }
             if device.isExposureModeSupported(.continuousAutoExposure) { device.exposureMode = .continuousAutoExposure }
+            if device.isLowLightBoostSupported { device.automaticallyEnablesLowLightBoostWhenAvailable = true }
+            device.activeVideoMinFrameDuration = CMTime(value: 1, timescale: 30)
+            device.activeVideoMaxFrameDuration = CMTime(value: 1, timescale: 30)
             device.unlockForConfiguration()
         }
         return true

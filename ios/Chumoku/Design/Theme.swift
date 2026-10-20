@@ -16,10 +16,21 @@ extension Color {
     static let danger = Color(red: 248 / 255, green: 113 / 255, blue: 113 / 255)
 }
 
+// One family of shapes: pills for anything you press, continuous-corner
+// cards for anything you read. Nothing square.
 enum Radius {
-    static let sm: CGFloat = 10
-    static let md: CGFloat = 14
-    static let lg: CGFloat = 18
+    static let sm: CGFloat = 14
+    static let md: CGFloat = 20
+    static let lg: CGFloat = 28
+}
+
+extension Shape where Self == RoundedRectangle {
+    static func card(_ r: CGFloat = Radius.md) -> RoundedRectangle { RoundedRectangle(cornerRadius: r, style: .continuous) }
+}
+
+// The product's motion: short, eased, no overshoot. Springs read as cheap here.
+extension Animation {
+    static let ui = Animation.easeOut(duration: 0.22)
 }
 
 extension Font {
@@ -58,9 +69,9 @@ struct PillButtonStyle: ButtonStyle {
                 Capsule().fill(kind == .primary ? Color.white : kind == .secondary ? Color.white.opacity(0.08) : Color.bg)
             )
             .overlay(Capsule().strokeBorder(kind == .ghost ? Color.lineStrong : .clear, lineWidth: 1))
-            .opacity(configuration.isPressed ? 0.85 : 1)
-            .scaleEffect(configuration.isPressed ? 0.98 : 1)
-            .animation(.easeOut(duration: 0.15), value: configuration.isPressed)
+            .opacity(configuration.isPressed ? 0.75 : 1)
+            .animation(.easeOut(duration: 0.12), value: configuration.isPressed)
+            .sensoryFeedback(.impact(weight: .light, intensity: 0.6), trigger: configuration.isPressed) { _, pressed in pressed }
     }
 }
 
@@ -82,7 +93,7 @@ struct Seg<T: Hashable>: View {
             ForEach(options, id: \.0) { opt in
                 let on = opt.0 == value
                 Button {
-                    withAnimation(.spring(response: 0.32, dampingFraction: 0.86)) { value = opt.0 }
+                    withAnimation(.ui) { value = opt.0 }
                 } label: {
                     Text(opt.1)
                         .font(.geist(13, .medium))
@@ -90,15 +101,16 @@ struct Seg<T: Hashable>: View {
                         .padding(.horizontal, 12)
                         .padding(.vertical, 7)
                         .background {
-                            if on { RoundedRectangle(cornerRadius: 7).fill(Color.raisedHover).matchedGeometryEffect(id: "thumb", in: ns) }
+                            if on { Capsule().fill(Color.raisedHover).matchedGeometryEffect(id: "thumb", in: ns) }
                         }
                 }
                 .buttonStyle(.plain)
             }
         }
         .padding(3)
-        .background(RoundedRectangle(cornerRadius: Radius.sm).fill(Color.raised))
-        .overlay(RoundedRectangle(cornerRadius: Radius.sm).strokeBorder(Color.line, lineWidth: 1))
+        .background(Capsule().fill(Color.raised))
+        .overlay(Capsule().strokeBorder(Color.line, lineWidth: 1))
+        .sensoryFeedback(.selection, trigger: value)
     }
 }
 
@@ -109,9 +121,9 @@ struct FieldStyle: ViewModifier {
             .font(.geist(15))
             .foregroundStyle(Color.text)
             .padding(.horizontal, 16)
-            .frame(height: 50)
-            .background(RoundedRectangle(cornerRadius: Radius.md).fill(Color.raised))
-            .overlay(RoundedRectangle(cornerRadius: Radius.md).strokeBorder(Color.line, lineWidth: 1))
+            .frame(height: 52)
+            .background(Capsule().fill(Color.raised))
+            .overlay(Capsule().strokeBorder(Color.line, lineWidth: 1))
     }
 }
 
@@ -125,7 +137,7 @@ struct Skeleton: View {
     @State private var phase: CGFloat = -1
 
     var body: some View {
-        RoundedRectangle(cornerRadius: cornerRadius)
+        RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
             .fill(Color.white.opacity(0.04))
             .overlay {
                 GeometryReader { geo in
@@ -133,7 +145,7 @@ struct Skeleton: View {
                         .frame(width: geo.size.width * 0.6)
                         .offset(x: phase * geo.size.width)
                 }
-                .clipShape(RoundedRectangle(cornerRadius: cornerRadius))
+                .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
             }
             .onAppear {
                 withAnimation(.easeInOut(duration: 1.4).repeatForever(autoreverses: false)) { phase = 1.4 }

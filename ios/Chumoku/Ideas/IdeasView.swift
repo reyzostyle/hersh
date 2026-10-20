@@ -116,8 +116,8 @@ struct Thumb: View {
                     }
                 }
             }
-            .clipShape(RoundedRectangle(cornerRadius: radius))
-            .overlay(RoundedRectangle(cornerRadius: radius).strokeBorder(Color.line, lineWidth: 1))
+            .clipShape(RoundedRectangle(cornerRadius: radius, style: .continuous))
+            .overlay(RoundedRectangle(cornerRadius: radius, style: .continuous).strokeBorder(Color.line, lineWidth: 1))
     }
 }
 
@@ -131,8 +131,8 @@ struct Empty: View {
             .frame(maxWidth: .infinity)
             .padding(.horizontal, 24)
             .padding(.vertical, 48)
-            .background(RoundedRectangle(cornerRadius: Radius.md).fill(Color.raised))
-            .overlay(RoundedRectangle(cornerRadius: Radius.md).strokeBorder(Color.line, lineWidth: 1))
+            .background(RoundedRectangle(cornerRadius: Radius.md, style: .continuous).fill(Color.raised))
+            .overlay(RoundedRectangle(cornerRadius: Radius.md, style: .continuous).strokeBorder(Color.line, lineWidth: 1))
     }
 }
 

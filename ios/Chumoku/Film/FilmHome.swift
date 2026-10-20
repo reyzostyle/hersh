@@ -57,8 +57,8 @@ struct ShootRow: View {
             Image(systemName: "chevron.right").font(.system(size: 13, weight: .semibold)).foregroundStyle(Color.textFaint)
         }
         .padding(16)
-        .background(RoundedRectangle(cornerRadius: Radius.md).fill(Color.raised))
-        .overlay(RoundedRectangle(cornerRadius: Radius.md).strokeBorder(Color.line, lineWidth: 1))
+        .background(RoundedRectangle(cornerRadius: Radius.md, style: .continuous).fill(Color.raised))
+        .overlay(RoundedRectangle(cornerRadius: Radius.md, style: .continuous).strokeBorder(Color.line, lineWidth: 1))
         .contentShape(Rectangle())
     }
 }
@@ -145,13 +145,13 @@ struct NewShootSheet: View {
                         .scrollContentBackground(.hidden)
                         .frame(minHeight: 140)
                         .padding(12)
-                        .background(RoundedRectangle(cornerRadius: Radius.md).fill(Color.raised))
+                        .background(RoundedRectangle(cornerRadius: Radius.md, style: .continuous).fill(Color.raised))
                         .overlay(alignment: .topLeading) {
                             if own.isEmpty {
                                 Text("Write or paste your script").font(.geist(16)).foregroundStyle(Color.textFaint).padding(.horizontal, 17).padding(.vertical, 20).allowsHitTesting(false)
                             }
                         }
-                        .overlay(RoundedRectangle(cornerRadius: Radius.md).strokeBorder(Color.line, lineWidth: 1))
+                        .overlay(RoundedRectangle(cornerRadius: Radius.md, style: .continuous).strokeBorder(Color.line, lineWidth: 1))
 
                     Button("Film this script") {
                         let title = own.split(separator: "\n").first.map(String.init) ?? "Shoot"
@@ -180,7 +180,7 @@ struct NewShootSheet: View {
                                         Spacer()
                                     }
                                     .padding(10)
-                                    .background(RoundedRectangle(cornerRadius: Radius.md).fill(Color.raised))
+                                    .background(RoundedRectangle(cornerRadius: Radius.md, style: .continuous).fill(Color.raised))
                                 }
                                 .buttonStyle(.plain)
                             }

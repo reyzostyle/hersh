@@ -17,6 +17,13 @@ struct FilmView: View {
     @State private var savedBrightness: CGFloat = UIScreen.main.brightness
     @State private var lastThumb: UIImage?
     @AppStorage("film.countdown") private var useCountdown = true
+    @State private var tick = 0 // a light tap of haptics for every small control
+
+    // The ring light: the screen goes white around a rounded picture, and
+    // the white bleeds softly into the picture's edges, like the front flash
+    // in TikTok or Snapchat. The light is the screen itself at full brightness.
+    private var ring: CGFloat { light ? 22 : 0 }
+    private var radius: CGFloat { light ? 40 : 0 }
 
     private var shoot: Shoot? { films.shoot(shootId) }
 
@@ -26,7 +33,7 @@ struct FilmView: View {
             // Full width at 9:16 is taller than what is left under the
             // island, so the picture runs up behind it (as in the Camera app)
             // and the prompter starts below it.
-            let inset: CGFloat = light ? 14 : 0
+            let inset = ring
             let w = geo.size.width - inset * 2
             ZStack(alignment: .top) {
                 (light ? Color.white : Color.black).ignoresSafeArea()
@@ -59,6 +66,9 @@ struct FilmView: View {
             NavigationStack { TakesList(shootId: shootId) }
                 .presentationDetents([.medium, .large])
         }
+        .animation(.easeInOut(duration: 0.3), value: light)
+        .sensoryFeedback(.selection, trigger: tick)
+        .sensoryFeedback(.impact(weight: .light), trigger: countdown)
         .task(id: shoot?.takes.last?.id) {
             if let s = shoot, let t = s.takes.last { lastThumb = await FilmStore.thumbnail(for: films.url(t, in: s)) }
         }
@@ -105,19 +115,26 @@ struct FilmView: View {
                     .foregroundStyle(.white)
                     .shadow(radius: 20)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .transition(.scale.combined(with: .opacity))
+                    .transition(.opacity)
                     .id(c)
             }
         }
-        .clipShape(RoundedRectangle(cornerRadius: light ? 28 : 0))
-        .background(Color.black)
         // Darkens the bottom edge under the tool row.
         .overlay(alignment: .bottom) {
             LinearGradient(colors: [.clear, .black.opacity(0.45)], startPoint: .top, endPoint: .bottom)
                 .frame(height: 90)
-                .clipShape(RoundedRectangle(cornerRadius: light ? 28 : 0))
                 .allowsHitTesting(false)
         }
+        .overlay {
+            if light {
+                RoundedRectangle(cornerRadius: radius, style: .continuous)
+                    .strokeBorder(Color.white, lineWidth: 34)
+                    .blur(radius: 20)
+                    .allowsHitTesting(false)
+            }
+        }
+        .background(Color.black)
+        .clipShape(RoundedRectangle(cornerRadius: radius, style: .continuous))
     }
 
     // Prompter speed and size, light, camera.
@@ -138,7 +155,8 @@ struct FilmView: View {
         VStack(spacing: 0) {
             HStack {
                 Button { dismiss() } label: {
-                    Image(systemName: "xmark").font(.system(size: 17, weight: .semibold)).frame(width: 52, height: 52)
+                    Image(systemName: "xmark").font(.system(size: 16, weight: .semibold)).frame(width: 48, height: 48)
+                        .background(Circle().fill(light ? Color.black.opacity(0.08) : Color.white.opacity(0.1)))
                 }
                 .foregroundStyle(light ? Color.black : .white)
                 .disabled(camera.isRecording)
@@ -154,8 +172,9 @@ struct FilmView: View {
                             Color.white.opacity(0.08)
                         }
                     }
-                    .frame(width: 46, height: 46)
-                    .clipShape(RoundedRectangle(cornerRadius: 10))
+                    .frame(width: 48, height: 48)
+                    .clipShape(Circle())
+                    .overlay(Circle().strokeBorder(light ? Color.black.opacity(0.15) : Color.white.opacity(0.25), lineWidth: 1.5))
                     .overlay(alignment: .topTrailing) {
                         let n = shoot?.takes.count ?? 0
                         if n > 0 {
@@ -174,14 +193,18 @@ struct FilmView: View {
     }
 
     private func small(_ icon: String, on: Bool = false, action: @escaping () -> Void) -> some View {
-        Button(action: action) {
+        Button {
+            tick += 1
+            action()
+        } label: {
             Image(systemName: icon)
                 .font(.system(size: 15, weight: .medium))
-                .frame(width: 40, height: 36)
+                .frame(width: 40, height: 40)
                 .foregroundStyle(on ? Color.black : .white)
-                .background(RoundedRectangle(cornerRadius: 10).fill(on ? Color.white : Color.black.opacity(0.35)))
-                .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 10))
+                .background(Circle().fill(on ? Color.white : Color.black.opacity(0.3)))
+                .background(.ultraThinMaterial, in: Circle())
         }
+        .buttonStyle(.plain)
     }
 
     private func notice(_ text: String, action: (String, () -> Void)?) -> some View {
@@ -204,7 +227,7 @@ struct FilmView: View {
         Task {
             if useCountdown {
                 for n in [3, 2, 1] {
-                    withAnimation(.spring(response: 0.3)) { countdown = n }
+                    withAnimation(.easeOut(duration: 0.2)) { countdown = n }
                     try? await Task.sleep(for: .milliseconds(800))
                     if countdown == nil { return } // cancelled
                 }
@@ -229,11 +252,11 @@ struct RecordButton: View {
         Button(action: action) {
             ZStack {
                 Circle().strokeBorder(dark ? Color.black.opacity(0.85) : .white, lineWidth: 4).frame(width: 76, height: 76)
-                RoundedRectangle(cornerRadius: recording ? 8 : 31)
+                RoundedRectangle(cornerRadius: recording ? 8 : 31, style: .continuous)
                     .fill(Color.red)
                     .frame(width: recording ? 30 : 62, height: recording ? 30 : 62)
             }
-            .animation(.spring(response: 0.3, dampingFraction: 0.8), value: recording)
+            .animation(.snappy(duration: 0.22), value: recording)
         }
         .buttonStyle(.plain)
         .sensoryFeedback(.impact(weight: .medium), trigger: recording)

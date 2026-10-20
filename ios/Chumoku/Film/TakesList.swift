@@ -61,7 +61,7 @@ struct TakeRow: View {
                 if let thumb { Image(uiImage: thumb).resizable().scaledToFill() }
             }
             .frame(width: 44, height: 72)
-            .clipShape(RoundedRectangle(cornerRadius: 8))
+            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
 
             VStack(alignment: .leading, spacing: 4) {
                 Text("Take \(number)").font(.geist(15, .medium)).foregroundStyle(Color.text)
@@ -72,8 +72,8 @@ struct TakeRow: View {
             Image(systemName: "play.fill").font(.system(size: 13)).foregroundStyle(Color.textMuted)
         }
         .padding(10)
-        .background(RoundedRectangle(cornerRadius: Radius.md).fill(Color.raised))
-        .overlay(RoundedRectangle(cornerRadius: Radius.md).strokeBorder(Color.line, lineWidth: 1))
+        .background(RoundedRectangle(cornerRadius: Radius.md, style: .continuous).fill(Color.raised))
+        .overlay(RoundedRectangle(cornerRadius: Radius.md, style: .continuous).strokeBorder(Color.line, lineWidth: 1))
         .contentShape(Rectangle())
         .task { thumb = await FilmStore.thumbnail(for: url) }
     }

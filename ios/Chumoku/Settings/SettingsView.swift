@@ -14,8 +14,8 @@ struct SettingsView: View {
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(16)
-                .background(RoundedRectangle(cornerRadius: Radius.md).fill(Color.raised))
-                .overlay(RoundedRectangle(cornerRadius: Radius.md).strokeBorder(Color.line, lineWidth: 1))
+                .background(RoundedRectangle(cornerRadius: Radius.md, style: .continuous).fill(Color.raised))
+                .overlay(RoundedRectangle(cornerRadius: Radius.md, style: .continuous).strokeBorder(Color.line, lineWidth: 1))
                 .padding(.top, 24)
 
                 Button("Sign out") { Task { await auth.signOut() } }
