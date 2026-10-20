@@ -179,6 +179,11 @@ private struct Stage: View {
                 Color.black
                 VideoSurface(player: model.player)
                     .onTapGesture { selected = nil; model.togglePlay() }
+                if let f = model.edgeFrame {
+                    Image(uiImage: f).resizable().scaledToFill()
+                        .frame(width: geo.size.width, height: geo.size.height).clipped()
+                        .allowsHitTesting(false)
+                }
 
                 ForEach(model.media.filter { model.time >= $0.start && model.time < $0.end }) { m in
                     MediaHandle(m: m, image: m.kind == .image ? model.image(for: m) : nil, k: k, selected: selected == m.id)
@@ -700,37 +705,89 @@ private struct AudioPanel: View {
     }
 }
 
+// The transcript. Tap a word to pick it: retype it (the captions show what
+// you type), cut it or bring it back, or highlight it.
 private struct WordsPanel: View {
     @Bindable var model: EditModel
-    @State private var editing: WKey?
+    @State private var picked: WKey?
     @State private var draft = ""
+    @FocusState private var typing: Bool
 
     private var speakingKey: WKey? { model.timeline.caps.first { model.time >= $0.t0 && model.time < $0.t1 }?.key }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
-            Text("Tap a word to cut it, double-tap to highlight it, hold to fix its spelling.").font(.tSmall).foregroundStyle(Color.textFaint)
+            if let k = picked {
+                editor(k)
+            } else {
+                Text("Tap a word to change it, cut it or highlight it.").font(.tSmall).foregroundStyle(Color.textFaint)
+            }
             ForEach(Array(model.heard.enumerated()), id: \.offset) { c, h in
                 VStack(alignment: .leading, spacing: 6) {
                     if model.heard.count > 1 { Text("Take \(c + 1)").font(.tLabel).foregroundStyle(Color.textMuted) }
-                    WordFlow(words: h.words, take: c, plan: model.plan, kept: model.isKept, speaking: speakingKey,
-                             toggle: { key, hot in model.toggle(key, hot: hot) },
-                             edit: { key in
-                                 draft = model.plan.fixes[key] ?? h.words[key.i].text
-                                 editing = key
-                             })
+                    WordFlow(words: h.words, take: c, plan: model.plan, kept: model.isKept, speaking: speakingKey, picked: picked) { key in
+                        pick(key)
+                    }
                 }
             }
         }
-        .sensoryFeedback(.selection, trigger: model.plan.kept.count)
-        .sensoryFeedback(.impact(weight: .medium), trigger: editing)
-        .alert("Fix the word", isPresented: Binding(get: { editing != nil }, set: { if !$0 { editing = nil } })) {
-            TextField("Word", text: $draft)
-            Button("Save") { if let k = editing { model.fix(k, text: draft) }; editing = nil }
-            Button("Cancel", role: .cancel) { editing = nil }
-        } message: {
-            Text("The captions show what you type here.")
+        .sensoryFeedback(.selection, trigger: picked)
+        .sensoryFeedback(.impact(weight: .medium), trigger: model.plan.kept.count)
+    }
+
+    private func editor(_ k: WKey) -> some View {
+        let kept = model.isKept(k)
+        let hot = model.plan.hot.contains(k)
+        return VStack(alignment: .leading, spacing: 10) {
+            HStack(spacing: 8) {
+                TextField("", text: $draft, prompt: Text("Word").foregroundStyle(Color.textFaint))
+                    .focused($typing)
+                    .submitLabel(.done)
+                    .autocorrectionDisabled()
+                    .textInputAutocapitalization(.never)
+                    .onSubmit { commit() }
+                    .field()
+                Button { commit(); picked = nil } label: {
+                    Image(systemName: "checkmark").font(.system(size: 16, weight: .semibold)).frame(width: 52, height: 52)
+                        .background(Circle().fill(Color.white)).foregroundStyle(Color.bg)
+                }
+                .buttonStyle(.plain)
+            }
+            HStack(spacing: 8) {
+                Chip(label: kept ? "Cut it" : "Bring it back", on: false) { commit(); model.toggle(k, hot: false) }
+                Chip(label: hot ? "Remove highlight" : "Highlight", on: hot) { commit(); model.toggle(k, hot: true) }
+                if model.plan.fixes[k] != nil {
+                    Chip(label: "Undo change", on: false) {
+                        model.fix(k, text: "")
+                        draft = original(k)
+                    }
+                }
+            }
         }
+        .padding(12)
+        .background(RoundedRectangle(cornerRadius: Radius.md, style: .continuous).fill(Color.raised))
+        .overlay(RoundedRectangle(cornerRadius: Radius.md, style: .continuous).strokeBorder(Color.line, lineWidth: 1))
+    }
+
+    private func original(_ k: WKey) -> String {
+        model.heard.indices.contains(k.c) && model.heard[k.c].words.indices.contains(k.i) ? model.heard[k.c].words[k.i].text : ""
+    }
+
+    private func pick(_ key: WKey) {
+        commit()
+        if picked == key { picked = nil; return }
+        picked = key
+        draft = model.plan.fixes[key] ?? original(key)
+        // Jump the preview to the word, when it plays.
+        if let cap = model.timeline.caps.first(where: { $0.key == key }) { model.seek(cap.t0) }
+    }
+
+    // Saves the typed word, if it changed.
+    private func commit() {
+        guard let k = picked else { return }
+        let now = model.plan.fixes[k] ?? original(k)
+        let t = draft.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !t.isEmpty, t != now { model.fix(k, text: t) }
     }
 }
 
@@ -829,8 +886,8 @@ private struct WordFlow: View {
     let plan: Plan
     let kept: (WKey) -> Bool
     let speaking: WKey?
-    let toggle: (WKey, Bool) -> Void
-    let edit: (WKey) -> Void
+    let picked: WKey?
+    let tap: (WKey) -> Void
 
     var body: some View {
         FlowLayout(spacing: 4, lineSpacing: 6) {
@@ -838,17 +895,18 @@ private struct WordFlow: View {
                 let key = WKey(c: take, i: i)
                 let kept = kept(key)
                 let hot = plan.hot.contains(key)
+                let on = picked == key
                 Text(plan.fixes[key] ?? w.text)
                     .font(.geist(15, hot ? .semibold : .regular))
-                    .foregroundStyle(kept ? Color.text : Color.textFaint)
-                    .strikethrough(!kept, color: Color.textFaint)
-                    .underline(hot, color: RGBA.yellow.color)
-                    .opacity(kept ? 1 : 0.5)
-                    .padding(.horizontal, 3).padding(.vertical, 1)
-                    .background(RoundedRectangle(cornerRadius: 5, style: .continuous).fill(speaking == key ? Color.raisedHover : .clear))
-                    .onTapGesture(count: 2) { toggle(key, true) }
-                    .onTapGesture { toggle(key, false) }
-                    .onLongPressGesture(minimumDuration: 0.35) { edit(key) }
+                    .foregroundStyle(on ? Color.bg : kept ? Color.text : Color.textFaint)
+                    .strikethrough(!kept && !on, color: Color.textFaint)
+                    .underline(hot && !on, color: RGBA.yellow.color)
+                    .opacity(kept || on ? 1 : 0.5)
+                    .padding(.horizontal, 4).padding(.vertical, 2)
+                    .background(RoundedRectangle(cornerRadius: 6, style: .continuous)
+                        .fill(on ? Color.white : speaking == key ? Color.raisedHover : .clear))
+                    .contentShape(Rectangle())
+                    .onTapGesture { tap(key) }
             }
         }
     }

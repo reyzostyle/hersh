@@ -160,7 +160,10 @@ final class EditModel {
         let t = text.trimmingCharacters(in: .whitespacesAndNewlines)
         let heardText = heard.indices.contains(key.c) && heard[key.c].words.indices.contains(key.i) ? heard[key.c].words[key.i].text : ""
         plan.fixes[key] = t.isEmpty || t == heardText ? nil : t
-        rebuild()
+        // Only the captions change; the picture and sound stay as they are.
+        timeline = clips.map { Cutter.build(heard, clips: $0, plan: plan, settings: settings) }
+            ?? Cutter.build(heard, durations: durations, plan: plan, settings: settings)
+        regroup()
     }
 
     func keepEverything() {
@@ -311,6 +314,36 @@ final class EditModel {
         clips = merged
     }
 
+    // The exact frame at a clip edge while you drag it, shown over the
+    // preview so you see where the cut lands.
+    var edgeFrame: UIImage?
+    @ObservationIgnored private var edgeTask: Task<Void, Never>?
+    @ObservationIgnored private var edgeGens: [Int: AVAssetImageGenerator] = [:]
+
+    func previewEdge(take: Int, at t: Double) {
+        edgeTask?.cancel()
+        guard urls.indices.contains(take) else { return }
+        let gen = edgeGens[take] ?? {
+            let g = AVAssetImageGenerator(asset: AVURLAsset(url: urls[take]))
+            g.appliesPreferredTrackTransform = true
+            g.maximumSize = CGSize(width: 720, height: 720)
+            g.requestedTimeToleranceBefore = .zero
+            g.requestedTimeToleranceAfter = .zero
+            edgeGens[take] = g
+            return g
+        }()
+        edgeTask = Task {
+            try? await Task.sleep(for: .milliseconds(30))
+            guard !Task.isCancelled, let cg = await Self.frame(gen, at: max(0, t)) else { return }
+            if !Task.isCancelled { edgeFrame = UIImage(cgImage: cg) }
+        }
+    }
+
+    func endEdgePreview() {
+        edgeTask?.cancel()
+        edgeFrame = nil
+    }
+
     // A frame of a take for the clip strip.
     @ObservationIgnored private var thumbs: [String: UIImage] = [:]
     @ObservationIgnored private var generators: [Int: AVAssetImageGenerator] = [:]
@@ -370,7 +403,7 @@ final class EditModel {
         guard let folder else { return }
         let tl = timeline
         let input = Renderer.Inputs(takes: urls, cleanAudio: audio.cleanVoice ? clean : [], folder: folder, media: media, audio: audio)
-        let at = player.currentTime(), wasPlaying = player.rate > 0
+        let wasPlaying = player.rate > 0
         rebuildTask = Task {
             let built: Renderer.Built
             do { built = try await Renderer.build(tl, input) } catch {
@@ -381,6 +414,9 @@ final class EditModel {
             guard !Task.isCancelled else { return }
             trace("rebuild: \(tl.segments.count) pieces, \(Int(tl.duration)) s")
             self.built = built
+            // Where the playhead is now, not when the rebuild began: a trim
+            // or split seeks to the new edge straight after asking for it.
+            let at = CMTime(seconds: min(self.time, built.composition.duration.seconds), preferredTimescale: 600)
             let item = AVPlayerItem(asset: built.composition)
             item.videoComposition = built.video
             item.audioMix = built.audio

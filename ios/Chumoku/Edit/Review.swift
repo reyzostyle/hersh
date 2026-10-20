@@ -226,7 +226,8 @@ struct ReviewSheet: View {
                 }
             }
             Text(n.text).font(.tBody).foregroundStyle(Color.text).fixedSize(horizontal: false, vertical: true)
-            if let fix = n.fix, !n.good {
+            // Cutting a slow start needs to know where the real start is.
+            if let fix = n.fix, !n.good, fix != "trim_start" || (n.at ?? 0) > 0.2 {
                 let done = applied.contains(n.id)
                 Button {
                     applied.insert(n.id)

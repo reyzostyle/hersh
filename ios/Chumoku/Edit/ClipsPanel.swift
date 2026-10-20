@@ -45,6 +45,7 @@ struct ClipsPanel: View {
                 .padding(.horizontal, geo.size.width / 2)
             }
             .scrollPosition($pos)
+            .scrollDisabled(trimming != nil)
             .onScrollPhaseChange { _, phase in
                 scrolling = phase != .idle && phase != .animating
                 if phase == .interacting { model.player.pause() }
@@ -92,29 +93,42 @@ struct ClipsPanel: View {
         .padding(.horizontal, 1)
         .frame(width: w + 2)
         .contentShape(Rectangle())
-        .onTapGesture {
-            selected = on ? nil : c.id
-            if !on { model.seek(model.outStart(of: c.id) + 0.01) }
+        .overlay(alignment: .top) {
+            // How long the clip will be, while you drag its edge.
+            if let t = trimming, t.id == c.id {
+                Text(String(format: "%.1f s", Double(w / scale)))
+                    .font(.geist(11, .semibold)).monospacedDigit().foregroundStyle(Color.bg)
+                    .padding(.horizontal, 7).padding(.vertical, 3)
+                    .background(Capsule().fill(Color.white))
+                    .offset(y: -12)
+                    .fixedSize()
+            }
         }
+        .onTapGesture { selected = on ? nil : c.id }
     }
 
     // An edge you drag to trim. Takes the touch before the strip can scroll.
     private func handle(_ c: ClipEdit, start: Bool) -> some View {
-        RoundedRectangle(cornerRadius: 4, style: .continuous)
+        RoundedRectangle(cornerRadius: 5, style: .continuous)
             .fill(Color.white)
-            .frame(width: 16, height: height)
+            .frame(width: 22, height: height)
             .overlay {
                 Image(systemName: start ? "chevron.compact.left" : "chevron.compact.right")
-                    .font(.system(size: 14, weight: .bold)).foregroundStyle(Color.bg)
+                    .font(.system(size: 16, weight: .bold)).foregroundStyle(Color.bg)
             }
-            .offset(x: start ? -6 : 6)
-            .highPriorityGesture(DragGesture(minimumDistance: 1)
+            .contentShape(Rectangle().inset(by: -10))
+            .highPriorityGesture(DragGesture(minimumDistance: 0, coordinateSpace: .global)
                 .onChanged { v in
                     if trimming == nil { model.player.pause() }
                     trimming = (c.id, start, v.translation.width)
+                    // Show the frame the edge is on right now.
+                    let d = Double(v.translation.width / scale) * model.settings.speed
+                    model.previewEdge(take: c.take, at: start ? min(c.src0 + d, c.src1 - 0.15) : max(c.src1 + d, c.src0 + 0.15) - 0.03)
                 }
                 .onEnded { v in
                     trimming = nil
+                    model.endEdgePreview()
+                    guard abs(v.translation.width) > 2 else { return }
                     let d = Double(v.translation.width / scale) * model.settings.speed
                     model.trim(c.id, start: start, by: d)
                     tick += 1
