@@ -26,6 +26,7 @@ final class EditModel {
     var timeline = Timeline()
     var groups: [CapGroup] = []
     var planning = false
+    var planStarted: Date?
     var message: String?
     let player = AVPlayer()
     var built: Renderer.Built?
@@ -53,6 +54,7 @@ final class EditModel {
         guard let shoot = films.shoot(shootId), !shoot.takes.isEmpty else { phase = .failed("No takes yet. Film something first."); return }
         urls = shoot.takes.map { films.url($0, in: shoot) }
         folder = films.folder(shoot)
+        trace("load: \(urls.count) takes")
         heard = []
         durations = []
         do {
@@ -63,12 +65,15 @@ final class EditModel {
                 }
                 heard.append(h)
                 durations.append(Double(h.env.count) * Listener.hop)
+                trace("load: take \(i + 1) heard, \(h.words.count) words, \(Int(Double(h.env.count) * Listener.hop)) s")
             }
             restore()
+            films.nameFromSpeech(shootId, words: heard.first?.words.map(\.text) ?? [])
             if audio.cleanVoice { await setCleanVoice(true) }
             phase = .ready
             rebuild()
         } catch {
+            trace("load: failed \(error)")
             phase = .failed(error.localizedDescription)
         }
     }
@@ -105,8 +110,9 @@ final class EditModel {
 
     func cut(script: String, notes: String) async {
         planning = true
+        planStarted = .now
         message = nil
-        defer { planning = false }
+        defer { planning = false; planStarted = nil }
         do {
             plan = try await Planner.plan(heard.map(\.words), script: script, notes: notes)
             rebuild()
@@ -148,7 +154,14 @@ final class EditModel {
         let input = Renderer.Inputs(takes: urls, cleanAudio: audio.cleanVoice ? clean : [], folder: folder, media: media, audio: audio)
         let at = player.currentTime(), wasPlaying = player.rate > 0
         rebuildTask = Task {
-            guard let built = try? await Renderer.build(tl, input), !Task.isCancelled else { return }
+            let built: Renderer.Built
+            do { built = try await Renderer.build(tl, input) } catch {
+                trace("rebuild: failed \(error)")
+                message = "Could not build the preview: \(error.localizedDescription)"
+                return
+            }
+            guard !Task.isCancelled else { return }
+            trace("rebuild: \(tl.segments.count) pieces, \(Int(tl.duration)) s")
             self.built = built
             let item = AVPlayerItem(asset: built.composition)
             item.videoComposition = built.video
@@ -161,6 +174,7 @@ final class EditModel {
             // composition outright. The preview then plays the plain cut; the
             // export still renders everything.
             for await status in item.publisher(for: \.status).values where status != .unknown {
+                if status == .failed { trace("preview: player refused the composition, \(item.error.map { "\($0)" } ?? "")") }
                 if status == .failed, !Task.isCancelled {
                     let plain = AVPlayerItem(asset: built.composition)
                     plain.audioMix = built.audio
@@ -241,14 +255,19 @@ final class EditModel {
         defer { exporting = nil }
         let painter = OverlayPainter(groups: groups, captions: captions, texts: texts,
                                      images: media.filter { $0.kind == .image }.compactMap { m in image(for: m).map { (m, $0) } })
+        trace("export: start, \(Int(timeline.duration)) s, \(groups.count) caption groups, \(texts.count) texts, \(media.count) overlays")
+        let started = Date()
         do {
             let url = try await Renderer.export(built, painter: painter) { p in
                 Task { @MainActor in self.exporting = p }
             }
             exported = url
-            _ = await FilmStore.saveToPhotos(url)
+            let saved = await FilmStore.saveToPhotos(url)
+            trace("export: done in \(Int(Date().timeIntervalSince(started))) s, saved to Photos: \(saved)")
+            if !saved { message = "Exported, but Photos access is off. Use Share to save it." }
         } catch {
-            message = error.localizedDescription
+            trace("export: failed \(error)")
+            message = "Export failed: \(error.localizedDescription)"
         }
     }
 }

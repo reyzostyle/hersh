@@ -36,6 +36,26 @@ final class FilmStore {
         if let data = try? Data(contentsOf: Self.index), let list = try? JSONDecoder().decode([Shoot].self, from: data) {
             shoots = list
         }
+        Task { await recoverOrphans() }
+    }
+
+    // Takes whose recording was interrupted before they were listed are still
+    // on disk: list them, so nothing filmed is ever lost.
+    private func recoverOrphans() async {
+        for shoot in shoots {
+            let listed = Set(shoot.takes.map(\.file))
+            let files = (try? FileManager.default.contentsOfDirectory(atPath: folder(shoot).path)) ?? []
+            for f in files.sorted() where f.hasPrefix("take-") && (f.hasSuffix(".mov") || f.hasSuffix(".mp4")) && !listed.contains(f) {
+                await addTake(folder(shoot).appendingPathComponent(f), to: shoot.id)
+            }
+        }
+    }
+
+    // A shoot started without a script is named after what was said in it.
+    func nameFromSpeech(_ id: String, words: [String]) {
+        guard let s = shoot(id), s.script.isEmpty, s.title.hasPrefix("Shoot ") || s.title.hasPrefix("Imported "), words.count >= 3 else { return }
+        let title = words.prefix(7).joined(separator: " ").trimmingCharacters(in: CharacterSet(charactersIn: ",. "))
+        update(id) { $0.title = title + (words.count > 7 ? "…" : "") }
     }
 
     func folder(_ shoot: Shoot) -> URL { Self.root.appendingPathComponent(shoot.id, isDirectory: true) }
@@ -60,10 +80,13 @@ final class FilmStore {
         return folder(s).appendingPathComponent("take-\(Int(Date().timeIntervalSince1970 * 1000)).mov")
     }
 
-    func addTake(_ url: URL, to shootId: String) async {
+    @discardableResult
+    func addTake(_ url: URL, to shootId: String) async -> Bool {
         let duration = (try? await AVURLAsset(url: url).load(.duration).seconds) ?? 0
-        guard duration > 0.3 else { try? FileManager.default.removeItem(at: url); return }
+        guard duration > 0.3 else { try? FileManager.default.removeItem(at: url); return false }
+        guard shoot(shootId)?.takes.contains(where: { $0.file == url.lastPathComponent }) == false else { return false }
         update(shootId) { $0.takes.append(Take(id: UUID().uuidString, file: url.lastPathComponent, duration: duration, createdAt: .now)) }
+        return true
     }
 
     // A video from Photos becomes a take: moved into the shoot's folder.

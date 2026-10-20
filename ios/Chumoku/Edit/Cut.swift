@@ -215,6 +215,10 @@ enum Cutter {
     }
 }
 
+// One line in the device log per step of an edit, so a stuck or failed edit
+// says where. Visible in Xcode's console or `devicectl ... --console`.
+nonisolated func trace(_ s: String) { print("[chumoku] \(s)") }
+
 // The same edit-plan function the web editor calls: which words make the cut.
 enum Planner {
     nonisolated struct RawRange: Decodable { let clip: Double; let from: Double; let to: Double }
@@ -227,7 +231,18 @@ enum Planner {
         let body = Body(clips: takes.map { words in
             Body.Clip(words: words.map(\.text), pauses: words.indices.filter { $0 > 0 && words[$0].s - words[$0 - 1].e >= 0.7 })
         }, script: script, instructions: notes)
-        let raw: Raw = try await supabase.functions.invoke("edit-plan", options: FunctionInvokeOptions(body: body))
+        // Picking takes is a model thinking over the whole transcript: ~90 s,
+        // past the 60 s every request gets by default. The function's own
+        // limit is 150 s, so wait just past that.
+        trace("cut: asking edit-plan, \(takes.count) takes, \(takes.map(\.count).reduce(0, +)) words")
+        let raw: Raw
+        do {
+            raw = try await supabase.functions.invoke("edit-plan", options: FunctionInvokeOptions(body: body, timeoutInterval: 170))
+        } catch {
+            trace("cut: failed \(error)")
+            throw EditError("Picking takes failed: \(error.localizedDescription)")
+        }
+        trace("cut: got \(raw.keep?.count ?? 0) ranges, note: \(raw.note ?? "-")")
         var p = Plan()
         func valid(_ c: Int, _ i: Int) -> Bool { takes.indices.contains(c) && takes[c].indices.contains(i) }
         for (n, r) in (raw.keep ?? []).enumerated() {

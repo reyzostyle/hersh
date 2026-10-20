@@ -258,8 +258,13 @@ struct FilmView: View {
             }
             let url = films.nextTakeURL(for: shootId)
             camera.record(to: url) { saved in
-                guard let saved else { return }
-                Task { await films.addTake(saved, to: shootId) }
+                guard let saved else { show("Take not saved"); return }
+                Task {
+                    if await films.addTake(saved, to: shootId) {
+                        show("Take \(films.shoot(shootId)?.takes.count ?? 0) saved")
+                        tick += 1
+                    }
+                }
             }
             prompter.running = true
         }

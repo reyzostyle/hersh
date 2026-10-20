@@ -340,7 +340,14 @@ private struct CutPanel: View {
             Button {
                 Task { await model.cut(script: script, notes: notes) }
             } label: {
-                Text(model.planning ? "Picking takes…" : (model.plan.note.isEmpty ? "Cut" : "Cut again"))
+                if let started = model.planStarted {
+                    // It thinks for a minute or more; the seconds say it is still going.
+                    TimelineView(.periodic(from: started, by: 1)) { ctx in
+                        Text("Picking takes · \(Int(ctx.date.timeIntervalSince(started)))s").monospacedDigit()
+                    }
+                } else {
+                    Text(model.plan.note.isEmpty ? "Cut" : "Cut again")
+                }
             }
             .buttonStyle(.pill)
             .disabled(model.planning)

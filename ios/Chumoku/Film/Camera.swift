@@ -120,8 +120,11 @@ final class Camera: NSObject {
 
 extension Camera: AVCaptureFileOutputRecordingDelegate {
     nonisolated func fileOutput(_ output: AVCaptureFileOutput, didFinishRecordingTo url: URL, from connections: [AVCaptureConnection], error: Error?) {
-        // A take cut short by an error is still usable if the file was written.
-        let ok = error == nil || ((error as NSError?)?.userInfo[AVErrorRecordingSuccessfullyFinishedKey] as? Bool ?? false)
+        // A take cut short (the screen closed, a call came in, the disk filled)
+        // is usually still a playable file: keep it if one was written, and
+        // let the store throw it away if it turns out too short to read.
+        let finished = (error as NSError?)?.userInfo[AVErrorRecordingSuccessfullyFinishedKey] as? Bool ?? false
+        let ok = error == nil || finished || FileManager.default.fileExists(atPath: url.path)
         Task { @MainActor in
             self.isRecording = false
             self.recordingStarted = nil
