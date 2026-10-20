@@ -157,7 +157,7 @@ nonisolated enum CaptionLayers {
 
     static func look(_ style: CaptionStyle) -> Look {
         switch style {
-        case .pop: Look(font: .systemFont(ofSize: 84, weight: .black), fill: .white, hot: yellow, stroke: 10, trackActive: true, y: 0.64)
+        case .pop: Look(font: .systemFont(ofSize: 92, weight: .black), fill: .white, hot: yellow, stroke: 9, trackActive: true, y: 0.64)
         case .bold: Look(font: .systemFont(ofSize: 130, weight: .heavy, width: .compressed), fill: yellow, hot: .white, stroke: 12, trackActive: false, y: 0.64)
         case .word: Look(font: .systemFont(ofSize: 120, weight: .bold), fill: .white, hot: yellow, stroke: 0, trackActive: false, y: 0.6)
         case .clean, .none: Look(font: UIFont(name: "Geist-SemiBold", size: 60) ?? .systemFont(ofSize: 60, weight: .semibold), fill: .white, hot: yellow, stroke: 0, trackActive: false, y: 0.72)
@@ -165,12 +165,18 @@ nonisolated enum CaptionLayers {
     }
 
     static func attributed(_ text: String, color: UIColor, look: Look) -> NSAttributedString {
-        var attrs: [NSAttributedString.Key: Any] = [.font: look.font, .foregroundColor: color]
-        if look.stroke > 0 {
-            attrs[.strokeColor] = UIColor.black
-            attrs[.strokeWidth] = -look.stroke / look.font.pointSize * 100 // negative: fill and stroke
-        }
-        return NSAttributedString(string: text, attributes: attrs)
+        NSAttributedString(string: text, attributes: [.font: look.font, .foregroundColor: color])
+    }
+
+    // The outline alone, twice as wide as it should look: it is drawn first and
+    // the fill goes on top, so the outline sits outside the letters instead of
+    // eating into them (a combined stroke-and-fill hollowed out heavy type).
+    static func outline(_ text: String, look: Look) -> NSAttributedString {
+        NSAttributedString(string: text, attributes: [
+            .font: look.font,
+            .strokeColor: UIColor.black,
+            .strokeWidth: look.stroke * 2 / look.font.pointSize * 100, // positive: stroke only
+        ])
     }
 }
 
@@ -248,8 +254,15 @@ nonisolated final class CaptionPainter: @unchecked Sendable {
                 for (wi, sz) in line {
                     let w = g.words[wi]
                     let color = w.hot || (look.trackActive && wi == state.lit) ? look.hot : look.fill
-                    CaptionLayers.attributed(w.text, color: color, look: look)
-                        .draw(at: CGPoint(x: x, y: pad + CGFloat(li) * lineH))
+                    let at = CGPoint(x: x, y: pad + CGFloat(li) * lineH)
+                    if look.stroke > 0 {
+                        CaptionLayers.outline(w.text, look: look).draw(at: at)
+                        cg.setShadow(offset: .zero, blur: 0, color: nil) // the shadow belongs to the outline only
+                    }
+                    CaptionLayers.attributed(w.text, color: color, look: look).draw(at: at)
+                    if look.stroke > 0 {
+                        cg.setShadow(offset: CGSize(width: 0, height: 4), blur: 10, color: UIColor.black.withAlphaComponent(0.5).cgColor)
+                    }
                     x += sz.width + space
                 }
             }
