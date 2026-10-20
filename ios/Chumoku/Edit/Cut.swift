@@ -65,7 +65,6 @@ nonisolated struct CapGroup: Hashable, Sendable {
 }
 
 nonisolated enum Pace: String, CaseIterable, Codable, Sendable { case tight, natural }
-nonisolated enum CaptionStyle: String, CaseIterable, Codable, Sendable { case pop, bold, word, clean, none }
 
 nonisolated struct EditSettings: Equatable, Sendable {
     var pace: Pace = .tight
@@ -177,41 +176,6 @@ enum Cutter {
         }
         tl.duration = out
         return tl
-    }
-
-    // Words into the phrases that share the screen.
-    static func groups(_ caps: [CapWord], captions c: CaptionSettings) -> [CapGroup] {
-        let style = c.preset
-        guard style != .none else { return [] }
-        let maxWords = max(1, c.maxWords)
-        let maxChars = maxWords == 1 ? 99 : max(14, maxWords * 6)
-        var groups: [CapGroup] = []
-        var cur: [CapWord] = []
-        func flush() { if let f = cur.first, let l = cur.last { groups.append(CapGroup(words: cur, t0: f.t0, t1: l.t1)) }; cur = [] }
-        for (i, w) in caps.enumerated() {
-            let prev = i > 0 ? caps[i - 1] : nil
-            let chars = cur.reduce(0) { $0 + $1.text.count + 1 } + w.text.count
-            if !cur.isEmpty, cur.count >= maxWords || chars > maxChars
-                || (prev.map { w.t0 - $0.t1 > 0.45 } ?? false)
-                || (prev.map { $0.text.hasSuffix(".") || $0.text.hasSuffix("?") || $0.text.hasSuffix("!") } ?? false)
-                || (style == .pop && (prev.map { $0.text.hasSuffix(",") } ?? false)) {
-                flush()
-            }
-            cur.append(CapWord(key: w.key, text: clean(w.text, c), t0: w.t0, t1: w.t1, hot: w.hot))
-        }
-        flush()
-        for i in groups.indices {
-            let next = i + 1 < groups.count ? groups[i + 1].t0 : nil
-            groups[i].t1 = next.map { min($0, groups[i].t1 + 0.6) } ?? groups[i].t1 + 0.4
-        }
-        return groups
-    }
-
-    private static func clean(_ text: String, _ c: CaptionSettings) -> String {
-        var t = text.trimmingCharacters(in: .whitespaces)
-        if c.preset != .clean { t = t.trimmingCharacters(in: CharacterSet(charactersIn: ".,;:")) }
-        if c.maxWords == 1 { t = t.trimmingCharacters(in: CharacterSet(charactersIn: "\"'()")) }
-        return c.upper ? t.uppercased() : t
     }
 }
 

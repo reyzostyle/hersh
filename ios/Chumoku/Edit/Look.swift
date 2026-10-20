@@ -51,41 +51,6 @@ nonisolated struct RGBA: Codable, Hashable, Sendable {
     static let palette: [RGBA] = [.white, .yellow, .green, .pink, .blue, .black]
 }
 
-nonisolated struct CaptionSettings: Codable, Equatable, Sendable {
-    var preset: CaptionStyle = .pop
-    var font: CapFont = .heavy
-    var size: Double = 92
-    var fill: RGBA = .white
-    var highlight: RGBA = .yellow
-    var outline = true
-    var upper = true
-    var trackWord = true // light up the word being said
-    var maxWords = 3
-    var x: Double = 0.5
-    var y: Double = 0.64
-
-    // Picking a preset sets every field; changing a field afterwards keeps the
-    // preset's name but overrides that one thing, like TikTok's caption styles.
-    static func preset(_ p: CaptionStyle, keepingPosition old: CaptionSettings? = nil) -> CaptionSettings {
-        var c = CaptionSettings()
-        c.preset = p
-        switch p {
-        case .pop: c.font = .heavy; c.size = 92; c.fill = .white; c.highlight = .yellow; c.outline = true; c.upper = true; c.trackWord = true; c.maxWords = 3
-        case .bold: c.font = .condensed; c.size = 130; c.fill = .yellow; c.highlight = .white; c.outline = true; c.upper = true; c.trackWord = false; c.maxWords = 2
-        case .word: c.font = .bold; c.size = 120; c.fill = .white; c.highlight = .yellow; c.outline = false; c.upper = false; c.trackWord = false; c.maxWords = 1
-        case .clean: c.font = .geist; c.size = 60; c.fill = .white; c.highlight = .yellow; c.outline = false; c.upper = false; c.trackWord = false; c.maxWords = 6; c.y = 0.74
-        case .none: break
-        }
-        if let old { c.x = old.x; c.y = old.y }
-        return c
-    }
-
-    var look: CaptionLayers.Look {
-        CaptionLayers.Look(font: font.ui(size), fill: fill.ui, hot: highlight.ui, stroke: outline ? max(6, size * 0.1) : 0,
-                           trackActive: trackWord, y: y, x: x)
-    }
-}
-
 nonisolated struct TextOverlay: Codable, Identifiable, Equatable, Sendable {
     var id = UUID().uuidString
     var text: String

@@ -14,6 +14,8 @@ struct EditorView: View {
     @State private var notes = ""
     @State private var showShare = false
     @State private var tick = 0
+    @State private var full = false
+    @State private var checking = false
 
     enum Tool: String, CaseIterable, Identifiable {
         case cut, captions, text, overlay, audio, words
@@ -47,7 +49,7 @@ struct EditorView: View {
                 Text(msg).font(.tSmall).foregroundStyle(Color.textMuted).multilineTextAlignment(.center)
                     .padding(24).frame(maxWidth: .infinity, maxHeight: .infinity)
             case .ready:
-                Stage(model: model, selected: $selected, tool: $tool)
+                Stage(model: model, selected: $selected, tool: $tool, full: $full)
                     .padding(.horizontal, 20)
                     .padding(.top, 4)
                 transport
@@ -64,7 +66,17 @@ struct EditorView: View {
         .toolbar(.hidden, for: .tabBar)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
-                if let p = model.exporting {
+                Button {
+                    tick += 1
+                    checking = true
+                    if !model.reviewPhase.busy, !(model.reviewPhase.isDone && model.rendered != nil) {
+                        Task { await model.runReview(script: shoot?.script ?? "") }
+                    }
+                } label: { Text("Check") }
+                    .disabled(model.built == nil || model.exporting != nil)
+            }
+            ToolbarItem(placement: .topBarTrailing) {
+                if let p = model.exporting, !checking {
                     Text("\(Int(p * 100))%").font(.geist(13, .medium)).monospacedDigit().foregroundStyle(Color.text)
                 } else if model.exported != nil {
                     Button { showShare = true } label: { Label("Saved", systemImage: "checkmark") }
@@ -78,6 +90,11 @@ struct EditorView: View {
         .task { if case .listening = model.phase { await model.load(films) } }
         .onDisappear { model.player.pause() }
         .sheet(isPresented: $showShare) { if let url = model.exported { ShareSheet(items: [url]) } }
+        .fullScreenCover(isPresented: $full) { FullPreview(model: model) }
+        .sheet(isPresented: $checking) {
+            ReviewSheet(model: model, script: shoot?.script ?? "") { tick += 1; Task { await model.export() } }
+                .presentationDetents([.large])
+        }
         .sensoryFeedback(.selection, trigger: tool)
         .sensoryFeedback(.impact(weight: .medium), trigger: tick)
         .sensoryFeedback(.success, trigger: model.exported != nil) { _, done in done }
@@ -147,6 +164,8 @@ private struct Stage: View {
     @Bindable var model: EditModel
     @Binding var selected: String?
     @Binding var tool: EditorView.Tool
+    @Binding var full: Bool
+    @AppStorage("edit.guides") private var guides = true
     @State private var snapTick = 0
     @State private var dragStart: CGPoint?
     @State private var snapping = false
@@ -168,9 +187,7 @@ private struct Stage: View {
                 }
 
                 ForEach(model.texts.filter { model.time >= $0.start && model.time < $0.end }) { t in
-                    PaintedText(words: t.text.split(separator: " ").map { (String($0), t.pill && t.color == .white ? UIColor.black : t.color.ui) },
-                                font: t.font.ui(t.size), stroke: 0, maxWidth: 920,
-                                pill: t.pill ? (t.color == .white ? .white : UIColor.black.withAlphaComponent(0.75)) : nil, k: k)
+                    PaintedText(text: t, k: k)
                         .overlay { if selected == t.id { dashed } }
                         .position(x: geo.size.width * t.x, y: geo.size.height * t.y)
                         .gesture(move(id: t.id, size: geo.size))
@@ -178,16 +195,19 @@ private struct Stage: View {
                         .onTapGesture { selected = t.id }
                 }
 
-                if model.captions.preset != .none, let g = model.groups.first(where: { model.time >= $0.t0 && model.time < $0.t1 }) {
-                    let look = model.captions.look
-                    let active = g.words.last { model.time >= $0.t0 }
-                    PaintedText(words: g.words.map { ($0.text, $0.hot || (look.trackActive && $0 == active) ? look.hot : look.fill) },
-                                font: look.font, stroke: look.stroke, maxWidth: 900, pill: nil, k: k)
+                if model.captions.preset != .none, let g = currentGroup {
+                    CaptionArt(group: g, t: model.time, look: model.captions.look, k: k)
                         .overlay { if selected == "captions" { dashed } }
                         .position(x: geo.size.width * model.captions.x, y: geo.size.height * model.captions.y)
                         .gesture(move(id: "captions", size: geo.size))
                         .simultaneousGesture(pinch(id: "captions"))
                         .onTapGesture { selected = "captions"; tool = .captions }
+                }
+
+                // What the feed's buttons will cover: while moving anything, or
+                // always when the guides are on.
+                if guides || dragStart != nil || pinchStart != nil {
+                    SafeZoneGuide(warn: covered != nil)
                 }
 
                 // The centre line shows while something snaps to it.
@@ -200,11 +220,63 @@ private struct Stage: View {
             .frame(width: geo.size.width, height: geo.size.height)
         }
         .aspectRatio(9 / 16, contentMode: .fit)
-        .frame(maxHeight: 420)
+        .frame(maxHeight: 440)
         .clipShape(RoundedRectangle(cornerRadius: Radius.md, style: .continuous))
         .overlay(RoundedRectangle(cornerRadius: Radius.md, style: .continuous).strokeBorder(Color.line, lineWidth: 1))
+        .overlay(alignment: .top) {
+            if let c = covered {
+                Text(c).font(.geist(11, .semibold)).foregroundStyle(.white).lineLimit(1).fixedSize()
+                    .padding(.horizontal, 10).padding(.vertical, 5)
+                    .background(Capsule().fill(Color.danger))
+                    .padding(.top, 8)
+                    .transition(.opacity)
+            }
+        }
+        .overlay(alignment: .bottomLeading) {
+            corner(guides ? "rectangle.dashed" : "rectangle") { guides.toggle() }
+        }
+        .overlay(alignment: .bottomTrailing) {
+            corner("arrow.up.left.and.arrow.down.right") { full = true }
+        }
+        .animation(.ui, value: covered)
         .sensoryFeedback(.impact(weight: .light), trigger: snapTick)
         .sensoryFeedback(.selection, trigger: selected)
+        .sensoryFeedback(.selection, trigger: guides)
+        .sensoryFeedback(.warning, trigger: covered != nil) { _, now in now }
+    }
+
+    private var currentGroup: CapGroup? { model.groups.first { model.time >= $0.t0 && model.time < $0.t1 } }
+
+    private func corner(_ icon: String, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Image(systemName: icon).font(.system(size: 13, weight: .semibold)).foregroundStyle(.white)
+                .frame(width: 32, height: 32).background(Circle().fill(Color.black.opacity(0.5)))
+        }
+        .buttonStyle(.plain)
+        .padding(8)
+    }
+
+    // Says so when the thing you are moving (or the captions) would end up
+    // under the feed's buttons.
+    private var covered: String? {
+        let id = selected ?? "captions"
+        let s = Renderer.size
+        var r: CGRect?
+        if id == "captions", model.captions.preset != .none, let g = currentGroup ?? model.groups.first {
+            let b = CaptionLayers.layout(g, look: model.captions.look).reduce(CGRect.null) { $0.union($1.rect) }
+            if !b.isNull { r = CGRect(x: model.captions.x - b.width / 2 / s.width, y: model.captions.y - b.height / 2 / s.height,
+                                      width: b.width / s.width, height: b.height / s.height) }
+        } else if let t = model.texts.first(where: { $0.id == id }) {
+            let m = CaptionLayers.measure(t.text.split(separator: " ").map(String.init), font: t.font.ui(t.size), maxWidth: 920, pill: t.pill)
+            let w = m.width - (t.pill ? 64 : 48), h = m.height - (t.pill ? 32 : 24)
+            r = CGRect(x: t.x - w / 2 / s.width, y: t.y - h / 2 / s.height, width: w / s.width, height: h / s.height)
+        }
+        guard let r, !SafeZone.holds(r) else { return nil }
+        let what = id == "captions" ? "Captions" : "Text"
+        if r.maxY > 1 - SafeZone.bottom { return "\(what) covered by the feed's text" }
+        if r.maxX > 1 - SafeZone.right { return "\(what) covered by the like buttons" }
+        if r.minY < SafeZone.top { return "\(what) covered by the top tabs" }
+        return "\(what) too close to the edge"
     }
 
     private var dashed: some View {
@@ -268,36 +340,33 @@ private struct Stage: View {
     }
 }
 
-// Text drawn by the same routine the export uses, scaled to the preview.
-private struct PaintedText: View {
-    let words: [(String, UIColor)]
-    let font: UIFont
-    let stroke: CGFloat
-    let maxWidth: CGFloat
-    let pill: UIColor?
+// A text overlay drawn by the same routine the export uses, scaled to the
+// preview. Drawn into a real bitmap: a Canvas's recording context turned
+// outlined text into a solid black box on device.
+struct PaintedText: View {
+    let text: TextOverlay
     let k: CGFloat
 
-    // Drawn into a real bitmap, the same way the export draws it. A Canvas's
-    // recording context turned outlined text into a solid black box on device.
     var body: some View {
-        let size = CaptionLayers.measure(words.map(\.0), font: font, maxWidth: maxWidth, pill: pill != nil)
-        let image = UIGraphicsImageRenderer(size: CGSize(width: size.width * k, height: size.height * k)).image { r in
+        let font = text.font.ui(text.size)
+        let color = text.pill && text.color == .white ? UIColor.black : text.color.ui
+        let words = text.text.split(separator: " ").map { (String($0), color) }
+        let pill: UIColor? = text.pill ? (text.color == .white ? .white : UIColor.black.withAlphaComponent(0.75)) : nil
+        let size = CaptionLayers.measure(words.map(\.0), font: font, maxWidth: 920, pill: pill != nil)
+        let image = UIGraphicsImageRenderer(size: CGSize(width: max(1, size.width * k), height: max(1, size.height * k))).image { r in
             let cg = r.cgContext
             cg.scaleBy(x: k, y: k)
-            if pill == nil {
-                cg.setShadow(offset: CGSize(width: 0, height: stroke > 0 ? 4 : 2), blur: stroke > 0 ? 10 : 18,
-                             color: UIColor.black.withAlphaComponent(stroke > 0 ? 0.5 : 0.8).cgColor)
-            }
-            CaptionLayers.draw(words, font: font, stroke: stroke, maxWidth: maxWidth,
+            if pill == nil { cg.setShadow(offset: CGSize(width: 0, height: 4), blur: 14, color: UIColor.black.withAlphaComponent(0.6).cgColor) }
+            CaptionLayers.draw(words, font: font, stroke: 0, maxWidth: 920,
                                center: CGPoint(x: size.width / 2, y: size.height / 2), pill: pill, in: cg)
         }
         Image(uiImage: image)
-        .frame(width: size.width * k, height: size.height * k)
-        .contentShape(Rectangle())
+            .frame(width: size.width * k, height: size.height * k)
+            .contentShape(Rectangle())
     }
 }
 
-private struct MediaHandle: View {
+struct MediaHandle: View {
     let m: MediaOverlay
     let image: UIImage?
     let k: CGFloat
@@ -383,7 +452,7 @@ private struct CaptionsPanel: View {
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 8) {
                         ForEach(CaptionStyle.allCases, id: \.self) { s in
-                            Chip(label: s == .word ? "One word" : s.rawValue.capitalized, on: model.captions.preset == s) {
+                            Chip(label: s.label, on: model.captions.preset == s) {
                                 model.captions = CaptionSettings.preset(s, keepingPosition: model.captions)
                                 model.regroup()
                             }
@@ -411,10 +480,16 @@ private struct CaptionsPanel: View {
                     Seg(options: [(1, "1"), (2, "2"), (3, "3"), (4, "4"), (6, "6")],
                         value: Binding(get: { model.captions.maxWords }, set: { model.captions.maxWords = $0; model.regroup() }))
                 }
+                Labeled("Entrance") {
+                    Seg(options: CapAnim.allCases.map { ($0, $0.label) },
+                        value: Binding(get: { model.captions.anim }, set: { model.captions.anim = $0; model.regroup() }))
+                }
                 VStack(spacing: 4) {
                     toggle("Outline", \.outline)
                     toggle("Capitals", \.upper)
                     toggle("Light up the spoken word", \.trackWord)
+                    toggle("Box behind the spoken word", \.box)
+                    toggle("Words appear as they're said", \.reveal)
                 }
                 Button("Reset position") { model.captions.x = 0.5; model.captions.y = 0.64; model.regroup() }
                     .font(.tSmall).foregroundStyle(Color.textFaint)
@@ -626,20 +701,35 @@ private struct AudioPanel: View {
 
 private struct WordsPanel: View {
     @Bindable var model: EditModel
+    @State private var editing: WKey?
+    @State private var draft = ""
 
     private var speakingKey: WKey? { model.timeline.caps.first { model.time >= $0.t0 && model.time < $0.t1 }?.key }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
-            Text("Tap a word to cut it, double-tap to highlight it.").font(.tSmall).foregroundStyle(Color.textFaint)
+            Text("Tap a word to cut it, double-tap to highlight it, hold to fix its spelling.").font(.tSmall).foregroundStyle(Color.textFaint)
             ForEach(Array(model.heard.enumerated()), id: \.offset) { c, h in
                 VStack(alignment: .leading, spacing: 6) {
                     if model.heard.count > 1 { Text("Take \(c + 1)").font(.tLabel).foregroundStyle(Color.textMuted) }
-                    WordFlow(words: h.words, take: c, plan: model.plan, speaking: speakingKey) { key, hot in model.toggle(key, hot: hot) }
+                    WordFlow(words: h.words, take: c, plan: model.plan, speaking: speakingKey,
+                             toggle: { key, hot in model.toggle(key, hot: hot) },
+                             edit: { key in
+                                 draft = model.plan.fixes[key] ?? h.words[key.i].text
+                                 editing = key
+                             })
                 }
             }
         }
         .sensoryFeedback(.selection, trigger: model.plan.kept.count)
+        .sensoryFeedback(.impact(weight: .medium), trigger: editing)
+        .alert("Fix the word", isPresented: Binding(get: { editing != nil }, set: { if !$0 { editing = nil } })) {
+            TextField("Word", text: $draft)
+            Button("Save") { if let k = editing { model.fix(k, text: draft) }; editing = nil }
+            Button("Cancel", role: .cancel) { editing = nil }
+        } message: {
+            Text("The captions show what you type here.")
+        }
     }
 }
 
@@ -738,6 +828,7 @@ private struct WordFlow: View {
     let plan: Plan
     let speaking: WKey?
     let toggle: (WKey, Bool) -> Void
+    let edit: (WKey) -> Void
 
     var body: some View {
         FlowLayout(spacing: 4, lineSpacing: 6) {
@@ -755,6 +846,7 @@ private struct WordFlow: View {
                     .background(RoundedRectangle(cornerRadius: 5, style: .continuous).fill(speaking == key ? Color.raisedHover : .clear))
                     .onTapGesture(count: 2) { toggle(key, true) }
                     .onTapGesture { toggle(key, false) }
+                    .onLongPressGesture(minimumDuration: 0.35) { edit(key) }
             }
         }
     }
