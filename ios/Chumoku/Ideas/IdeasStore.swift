@@ -57,6 +57,15 @@ nonisolated struct Idea: Codable, Identifiable, Hashable {
 
     var shortsURL: URL? { URL(string: "https://www.youtube.com/shorts/\(videoId)") }
 
+    // "14×": how far it beat its own channel, the number the feed is sorted by.
+    var outlierBadge: String? {
+        guard let o = outlierScore, o >= 2, o < 1000 else { return nil }
+        return "\(Int(o.rounded()))×"
+    }
+
+    // What you read off the prompter: the outline if there is one, else the angle.
+    var filmScript: String { outline?.script ?? adaptedIdea ?? "" }
+
     var meta: String {
         var parts: [String] = []
         if let v = videoViews { parts.append("\(Idea.compact(v)) views") }
@@ -89,6 +98,9 @@ final class IdeasStore {
     var loadingToday = false
     var loadingSaved = false
     var error: String?
+    // Which ideas have a model call running, and which step.
+    enum Step { case angle, outline }
+    var working: [String: Step] = [:]
 
     // Today's drop, built server-side on the first call of the day, so the
     // first open can take a few seconds.
@@ -157,6 +169,51 @@ final class IdeasStore {
         } catch {
             self.error = "Could not save that. Try again."
         }
+    }
+}
+
+extension IdeasStore {
+    nonisolated private struct IdeaResponse: Decodable { let idea: Idea }
+    nonisolated private struct ErrorBody: Decodable { let error: String? }
+
+    // Step 1, one credit: the model reads the video and writes this creator's angle.
+    func revealAngle(_ idea: Idea) async -> String? {
+        await run(idea, .angle, "enrich-competitor-video", ["videoId": .string(idea.videoId), "adaptForProfile": .bool(true)])
+    }
+
+    // Step 2, four credits: it watches the video and writes the outline.
+    func buildOutline(_ idea: Idea) async -> String? {
+        await run(idea, .outline, "generate-outline", ["ideaId": .string(idea.id)])
+    }
+
+    // Returns an error to show, or nil when the idea was updated.
+    private func run(_ idea: Idea, _ step: Step, _ fn: String, _ body: [String: AnyJSON]) async -> String? {
+        #if DEBUG
+        if Self.isDemo { return "Not in demo mode." }
+        #endif
+        working[idea.id] = step
+        defer { working[idea.id] = nil }
+        do {
+            let res: IdeaResponse = try await supabase.functions.invoke(fn, options: FunctionInvokeOptions(body: body))
+            replace(res.idea)
+            return nil
+        } catch let FunctionsError.httpError(_, data) {
+            let msg = (try? JSONDecoder().decode(ErrorBody.self, from: data))?.error
+            if msg == "limit_reached" { return "You're out of credits. Top up on chumoku.co." }
+            if msg == "upgrade_required" { return "This needs a paid plan. Upgrade on chumoku.co." }
+            return msg ?? "Something went wrong. Try again."
+        } catch {
+            return "Something went wrong. Try again."
+        }
+    }
+
+    private func replace(_ updated: Idea) {
+        if let i = today.firstIndex(where: { $0.id == updated.id || $0.videoId == updated.videoId }) { today[i] = updated }
+        if let i = saved.firstIndex(where: { $0.id == updated.id }) { saved[i] = updated }
+    }
+
+    func live(_ idea: Idea) -> Idea {
+        today.first { $0.id == idea.id } ?? saved.first { $0.id == idea.id } ?? idea
     }
 }
 

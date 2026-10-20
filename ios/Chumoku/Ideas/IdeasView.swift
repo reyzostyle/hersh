@@ -78,6 +78,16 @@ struct IdeaCard: View {
         VStack(alignment: .leading, spacing: 8) {
             Thumb(url: idea.thumbnailURL)
                 .aspectRatio(4 / 5, contentMode: .fit)
+                .overlay(alignment: .topLeading) {
+                    if let badge = idea.outlierBadge {
+                        Text(badge)
+                            .font(.geist(12, .semibold))
+                            .foregroundStyle(.black)
+                            .padding(.horizontal, 8).padding(.vertical, 4)
+                            .background(Capsule().fill(.white))
+                            .padding(8)
+                    }
+                }
                 .overlay(alignment: .topTrailing) {
                     if idea.liked == true {
                         Image(systemName: "bookmark.fill")
