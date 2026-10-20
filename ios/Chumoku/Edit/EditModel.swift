@@ -109,14 +109,17 @@ final class EditModel {
     // MARK: the cut
 
     func cut(script: String, notes: String) async {
+        trace("cut: tapped, script \(script.count) chars, notes \(notes.count) chars")
         planning = true
         planStarted = .now
         message = nil
         defer { planning = false; planStarted = nil }
         do {
             plan = try await Planner.plan(heard.map(\.words), script: script, notes: notes)
+            trace("cut: applied, \(plan.kept.count) words kept")
             rebuild()
         } catch {
+            trace("cut: shown error \((error as? EditError)?.message ?? "\(error)")")
             message = (error as? EditError)?.message ?? "Could not pick the takes. Try again."
         }
     }
@@ -249,7 +252,7 @@ final class EditModel {
     // MARK: export
 
     func export() async {
-        guard let built else { return }
+        guard let built else { trace("export: tapped before the preview was built"); return }
         player.pause()
         exporting = 0
         defer { exporting = nil }

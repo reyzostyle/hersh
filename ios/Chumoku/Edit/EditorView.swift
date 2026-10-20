@@ -277,21 +277,21 @@ private struct PaintedText: View {
     let pill: UIColor?
     let k: CGFloat
 
+    // Drawn into a real bitmap, the same way the export draws it. A Canvas's
+    // recording context turned outlined text into a solid black box on device.
     var body: some View {
         let size = CaptionLayers.measure(words.map(\.0), font: font, maxWidth: maxWidth, pill: pill != nil)
-        Canvas { ctx, _ in
-            ctx.withCGContext { cg in
-                cg.scaleBy(x: k, y: k)
-                UIGraphicsPushContext(cg)
-                if pill == nil {
-                    cg.setShadow(offset: CGSize(width: 0, height: stroke > 0 ? 4 : 2), blur: stroke > 0 ? 10 : 18,
-                                 color: UIColor.black.withAlphaComponent(stroke > 0 ? 0.5 : 0.8).cgColor)
-                }
-                CaptionLayers.draw(words, font: font, stroke: stroke, maxWidth: maxWidth,
-                                   center: CGPoint(x: size.width / 2, y: size.height / 2), pill: pill, in: cg)
-                UIGraphicsPopContext()
+        let image = UIGraphicsImageRenderer(size: CGSize(width: size.width * k, height: size.height * k)).image { r in
+            let cg = r.cgContext
+            cg.scaleBy(x: k, y: k)
+            if pill == nil {
+                cg.setShadow(offset: CGSize(width: 0, height: stroke > 0 ? 4 : 2), blur: stroke > 0 ? 10 : 18,
+                             color: UIColor.black.withAlphaComponent(stroke > 0 ? 0.5 : 0.8).cgColor)
             }
+            CaptionLayers.draw(words, font: font, stroke: stroke, maxWidth: maxWidth,
+                               center: CGPoint(x: size.width / 2, y: size.height / 2), pill: pill, in: cg)
         }
+        Image(uiImage: image)
         .frame(width: size.width * k, height: size.height * k)
         .contentShape(Rectangle())
     }

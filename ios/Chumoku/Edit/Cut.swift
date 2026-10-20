@@ -215,9 +215,37 @@ enum Cutter {
     }
 }
 
-// One line in the device log per step of an edit, so a stuck or failed edit
-// says where. Visible in Xcode's console or `devicectl ... --console`.
-nonisolated func trace(_ s: String) { print("[chumoku] \(s)") }
+// One line per step of an edit, so a stuck or failed edit says where. Goes to
+// stderr (unbuffered, unlike print through a pipe) and to Documents/edit.log,
+// which survives the app being closed and can be pulled off the phone.
+nonisolated func trace(_ s: String) {
+    let line = "\(Date.now.formatted(.iso8601.time(includingFractionalSeconds: false))) [chumoku] \(s)\n"
+    FileHandle.standardError.write(Data(line.utf8))
+    TraceLog.append(line)
+}
+
+nonisolated enum TraceLog {
+    private static let lock = NSLock()
+    static let url = URL.documentsDirectory.appendingPathComponent("edit.log")
+
+    static func append(_ line: String) {
+        lock.lock(); defer { lock.unlock() }
+        guard let h = try? FileHandle(forWritingTo: url) else {
+            try? Data(line.utf8).write(to: url)
+            return
+        }
+        defer { try? h.close() }
+        // Keep the last ~200 KB: a log nobody reads should not fill the phone.
+        if let end = try? h.seekToEnd(), end > 400_000,
+           let data = try? Data(contentsOf: url) {
+            try? data.suffix(200_000).write(to: url)
+            try? h.close()
+            if let h2 = try? FileHandle(forWritingTo: url) { _ = try? h2.seekToEnd(); h2.write(Data(line.utf8)); try? h2.close() }
+            return
+        }
+        h.write(Data(line.utf8))
+    }
+}
 
 // The same edit-plan function the web editor calls: which words make the cut.
 enum Planner {
