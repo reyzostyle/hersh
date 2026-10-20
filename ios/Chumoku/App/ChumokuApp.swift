@@ -48,6 +48,7 @@ struct MainTabs: View {
         TabView {
             Tab("Ideas", systemImage: "lightbulb") { IdeasView() }
             Tab("Film", systemImage: "video") { FilmHome() }
+            Tab("Edit", systemImage: "scissors") { EditHome() }
             Tab("Settings", systemImage: "gearshape") { SettingsView() }
         }
     }

@@ -37,6 +37,8 @@
 	<string>Chumoku records your voice with each take.</string>
 	<key>NSPhotoLibraryAddUsageDescription</key>
 	<string>Chumoku saves your takes and finished videos to Photos.</string>
+	<key>NSSpeechRecognitionUsageDescription</key>
+	<string>Chumoku listens to your takes on this iPhone to cut them.</string>
 	<key>UIAppFonts</key>
 	<array>
 		<string>Geist-Regular.ttf</string>

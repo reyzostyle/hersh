@@ -2,7 +2,7 @@ name: Chumoku
 options:
   bundleIdPrefix: co.chumoku
   deploymentTarget:
-    iOS: "18.0"
+    iOS: "26.0" # on-device long-form transcription (SpeechTranscriber)
   createIntermediateGroups: true
 settings:
   base:
@@ -45,6 +45,7 @@ targets:
         UISupportedInterfaceOrientations: [UIInterfaceOrientationPortrait]
         NSCameraUsageDescription: Chumoku films your takes.
         NSMicrophoneUsageDescription: Chumoku records your voice with each take.
+        NSSpeechRecognitionUsageDescription: Chumoku listens to your takes on this iPhone to cut them.
         NSPhotoLibraryAddUsageDescription: Chumoku saves your takes and finished videos to Photos.
         UIAppFonts:
           - Geist-Regular.ttf

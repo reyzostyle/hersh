@@ -76,11 +76,17 @@ struct ShootView: View {
             TakesList(shootId: shootId)
                 .navigationTitle(shoot.title)
                 .safeAreaInset(edge: .bottom) {
-                    Button("Film") { filming = true }
-                        .buttonStyle(.pill)
-                        .padding(.horizontal, 20)
-                        .padding(.vertical, 8)
-                        .background(Color.bg.ignoresSafeArea())
+                    HStack(spacing: 10) {
+                        Button("Film") { filming = true }
+                            .buttonStyle(PillButtonStyle(kind: shoot.takes.isEmpty ? .primary : .secondary))
+                        if !shoot.takes.isEmpty {
+                            NavigationLink("Edit") { EditorView(shootId: shootId) }
+                                .buttonStyle(.pill)
+                        }
+                    }
+                    .padding(.horizontal, 20)
+                    .padding(.vertical, 8)
+                    .background(Color.bg.ignoresSafeArea())
                 }
                 .toolbar {
                     ToolbarItem(placement: .topBarTrailing) {
