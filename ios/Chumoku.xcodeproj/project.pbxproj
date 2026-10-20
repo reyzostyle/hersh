@@ -211,6 +211,7 @@
 				LastUpgradeCheck = 1430;
 				TargetAttributes = {
 					0368B45E090F9F658EAC9A3D = {
+						DevelopmentTeam = 7M6YY6SQ7L;
 						ProvisioningStyle = Automatic;
 					};
 				};
@@ -285,6 +286,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = 7M6YY6SQ7L;
 				INFOPLIST_FILE = Chumoku/Info.plist;
 				INFOPLIST_KEY_UIUserInterfaceStyle = Dark;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -370,6 +372,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = 7M6YY6SQ7L;
 				INFOPLIST_FILE = Chumoku/Info.plist;
 				INFOPLIST_KEY_UIUserInterfaceStyle = Dark;
 				LD_RUNPATH_SEARCH_PATHS = (
