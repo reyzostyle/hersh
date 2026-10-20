@@ -19,7 +19,7 @@ extension IdeasStore {
         func idea(_ n: Int, _ title: String, _ views: Int, _ score: Double, liked: Bool? = nil, outline: Outline? = nil) -> Idea {
             Idea(id: "demo\(n)", channelName: "Demo Channel \(n)", videoId: "demo\(n)", videoTitle: title, videoThumbnail: nil,
                  videoViews: views, outlierScore: score, pitch: title, fit: "yes", concept: nil, adaptedIdea: nil,
-                 outline: outline, liked: liked, createdAt: nil)
+                 outline: outline, script: nil, liked: liked, createdAt: nil)
         }
         today = [
             idea(1, "Your version: the same Short filmed three ways, one hook wins", 1_240_000, 14, outline: outline),

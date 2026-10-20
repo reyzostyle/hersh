@@ -68,6 +68,24 @@ struct IdeaDetailView: View {
                     }
                 }
                 .padding(.top, 12)
+
+                StepCard(n: 3, title: "Script", done: current.script != nil, dim: current.outline == nil) {
+                    if let script = current.script {
+                        Text(script).font(.tBody).foregroundStyle(Color.text).lineSpacing(5)
+                        Button("Rewrite · 1 credit") { act { await store.writeScript(current) } }
+                            .font(.tSmall).foregroundStyle(Color.textFaint).padding(.top, 8)
+                    } else if step == .script {
+                        Working(label: "Writing what you'll say")
+                    } else if current.outline != nil {
+                        Text("The outline says what happens. This writes the words you say on camera, for the prompter.")
+                            .font(.tSmall).foregroundStyle(Color.textMuted)
+                        Button("Write the script · 1 credit") { act { await store.writeScript(current) } }
+                            .buttonStyle(.pill)
+                    } else {
+                        Label("Build the outline first", systemImage: "lock").font(.tSmall).foregroundStyle(Color.textFaint)
+                    }
+                }
+                .padding(.top, 12)
             }
             .padding(.horizontal, 20)
             .padding(.top, 8)
@@ -132,9 +150,9 @@ struct IdeaDetailView: View {
                 if current.liked != true { Task { await store.rule(current, liked: true) } }
                 filming = films.create(title: current.outline?.hook ?? current.headline, script: current.filmScript, ideaId: current.id)
             }
-            // One white pill per screen: filming takes it once there is an
-            // outline; before that the next step above has it.
-            .buttonStyle(PillButtonStyle(kind: current.outline != nil ? .primary : .secondary))
+            // One white pill per screen: filming takes it once there is a
+            // script; before that the next step above has it.
+            .buttonStyle(PillButtonStyle(kind: current.script != nil ? .primary : .secondary))
         }
         .padding(.horizontal, 20)
         .padding(.top, 12)

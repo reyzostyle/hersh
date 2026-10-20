@@ -18,6 +18,8 @@ struct FilmView: View {
     @State private var lastThumb: UIImage?
     @AppStorage("film.countdown") private var useCountdown = true
     @State private var tick = 0 // a light tap of haptics for every small control
+    @State private var readout: String? // "Speed 1.2×", shown for a moment after a change
+    @State private var readoutTask: Task<Void, Never>?
 
     // The ring light: the screen goes white around a rounded picture, and
     // the white bleeds softly into the picture's edges, like the front flash
@@ -45,6 +47,15 @@ struct FilmView: View {
 
                 VStack(spacing: 0) {
                     Spacer()
+                    if let readout {
+                        Text(readout)
+                            .font(.geist(14, .semibold)).monospacedDigit()
+                            .foregroundStyle(.black)
+                            .padding(.horizontal, 14).padding(.vertical, 7)
+                            .background(Capsule().fill(.white))
+                            .padding(.bottom, 10)
+                            .transition(.opacity)
+                    }
                     toolRow.padding(.bottom, 14)
                     controls
                 }
@@ -140,14 +151,26 @@ struct FilmView: View {
     // Prompter speed and size, light, camera.
     private var toolRow: some View {
         HStack(spacing: 8) {
-            small("tortoise") { prompter.speed = max(10, prompter.speed - 8) }
-            small("hare") { prompter.speed = min(160, prompter.speed + 8) }
-            small("textformat.size.smaller") { prompter.size = max(18, prompter.size - 2) }
-            small("textformat.size.larger") { prompter.size = min(44, prompter.size + 2) }
+            small("tortoise") { prompter.speed = max(10, prompter.speed - 8); show(speedLabel) }
+            small("hare") { prompter.speed = min(160, prompter.speed + 8); show(speedLabel) }
+            small("textformat.size.smaller") { prompter.size = max(18, prompter.size - 2); show("Text \(Int(prompter.size))") }
+            small("textformat.size.larger") { prompter.size = min(44, prompter.size + 2); show("Text \(Int(prompter.size))") }
             small("arrow.up.to.line") { prompter.reset() }
             small(light ? "lightbulb.fill" : "lightbulb", on: light) { light.toggle() }
             small("arrow.triangle.2.circlepath.camera") { camera.flip() }
                 .disabled(camera.isRecording)
+        }
+    }
+
+    // 40 points a second is the default and reads as 1×.
+    private var speedLabel: String { String(format: "Speed %.1f×", prompter.speed / 40) }
+
+    private func show(_ text: String) {
+        withAnimation(.ui) { readout = text }
+        readoutTask?.cancel()
+        readoutTask = Task {
+            try? await Task.sleep(for: .seconds(1.4))
+            if !Task.isCancelled { withAnimation(.ui) { readout = nil } }
         }
     }
 

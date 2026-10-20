@@ -32,11 +32,12 @@ nonisolated struct Idea: Codable, Identifiable, Hashable {
     let concept: String?
     let adaptedIdea: String?
     let outline: Outline?
+    let script: String?
     var liked: Bool?
     let createdAt: String?
 
     enum CodingKeys: String, CodingKey {
-        case id, pitch, fit, concept, outline, liked
+        case id, pitch, fit, concept, outline, liked, script
         case channelName = "channel_name"
         case videoId = "video_id"
         case videoTitle = "video_title"
@@ -63,8 +64,9 @@ nonisolated struct Idea: Codable, Identifiable, Hashable {
         return "\(Int(o.rounded()))×"
     }
 
-    // What you read off the prompter: the outline if there is one, else the angle.
-    var filmScript: String { outline?.script ?? adaptedIdea ?? "" }
+    // What you read off the prompter: the written script, else the outline,
+    // else the angle.
+    var filmScript: String { script ?? outline?.script ?? adaptedIdea ?? "" }
 
     var meta: String {
         var parts: [String] = []
@@ -99,7 +101,7 @@ final class IdeasStore {
     var loadingSaved = false
     var error: String?
     // Which ideas have a model call running, and which step.
-    enum Step { case angle, outline }
+    enum Step { case angle, outline, script }
     var working: [String: Step] = [:]
 
     // Today's drop, built server-side on the first call of the day, so the
@@ -184,6 +186,11 @@ extension IdeasStore {
     // Step 2, four credits: it watches the video and writes the outline.
     func buildOutline(_ idea: Idea) async -> String? {
         await run(idea, .outline, "generate-outline", ["ideaId": .string(idea.id)])
+    }
+
+    // Step 3, one credit: the outline turned into words to say on camera.
+    func writeScript(_ idea: Idea) async -> String? {
+        await run(idea, .script, "write-script", ["ideaId": .string(idea.id)])
     }
 
     // Returns an error to show, or nil when the idea was updated.
