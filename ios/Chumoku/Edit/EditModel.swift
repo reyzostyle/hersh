@@ -69,8 +69,13 @@ final class EditModel {
         do {
             for (i, url) in urls.enumerated() {
                 let n = Double(urls.count)
+                // Progress arrives on the recogniser's thread and is hopped to
+                // the main actor; a late hop must not undo "ready" (it did:
+                // the editor sat on a full bar forever after a 2 minute take).
                 let h = try await Listener.heard(url) { p in
-                    Task { @MainActor in self.phase = .listening((Double(i) + p) / n) }
+                    Task { @MainActor in
+                        if case .listening(let old) = self.phase, (Double(i) + p) / n > old { self.phase = .listening((Double(i) + p) / n) }
+                    }
                 }
                 heard.append(h)
                 durations.append(Double(h.env.count) * Listener.hop)
@@ -520,7 +525,9 @@ final class EditModel {
         let started = Date()
         do {
             let url = try await Renderer.export(built, painter: painter) { p in
-                Task { @MainActor in self.exporting = p }
+                // Same race as the listening bar: a late hop after the
+                // export ended would leave "100%" up for good.
+                Task { @MainActor in if self.exporting != nil { self.exporting = p } }
             }
             trace("render: done in \(Int(Date().timeIntervalSince(started))) s")
             rendered = url

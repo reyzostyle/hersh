@@ -53,6 +53,7 @@ struct EditorView: View {
                 VStack(spacing: 12) {
                     Working(label: "Listening to your takes")
                     ProgressView(value: p).tint(.white).frame(width: 180)
+                    Text("\(Int(p * 100))%").font(.geist(12, .medium)).monospacedDigit().foregroundStyle(Color.textFaint)
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             case .failed(let msg):
@@ -198,6 +199,14 @@ private struct Stage: View {
                 Color.black
                 VideoSurface(player: model.player)
                     .onTapGesture { selected = nil; model.togglePlay() }
+                if model.built == nil {
+                    VStack(spacing: 10) {
+                        ProgressView().tint(.white)
+                        Text("Preparing the preview").font(.tSmall).foregroundStyle(.white.opacity(0.8))
+                    }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .allowsHitTesting(false)
+                }
                 if let f = model.edgeFrame {
                     Image(uiImage: f).resizable().scaledToFill()
                         .frame(width: geo.size.width, height: geo.size.height).clipped()
