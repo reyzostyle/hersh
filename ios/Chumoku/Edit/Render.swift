@@ -59,7 +59,11 @@ enum Renderer {
                                     end: CMTime(seconds: seg.src1, preferredTimescale: 600)).intersection(src.range)
             guard range.duration.seconds > 0.02 else { continue }
             try vTrack.insertTimeRange(range, of: src.video, at: cursor)
-            if let a = src.audio { try? aTrack.insertTimeRange(range, of: a, at: cursor) }
+            if let a = src.audio {
+                do { try aTrack.insertTimeRange(range, of: a, at: cursor) } catch { trace("build: sound of take \(seg.take + 1) not added: \(error)") }
+            } else {
+                trace("build: take \(seg.take + 1) has no sound track")
+            }
             starts.append((cursor, seg))
             cursor = cursor + range.duration
         }

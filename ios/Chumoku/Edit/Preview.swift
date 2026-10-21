@@ -113,6 +113,7 @@ struct FullPreview: View {
             .onEnded { v in if v.translation.height > 120 { dismiss() } else { withAnimation(.ui) { drag = 0 } } })
         .statusBarHidden()
         .onAppear {
+            EditModel.playbackAudio()
             if model.time >= model.timeline.duration - 0.1 { model.seek(0) }
             model.player.play()
         }

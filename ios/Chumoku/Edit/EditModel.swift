@@ -60,6 +60,7 @@ final class EditModel {
     // MARK: load and save
 
     func load(_ films: FilmStore) async {
+        Self.playbackAudio()
         guard let shoot = films.shoot(shootId), !shoot.takes.isEmpty else { phase = .failed("No takes yet. Film something first."); return }
         urls = shoot.takes.map { films.url($0, in: shoot) }
         folder = films.folder(shoot)
@@ -453,7 +454,23 @@ final class EditModel {
 
     // MARK: playback
 
+    // Sound out of the speaker even with the ring switch on silent, the way
+    // TikTok's and CapCut's editors play. Without this the player used the
+    // default category, which the silent switch mutes, and straight after
+    // filming it inherited the camera's record session, which routes to the
+    // earpiece: either way the edit looked silent.
+    static func playbackAudio() {
+        let session = AVAudioSession.sharedInstance()
+        do {
+            try session.setCategory(.playback, mode: .moviePlayback)
+            try session.setActive(true)
+        } catch {
+            trace("audio: could not set playback session \(error)")
+        }
+    }
+
     func togglePlay() {
+        Self.playbackAudio()
         if player.rate > 0 { player.pause() } else {
             if time >= timeline.duration - 0.1 { player.seek(to: .zero) }
             player.play()

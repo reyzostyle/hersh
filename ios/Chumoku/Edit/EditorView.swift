@@ -109,6 +109,7 @@ struct EditorView: View {
             }
         }
         .task { if case .listening = model.phase { await model.load(films) } }
+        .onAppear { EditModel.playbackAudio() }
         .onDisappear { model.player.pause() }
         .sheet(isPresented: $showShare) { if let url = model.exported { ShareSheet(items: [url]) } }
         .fullScreenCover(isPresented: $full) { FullPreview(model: model) }
