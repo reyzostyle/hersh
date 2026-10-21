@@ -127,6 +127,12 @@ enum Cutter {
                 return max(words[i].e, quietest(x, to, to))
             }
 
+            // A segment with nothing said in it (a reaction, a cutaway) plays whole.
+            if words.isEmpty, dur > 0.2 {
+                pieces.append(Piece(take: c, src0: 0, src1: dur, rank: 1e9 + Double(c) * 1e5, lastRank: 1e9 + Double(c) * 1e5, words: []))
+                continue
+            }
+
             var mine: [Piece] = []
             var lastRank = 1e9 + Double(c) * 1e5
             var prevRank = -Double.infinity

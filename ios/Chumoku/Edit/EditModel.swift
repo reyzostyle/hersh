@@ -100,6 +100,10 @@ final class EditModel {
         plan = valid && doc.kept != nil
             ? Plan(kept: Set(doc.kept ?? []), rank: doc.rank ?? [:], fixes: doc.fixes ?? [:], hot: Set(doc.hot ?? []), note: doc.note ?? "")
             : Plan.keepAll(words)
+        // Segments filmed after this edit was saved join it whole, at the end.
+        let known = doc.takes ?? ((doc.kept ?? []).map(\.c).max().map { $0 + 1 } ?? words.count)
+        let added = known < words.count ? Array(known..<words.count) : []
+        for c in added { for i in words[c].indices { plan.kept.insert(WKey(c: c, i: i)) } }
         settings = EditSettings(pace: doc.pace, speed: doc.speed, zoom: doc.zoom)
         captions = doc.captions
         texts = doc.texts
@@ -108,7 +112,7 @@ final class EditModel {
         // Hand-placed clips only if they still point inside these takes.
         if let c = doc.clips, !c.isEmpty,
            c.allSatisfy({ durations.indices.contains($0.take) && $0.src0 >= 0 && $0.src1 <= durations[$0.take] + 0.5 && $0.length > 0.05 }) {
-            clips = c
+            clips = c + added.map { ClipEdit(take: $0, src0: 0, src1: durations[$0]) }
         }
     }
 
@@ -116,7 +120,7 @@ final class EditModel {
         guard let url = docURL else { return }
         let doc = EditDoc(kept: Array(plan.kept), rank: plan.rank, fixes: plan.fixes, hot: Array(plan.hot), note: plan.note,
                           pace: settings.pace, speed: settings.speed, zoom: settings.zoom,
-                          captions: captions, texts: texts, media: media, audio: audio, clips: clips)
+                          captions: captions, texts: texts, media: media, audio: audio, clips: clips, takes: heard.count)
         if let data = try? JSONEncoder().encode(doc) { try? data.write(to: url, options: .atomic) }
     }
 

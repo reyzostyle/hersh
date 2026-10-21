@@ -34,7 +34,16 @@ struct EditorView: View {
         }
     }
 
-    init(shootId: String) { _model = State(initialValue: EditModel(shootId: shootId)) }
+    // Set when the editor opens straight from the camera: back to filming
+    // more segments, or close the whole thing.
+    var onCamera: (() -> Void)?
+    var onClose: (() -> Void)?
+
+    init(shootId: String, onCamera: (() -> Void)? = nil, onClose: (() -> Void)? = nil) {
+        _model = State(initialValue: EditModel(shootId: shootId))
+        self.onCamera = onCamera
+        self.onClose = onClose
+    }
     private var shoot: Shoot? { films.shoot(model.shootId) }
 
     var body: some View {
@@ -66,6 +75,16 @@ struct EditorView: View {
         .navigationBarTitleDisplayMode(.inline)
         .toolbar(.hidden, for: .tabBar)
         .toolbar {
+            if let onClose {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button { model.player.pause(); onClose() } label: { Image(systemName: "xmark") }
+                }
+            }
+            if let onCamera {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button { model.player.pause(); onCamera() } label: { Image(systemName: "video.badge.plus") }
+                }
+            }
             ToolbarItem(placement: .topBarTrailing) {
                 Button {
                     tick += 1

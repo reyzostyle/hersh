@@ -99,4 +99,5 @@ nonisolated struct EditDoc: Codable, Sendable {
     var media: [MediaOverlay] = []
     var audio = AudioSettings()
     var clips: [ClipEdit]? // set once the clips were edited by hand
+    var takes: Int? // how many takes the shoot had when this was saved
 }
