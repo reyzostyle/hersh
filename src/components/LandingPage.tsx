@@ -214,7 +214,7 @@ function AuthModal({ initialMode, onClose, context }: {
             {emailSent ? 'Almost there' : mode === 'forgot' ? 'Reset password' : mode === 'login' ? 'Welcome back' : (context?.title ?? 'Start for free')}
           </p>
           <p className="text-[13px]" style={{ color: 'var(--text-muted)' }}>
-            {emailSent ? 'Confirm your email to activate your account.' : mode === 'forgot' ? "We'll send you a reset link." : mode === 'login' ? 'Sign in to your Chumoku account.' : (context?.sub ?? 'No credit card required.')}
+            {emailSent ? 'Confirm your email to activate your account.' : mode === 'forgot' ? "We'll send you a reset link." : mode === 'login' ? 'Sign in to your Chumoku account.' : (context?.sub ?? '20 free credits to start.')}
           </p>
         </div>
 
@@ -856,7 +856,7 @@ export function LandingPage() {
                 </button>
               </div>
               <p className="label-mono mt-3 text-center" style={heroError ? { color: 'rgb(var(--danger-rgb))' } : undefined}>
-                {heroError || '20 free credits · no card'}
+                {heroError || '20 free credits'}
               </p>
             </form>
           </div>
@@ -970,7 +970,7 @@ export function LandingPage() {
               style={{ border: '1px dashed var(--line-strong)', borderRadius: 'var(--r-md)' }}
             >
               <span className="text-[13.5px] font-medium" style={{ color: 'var(--text)' }}>Free</span>
-              <span className="text-[13.5px]" style={{ color: 'var(--text-muted)' }}>20 credits, one time, no card</span>
+              <span className="text-[13.5px]" style={{ color: 'var(--text-muted)' }}>20 credits, one time</span>
               <span className="label-mono sm:ml-auto">3 tracked channels</span>
             </div>
           </Reveal>
@@ -1011,7 +1011,7 @@ export function LandingPage() {
                   <ArrowUpRight className="w-3.5 h-3.5" />
                 </a>
               </div>
-              <p className="label-mono mt-6">20 free credits · no card</p>
+              <p className="label-mono mt-6">20 free credits</p>
             </div>
           </Reveal>
         </section>
@@ -1130,9 +1130,9 @@ export function LandingPage() {
           }}
           context={
             heroSteal && authModal === 'signup'
-              ? { title: 'Create an account to steal it', sub: 'It runs the moment you are in. 20 free credits, no card.' }
+              ? { title: 'Create an account to steal it', sub: 'It runs the moment you are in. 20 free credits.' }
               : heroGate && authModal === 'signup'
-                ? { title: 'Your breakdown is ready', sub: 'Create an account to see it. 20 free credits, no card.' }
+                ? { title: 'Your breakdown is ready', sub: 'Create an account to see it. 20 free credits.' }
                 : undefined
           }
         />

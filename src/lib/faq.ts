@@ -18,7 +18,7 @@ export const FAQS: { q: string; a: string }[] = [
   },
   {
     q: 'Is it free to try?',
-    a: 'Yes, 20 credits when you sign up, no card. Browsing ideas is free, a chat message costs 1 credit and a steal costs 5.',
+    a: 'Yes, 20 credits when you sign up. Browsing ideas is free, a chat message costs 1 credit and a steal costs 5.',
   },
   {
     q: 'Do I need to connect YouTube?',
