@@ -99,7 +99,7 @@ const STEPS = [
   { n: '04', t: 'You get paid every month', d: 'Not once. Every month they stay, for their first twelve.' },
 ];
 
-const BLURB = `I use Chumoku to work out why my shorts land or don't. It watches the video and tells you what to fix, and it pulls the shorts already beating their own channel so you have something proven to build on. 20 free credits, no card: `;
+const BLURB = `I use Chumoku to work out why my shorts land or don't. It watches the video and tells you what to fix, and it pulls the shorts already beating their own channel so you have something proven to build on. 20 free credits to start: `;
 
 function Pitch({ onClaimed }: { onClaimed: () => void }) {
   const [copied, setCopied] = useState(false);
@@ -131,7 +131,7 @@ function Pitch({ onClaimed }: { onClaimed: () => void }) {
 
       <Section
         label="What your audience gets"
-        note="Twenty credits, no card asked for. Which means you are recommending something they can try, not something they have to buy first."
+        note="Twenty free credits to start. Which means you are recommending something they can try, not something they have to buy first."
       >
         <Panel>
           <p className="label-mono mb-3">Copy this into a description</p>

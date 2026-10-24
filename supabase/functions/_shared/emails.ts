@@ -112,7 +112,7 @@ const specimen = (score: string, line: string) => `
 // that is what the mail leads on, and the first action asks for the link that
 // makes it true.
 function welcome(ctx: EmailCtx): RenderedEmail {
-  const text = `you're in. 20 credits are on your account, no card, nothing to activate.
+  const text = `you're in. 20 credits are on your account, nothing to activate.
 
 chumoku only does short-form. not long-form, not podcast clips, not
 everything at once. that is why it can name the second people left instead
@@ -143,7 +143,7 @@ unsubscribe: ${ctx.unsubscribeUrl}`;
       unsubscribeUrl: ctx.unsubscribeUrl,
       body:
         h("you're in.") +
-        p(`${strong('20 credits')} are on your account. no card, nothing to activate.`) +
+        p(`${strong('20 credits')} are on your account, nothing to activate.`) +
         p(`chumoku only does ${strong('short-form')}. not long-form, not podcast clips, not everything at once. that is why it can name the second people left instead of handing you a generic content tip.`) +
         p('paste a link to your last short. it watches the whole thing and comes back with something like this:') +
         specimen('62', 'the open repeats what the thumbnail already gave away. cut to the reveal at 0:11 and let the video explain itself backwards.') +
