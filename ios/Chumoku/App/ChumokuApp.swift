@@ -6,6 +6,7 @@ struct ChumokuApp: App {
     @State private var ideas = IdeasStore()
     @State private var films = FilmStore()
     @State private var notes = NotesStore.shared
+    @State private var chat = ChatStore.shared
 
     var body: some Scene {
         WindowGroup {
@@ -14,6 +15,7 @@ struct ChumokuApp: App {
                 .environment(ideas)
                 .environment(films)
                 .environment(notes)
+                .environment(chat)
                 .preferredColorScheme(.dark)
                 .tint(.white)
         }
@@ -47,12 +49,14 @@ struct RootView: View {
 
 struct MainTabs: View {
     @Environment(NotesStore.self) private var notes
-    enum T: Hashable { case ideas, create, edit, analytics, settings }
+    @Environment(ChatStore.self) private var chat
+    enum T: Hashable { case ideas, chat, create, edit, analytics, settings }
     @State private var tab: T = .ideas
 
     var body: some View {
         TabView(selection: $tab) {
             Tab("Ideas", systemImage: "lightbulb", value: T.ideas) { IdeasView() }
+            Tab("Chat", systemImage: "bubble.left", value: T.chat) { ChatView() }
             if Features.filming {
                 Tab("Edit", systemImage: "scissors", value: T.edit) { EditHome() }
                 Tab("Create", systemImage: "plus", value: T.create) { FilmHome() }
@@ -63,5 +67,7 @@ struct MainTabs: View {
         .sensoryFeedback(.selection, trigger: tab)
         // "Record an idea" from Siri or the Lock Screen lands in Notes.
         .onChange(of: notes.recordNow) { _, now in if now { tab = .ideas } }
+        // An idea sent to Chat ("Work on it in Chat") brings Chat forward.
+        .onChange(of: chat.pending?.text) { _, text in if text != nil { tab = .chat } }
     }
 }

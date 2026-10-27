@@ -26,6 +26,7 @@
 		7E4C504051AF3197DFD3B853 /* AiCover.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5CAB725494671A6F2EA1C841 /* AiCover.swift */; };
 		829D1D9BEFC2437096680FA1 /* Geist-SemiBold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 2EC4122C8E3916632A246D77 /* Geist-SemiBold.ttf */; };
 		84D68AB029BECA64B5DCB71D /* Supabase in Frameworks */ = {isa = PBXBuildFile; productRef = 79FE84CF862C2EE12380ADCC /* Supabase */; };
+		8582604101D38B742DF3F55A /* ChatStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = D802CAA593C275E5685BFDD9 /* ChatStore.swift */; };
 		8C6AE76FB7C005EBF0118485 /* Preview.swift in Sources */ = {isa = PBXBuildFile; fileRef = 29C26DF9678B73ED6D099641 /* Preview.swift */; };
 		8FB89E138E14C6B7B4F86A76 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = BEDF9C89556A1EA144BB15A7 /* Assets.xcassets */; };
 		98717BC3AAF35CE61BF943D5 /* DemoData.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF9C13ADB49FEB37931FF719 /* DemoData.swift */; };
@@ -39,6 +40,7 @@
 		AA46F1B2B77D858424E4E57F /* SwipeStack.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9E241987CFFBE811F5693E58 /* SwipeStack.swift */; };
 		AB8E33C618ED266F39AE5078 /* Geist-Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 2EF7A5DF9852436154F87F68 /* Geist-Regular.ttf */; };
 		AE71A0F94947419BD60BBB6C /* Look.swift in Sources */ = {isa = PBXBuildFile; fileRef = 311F0053F9C2CA70062C26E7 /* Look.swift */; };
+		BBC74386D03931BE46E1F7C9 /* ChatView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0F5211415E14830204DB51A /* ChatView.swift */; };
 		BD0C9502BC488A761514F1AB /* FilmView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2E63E403A9584D838E26F59E /* FilmView.swift */; };
 		C05088C44ADDE960B3CA1B92 /* ChumokuApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = E2948B37EAD4EE894BB410B4 /* ChumokuApp.swift */; };
 		CE4D9B2D412763E15B26E0E3 /* IdeasView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D56C0D4A1A7A7E84AB0AB375 /* IdeasView.swift */; };
@@ -77,11 +79,13 @@
 		A3E2ECB8E83B0DC985E03E3E /* Chumoku.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Chumoku.entitlements; sourceTree = "<group>"; };
 		B1FBAE247585302FBF48D8C3 /* EditHome.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditHome.swift; sourceTree = "<group>"; };
 		BEDF9C89556A1EA144BB15A7 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		C0F5211415E14830204DB51A /* ChatView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatView.swift; sourceTree = "<group>"; };
 		C5250C5C01D01726F2585290 /* Render.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Render.swift; sourceTree = "<group>"; };
 		CF9C13ADB49FEB37931FF719 /* DemoData.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DemoData.swift; sourceTree = "<group>"; };
 		D543C70E980E97D39F5A68FC /* IdeasStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IdeasStore.swift; sourceTree = "<group>"; };
 		D56C0D4A1A7A7E84AB0AB375 /* IdeasView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IdeasView.swift; sourceTree = "<group>"; };
 		D5DB3104411E514DCC6CC771 /* Chumoku.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = Chumoku.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		D802CAA593C275E5685BFDD9 /* ChatStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatStore.swift; sourceTree = "<group>"; };
 		D97AC2A61EA828EDA1DDF81E /* AnalyticsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnalyticsView.swift; sourceTree = "<group>"; };
 		DFB10D360B0C302A87407E38 /* Notes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Notes.swift; sourceTree = "<group>"; };
 		E2948B37EAD4EE894BB410B4 /* ChumokuApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChumokuApp.swift; sourceTree = "<group>"; };
@@ -115,6 +119,15 @@
 				E62F4F5CB345EE71077C9847 /* Teleprompter.swift */,
 			);
 			path = Film;
+			sourceTree = "<group>";
+		};
+		127A335A61A20B1A5AF50E80 /* Chat */ = {
+			isa = PBXGroup;
+			children = (
+				D802CAA593C275E5685BFDD9 /* ChatStore.swift */,
+				C0F5211415E14830204DB51A /* ChatView.swift */,
+			);
+			path = Chat;
 			sourceTree = "<group>";
 		};
 		4343C09140D9AA80A74AB08E /* Settings */ = {
@@ -207,6 +220,7 @@
 				90BE162595280B5BF67785C8 /* Analytics */,
 				AD6D49BEBD1D10A0C80BA4B6 /* App */,
 				7CCA8695443F2B682B23CD20 /* Auth */,
+				127A335A61A20B1A5AF50E80 /* Chat */,
 				FE5972ADF01954ED6C50E5E9 /* Core */,
 				F03B75359F9B304677123F5E /* Design */,
 				B6D350B6CB7D298F29313332 /* Edit */,
@@ -341,6 +355,8 @@
 				9ABE44253EC188BDD3F2CD50 /* Camera.swift in Sources */,
 				2435A443CDEAD15CABC3FC2D /* Captions.swift in Sources */,
 				FC6F26FC2D85B29588FF90C2 /* ChannelsSection.swift in Sources */,
+				8582604101D38B742DF3F55A /* ChatStore.swift in Sources */,
+				BBC74386D03931BE46E1F7C9 /* ChatView.swift in Sources */,
 				C05088C44ADDE960B3CA1B92 /* ChumokuApp.swift in Sources */,
 				58DFCA46A7692CEC1959D511 /* Clean.swift in Sources */,
 				D39ADF16822DA38F996BD70D /* ClipsPanel.swift in Sources */,

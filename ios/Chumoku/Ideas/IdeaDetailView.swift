@@ -6,6 +6,7 @@ import SwiftUI
 struct IdeaDetailView: View {
     @Environment(IdeasStore.self) private var store
     @Environment(FilmStore.self) private var films
+    @Environment(ChatStore.self) private var chat
     @Environment(\.dismiss) private var dismiss
     @Environment(\.openURL) private var openURL
     let idea: Idea
@@ -136,10 +137,24 @@ struct IdeaDetailView: View {
                     .font(.tSmall).foregroundStyle(Color.textMuted)
                 Button("Write the script · 1 credit") { act { await store.writeScript(current) } }
                     .buttonStyle(.pill)
+                chatLink
             } else {
                 Label("Build the outline first", systemImage: "lock").font(.tSmall).foregroundStyle(Color.textFaint)
             }
         }
+    }
+
+    // The web's way to the script: a conversation that starts from this idea
+    // and can be argued with line by line. Keeps the idea, as the web does.
+    private var chatLink: some View {
+        Button("Or work on it in Chat") {
+            if current.liked != true { Task { await store.rule(current, liked: true) } }
+            let name = current.outline?.hook ?? current.pitch ?? current.headline
+            chat.pending = ("Write the full script for my saved idea \"\(name)\".", current.id)
+        }
+        .font(.tSmall).foregroundStyle(Color.textMuted)
+        .frame(maxWidth: .infinity)
+        .padding(.top, 2)
     }
 
     private var header: some View {
