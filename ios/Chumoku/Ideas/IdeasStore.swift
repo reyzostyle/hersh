@@ -18,6 +18,28 @@ nonisolated struct Outline: Codable, Hashable {
     }
 }
 
+// Where an idea Chumoku found itself came from (competitor_ideas.basis):
+// something new in the creator's subject ("research"), or one of their own
+// Shorts that beat their usual ("remix"). The first rows (2026-10-27) have no
+// kind and are remixes.
+nonisolated struct IdeaBasis: Codable, Hashable {
+    let kind: String?
+    let hook: String?
+    let source: String?
+    let why: String?
+    let videoId: String?
+    let title: String?
+    let views: Int?
+    let multiple: Double?
+
+    enum CodingKeys: String, CodingKey {
+        case kind, hook, source, why, title, views, multiple
+        case videoId = "video_id"
+    }
+
+    var isRemix: Bool { kind != "research" && title != nil }
+}
+
 // A row of competitor_ideas, the same table the web Ideas tab reads.
 nonisolated struct Idea: Codable, Identifiable, Hashable {
     let id: String
@@ -35,9 +57,13 @@ nonisolated struct Idea: Codable, Identifiable, Hashable {
     let script: String?
     var liked: Bool?
     let createdAt: String?
+    // 'ai' when Chumoku found the idea rather than took it from a Short: no
+    // real video behind it, `videoId` is a made-up `ai-` key.
+    var source: String? = nil
+    var basis: IdeaBasis? = nil
 
     enum CodingKeys: String, CodingKey {
-        case id, pitch, fit, concept, outline, liked, script
+        case id, pitch, fit, concept, outline, liked, script, source, basis
         case channelName = "channel_name"
         case videoId = "video_id"
         case videoTitle = "video_title"
@@ -52,21 +78,52 @@ nonisolated struct Idea: Codable, Identifiable, Hashable {
     // pitch for this creator, then the source title.
     var headline: String { outline?.hook ?? pitch ?? videoTitle ?? "Untitled" }
 
+    var isOwn: Bool { source == "ai" }
+
     var thumbnailURL: URL? {
-        URL(string: videoThumbnail ?? "https://i.ytimg.com/vi/\(videoId)/sddefault.jpg")
+        isOwn ? nil : URL(string: videoThumbnail ?? "https://i.ytimg.com/vi/\(videoId)/sddefault.jpg")
     }
 
-    var shortsURL: URL? { URL(string: "https://www.youtube.com/shorts/\(videoId)") }
+    var shortsURL: URL? { isOwn ? nil : URL(string: "https://www.youtube.com/shorts/\(videoId)") }
 
     // "14×": how far it beat its own channel, the number the feed is sorted by.
+    // The web shows one decimal under 10 ("3.9×").
     var outlierBadge: String? {
-        guard let o = outlierScore, o >= 2, o < 1000 else { return nil }
-        return "\(Int(o.rounded()))×"
+        guard !isOwn, let o = outlierScore, o >= 1.5, o < 1000 else { return nil }
+        return o < 10 ? "\(String(format: "%.1f", o).replacingOccurrences(of: ".0", with: ""))×" : "\(Int(o.rounded()))×"
+    }
+
+    // Under the title of an idea Chumoku found: what kind, and that nothing has
+    // proved it yet.
+    var ownLabel: String { "\(basis?.isRemix == true ? "Remix of your Short" : "Researched for you") · untested" }
+
+    // The cover of an idea Chumoku found: the line they would open on.
+    var openingLine: String {
+        if let h = basis?.hook?.trimmingCharacters(in: .whitespacesAndNewlines), !h.isEmpty {
+            return "“" + h.trimmingCharacters(in: CharacterSet(charactersIn: "\"“”")) + "”"
+        }
+        return adaptedIdea ?? pitch ?? ""
+    }
+
+    // What the cover says it came from.
+    var basisLine: String? {
+        guard let b = basis else { return nil }
+        if b.isRemix {
+            if let m = b.multiple, m >= 1.2 { return "Remix of your Short · \(String(format: "%.1f", m).replacingOccurrences(of: ".0", with: ""))× your usual" }
+            return "Remix of your Short"
+        }
+        return b.source
     }
 
     // What you read off the prompter: the written script, else the outline,
     // else the angle.
     var filmScript: String { script ?? outline?.script ?? adaptedIdea ?? "" }
+
+    // The web card's line: fit, channel, views.
+    var cardMeta: String {
+        if isOwn { return ownLabel }
+        return [channelName, videoViews.map(Idea.compact)].compactMap { $0 }.joined(separator: " · ")
+    }
 
     var meta: String {
         var parts: [String] = []
@@ -84,17 +141,22 @@ nonisolated struct Idea: Codable, Identifiable, Hashable {
 }
 
 nonisolated struct DailyDrop: Decodable {
+    nonisolated struct More: Decodable { let added: Int; let error: String? }
     let date: String
     let nextAt: String
     let size: Int
     let items: [Idea]
     let needsProfile: Bool?
+    let more: More?
 }
 
 @Observable
 final class IdeasStore {
     var today: [Idea] = []
     var saved: [Idea] = []
+    var dismissed: [Idea] = []
+    var findingMore = false
+    var moreNote: String?
     var nextAt: Date?
     var needsProfile = false
     var loadingToday = false
@@ -113,37 +175,73 @@ final class IdeasStore {
         loadingToday = true
         defer { loadingToday = false }
         do {
-            let drop: DailyDrop = try await supabase.functions.invoke(
-                "daily-ideas",
-                options: FunctionInvokeOptions(body: ["timezone": TimeZone.current.identifier])
-            )
-            today = drop.items
-            needsProfile = drop.needsProfile ?? false
-            nextAt = ISO8601DateFormatter.withFractions.date(from: drop.nextAt) ?? ISO8601DateFormatter().date(from: drop.nextAt)
+            apply(try await fetchDrop(more: false))
             error = nil
         } catch {
             self.error = "Could not load today's ideas."
         }
     }
 
-    func loadSaved() async {
+    // Five more ideas Chumoku researches on the spot, for credits (the web's
+    // "5 more ideas"). Charged only when some arrive.
+    func more() async {
         #if DEBUG
-        if Self.isDemo { return }
+        if Self.isDemo { moreNote = "Not in demo mode."; return }
         #endif
-        guard let uid = try? await supabase.auth.session.user.id else { return }
+        findingMore = true
+        moreNote = nil
+        defer { findingMore = false }
+        do {
+            let drop = try await fetchDrop(more: true)
+            apply(drop)
+            if drop.more?.error == "limit_reached" { moreNote = "That takes \(Self.moreCost) credits and you're out for this month." }
+            else if (drop.more?.added ?? 0) == 0 { moreNote = "Could not research anything new just now. Try again in a minute." }
+        } catch {
+            moreNote = "Could not research just now. Try again in a minute."
+        }
+    }
+
+    static let moreCost = 3 // CREDIT_COSTS.more_ideas
+
+    private func fetchDrop(more: Bool) async throws -> DailyDrop {
+        var body: [String: AnyJSON] = ["timezone": .string(TimeZone.current.identifier)]
+        if more { body["more"] = .bool(true) }
+        return try await supabase.functions.invoke("daily-ideas", options: FunctionInvokeOptions(body: body))
+    }
+
+    private func apply(_ drop: DailyDrop) {
+        today = drop.items
+        needsProfile = drop.needsProfile ?? false
+        nextAt = ISO8601DateFormatter.withFractions.date(from: drop.nextAt) ?? ISO8601DateFormatter().date(from: drop.nextAt)
+    }
+
+    func loadSaved() async {
+        if let list = await load(liked: true) { saved = list }
+    }
+
+    func loadDismissed() async {
+        if let list = await load(liked: false) { dismissed = list }
+    }
+
+    private func load(liked: Bool) async -> [Idea]? {
+        #if DEBUG
+        if Self.isDemo { return nil }
+        #endif
+        guard let uid = try? await supabase.auth.session.user.id else { return nil }
         loadingSaved = true
         defer { loadingSaved = false }
         do {
-            saved = try await supabase.from("competitor_ideas")
+            return try await supabase.from("competitor_ideas")
                 .select()
                 .eq("user_id", value: uid)
-                .eq("liked", value: true)
+                .eq("liked", value: liked)
                 .order("created_at", ascending: false)
                 .limit(100)
                 .execute()
                 .value
         } catch {
-            self.error = "Could not load saved ideas."
+            self.error = liked ? "Could not load saved ideas." : "Could not load dismissed ideas."
+            return nil
         }
     }
 
@@ -154,12 +252,13 @@ final class IdeasStore {
         }
         apply(&today)
         apply(&saved)
-        if liked == true, !saved.contains(where: { $0.id == idea.id }) {
-            var s = idea
-            s.liked = true
-            saved.insert(s, at: 0)
-        }
+        apply(&dismissed)
+        var moved = idea
+        moved.liked = liked
+        if liked == true, !saved.contains(where: { $0.id == idea.id }) { saved.insert(moved, at: 0) }
+        if liked == false, !dismissed.contains(where: { $0.id == idea.id }) { dismissed.insert(moved, at: 0) }
         if liked != true { saved.removeAll { $0.id == idea.id } }
+        if liked != false { dismissed.removeAll { $0.id == idea.id } }
         #if DEBUG
         if Self.isDemo { return }
         #endif
@@ -206,8 +305,9 @@ extension IdeasStore {
             return nil
         } catch let FunctionsError.httpError(_, data) {
             let msg = (try? JSONDecoder().decode(ErrorBody.self, from: data))?.error
-            if msg == "limit_reached" { return "You're out of credits. Top up on chumoku.co." }
-            if msg == "upgrade_required" { return "This needs a paid plan. Upgrade on chumoku.co." }
+            // No pointing at chumoku.co to buy: the App Store rejects that.
+            if msg == "limit_reached" { return "You're out of credits for this month." }
+            if msg == "upgrade_required" { return "This isn't included in your plan." }
             return msg ?? "Something went wrong. Try again."
         } catch {
             return "Something went wrong. Try again."
@@ -217,10 +317,11 @@ extension IdeasStore {
     private func replace(_ updated: Idea) {
         if let i = today.firstIndex(where: { $0.id == updated.id || $0.videoId == updated.videoId }) { today[i] = updated }
         if let i = saved.firstIndex(where: { $0.id == updated.id }) { saved[i] = updated }
+        if let i = dismissed.firstIndex(where: { $0.id == updated.id }) { dismissed[i] = updated }
     }
 
     func live(_ idea: Idea) -> Idea {
-        today.first { $0.id == idea.id } ?? saved.first { $0.id == idea.id } ?? idea
+        today.first { $0.id == idea.id } ?? saved.first { $0.id == idea.id } ?? dismissed.first { $0.id == idea.id } ?? idea
     }
 }
 

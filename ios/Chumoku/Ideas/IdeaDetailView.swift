@@ -1,7 +1,8 @@
 import SwiftUI
 
 // One idea, as the same three steps the web page has: the angle (what your
-// version is), the outline (what to say), then film it.
+// version is), the outline (what to say), then the script. An idea Chumoku
+// found itself has no video to read, so it is two: the idea, then the script.
 struct IdeaDetailView: View {
     @Environment(IdeasStore.self) private var store
     @Environment(FilmStore.self) private var films
@@ -24,6 +25,50 @@ struct IdeaDetailView: View {
                     Text(error).font(.tSmall).foregroundStyle(Color.danger).padding(.top, 16)
                 }
 
+                if current.isOwn { ownSteps } else { videoSteps }
+            }
+            .padding(.horizontal, 20)
+            .padding(.top, 8)
+            .padding(.bottom, 120)
+        }
+        .background(Color.bg.ignoresSafeArea())
+        .safeAreaInset(edge: .bottom) { actionBar }
+        .toolbar(.hidden, for: .tabBar)
+        .toolbarBackground(Color.bg, for: .navigationBar)
+        .navigationBarTitleDisplayMode(.inline)
+        .fullScreenCover(item: $filming) { shoot in FilmView(shootId: shoot.id) }
+        .animation(.ui, value: current)
+        .animation(.ui, value: step)
+    }
+
+    // An idea Chumoku found: what it is and why, then the words to say.
+    @ViewBuilder private var ownSteps: some View {
+        StepCard(n: 1, title: "The idea", done: true) {
+            if let premise = current.adaptedIdea {
+                Text(premise).font(.tBody).foregroundStyle(Color.text).lineSpacing(3)
+            }
+            if let why = whyLine {
+                Text(why).font(.tSmall).foregroundStyle(Color.textMuted).padding(.top, 4)
+            }
+        }
+        .padding(.top, 28)
+        scriptStep(n: 2, ready: true)
+            .padding(.top, 12)
+    }
+
+    private var whyLine: String? {
+        guard let b = current.basis else { return nil }
+        var parts: [String] = []
+        if b.isRemix, let t = b.title {
+            parts.append("Built on your “\(t)”" + (b.multiple.map { $0 >= 1.2 ? ", \(String(format: "%.1f", $0).replacingOccurrences(of: ".0", with: ""))× your usual views" : "" } ?? "") + ".")
+        } else if let s = b.source, !s.isEmpty {
+            parts.append("Based on \(s).")
+        }
+        if let w = b.why, !w.isEmpty { parts.append(w.hasSuffix(".") ? w : w + ".") }
+        return parts.isEmpty ? nil : parts.joined(separator: " ")
+    }
+
+    @ViewBuilder private var videoSteps: some View {
                 StepCard(n: 1, title: "Your angle", done: current.adaptedIdea != nil) {
                     if let angle = current.adaptedIdea {
                         Text(angle).font(.tBody).foregroundStyle(Color.text).lineSpacing(3)
@@ -69,60 +114,52 @@ struct IdeaDetailView: View {
                 }
                 .padding(.top, 12)
 
-                StepCard(n: 3, title: "Script", done: current.script != nil, dim: current.outline == nil) {
-                    if let script = current.script {
-                        Text(script).font(.tBody).foregroundStyle(Color.text).lineSpacing(5)
-                        Button("Rewrite · 1 credit") { act { await store.writeScript(current) } }
-                            .font(.tSmall).foregroundStyle(Color.textFaint).padding(.top, 8)
-                    } else if step == .script {
-                        Working(label: "Writing what you'll say")
-                    } else if current.outline != nil {
-                        Text("The outline says what happens. This writes the words you say on camera, for the prompter.")
-                            .font(.tSmall).foregroundStyle(Color.textMuted)
-                        Button("Write the script · 1 credit") { act { await store.writeScript(current) } }
-                            .buttonStyle(.pill)
-                    } else {
-                        Label("Build the outline first", systemImage: "lock").font(.tSmall).foregroundStyle(Color.textFaint)
-                    }
+                scriptStep(n: 3, ready: current.outline != nil)
+                    .padding(.top, 12)
+    }
+
+    private func scriptStep(n: Int, ready: Bool) -> some View {
+        StepCard(n: n, title: "Script", done: current.script != nil, dim: !ready) {
+            if let script = current.script {
+                Text(script).font(.tBody).foregroundStyle(Color.text).lineSpacing(5).textSelection(.enabled)
+                HStack(spacing: 18) {
+                    ShareLink(item: script) { Text("Share") }
+                    Button("Rewrite · 1 credit") { act { await store.writeScript(current) } }
                 }
-                .padding(.top, 12)
+                .font(.tSmall).foregroundStyle(Color.textFaint).padding(.top, 8)
+            } else if step == .script {
+                Working(label: "Writing what you'll say")
+            } else if ready {
+                Text(current.isOwn
+                     ? "The words you say on camera, in your voice."
+                     : "The outline says what happens. This writes the words you say on camera.")
+                    .font(.tSmall).foregroundStyle(Color.textMuted)
+                Button("Write the script · 1 credit") { act { await store.writeScript(current) } }
+                    .buttonStyle(.pill)
+            } else {
+                Label("Build the outline first", systemImage: "lock").font(.tSmall).foregroundStyle(Color.textFaint)
             }
-            .padding(.horizontal, 20)
-            .padding(.top, 8)
-            .padding(.bottom, 120)
         }
-        .background(Color.bg.ignoresSafeArea())
-        .safeAreaInset(edge: .bottom) { actionBar }
-        .toolbar(.hidden, for: .tabBar)
-        .toolbarBackground(Color.bg, for: .navigationBar)
-        .navigationBarTitleDisplayMode(.inline)
-        .fullScreenCover(item: $filming) { shoot in FilmView(shootId: shoot.id) }
-        .animation(.ui, value: current)
-        .animation(.ui, value: step)
     }
 
     private var header: some View {
         VStack(alignment: .leading, spacing: 0) {
             Button { if let u = current.shortsURL { openURL(u) } } label: {
-                Thumb(url: current.thumbnailURL, radius: Radius.lg)
+                IdeaCover(idea: current, radius: Radius.lg)
                     .aspectRatio(4 / 5, contentMode: .fit)
                     .frame(maxWidth: 230)
                     .overlay {
-                        Image(systemName: "play.fill")
-                            .font(.system(size: 18))
-                            .foregroundStyle(.white)
-                            .frame(width: 50, height: 50)
-                            .background(Circle().fill(.black.opacity(0.45)))
-                    }
-                    .overlay(alignment: .topLeading) {
-                        if let badge = current.outlierBadge {
-                            Text(badge).font(.geist(13, .semibold)).foregroundStyle(.black)
-                                .padding(.horizontal, 9).padding(.vertical, 4)
-                                .background(Capsule().fill(.white)).padding(10)
+                        if !current.isOwn {
+                            Image(systemName: "play.fill")
+                                .font(.system(size: 18))
+                                .foregroundStyle(.white)
+                                .frame(width: 50, height: 50)
+                                .background(Circle().fill(.black.opacity(0.45)))
                         }
                     }
             }
             .buttonStyle(.plain)
+            .allowsHitTesting(!current.isOwn)
             .frame(maxWidth: .infinity)
 
             Text(current.pitch ?? current.videoTitle ?? current.headline)
@@ -142,7 +179,15 @@ struct IdeaDetailView: View {
             iconButton(current.liked == false ? "xmark.circle.fill" : "xmark", on: current.liked == false) {
                 Task { await store.rule(current, liked: current.liked == false ? nil : false); if current.liked == false { dismiss() } }
             }
-            iconButton(current.liked == true ? "bookmark.fill" : "bookmark", on: current.liked == true) {
+            if !Features.filming {
+                // Ideas only: saving is the wide action.
+                Button(current.liked == true ? "Saved" : "Save") {
+                    Task { await store.rule(current, liked: current.liked == true ? nil : true) }
+                }
+                .buttonStyle(PillButtonStyle(kind: current.liked == true ? .primary : .secondary))
+                .sensoryFeedback(.selection, trigger: current.liked == true)
+            } else {
+            iconButton(current.liked == true ? "heart.fill" : "heart", on: current.liked == true) {
                 Task { await store.rule(current, liked: current.liked == true ? nil : true) }
             }
             Button("Film this") {
@@ -153,6 +198,7 @@ struct IdeaDetailView: View {
             // One white pill per screen: filming takes it once there is a
             // script; before that the next step above has it.
             .buttonStyle(PillButtonStyle(kind: current.script != nil ? .primary : .secondary))
+            }
         }
         .padding(.horizontal, 20)
         .padding(.top, 12)
@@ -185,6 +231,7 @@ struct IdeaDetailView: View {
     }
 
     private var sourceLine: String? {
+        if current.isOwn { return current.ownLabel }
         let parts = [current.channelName, current.meta.isEmpty ? nil : current.meta].compactMap { $0 }
         return parts.isEmpty ? nil : parts.joined(separator: " · ")
     }

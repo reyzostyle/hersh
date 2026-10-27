@@ -146,7 +146,11 @@ final class FilmStore {
         return UIImage(cgImage: cg)
     }
 
-    static func saveToPhotos(_ url: URL) async -> Bool {
+    // nonisolated: Photos runs the change block on its own queue, and a block
+    // made on the main actor traps there ("Block was expected to execute on
+    // queue main"). That crash is why a finished 93 s edit never reached
+    // Photos on 2026-10-26: the render was done, the app died saving it.
+    nonisolated static func saveToPhotos(_ url: URL) async -> Bool {
         let status = await PHPhotoLibrary.requestAuthorization(for: .addOnly)
         guard status == .authorized || status == .limited else { return false }
         do {

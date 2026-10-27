@@ -16,7 +16,9 @@ export const OWNER_ONLY_TABS: NavTab[] = ['edit'];
 
 // Feature flags: tabs hidden from ALL users (incl. admin). Kept in code so they
 // can be re-enabled instantly by removing them from this list.
-export const HIDDEN_TABS: NavTab[] = [];
+// 'edit': the web editor, hidden 2026-10-28 (Ivan); editing lives in the iOS
+// app now. Still openable in dev at /lab/edit.
+export const HIDDEN_TABS: NavTab[] = ['edit'];
 
 interface NavItem {
   id: NavTab;

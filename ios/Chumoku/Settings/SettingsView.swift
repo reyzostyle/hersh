@@ -81,8 +81,8 @@ struct SettingsView: View {
                             }
                         }
                         .padding(16)
-                        divider
-                        linkRow("Upgrade or top up", url: "https://chumoku.co")
+                        // No upgrade or top-up link here: pointing at payment
+                        // outside the app gets an App Store build rejected.
                     }
 
                     section("Channel") {
@@ -148,6 +148,11 @@ struct SettingsView: View {
                         }
                     }
 
+                    section("Competitor channels") {
+                        ChannelsSection(plan: account?.plan)
+                    }
+
+                    if Features.filming {
                     section("Filming") {
                         toggle("Countdown before recording", $countdown)
                         divider
@@ -162,6 +167,7 @@ struct SettingsView: View {
                                 .frame(maxWidth: .infinity, alignment: .leading).padding(16).contentShape(Rectangle())
                         }
                         .buttonStyle(.plain)
+                    }
                     }
 
                     Button { if let u = URL(string: "https://discord.com/invite/N8S6C95Ry2") { openURL(u) } } label: {

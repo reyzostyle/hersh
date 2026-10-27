@@ -9,3 +9,10 @@ enum Config {
     // Configuration -> Redirect URLs in the Supabase dashboard.
     static let authCallback = URL(string: "chumoku://auth-callback")!
 }
+
+// What ships. The first App Store build is ideas only, like chumoku.co
+// (Ivan, 2026-10-28): filming, the editor, Create, Analytics and voice notes
+// stay in the code and come back one at a time, each one a video about it.
+enum Features {
+    static let filming = false
+}

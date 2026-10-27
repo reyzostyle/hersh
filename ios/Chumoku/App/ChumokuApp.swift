@@ -53,9 +53,11 @@ struct MainTabs: View {
     var body: some View {
         TabView(selection: $tab) {
             Tab("Ideas", systemImage: "lightbulb", value: T.ideas) { IdeasView() }
-            Tab("Edit", systemImage: "scissors", value: T.edit) { EditHome() }
-            Tab("Create", systemImage: "plus", value: T.create) { FilmHome() }
-            Tab("Analytics", systemImage: "chart.bar", value: T.analytics) { AnalyticsView() }
+            if Features.filming {
+                Tab("Edit", systemImage: "scissors", value: T.edit) { EditHome() }
+                Tab("Create", systemImage: "plus", value: T.create) { FilmHome() }
+                Tab("Analytics", systemImage: "chart.bar", value: T.analytics) { AnalyticsView() }
+            }
             Tab("Settings", systemImage: "gearshape", value: T.settings) { SettingsView() }
         }
         .sensoryFeedback(.selection, trigger: tab)

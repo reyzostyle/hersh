@@ -16,7 +16,7 @@ const ADMIN_EMAIL = 'reyzostyle@gmail.com';
 
 const SYSTEM = `You write talking-head scripts for vertical Shorts: one creator, on camera, talking straight to the phone.
 
-You get an outline (what each beat is about, sometimes written as what to show) and what we know about the creator. Write the exact words they will read off a teleprompter.
+You get an outline (what each beat is about, sometimes written as what to show), or for an idea with no outline yet just its premise and suggested first line, and what we know about the creator. Write the exact words they will read off a teleprompter.
 
 Rules:
 - Spoken words only. No stage directions, no brackets, no "[cut to]", no visual notes, no headings, no emojis.
@@ -49,19 +49,32 @@ Deno.serve(async (req: Request) => {
 
     const { data: idea } = await supabase.from('competitor_ideas').select('*').eq('id', ideaId).eq('user_id', user.id).maybeSingle();
     if (!idea) return json({ error: 'Idea not found' }, 404);
-    if (!idea.outline) return json({ error: 'Build the outline first.' }, 400);
+    // An idea Chumoku researched (source 'ai') has no video to outline, so its
+    // premise and suggested first line stand in for the outline.
+    const own = idea.source === 'ai';
+    if (!idea.outline && !own) return json({ error: 'Build the outline first.' }, 400);
 
     const cost = CREDIT_COSTS.competitor_script;
     const status = await loadCreditStatus(supabase, user.id);
     if (!canAfford(status, cost, isAdmin)) return json({ error: 'limit_reached', cost }, 402);
 
     const [brain, voice] = await Promise.all([loadBrain(supabase, user.id), loadVoiceBlock(supabase, user.id)]);
-    const o = idea.outline as { hook: string; sections: { title: string; content: string; duration?: string }[]; cta: string };
+    const o = idea.outline as { hook: string; sections: { title: string; content: string; duration?: string }[]; cta: string } | null;
     const prompt = [
       brainBlock(brain),
       voice,
-      idea.adapted_idea ? `THEIR ANGLE\n${idea.adapted_idea}` : '',
-      `OUTLINE\nHook: ${o.hook}\n${o.sections.map(s => `${s.title}${s.duration ? ` (${s.duration})` : ''}: ${s.content}`).join('\n')}\nEnd: ${o.cta}`,
+      o
+        ? [
+          idea.adapted_idea ? `THEIR ANGLE\n${idea.adapted_idea}` : '',
+          `OUTLINE\nHook: ${o.hook}\n${o.sections.map(s => `${s.title}${s.duration ? ` (${s.duration})` : ''}: ${s.content}`).join('\n')}\nEnd: ${o.cta}`,
+        ].filter(Boolean).join('\n\n')
+        : [
+          `THE IDEA\n${idea.pitch ?? ''}`,
+          idea.adapted_idea ? `PREMISE\n${idea.adapted_idea}` : '',
+          idea.basis?.hook ? `SUGGESTED FIRST LINE\n${idea.basis.hook}` : '',
+          idea.basis?.source ? `BASED ON\n${idea.basis.source}. Use only facts you are sure of; never invent numbers or quotes.` : '',
+          'No outline: give it a hook, two or three beats and a light ending (a follow or a question, never a sales line).',
+        ].filter(Boolean).join('\n\n'),
     ].filter(Boolean).join('\n\n');
 
     const script = (await callLLM(prompt, { system: SYSTEM, maxTokens: 1200, tier: 'writer' }))
