@@ -244,7 +244,9 @@ ${(a.weak_spots ?? []).map(s => `- ${s}`).join('\n') || '- none noted'}
         ideaBlock = `## The idea they mean
 Their version: ${idea.pitch || idea.adapted_idea || ''}
 ${idea.adapted_idea ? `${idea.source === 'ai' ? 'Premise' : 'Angle'}: ${idea.adapted_idea}\n` : ''}${idea.source === 'ai'
-  ? `Not taken from anyone: Chumoku suggested it from their own channel${idea.basis?.title ? `, building on their Short "${idea.basis.title}" (${idea.basis.multiple}x their usual views${idea.basis.why ? `; repeat: ${idea.basis.why}` : ''})` : ''}. Untested, so say so if they ask how sure it is.`
+  ? `Not taken from anyone's video: Chumoku ${idea.basis?.kind === 'remix' || idea.basis?.title
+      ? `suggested it as a remix of their own Short "${idea.basis?.title}" (${idea.basis?.multiple}x their usual views)`
+      : `researched it for their channel${idea.basis?.source ? `, based on: ${idea.basis.source}` : ''}`}.${idea.basis?.hook ? ` Suggested first line: "${idea.basis.hook}".` : ''}${idea.basis?.why ? ` Why it fits: ${idea.basis.why}.` : ''} Untested, so say so if they ask how sure it is.`
   : `Stolen from: "${idea.video_title ?? ''}" (${idea.channel_name ?? 'another channel'})`}
 ${o ? `Outline already agreed - the script follows it beat for beat:
 Hook: ${o.hook ?? ''}

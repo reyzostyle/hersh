@@ -1,13 +1,12 @@
 import { useState } from 'react';
 import { AddOutlineIcon as Plus, RefreshOutlineIcon as Loader2, CloseCircleOutlineIcon as X, CheckCircleOutlineIcon as CheckCircle2 } from '@solar-icons/react';
 import { MagnifierOutlineIcon as Search } from '@solar-icons/react';
-import { Check } from './BrandIcons';
 import { ErrorNotice } from './ErrorNotice';
 import { formatDate, type CompetitorChannel, type PoolVideo } from '../lib/competitors';
 
-// The manage panel behind "Manage" in the feed header. It owns adding and
-// removing only: "Find new ideas" moved to the feed header, since refreshing
-// is something you do to the feed, not to the channel list.
+// Competitor channels: adding and removing. Lives in Settings
+// (ChannelsSettings) since 2026-10-27. The "Adapt for my profile" box went
+// with the move: it was never saved anywhere, and every idea is adapted.
 interface Props {
   channels: CompetitorChannel[];
   pool: PoolVideo[];
@@ -17,14 +16,12 @@ interface Props {
   syncingChannelId: string | null;
   onAutoFind: () => void;
   channelLimit: number;
-  adaptForProfile: boolean;
-  onAdaptChange: (v: boolean) => void;
   onAddChannel: (url: string) => void;
   onRemoveChannel: (channel: CompetitorChannel) => void;
 }
 
 export function CompetitorsChannels({
-  channels, pool, onAutoFind, channelLimit, adaptForProfile, onAdaptChange, addingChannel, addError, removingId, syncingChannelId,
+  channels, pool, onAutoFind, channelLimit, addingChannel, addError, removingId, syncingChannelId,
   onAddChannel, onRemoveChannel,
 }: Props) {
   const [channelUrl, setChannelUrl] = useState('');
@@ -97,30 +94,6 @@ export function CompetitorsChannels({
             Up to {channelLimit} channels{channelLimit === 3 ? ' on the free plan, 5 on Plus' : ''} · a new one syncs right away
           </p>
         )}
-
-        {/* Moved out of the feed toolbar. It changes how a video is written up
-            when you break it down, which is a setting, not a filter - and as a
-            filter-shaped chip it was taking a row of its own on a phone. */}
-        <button
-          onClick={() => onAdaptChange(!adaptForProfile)}
-          className="flex items-center gap-2.5 w-full text-left px-3 py-2.5 rounded-[var(--r-sm)] transition-colors"
-          style={{ background: 'var(--bg-raised)', border: '1px solid var(--line)' }}
-        >
-          <span
-            className="w-4 h-4 rounded flex items-center justify-center flex-shrink-0"
-            style={adaptForProfile
-              ? { background: 'var(--accent)' }
-              : { border: '1px solid var(--line-strong)' }}
-          >
-            {adaptForProfile && <Check className="w-3 h-3" style={{ color: 'var(--on-accent)' }} />}
-          </span>
-          <span className="min-w-0">
-            <span className="block text-[13px] font-medium" style={{ color: 'var(--text)' }}>Adapt for my profile</span>
-            <span className="block text-[11px]" style={{ color: 'var(--text-faint)' }}>
-              Write each angle for your channel, using the brain in Settings
-            </span>
-          </span>
-        </button>
 
         {channels.length > 0 && (
           <div className="space-y-2">

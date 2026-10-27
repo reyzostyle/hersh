@@ -2,13 +2,12 @@ import { useState, useEffect, useCallback } from 'react';
 import { supabase, getSessionToken, getUserId } from '../lib/supabase';
 import {
   callFunction, stealVideo, fetchDailyDrop, itemFromIdea, filterIdeas,
-  type CompetitorChannel, type CompetitorIdea, type FeedItem, type IdeaFilter, type PoolVideo,
+  type CompetitorIdea, type FeedItem, type IdeaFilter,
 } from '../lib/competitors';
 import { takeRequestedVideo } from '../lib/projects';
 import { CREDIT_COSTS } from '../lib/useUsage';
 import { CompetitorsFeed } from './CompetitorsFeed';
 import { CompetitorVideoView } from './CompetitorVideoView';
-import { FindCompetitorsModal } from './FindCompetitorsModal';
 import { Page, PageHead, Loading } from './Page';
 import { StealProgress } from './StealProgress';
 import { StealCard } from './StealCard';
@@ -16,29 +15,18 @@ import { take, PENDING_STEAL_KEY } from '../lib/intents';
 
 // The Ideas tab. `ideas` is every row this user has: today's drop (built and
 // pitched server-side by daily-ideas), everything saved or dismissed, and the
-// steals. `pool` is still loaded, but only for the channels panel: the inbox is
-// today's drop now, not the tracked channels' back catalogue (see
-// CompetitorsFeed for why).
+// steals. Tracked channels moved to Settings (ChannelsSettings) on 2026-10-27.
 export function CompetitorsPage() {
-  const [channels, setChannels] = useState<CompetitorChannel[]>([]);
-  const [pool, setPool] = useState<PoolVideo[]>([]);
   const [ideas, setIdeas] = useState<CompetitorIdea[]>([]);
-  const [addingChannel, setAddingChannel] = useState(false);
-  const [addError, setAddError] = useState('');
   const [fetchError, setFetchError] = useState('');
   const [initialLoading, setInitialLoading] = useState(true);
-  const [removingId, setRemovingId] = useState<string | null>(null);
-  const [syncingChannelId, setSyncingChannelId] = useState<string | null>(null);
   const [ideaFilter, setIdeaFilter] = useState<IdeaFilter>('new');
-  // Not a gate any more - it only decides how many channels may be tracked,
-  // which the manage panel shows.
-  const [userPlan, setUserPlan] = useState<string>('free');
   const [openVideoId, setOpenVideoId] = useState<string | null>(null);
   const [enrichingId, setEnrichingId] = useState<string | null>(null);
-  // Lives up here rather than in the feed because it now steers the enrichment
-  // call as well as the refresh, and both are launched from this component.
-  const [adaptForProfile, setAdaptForProfile] = useState(true);
-  const [findOpen, setFindOpen] = useState(false);
+  // Every angle is written for the creator's channel. This was a checkbox in
+  // the channels panel that nothing saved; the panel moved to Settings
+  // without it.
+  const adaptForProfile = true;
   const [stealing, setStealing] = useState(false);
   // A finished steal lands on its card first - the result at a glance, the
   // thing that gets filmed - and the outline is one press further.
@@ -54,44 +42,8 @@ export function CompetitorsPage() {
       const userId = await getUserId();
       if (!userId) return;
 
-      const [{ data: planData }, { data: channelData }, { data: ideaData }] = await Promise.all([
-        supabase.from('user_tokens').select('plan').eq('user_id', userId).maybeSingle(),
-        supabase.from('competitor_channels').select('*').eq('user_id', userId).order('created_at', { ascending: true }),
-        supabase.from('competitor_ideas').select('*').eq('user_id', userId),
-      ]);
-
-      setUserPlan(planData?.plan || 'free');
-
-      // The table has carried both spellings of these two columns since the
-      // competitor tables were reshaped, so a row can arrive under either one.
-      // The raw shape says that out loud instead of hiding it behind `any`,
-      // which also means TypeScript catches it when the older pair is finally
-      // dropped.
-      type RawChannel = Omit<CompetitorChannel, 'channel_name' | 'channel_thumbnail'> & {
-        channel_name?: string | null; channel_title?: string | null;
-        channel_thumbnail?: string | null; thumbnail_url?: string | null;
-      };
-      const mappedChannels: CompetitorChannel[] = ((channelData || []) as RawChannel[]).map(c => ({
-        ...c,
-        channel_name: c.channel_name ?? c.channel_title ?? null,
-        channel_thumbnail: c.channel_thumbnail ?? c.thumbnail_url ?? null,
-      }));
-      setChannels(mappedChannels);
+      const { data: ideaData } = await supabase.from('competitor_ideas').select('*').eq('user_id', userId);
       setIdeas(ideaData || []);
-
-      // Read straight from the table rather than through the refresh function:
-      // opening the tab should show what is already known instantly, and only
-      // an explicit refresh should go out to YouTube.
-      if (mappedChannels.length) {
-        const { data: poolData } = await supabase
-          .from('competitor_videos')
-          .select('*')
-          .in('channel_id', mappedChannels.map(c => c.channel_id))
-          .order('outlier_score', { ascending: false, nullsFirst: false });
-        setPool(poolData || []);
-      } else {
-        setPool([]);
-      }
     } catch (e) {
       console.error('[CompetitorsPage] loadData error:', e);
     } finally {
@@ -117,7 +69,7 @@ export function CompetitorsPage() {
     setDrop({ ids: d.items.map(i => i.video_id), nextAt: d.nextAt, needsProfile: !!d.needsProfile });
   };
 
-  // Ten more for credits, once today's are used up.
+  // Five researched ideas for credits, any time of day.
   const findMore = async () => {
     setFindingMore(true);
     setMoreNote('');
@@ -128,7 +80,7 @@ export function CompetitorsPage() {
       if (!d) { setMoreNote('Could not look just now. Try again in a minute.'); return; }
       applyDrop(d);
       if (d.more?.error === 'limit_reached') setMoreNote(`That costs ${CREDIT_COSTS.more_ideas} credits and you're out for this month.`);
-      else if (!d.more?.added) setMoreNote('Nothing new right now. More arrive with the next drop.');
+      else if (!d.more?.added) setMoreNote('Could not research anything new just now. Try again in a minute.');
     } finally {
       setFindingMore(false);
     }
@@ -186,68 +138,6 @@ export function CompetitorsPage() {
       }
     })();
   }, []);
-
-  const handleAddChannel = async (channelUrl: string) => {
-    setAddingChannel(true);
-    setAddError('');
-    try {
-      const token = await getSessionToken();
-      if (!token) throw new Error('Not authenticated');
-      const res = await callFunction('add-competitor-channel', token, { channelUrl });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Failed to add channel');
-      await loadData();
-
-      // The new channel gets its own pool built immediately, scoped to just
-      // that channel. It costs three YouTube reads and nothing else, so there
-      // is no reason to make someone wait for the next manual refresh.
-      const newChannelId = data.channel?.channel_id;
-      if (newChannelId) {
-        setSyncingChannelId(data.channel.id);
-        try {
-          const syncRes = await callFunction('fetch-competitor-ideas', token, { channelId: newChannelId });
-          const syncData = await syncRes.json();
-          if (syncRes.ok && syncData.videos) setPool(syncData.videos);
-        } catch (e) {
-          console.error('[CompetitorsPage] onboarding sync error:', e);
-        } finally {
-          setSyncingChannelId(null);
-        }
-      }
-    } catch (e) {
-      setAddError(e instanceof Error ? e.message : 'Something went wrong');
-    } finally {
-      setAddingChannel(false);
-    }
-  };
-
-  // Auto-find hands back channel ids; each goes through the same endpoint a
-  // pasted URL does, so the five-channel cap, the id resolution and the
-  // first-sync are enforced in one place rather than two. Sequential on
-  // purpose: the cap is checked server-side per call, and firing five at once
-  // would race past it.
-  const handleAddFound = async (channelIds: string[]) => {
-    for (const id of channelIds) {
-      await handleAddChannel(`https://www.youtube.com/channel/${id}`);
-    }
-  };
-
-  const handleRemoveChannel = async (channel: CompetitorChannel) => {
-    setRemovingId(channel.id);
-    try {
-      const userId = await getUserId();
-      if (!userId) throw new Error('Not authenticated');
-      await supabase.from('competitor_channels').delete().eq('id', channel.id).eq('user_id', userId);
-      setChannels(prev => prev.filter(c => c.id !== channel.id));
-      // The pooled videos stay in the table - another user may track the same
-      // channel - they just stop being visible here.
-      setPool(prev => prev.filter(v => v.channel_id !== channel.channel_id));
-    } catch (e) {
-      console.error('[CompetitorsPage] remove channel error:', e);
-    } finally {
-      setRemovingId(null);
-    }
-  };
 
   // Records a decision on a video. This is the row that used to only exist
   // after the model had run - now it is written the moment you rule on
@@ -432,33 +322,14 @@ export function CompetitorsPage() {
         }}
         saved={savedItems}
         dismissed={dismissedItems}
-        pool={pool}
-        channels={channels}
         filter={ideaFilter}
         onFilterChange={setIdeaFilter}
         onOpen={item => setOpenVideoId(item.video_id)}
         onDismiss={item => ruleOn([item], item.idea?.liked === false ? null : false)}
         onSave={item => ruleOn([item], item.idea?.liked === true ? null : true)}
-        addingChannel={addingChannel}
-        addError={addError}
-        removingId={removingId}
-        syncingChannelId={syncingChannelId}
-        onAddChannel={handleAddChannel}
-        onRemoveChannel={handleRemoveChannel}
-        onAutoFind={() => setFindOpen(true)}
-        channelLimit={userPlan === 'free' ? 3 : 5}
         fetchError={fetchError}
-        adaptForProfile={adaptForProfile}
-        onAdaptChange={setAdaptForProfile}
       />
 
-      {findOpen && (
-        <FindCompetitorsModal
-          slotsLeft={Math.max(0, (userPlan === 'free' ? 3 : 5) - channels.length)}
-          onAdd={handleAddFound}
-          onClose={() => setFindOpen(false)}
-        />
-      )}
     </Page>
   );
 }

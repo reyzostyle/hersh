@@ -1,14 +1,13 @@
 import { useEffect, useState } from 'react';
-import { LightbulbOutlineIcon as Lightbulb, AddOutlineIcon as Plus, AltArrowUpOutlineIcon as ChevronUp, RefreshOutlineIcon as Loader2 } from '@solar-icons/react';
+import { LightbulbOutlineIcon as Lightbulb, RefreshOutlineIcon as Loader2 } from '@solar-icons/react';
 import {
   itemFromIdea,
-  type CompetitorChannel, type CompetitorIdea, type FeedItem, type IdeaFilter, type PoolVideo,
+  type CompetitorIdea, type FeedItem, type IdeaFilter,
 } from '../lib/competitors';
 import { CompetitorVideoCard } from './CompetitorVideoCard';
-import { CompetitorsChannels } from './CompetitorsChannels';
 import { DailyStack } from './DailyStack';
 import { ErrorNotice } from './ErrorNotice';
-import { Empty, Seg, Collapse, Skeleton, Button } from './Page';
+import { Empty, Seg, Skeleton, Button } from './Page';
 import { CREDIT_COSTS } from '../lib/useUsage';
 
 // The Ideas tab, rebuilt 2026-10-10 around the daily drop.
@@ -41,24 +40,12 @@ interface Props {
   today: Today;
   saved: FeedItem[];
   dismissed: FeedItem[];
-  pool: PoolVideo[];
-  channels: CompetitorChannel[];
   filter: IdeaFilter;
   onFilterChange: (f: IdeaFilter) => void;
   onOpen: (item: FeedItem) => void;
   onDismiss: (item: FeedItem) => void;
   onSave: (item: FeedItem) => void;
-  addingChannel: boolean;
-  addError: string;
-  removingId: string | null;
-  syncingChannelId: string | null;
-  onAddChannel: (url: string) => void;
-  onRemoveChannel: (channel: CompetitorChannel) => void;
-  onAutoFind: () => void;
-  channelLimit: number;
   fetchError: string;
-  adaptForProfile: boolean;
-  onAdaptChange: (v: boolean) => void;
 }
 
 type View = 'grid' | 'swipe';
@@ -82,11 +69,8 @@ function useCountdown(to: string | null): string | null {
 }
 
 export function CompetitorsFeed({
-  today, saved, dismissed, pool, channels, filter, onFilterChange, onOpen, onDismiss, onSave,
-  addingChannel, addError, removingId, syncingChannelId, onAddChannel, onRemoveChannel,
-  onAutoFind, channelLimit, fetchError, adaptForProfile, onAdaptChange,
+  today, saved, dismissed, filter, onFilterChange, onOpen, onDismiss, onSave, fetchError,
 }: Props) {
-  const [manageOpen, setManageOpen] = useState(false);
   const [view, setView] = useState<View>(readView);
   const left = useCountdown(today.nextAt);
 
@@ -100,6 +84,10 @@ export function CompetitorsFeed({
     { id: 'saved', label: `Saved (${saved.length})` },
     { id: 'dismissed', label: `Dismissed (${dismissed.length})` },
   ];
+
+  // Researched ideas on demand, for credits (daily-ideas, MORE_OWN). Offered
+  // all day, not only once the drop is used up.
+  const moreLabel = today.findingMore ? 'Researching' : `5 more ideas · ${CREDIT_COSTS.more_ideas} credits`;
 
   const nextLabel = today.nextAt
     ? new Date(today.nextAt).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })
@@ -119,31 +107,8 @@ export function CompetitorsFeed({
               onChange={changeView}
             />
           )}
-          <button onClick={() => setManageOpen(o => !o)} className="chip flex-shrink-0" style={{ borderStyle: 'dashed' }}>
-            {manageOpen ? <ChevronUp className="w-3.5 h-3.5" /> : <Plus className="w-3.5 h-3.5" />}
-            Channels
-          </button>
         </div>
       </div>
-
-      <Collapse open={manageOpen} className="!mt-0">
-        <div className="pt-3">
-          <CompetitorsChannels
-            channels={channels}
-            pool={pool}
-            addingChannel={addingChannel}
-            addError={addError}
-            removingId={removingId}
-            syncingChannelId={syncingChannelId}
-            onAddChannel={onAddChannel}
-            onRemoveChannel={onRemoveChannel}
-            onAutoFind={onAutoFind}
-            channelLimit={channelLimit}
-            adaptForProfile={adaptForProfile}
-            onAdaptChange={onAdaptChange}
-          />
-        </div>
-      </Collapse>
 
       {fetchError && <ErrorNotice message={fetchError} />}
 
@@ -167,16 +132,24 @@ export function CompetitorsFeed({
           </Empty>
         ) : today.total === 0 ? (
           <Empty icon={<Lightbulb className="w-7 h-7" style={{ color: 'var(--text-faint)' }} />}>
-            {`Nothing new today. Next ones at ${nextLabel}.`}
+            <span className="block mb-3">{today.moreNote || `Nothing new today. Next ones at ${nextLabel}.`}</span>
+            <Button variant="primary" size="sm" onClick={today.onMore} disabled={today.findingMore}>
+              {today.findingMore && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+              {moreLabel}
+            </Button>
           </Empty>
         ) : (
           <>
             {today.remaining.length > 0 ? (
-              left && (
-                <p className="text-[13px]" style={{ color: 'var(--text-muted)' }}>
-                  New ideas in {left} · unsaved ones disappear
+              <div className="flex items-center gap-3">
+                <p className="flex-1 min-w-0 text-[13px]" style={{ color: 'var(--text-muted)' }}>
+                  {today.moreNote || (left ? `New ideas in ${left} · unsaved ones disappear` : '')}
                 </p>
-              )
+                <button className="btn btn--text btn--sm flex-shrink-0" onClick={today.onMore} disabled={today.findingMore}>
+                  {today.findingMore && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                  {moreLabel}
+                </button>
+              </div>
             ) : (
               // Today's are all ruled on: say when the next ones come, and
               // offer more now for credits.
@@ -187,7 +160,7 @@ export function CompetitorsFeed({
                 </p>
                 <Button variant="primary" size="sm" onClick={today.onMore} disabled={today.findingMore}>
                   {today.findingMore && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
-                  {today.findingMore ? 'Finding ideas' : `Find 10 more · ${CREDIT_COSTS.more_ideas} credits`}
+                  {moreLabel}
                 </Button>
               </div>
             )}

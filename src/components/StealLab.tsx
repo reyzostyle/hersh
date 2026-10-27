@@ -39,16 +39,22 @@ const DROP: CompetitorIdea[] = ([
   outline: null, script: null, liked: null, project_id: null, created_at: '',
 }));
 
-// Two suggestions from the creator's own channel, dealt in among them the way
-// daily-ideas deals them (one after every two outliers).
-const OWN: CompetitorIdea[] = ([
-  ['ai-lab1', 'I let Claude run my channel for a week', 'You hand Claude your analytics and post only what it picks, then show the views on day 7. First line: "I stopped deciding what to post."', '2cYF74YMmGc', 3.4],
-  ['ai-lab2', 'Claude found the one thing my best Short did right', 'Open your top Short next to a flop and let Claude point at the difference on screen. First line: "This Short did 3x the other one, and Claude knows why."', 'Y1s03EY3UCk', 2.1],
-] as const).map(([video_id, pitch, adapted_idea, basisId, multiple]) => ({
-  ...DROP[0], id: video_id, video_id, channel_id: '', channel_name: 'reyzostyle', outlier_score: null, video_views: null,
-  pitch, adapted_idea, source: 'ai' as const,
-  basis: { video_id: basisId, title: 'Claude Code built my app in 10 minutes', views: 41_000, multiple, why: 'A real build on screen, result in the first second' },
-}));
+// Two ideas Chumoku found rather than took from a Short, dealt in among them
+// the way daily-ideas deals them (one after every two outliers).
+const OWN: CompetitorIdea[] = [
+  {
+    ...DROP[0], id: 'ai-lab1', video_id: 'ai-lab1', channel_id: '', channel_name: 'reyzostyle', outlier_score: null, video_views: null,
+    source: 'ai', pitch: 'Claude Code now runs in your browser. I built an app on my phone',
+    adapted_idea: 'Open Claude Code on the web from your phone and ship a tiny app before your coffee is done. Show the live link at the end.',
+    basis: { kind: 'research', hook: 'I just built an app on my phone, no laptop.', source: 'Claude Code on the web, Oct 20', why: 'New, and your build-on-screen Shorts beat your usual' },
+  },
+  {
+    ...DROP[0], id: 'ai-lab2', video_id: 'ai-lab2', channel_id: '', channel_name: 'reyzostyle', outlier_score: null, video_views: null,
+    source: 'ai', pitch: 'I gave 3 AI builders the same prompt. One broke instantly',
+    adapted_idea: 'Same prompt into three builders, side by side, and you add a database to each. Only one survives.',
+    basis: { kind: 'remix', hook: 'Same prompt, three AI builders, and one of them broke in ten seconds.', video_id: '2cYF74YMmGc', title: 'how to vibecode an app with no experience', views: 41_000, multiple: 4.6, why: 'A real build on screen, result in the first second' },
+  },
+];
 DROP.splice(2, 0, OWN[0]);
 DROP.push(OWN[1]);
 
@@ -73,24 +79,12 @@ function DropDemo() {
         }}
         saved={ideas.filter(i => i.liked === true).map(itemFromIdea)}
         dismissed={ideas.filter(i => i.liked === false).map(itemFromIdea)}
-        pool={[]}
-        channels={[]}
         filter={filter}
         onFilterChange={setFilter}
         onOpen={noop}
         onSave={item => rule(item.video_id, true)}
         onDismiss={item => rule(item.video_id, false)}
-        addingChannel={false}
-        addError=""
-        removingId={null}
-        syncingChannelId={null}
-        onAddChannel={noop}
-        onRemoveChannel={noop}
-        onAutoFind={noop}
-        channelLimit={3}
         fetchError=""
-        adaptForProfile
-        onAdaptChange={noop}
       />
       <Button variant="text" size="sm" className="mx-auto flex mt-3" onClick={() => setIdeas(DROP)}>Reset</Button>
     </>

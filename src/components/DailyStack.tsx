@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState } from 'react';
-import { formatViews, isOwnIdea, type CompetitorIdea } from '../lib/competitors';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { formatViews, isOwnIdea, ownIdeaLabel, type CompetitorIdea } from '../lib/competitors';
 import { AiIdeaCover } from './AiIdeaCover';
 import { ShortThumb } from './ShortThumb';
 import { Skeleton } from './Page';
@@ -19,12 +19,19 @@ import { Skeleton } from './Page';
 //   cover already loaded);
 // - a quick flick counts even short of the threshold;
 // - let go early and it springs back with a little overshoot.
+//
+// The whole stack, buttons included, fits the window: the cover gives up
+// height first (it is object-fit: cover, so it just crops tighter), down to
+// MIN_MEDIA. Before, on a laptop the buttons sat below the fold (Ivan,
+// 2026-10-27).
 
 const THRESHOLD = 100;      // px of drag that counts as a decision
 const FLICK = 0.55;         // px/ms that counts as a decision from 30px on
 const FLY_MS = 300;
 const SPRING = 'cubic-bezier(0.34, 1.56, 0.64, 1)';
 const OUT = 'cubic-bezier(0.2, 0.7, 0.3, 1)';
+const MIN_MEDIA = 180;      // px; below this the page scrolls instead
+const BOTTOM_GAP = 20;      // px left under the buttons
 
 const reducedMotion = () =>
   typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
@@ -42,12 +49,42 @@ export function DailyStack({ remaining, total, nextAt, loading, onSave, onDismis
   const next = remaining[1];
   // Drag and flight belong to one card by id, so the card that rises to the
   // top never inherits the last one's offset.
-  const [drag, setDrag] = useState({ x: 0, y: 0 });
+  const [drag, setDragState] = useState({ x: 0, y: 0 });
+  // The same offset, readable at once. Pointer moves are batched, so on a quick
+  // flick the up event could read a render-old offset from state and spring
+  // the card back instead of sending it (one of the "sometimes it doesn't
+  // take" swipes).
+  const dragRef = useRef({ x: 0, y: 0 });
+  const setDrag = (d: { x: number; y: number }) => { dragRef.current = d; setDragState(d); };
   const [dragging, setDragging] = useState(false);
   const [flying, setFlying] = useState<{ id: string; dir: 1 | -1; y: number } | null>(null);
   const start = useRef<{ x: number; y: number; id: number } | null>(null);
   const moved = useRef(false);
   const last = useRef<{ x: number; t: number; vx: number }>({ x: 0, t: 0, vx: 0 });
+  const rootRef = useRef<HTMLDivElement>(null);
+  const [mediaH, setMediaH] = useState<number | null>(null);
+
+  // A new card on top is never mid-flight. Without this, a card that came
+  // back (a save that failed and reloaded) kept the old flight: invisible,
+  // and every decision on it refused.
+  useEffect(() => { setFlying(null); }, [top?.video_id]);
+
+  // Fit the stack to the window, measured rather than guessed: the page head
+  // above it and the title under the cover both vary.
+  useLayoutEffect(() => {
+    const fit = () => {
+      const root = rootRef.current;
+      const media = root?.querySelector<HTMLElement>('.daily__card:not(.daily__card--under) .daily__media');
+      if (!root || !media) return;
+      const rootTop = root.getBoundingClientRect().top + window.scrollY;
+      const rest = root.offsetHeight - media.offsetHeight;
+      const room = window.innerHeight - rootTop - rest - BOTTOM_GAP;
+      setMediaH(Math.round(Math.max(MIN_MEDIA, Math.min(media.offsetWidth * 1.25, room))));
+    };
+    fit();
+    window.addEventListener('resize', fit);
+    return () => window.removeEventListener('resize', fit);
+  }, [top?.video_id]);
 
   const decide = (dir: 1 | -1, y = 0) => {
     if (!top || flying?.id === top.video_id) return;
@@ -112,7 +149,7 @@ export function DailyStack({ remaining, total, nextAt, loading, onSave, onDismis
   const deck = [top, next].filter((i): i is CompetitorIdea => !!i);
 
   return (
-    <div className="daily">
+    <div className="daily" ref={rootRef}>
       <div className="daily__head">
         <span className="daily__count ml-auto">{seen + 1} of {total}</span>
       </div>
@@ -131,7 +168,7 @@ export function DailyStack({ remaining, total, nextAt, loading, onSave, onDismis
                   transition: underTransition,
                 }}
               >
-                <CardFace idea={idea} />
+                <CardFace idea={idea} mediaH={mediaH} />
               </div>
             );
           }
@@ -148,10 +185,14 @@ export function DailyStack({ remaining, total, nextAt, loading, onSave, onDismis
                 transition: topTransition,
               }}
               onPointerDown={e => {
-                if (isFlying) return;
+                if (isFlying || e.button > 0) return;
                 start.current = { x: e.clientX, y: e.clientY, id: e.pointerId };
                 last.current = { x: e.clientX, t: e.timeStamp, vx: 0 };
                 moved.current = false;
+                // Captured from the first moment, not after 5px: a quick drag
+                // with a mouse used to leave the card before capture, and the
+                // card then stopped following until the next click.
+                e.currentTarget.setPointerCapture(e.pointerId);
                 setDragging(true);
               }}
               onPointerMove={e => {
@@ -162,30 +203,37 @@ export function DailyStack({ remaining, total, nextAt, loading, onSave, onDismis
                 if (!moved.current && Math.abs(dy) > Math.abs(dx) && Math.abs(dy) > 8) {
                   start.current = null; setDragging(false); setDrag({ x: 0, y: 0 }); return;
                 }
-                if (Math.abs(dx) > 5 && !moved.current) {
-                  moved.current = true;
-                  e.currentTarget.setPointerCapture(e.pointerId);
-                }
+                if (Math.abs(dx) > 5 && !moved.current) moved.current = true;
                 const dt = e.timeStamp - last.current.t;
                 if (dt > 0) last.current = { x: e.clientX, t: e.timeStamp, vx: (e.clientX - last.current.x) / dt };
                 if (moved.current) setDrag({ x: dx, y: dy });
               }}
               onPointerUp={e => {
+                // Released after the page took it as a scroll: neither a tap
+                // nor a swipe. This used to open the card.
+                if (!start.current || start.current.id !== e.pointerId) return;
                 const wasDrag = moved.current;
                 start.current = null;
                 setDragging(false);
                 if (!wasDrag) { onOpen(top); return; }
+                const d = dragRef.current;
                 // A stale velocity (finger rested before lifting) is not a flick.
                 const vx = e.timeStamp - last.current.t < 80 ? last.current.vx : 0;
-                const flick = Math.abs(drag.x) > 30 && Math.abs(vx) > FLICK && Math.sign(vx) === Math.sign(drag.x);
-                if (drag.x > THRESHOLD || (flick && vx > 0)) decide(1, drag.y * 0.4);
-                else if (drag.x < -THRESHOLD || (flick && vx < 0)) decide(-1, drag.y * 0.4);
+                const flick = Math.abs(d.x) > 30 && Math.abs(vx) > FLICK && Math.sign(vx) === Math.sign(d.x);
+                if (d.x > THRESHOLD || (flick && vx > 0)) decide(1, d.y * 0.4);
+                else if (d.x < -THRESHOLD || (flick && vx < 0)) decide(-1, d.y * 0.4);
                 else setDrag({ x: 0, y: 0 });
               }}
               onPointerCancel={() => { start.current = null; setDragging(false); setDrag({ x: 0, y: 0 }); }}
+              // Capture lost mid-drag (window switched, an alert): let go
+              // cleanly instead of leaving the card stuck to the side.
+              onLostPointerCapture={() => {
+                if (!start.current) return;
+                start.current = null; setDragging(false); setDrag({ x: 0, y: 0 });
+              }}
               onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onOpen(top); } }}
             >
-              <CardFace idea={top} lean={lean} />
+              <CardFace idea={top} lean={lean} mediaH={mediaH} />
             </div>
           );
         })}
@@ -206,11 +254,11 @@ export function DailyStack({ remaining, total, nextAt, loading, onSave, onDismis
 
 // The same face on both cards, so promoting the under card changes nothing
 // but its position. `lean` only exists on the top one.
-function CardFace({ idea, lean }: { idea: CompetitorIdea; lean?: number }) {
+function CardFace({ idea, lean, mediaH }: { idea: CompetitorIdea; lean?: number; mediaH: number | null }) {
   return (
     <>
-      <div className="daily__media">
-        {isOwnIdea(idea) ? <AiIdeaCover idea={idea} eager /> : <ShortThumb videoId={idea.video_id} eager />}
+      <div className="daily__media" style={mediaH ? { height: mediaH, aspectRatio: 'auto' } : undefined}>
+        {isOwnIdea(idea) ? <AiIdeaCover idea={idea} /> : <ShortThumb videoId={idea.video_id} eager />}
         {!isOwnIdea(idea) && idea.outlier_score != null && idea.outlier_score < 1000 && (
           <span className="idea-card__mult">{idea.outlier_score}×</span>
         )}
@@ -224,7 +272,7 @@ function CardFace({ idea, lean }: { idea: CompetitorIdea; lean?: number }) {
       <div className="daily__body">
         <p className="daily__pitch">{idea.pitch ?? idea.video_title}</p>
         <p className="idea-card__meta">
-          {isOwnIdea(idea) ? 'From your channel · untested' : <>
+          {isOwnIdea(idea) ? ownIdeaLabel(idea) : <>
             {idea.fit === 'yes' && <><span className="idea-card__fit">Fits your channel</span> · </>}
             {[idea.channel_name, idea.video_views != null ? formatViews(idea.video_views) : null].filter(Boolean).join(' · ')}
           </>}

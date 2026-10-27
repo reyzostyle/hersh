@@ -1,4 +1,4 @@
-import { formatViews, isOwnIdea, type FeedItem } from '../lib/competitors';
+import { formatViews, isOwnIdea, ownIdeaLabel, type FeedItem } from '../lib/competitors';
 import { AiIdeaCover } from './AiIdeaCover';
 import { Skeleton } from './Page';
 import { ShortThumb } from './ShortThumb';
@@ -68,7 +68,7 @@ export function CompetitorVideoCard({ item, pitching, readOnly, thumb, onOpen, o
         )}
 
         {own ? (
-          <p className="idea-card__meta">From your channel · untested</p>
+          <p className="idea-card__meta">{ownIdeaLabel(idea!)}</p>
         ) : <p className="idea-card__meta">
           {fit === 'yes' && <span className="idea-card__fit">Fits your channel</span>}
           {fit === 'stretch' && <span>Stretch</span>}

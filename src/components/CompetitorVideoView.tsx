@@ -1,6 +1,6 @@
 import { AltArrowLeftOutlineIcon as ArrowLeft, SquareArrowRightUpOutlineIcon as ExternalLink, LockKeyholeMinimalisticOutlineIcon as Lock } from '@solar-icons/react';
 import { ShortThumb } from './ShortThumb';
-import { formatViews, isOwnIdea, type FeedItem, type CompetitorIdea } from '../lib/competitors';
+import { formatViews, isOwnIdea, isOwnRemix, ownIdeaLabel, type FeedItem, type CompetitorIdea } from '../lib/competitors';
 import { AiIdeaCover } from './AiIdeaCover';
 import { useIdeaGeneration } from '../lib/useIdeaGeneration';
 import { CREDIT_COSTS } from '../lib/useUsage';
@@ -175,9 +175,9 @@ export function CompetitorVideoView({
   );
 }
 
-// An idea suggested from the creator's own channel. No video to read or
-// watch, so no angle or outline to unlock: the premise is already the angle,
-// and the next step is the script.
+// An idea Chumoku found for the creator. No video to read or watch, so no
+// angle or outline to unlock: the premise is already the angle, and the next
+// step is the script.
 function OwnIdeaView({ idea, backLabel, onBack, onSave, onDismiss, onWrite }: {
   idea: CompetitorIdea;
   backLabel: string;
@@ -198,10 +198,10 @@ function OwnIdeaView({ idea, backLabel, onBack, onSave, onDismiss, onWrite }: {
       </button>
 
       <div className="flex flex-col sm:flex-row gap-6 sm:gap-8 mb-12">
-        <div className="idea-hero__media"><AiIdeaCover idea={idea} eager /></div>
+        <div className="idea-hero__media"><AiIdeaCover idea={idea} /></div>
 
         <div className="flex-1 min-w-0 flex flex-col">
-          <p className="t-label mb-3" style={{ color: 'var(--text-muted)' }}>AI idea from your channel · untested</p>
+          <p className="t-label mb-3" style={{ color: 'var(--text-muted)' }}>{ownIdeaLabel(idea)}</p>
           <h1 className="t-title" style={{ color: 'var(--text)' }}>{idea.pitch}</h1>
           <div className="flex items-center gap-2 mt-6">
             <Button variant={idea.liked === true ? 'primary' : 'secondary'} size="sm" onClick={onSave}>{idea.liked === true ? 'Saved' : 'Save'}</Button>
@@ -215,7 +215,9 @@ function OwnIdeaView({ idea, backLabel, onBack, onSave, onDismiss, onWrite }: {
           <p className="t-body" style={{ color: 'var(--text)' }}>{idea.adapted_idea}</p>
           {basis && (
             <p className="t-small mt-4" style={{ color: 'var(--text-muted)' }}>
-              Built on your “{basis.title}”{basis.multiple >= 1.2 ? `, ${basis.multiple}× your usual views` : ''}.
+              {isOwnRemix(basis)
+                ? <>Built on your “{basis.title}”{basis.multiple >= 1.2 ? `, ${basis.multiple}× your usual views` : ''}.</>
+                : 'source' in basis && basis.source ? <>Based on {basis.source}.</> : null}
               {basis.why ? ` ${basis.why.replace(/\.?$/, '.')}` : ''}
             </p>
           )}

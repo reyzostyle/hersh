@@ -40,6 +40,13 @@ const DROP_SIZE = 10;
 // (own-ideas.ts), when there are uploads to learn from. They also fill any
 // seats the outliers leave empty, so a thin niche no longer means a thin drop.
 const OWN_MIN = 3;
+// "Find more" for credits is researched ideas only: the outliers are what the
+// morning already found, and asking again an hour later turns up the same.
+const MORE_OWN = 5;
+// A Short has to have actually been seen to count as proof. 3.9x on a channel
+// whose usual is 100 views is 382 views, which proves nothing (Ivan,
+// 2026-10-27).
+const MIN_VIEWS = 10_000;
 const DROP_HOUR = 9;
 const PITCH_POOL = 30;                       // candidates pitched to pick DROP_SIZE from
 const PER_CHANNEL = 2;
@@ -160,7 +167,8 @@ async function nicheChannels(supabase: any, query: string, ytApiKey: string): Pr
 // Other channels' outliers first, then ideas from their own channel in the
 // seats left (at least OWN_MIN of them).
 async function buildDrop(supabase: any, userId: string, dropDate: string, profile: any, ytApiKey: string): Promise<number> {
-  const own = canSuggest(await loadChannelScan(supabase, userId));
+  const [scan, brain] = await Promise.all([loadChannelScan(supabase, userId), loadBrain(supabase, userId)]);
+  const own = canSuggest(scan, brain);
   const outliers = await dropOutliers(supabase, userId, dropDate, profile, ytApiKey, own ? DROP_SIZE - OWN_MIN : DROP_SIZE);
   if (!own) return outliers;
   let suggested = 0;
@@ -228,7 +236,8 @@ async function dropOutliers(supabase: any, userId: string, dropDate: string, pro
     .from('competitor_videos')
     .select('video_id, channel_id, channel_name, title, views, published_at, outlier_score')
     .in('channel_id', all.map(c => c.id))
-    .gte('outlier_score', OUTLIER_THRESHOLD);
+    .gte('outlier_score', OUTLIER_THRESHOLD)
+    .gte('views', MIN_VIEWS);
   if (!pooled?.length) return 0;
 
   const { data: known } = await supabase
@@ -442,9 +451,9 @@ Deno.serve(async (req: Request) => {
     const dropDate = dropDateFor(tz);
     await claimAndBuild(supabase, user.id, dropDate, ytApiKey);
 
-    // Ten more, for credits, once today's are used up. Same pipeline and the
-    // same date, so they sit with today's and go at the next drop like the
-    // rest. Charged only when something was actually found.
+    // More, for credits: researched ideas only (MORE_OWN). Same date, so they
+    // sit with today's and go at the next drop like the rest. Charged only
+    // when something was actually written.
     let more: { added: number; error?: string } | undefined;
     if (body.more === true) {
       const isAdmin = user.email === 'reyzostyle@gmail.com';
@@ -453,11 +462,8 @@ Deno.serve(async (req: Request) => {
       if (!canAfford(status, cost, isAdmin)) {
         more = { added: 0, error: 'limit_reached' };
       } else {
-        const { data: profile } = await supabase
-          .from('user_tokens')
-          .select('idea_query, idea_query_at, channel_niche, channel_description')
-          .eq('user_id', user.id).maybeSingle();
-        const added = await buildDrop(supabase, user.id, dropDate, profile, ytApiKey);
+        const added = await suggestFromChannel(supabase, user.id, MORE_OWN, dropDate)
+          .catch(e => { console.error('[daily-ideas] more failed:', e); return 0; });
         if (added > 0) await spendCredits(supabase, user.id, status, cost);
         more = { added };
       }

@@ -48,18 +48,39 @@ export interface CompetitorIdea {
   // existing rows keep their content, but nothing reads it any more.
   script: string | null;
   liked: boolean | null;
-  // 'ai' for an idea Chumoku suggested from the creator's own channel: no real
-  // video behind it (video_id is a made-up `ai-` key), adapted_idea holds the
-  // premise and basis the upload it builds on. Null for anything from a Short.
+  // 'ai' for an idea Chumoku found for the creator rather than took from a
+  // Short: no real video behind it (video_id is a made-up `ai-` key),
+  // adapted_idea holds the premise and basis where it came from. Null for
+  // anything from a Short. The first three rows (2026-10-27) predate `kind`
+  // and `hook` and are remixes.
   source?: 'ai' | null;
-  basis?: { video_id: string | null; title: string; views: number; multiple: number; why: string } | null;
+  basis?: OwnIdeaBasis | null;
   // Was folder_id, pointing at idea_folders. Folders became projects so an idea
   // and the conversation it started can be filed in the same place.
   project_id: string | null;
   created_at: string;
 }
 
+export type OwnIdeaBasis =
+  | { kind: 'research'; hook?: string; source: string; why: string }
+  | { kind?: 'remix'; hook?: string; video_id: string | null; title: string; views: number; multiple: number; why: string };
+
 export const isOwnIdea = (idea: CompetitorIdea | null | undefined) => idea?.source === 'ai';
+
+export const isOwnRemix = (b: OwnIdeaBasis | null | undefined): b is Extract<OwnIdeaBasis, { title: string }> =>
+  !!b && b.kind !== 'research' && 'title' in b;
+
+// The line on the card under the title.
+export function ownIdeaLabel(idea: CompetitorIdea): string {
+  return `${isOwnRemix(idea.basis) ? 'Remix of your Short' : 'Researched for you'} · untested`;
+}
+
+// What the cover shows: the line they would open on, or the premise when an
+// early row has none.
+export function ownIdeaHook(idea: CompetitorIdea): string {
+  const hook = idea.basis?.hook?.trim();
+  return hook ? `“${hook.replace(/^["“]|["”]$/g, '')}”` : (idea.adapted_idea ?? idea.pitch ?? '');
+}
 
 export function formatViews(n: number | null): string {
   if (n === null) return '-';

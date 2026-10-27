@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react';
-import { ArrowRightUpOutlineIcon as ArrowUpRight, StarsMinimalisticOutlineIcon as Sparkle } from '@solar-icons/react';
+import { ArrowRightUpOutlineIcon as ArrowUpRight, PenNewSquareOutlineIcon as Pen } from '@solar-icons/react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
 import { requestOpenVideo } from '../lib/projects';
-import { formatViews, isOwnIdea, type CompetitorIdea } from '../lib/competitors';
+import { formatViews, isOwnIdea, ownIdeaLabel, type CompetitorIdea } from '../lib/competitors';
 import { Page, PageHead, Section, Row, Skeleton, Empty } from './Page';
 import { ChatHistory } from './ChatHistory';
 
@@ -46,24 +46,22 @@ export function SavedPage() {
             {ideas.map(idea => (
               <Row
                 key={idea.id}
-                icon={isOwnIdea(idea) && !idea.basis?.video_id ? (
-                  <Sparkle className="w-5 h-5" style={{ color: 'var(--process)' }} />
+                icon={isOwnIdea(idea) ? (
+                  <Pen className="w-5 h-5" style={{ color: 'var(--text-muted)' }} />
                 ) : (
                   <img
-                    src={isOwnIdea(idea)
-                      ? `https://i.ytimg.com/vi/${idea.basis!.video_id}/sddefault.jpg`
-                      : idea.video_thumbnail || `https://i.ytimg.com/vi/${idea.video_id}/sddefault.jpg`}
+                    src={idea.video_thumbnail || `https://i.ytimg.com/vi/${idea.video_id}/sddefault.jpg`}
                     alt=""
                     className="w-full h-full object-cover rounded-[11px]"
                     // A Short's thumbnail is letterboxed; this scales the bars out.
-                    style={{ transform: 'scale(1.35)', ...(isOwnIdea(idea) ? { filter: 'blur(1.5px) brightness(0.7)' } : {}) }}
+                    style={{ transform: 'scale(1.35)' }}
                   />
                 )}
-                iconStyle={isOwnIdea(idea) && !idea.basis?.video_id ? undefined : { padding: 0, overflow: 'hidden' }}
+                iconStyle={isOwnIdea(idea) ? undefined : { padding: 0, overflow: 'hidden' }}
                 // The hook they would film, when one was written; the source
                 // title only when nothing was.
                 title={idea.outline?.hook || (isOwnIdea(idea) ? idea.pitch : idea.video_title) || 'Untitled'}
-                subtitle={isOwnIdea(idea) ? 'AI idea from your channel · untested' : [
+                subtitle={isOwnIdea(idea) ? ownIdeaLabel(idea) : [
                   idea.channel_name,
                   idea.outlier_score != null && idea.outlier_score < 1000 ? `${idea.outlier_score}× its channel` : null,
                   idea.video_views != null ? `${formatViews(idea.video_views)} views` : null,

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { FUNCTIONS_URL, supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
-import { RefreshOutlineIcon as Loader2, EyeOutlineIcon as Eye, EyeClosedOutlineIcon as EyeOff, RefreshOutlineIcon as RefreshCw, LinkOutlineIcon as Link, AltArrowDownOutlineIcon as ChevronDown, Stars2OutlineIcon as Sparkles, UserOutlineIcon as User, BoltOutlineIcon as Zap, ChatRoundOutlineIcon as MessageCircle, SquareArrowRightUpOutlineIcon as ExternalLink, TicketOutlineIcon as Ticket, CpuBoltOutlineIcon as Brain, HandShakeOutlineIcon as Handshake, ArrowRightUpOutlineIcon as ArrowUpRight } from '@solar-icons/react';
+import { RefreshOutlineIcon as Loader2, EyeOutlineIcon as Eye, EyeClosedOutlineIcon as EyeOff, RefreshOutlineIcon as RefreshCw, LinkOutlineIcon as Link, AltArrowDownOutlineIcon as ChevronDown, Stars2OutlineIcon as Sparkles, UserOutlineIcon as User, BoltOutlineIcon as Zap, ChatRoundOutlineIcon as MessageCircle, SquareArrowRightUpOutlineIcon as ExternalLink, TicketOutlineIcon as Ticket, CpuBoltOutlineIcon as Brain, HandShakeOutlineIcon as Handshake, ArrowRightUpOutlineIcon as ArrowUpRight, UsersGroupRoundedOutlineIcon as Users } from '@solar-icons/react';
 import { getSessionToken, fetchWithRetry } from '../lib/supabase';
 
 import { requestBrain, type ChannelBrain, type BrainOverrides } from '../lib/brain';
@@ -11,6 +11,7 @@ import { PageHead, Row, Loading, Tile, Button, Collapse, Skeleton } from './Page
 import { formatViews } from '../lib/competitors';
 import { useUsage } from '../lib/useUsage';
 import { CreditsPanel, creditsLeftLine } from './CreditsPanel';
+import { ChannelsSettings } from './ChannelsSettings';
 
 function YouTubeLogo({ className }: { className?: string }) {
   return (
@@ -540,6 +541,17 @@ export function SettingsPage() {
             setBrainOverrides(next);
           }}
         />
+      </SettingsCard>
+
+      {/* ── Competitor channels (moved here from Ideas, 2026-10-27) ── */}
+      <SettingsCard
+        {...cardProps('channels')}
+        icon={<Users className="w-[18px] h-[18px]" style={{ color: 'var(--text)' }} />}
+        iconBg="rgba(255,255,255,0.05)"
+        title="Competitor channels"
+        subtitle="Channels you follow. Their best Shorts land in your daily ideas."
+      >
+        {openCard === 'channels' && <ChannelsSettings />}
       </SettingsCard>
 
       {/* ── YouTube account ── */}
