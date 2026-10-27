@@ -47,6 +47,9 @@ struct SettingsView: View {
     @State private var storage: String = "…"
     @State private var brainOpen = false
     @State private var confirmClear = false
+    @State private var confirmDelete = false
+    @State private var deleting = false
+    @State private var deleteError: String?
     @AppStorage("film.countdown") private var countdown = true
     @AppStorage("film.mirror") private var mirror = true
     @AppStorage("film.4k") private var fourK = true
@@ -199,6 +202,26 @@ struct SettingsView: View {
                     Button("Sign out") { Task { await auth.signOut() } }
                         .buttonStyle(.pillGhost)
                         .padding(.top, 28)
+
+                    // Required by the App Store for any app you can sign up in.
+                    Button { confirmDelete = true } label: {
+                        HStack(spacing: 8) {
+                            if deleting { ProgressView().controlSize(.small).tint(Color.danger) }
+                            Text(deleting ? "Deleting your account" : "Delete account")
+                        }
+                        .font(.geist(14, .medium))
+                        .foregroundStyle(Color.danger)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 12)
+                        .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                    .disabled(deleting)
+                    .padding(.top, 8)
+                    if let deleteError {
+                        Text(deleteError).font(.tSmall).foregroundStyle(Color.danger)
+                            .frame(maxWidth: .infinity).multilineTextAlignment(.center)
+                    }
                 }
                 .padding(.horizontal, 20)
                 .padding(.bottom, 40)
@@ -210,8 +233,30 @@ struct SettingsView: View {
                 Button("Delete all takes", role: .destructive) { films.deleteAll(); storage = films.diskUsage() }
             } message: { Text("Finished videos already in Photos stay.") }
             .sensoryFeedback(.warning, trigger: confirmClear) { _, on in on }
+            .confirmationDialog("Delete your Chumoku account?", isPresented: $confirmDelete, titleVisibility: .visible) {
+                Button("Delete account", role: .destructive) { Task { await deleteAccount() } }
+            } message: {
+                Text("Your ideas, chats, channels, credits and brain are deleted for good, here and on chumoku.co. A paid plan is cancelled now. This can't be undone.")
+            }
+            .sensoryFeedback(.warning, trigger: confirmDelete) { _, on in on }
         }
         .task { await load() }
+    }
+
+    private func deleteAccount() async {
+        nonisolated struct Failed: Decodable { let error: String? }
+        deleting = true
+        deleteError = nil
+        defer { deleting = false }
+        do {
+            try await supabase.functions.invoke("delete-account", options: FunctionInvokeOptions(body: ["confirm": "DELETE"]))
+            // The user is gone server-side; only the session on this phone is left.
+            try? await supabase.auth.signOut(scope: .local)
+        } catch let FunctionsError.httpError(_, data) {
+            deleteError = (try? JSONDecoder().decode(Failed.self, from: data))?.error ?? "Could not delete the account. Try again."
+        } catch {
+            deleteError = "Could not delete the account. Try again."
+        }
     }
 
     private func load() async {

@@ -33,7 +33,10 @@ targets:
         INFOPLIST_KEY_UIUserInterfaceStyle: Dark
         CODE_SIGN_STYLE: Automatic
         # Ivan's free Personal Team; swap for the paid team when there is one.
+        # A Personal Team cannot sign Sign in with Apple, so device builds need
+        # the paid team from here on (simulator builds still work).
         DEVELOPMENT_TEAM: 7M6YY6SQ7L
+        CODE_SIGN_ENTITLEMENTS: Chumoku/Chumoku.entitlements
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
     info:
       path: Chumoku/Info.plist

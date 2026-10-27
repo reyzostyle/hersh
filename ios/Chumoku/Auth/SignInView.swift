@@ -1,6 +1,7 @@
 import SwiftUI
+import AuthenticationServices
 
-// The same account as chumoku.co: Google or email and password.
+// The same account as chumoku.co: Apple, Google, or email and password.
 struct SignInView: View {
     @Environment(AuthModel.self) private var auth
     @State private var email = ""
@@ -9,6 +10,7 @@ struct SignInView: View {
     @State private var busy = false
     @State private var error: String?
     @State private var confirmSent = false
+    @State private var nonce = ""
     @FocusState private var focus: Field?
     enum Field { case email, password }
 
@@ -26,6 +28,28 @@ struct SignInView: View {
                     .foregroundStyle(Color.text)
                     .padding(.top, 28)
 
+                // Apple first and the same size as Google (App Store 4.8).
+                SignInWithAppleButton(.continue) { request in
+                    nonce = AuthModel.newNonce()
+                    request.requestedScopes = [.fullName, .email]
+                    request.nonce = AuthModel.sha256(nonce)
+                } onCompletion: { result in
+                    switch result {
+                    case .success(let authorization):
+                        guard let credential = authorization.credential as? ASAuthorizationAppleIDCredential else { return }
+                        let raw = nonce
+                        run { try await auth.signInWithApple(credential, nonce: raw) }
+                    case .failure(let err):
+                        // Closing Apple's sheet is not an error worth showing.
+                        if (err as? ASAuthorizationError)?.code != .canceled { error = err.localizedDescription }
+                    }
+                }
+                .signInWithAppleButtonStyle(.white)
+                .frame(height: 48)
+                .clipShape(Capsule())
+                .disabled(busy)
+                .padding(.top, 36)
+
                 Button {
                     run { try await auth.signInWithGoogle() }
                 } label: {
@@ -34,9 +58,9 @@ struct SignInView: View {
                         Text("Continue with Google")
                     }
                 }
-                .buttonStyle(.pill)
+                .buttonStyle(.pillSecondary)
                 .disabled(busy)
-                .padding(.top, 36)
+                .padding(.top, 10)
 
                 HStack(spacing: 12) {
                     Rectangle().fill(Color.line).frame(height: 1)
