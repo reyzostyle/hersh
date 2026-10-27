@@ -1,6 +1,7 @@
 import { AltArrowLeftOutlineIcon as ArrowLeft, SquareArrowRightUpOutlineIcon as ExternalLink, LockKeyholeMinimalisticOutlineIcon as Lock } from '@solar-icons/react';
 import { ShortThumb } from './ShortThumb';
-import { formatViews, type FeedItem, type CompetitorIdea } from '../lib/competitors';
+import { formatViews, isOwnIdea, type FeedItem, type CompetitorIdea } from '../lib/competitors';
+import { AiIdeaCover } from './AiIdeaCover';
 import { useIdeaGeneration } from '../lib/useIdeaGeneration';
 import { CREDIT_COSTS } from '../lib/useUsage';
 import { PENDING_CHAT_KEY } from '../lib/intents';
@@ -51,6 +52,12 @@ export function CompetitorVideoView({
     resetAnalysisSession();
     window.dispatchEvent(new CustomEvent('chumoku:navigate', { detail: 'analyze' }));
   };
+
+  if (idea && isOwnIdea(idea)) {
+    return (
+      <OwnIdeaView idea={idea} backLabel={backLabel} onBack={onBack} onSave={onSave} onDismiss={onDismiss} onWrite={writeScript} />
+    );
+  }
 
   return (
     <Page className="animate-tab-in">
@@ -162,6 +169,62 @@ export function CompetitorVideoView({
           ) : (
             <p className="t-small flex items-center gap-1.5" style={{ color: 'var(--text-faint)' }}><Lock className="w-3.5 h-3.5" />Build the outline first</p>
           )}
+        </Step>
+      </ol>
+    </Page>
+  );
+}
+
+// An idea suggested from the creator's own channel. No video to read or
+// watch, so no angle or outline to unlock: the premise is already the angle,
+// and the next step is the script.
+function OwnIdeaView({ idea, backLabel, onBack, onSave, onDismiss, onWrite }: {
+  idea: CompetitorIdea;
+  backLabel: string;
+  onBack: () => void;
+  onSave: () => void;
+  onDismiss: () => void;
+  onWrite: () => void;
+}) {
+  const basis = idea.basis;
+  return (
+    <Page className="animate-tab-in">
+      <button
+        onClick={onBack}
+        className="flex items-center gap-1.5 mb-8 t-small transition-colors hover:text-[var(--text)]"
+        style={{ color: 'var(--text-muted)' }}
+      >
+        <ArrowLeft className="w-4 h-4" /> {backLabel}
+      </button>
+
+      <div className="flex flex-col sm:flex-row gap-6 sm:gap-8 mb-12">
+        <div className="idea-hero__media"><AiIdeaCover idea={idea} eager /></div>
+
+        <div className="flex-1 min-w-0 flex flex-col">
+          <p className="t-label mb-3" style={{ color: 'var(--text-muted)' }}>AI idea from your channel · untested</p>
+          <h1 className="t-title" style={{ color: 'var(--text)' }}>{idea.pitch}</h1>
+          <div className="flex items-center gap-2 mt-6">
+            <Button variant={idea.liked === true ? 'primary' : 'secondary'} size="sm" onClick={onSave}>{idea.liked === true ? 'Saved' : 'Save'}</Button>
+            <Button variant="ghost" size="sm" onClick={onDismiss}>{idea.liked === false ? 'Restore' : 'Dismiss'}</Button>
+          </div>
+        </div>
+      </div>
+
+      <ol className="flex flex-col gap-3">
+        <Step n={1} title="The idea" done>
+          <p className="t-body" style={{ color: 'var(--text)' }}>{idea.adapted_idea}</p>
+          {basis && (
+            <p className="t-small mt-4" style={{ color: 'var(--text-muted)' }}>
+              Built on your “{basis.title}”{basis.multiple >= 1.2 ? `, ${basis.multiple}× your usual views` : ''}.
+              {basis.why ? ` ${basis.why.replace(/\.?$/, '.')}` : ''}
+            </p>
+          )}
+        </Step>
+        <Step n={2} title="Script">
+          <div className="flex flex-col items-start gap-3">
+            <p className="t-small" style={{ color: 'var(--text-muted)' }}>Chumoku writes it in Chat, where you can push back on any line.</p>
+            <Button variant="primary" onClick={onWrite}>Write the script in Chat</Button>
+          </div>
         </Step>
       </ol>
     </Page>

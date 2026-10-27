@@ -237,13 +237,15 @@ ${(a.weak_spots ?? []).map(s => `- ${s}`).join('\n') || '- none noted'}
     if (typeof ideaId === 'string' && ideaId) {
       const { data: idea } = await supabase
         .from('competitor_ideas')
-        .select('pitch, adapted_idea, outline, video_title, channel_name')
+        .select('pitch, adapted_idea, outline, video_title, channel_name, source, basis')
         .eq('id', ideaId).eq('user_id', user.id).maybeSingle();
       if (idea) {
         const o = idea.outline as { hook?: string; sections?: Array<{ title: string; content: string; duration: string }>; cta?: string } | null;
         ideaBlock = `## The idea they mean
 Their version: ${idea.pitch || idea.adapted_idea || ''}
-${idea.adapted_idea ? `Angle: ${idea.adapted_idea}\n` : ''}Stolen from: "${idea.video_title ?? ''}" (${idea.channel_name ?? 'another channel'})
+${idea.adapted_idea ? `${idea.source === 'ai' ? 'Premise' : 'Angle'}: ${idea.adapted_idea}\n` : ''}${idea.source === 'ai'
+  ? `Not taken from anyone: Chumoku suggested it from their own channel${idea.basis?.title ? `, building on their Short "${idea.basis.title}" (${idea.basis.multiple}x their usual views${idea.basis.why ? `; repeat: ${idea.basis.why}` : ''})` : ''}. Untested, so say so if they ask how sure it is.`
+  : `Stolen from: "${idea.video_title ?? ''}" (${idea.channel_name ?? 'another channel'})`}
 ${o ? `Outline already agreed - the script follows it beat for beat:
 Hook: ${o.hook ?? ''}
 ${(o.sections ?? []).map(sec => `- ${sec.duration} ${sec.title}: ${sec.content}`).join('\n')}

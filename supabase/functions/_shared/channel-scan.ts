@@ -19,7 +19,8 @@ export interface ChannelScan {
   channelTitle: string;
   description: string;
   subscribers: number | null;
-  videos: { title: string; views: number; publishedAt: string }[];
+  // id since 2026-10-27; scans cached before that lack it.
+  videos: { id?: string; title: string; views: number; publishedAt: string }[];
 }
 
 async function refreshAccessToken(refreshToken: string): Promise<string> {
@@ -82,6 +83,7 @@ async function buildScan(supabase: any, userId: string, row: any): Promise<Chann
           `https://www.googleapis.com/youtube/v3/videos?id=${ids.join(',')}&part=snippet,statistics&key=${apiKey}`);
         if (vRes.ok) {
           scan.videos = ((await vRes.json()).items || []).map((v: any) => ({
+            id: v.id,
             title: v.snippet?.title || '',
             views: parseInt(v.statistics?.viewCount || '0', 10),
             publishedAt: v.snippet?.publishedAt || '',

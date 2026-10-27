@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
-import { formatViews, type CompetitorIdea } from '../lib/competitors';
+import { formatViews, isOwnIdea, type CompetitorIdea } from '../lib/competitors';
+import { AiIdeaCover } from './AiIdeaCover';
 import { ShortThumb } from './ShortThumb';
 import { Skeleton } from './Page';
 
@@ -209,8 +210,8 @@ function CardFace({ idea, lean }: { idea: CompetitorIdea; lean?: number }) {
   return (
     <>
       <div className="daily__media">
-        <ShortThumb videoId={idea.video_id} eager />
-        {idea.outlier_score != null && idea.outlier_score < 1000 && (
+        {isOwnIdea(idea) ? <AiIdeaCover idea={idea} eager /> : <ShortThumb videoId={idea.video_id} eager />}
+        {!isOwnIdea(idea) && idea.outlier_score != null && idea.outlier_score < 1000 && (
           <span className="idea-card__mult">{idea.outlier_score}×</span>
         )}
         {lean !== undefined && (
@@ -223,8 +224,10 @@ function CardFace({ idea, lean }: { idea: CompetitorIdea; lean?: number }) {
       <div className="daily__body">
         <p className="daily__pitch">{idea.pitch ?? idea.video_title}</p>
         <p className="idea-card__meta">
-          {idea.fit === 'yes' && <><span className="idea-card__fit">Fits your channel</span> · </>}
-          {[idea.channel_name, idea.video_views != null ? formatViews(idea.video_views) : null].filter(Boolean).join(' · ')}
+          {isOwnIdea(idea) ? 'From your channel · untested' : <>
+            {idea.fit === 'yes' && <><span className="idea-card__fit">Fits your channel</span> · </>}
+            {[idea.channel_name, idea.video_views != null ? formatViews(idea.video_views) : null].filter(Boolean).join(' · ')}
+          </>}
         </p>
       </div>
     </>

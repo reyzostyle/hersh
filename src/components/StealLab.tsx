@@ -39,6 +39,19 @@ const DROP: CompetitorIdea[] = ([
   outline: null, script: null, liked: null, project_id: null, created_at: '',
 }));
 
+// Two suggestions from the creator's own channel, dealt in among them the way
+// daily-ideas deals them (one after every two outliers).
+const OWN: CompetitorIdea[] = ([
+  ['ai-lab1', 'I let Claude run my channel for a week', 'You hand Claude your analytics and post only what it picks, then show the views on day 7. First line: "I stopped deciding what to post."', '2cYF74YMmGc', 3.4],
+  ['ai-lab2', 'Claude found the one thing my best Short did right', 'Open your top Short next to a flop and let Claude point at the difference on screen. First line: "This Short did 3x the other one, and Claude knows why."', 'Y1s03EY3UCk', 2.1],
+] as const).map(([video_id, pitch, adapted_idea, basisId, multiple]) => ({
+  ...DROP[0], id: video_id, video_id, channel_id: '', channel_name: 'reyzostyle', outlier_score: null, video_views: null,
+  pitch, adapted_idea, source: 'ai' as const,
+  basis: { video_id: basisId, title: 'Claude Code built my app in 10 minutes', views: 41_000, multiple, why: 'A real build on screen, result in the first second' },
+}));
+DROP.splice(2, 0, OWN[0]);
+DROP.push(OWN[1]);
+
 function DropDemo() {
   const [ideas, setIdeas] = useState(DROP);
   const [filter, setFilter] = useState<IdeaFilter>('new');

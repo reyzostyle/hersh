@@ -842,6 +842,43 @@ button.row:active,
 .idea-card__actions button[data-on="true"] { color: var(--on-accent); background: var(--accent); }
 @media (prefers-reduced-motion: reduce) { .idea-card__media img, .idea-card:hover .idea-card__media img { transition: none; transform: scale(1.35); } .idea-card__media img[data-exact="true"] { transform: none; } }
 
+/* ─── An idea from the creator's own channel (AiIdeaCover.tsx) ───────────────
+   Not a Short, so it must not read as one: their own Short blurred into the
+   background, a small sharp copy of it in the middle, and a dashed edge like a
+   sketch. Selectors are doubled up to beat the cover-image rules above. */
+.ai-cover {
+  position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+  background: radial-gradient(120% 80% at 50% 0%, rgba(var(--process-rgb), 0.16), transparent 60%), #0d0d0e;
+}
+.ai-cover::after {
+  content: ''; position: absolute; inset: 10px; border-radius: calc(var(--r-lg) - 6px);
+  border: 1px dashed rgba(255, 255, 255, 0.22); pointer-events: none;
+}
+.ai-cover img.ai-cover__wash {
+  position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover;
+  opacity: 0.4; filter: blur(22px) saturate(1.2); transform: scale(1.6);
+}
+.ai-cover .ai-cover__src {
+  position: relative; width: 34%; aspect-ratio: 9 / 16; border-radius: 10px; overflow: hidden;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.14); transform: rotate(-4deg);
+  transition: transform 0.3s ease;
+}
+.idea-card:hover .ai-cover .ai-cover__src { transform: rotate(0deg) scale(1.04); }
+.idea-card .ai-cover .ai-cover__src img, .ai-cover .ai-cover__src img {
+  width: 100%; height: 100%; object-fit: cover; opacity: 1; transform: none;
+}
+.ai-cover__tag {
+  position: absolute; left: 18px; top: 18px; display: inline-flex; align-items: center; gap: 5px;
+  font-size: 12px; font-weight: 500; line-height: 1; padding: 6px 9px; border-radius: 999px;
+  color: var(--process); background: rgba(var(--process-rgb), 0.12); box-shadow: inset 0 0 0 1px rgba(var(--process-rgb), 0.28);
+}
+.ai-cover__from {
+  position: absolute; left: 18px; right: 18px; bottom: 18px;
+  font-size: 12px; line-height: 16px; color: rgba(255, 255, 255, 0.62); text-align: center;
+}
+.ai-cover__from span { color: rgba(255, 255, 255, 0.9); }
+@media (prefers-reduced-motion: reduce) { .ai-cover .ai-cover__src { transition: none; } }
+
 /* ─── Daily drop (DailyStack.tsx) ─────────────────────────────────────────────
    One card at a time, the next one peeking from behind. touch-action keeps a
    vertical drag scrolling the page; only a sideways drag becomes a swipe. */

@@ -48,11 +48,18 @@ export interface CompetitorIdea {
   // existing rows keep their content, but nothing reads it any more.
   script: string | null;
   liked: boolean | null;
+  // 'ai' for an idea Chumoku suggested from the creator's own channel: no real
+  // video behind it (video_id is a made-up `ai-` key), adapted_idea holds the
+  // premise and basis the upload it builds on. Null for anything from a Short.
+  source?: 'ai' | null;
+  basis?: { video_id: string | null; title: string; views: number; multiple: number; why: string } | null;
   // Was folder_id, pointing at idea_folders. Folders became projects so an idea
   // and the conversation it started can be filed in the same place.
   project_id: string | null;
   created_at: string;
 }
+
+export const isOwnIdea = (idea: CompetitorIdea | null | undefined) => idea?.source === 'ai';
 
 export function formatViews(n: number | null): string {
   if (n === null) return '-';

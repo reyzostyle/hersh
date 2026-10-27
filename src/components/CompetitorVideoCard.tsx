@@ -1,4 +1,5 @@
-import { formatViews, type FeedItem } from '../lib/competitors';
+import { formatViews, isOwnIdea, type FeedItem } from '../lib/competitors';
+import { AiIdeaCover } from './AiIdeaCover';
 import { Skeleton } from './Page';
 import { ShortThumb } from './ShortThumb';
 
@@ -33,6 +34,7 @@ export function CompetitorVideoCard({ item, pitching, readOnly, thumb, onOpen, o
   const isDismissed = idea?.liked === false;
   const pitch = idea?.pitch;
   const fit = idea?.fit;
+  const own = isOwnIdea(idea);
 
   return (
     <div
@@ -45,8 +47,8 @@ export function CompetitorVideoCard({ item, pitching, readOnly, thumb, onOpen, o
       data-readonly={readOnly ? 'true' : undefined}
     >
       <div className="idea-card__media">
-        <ShortThumb videoId={item.video_id} src={thumb} />
-        {item.outlier_score != null && item.outlier_score < 1000 && (
+        {own ? <AiIdeaCover idea={idea!} /> : <ShortThumb videoId={item.video_id} src={thumb} />}
+        {!own && item.outlier_score != null && item.outlier_score < 1000 && (
           <span className="idea-card__mult" title="Views against this channel's usual">
             {item.outlier_score}×
           </span>
@@ -65,13 +67,15 @@ export function CompetitorVideoCard({ item, pitching, readOnly, thumb, onOpen, o
           <p className="idea-card__pitch" style={{ color: 'var(--text-muted)' }}>{item.video_title || 'Untitled video'}</p>
         )}
 
-        <p className="idea-card__meta">
+        {own ? (
+          <p className="idea-card__meta">From your channel · untested</p>
+        ) : <p className="idea-card__meta">
           {fit === 'yes' && <span className="idea-card__fit">Fits your channel</span>}
           {fit === 'stretch' && <span>Stretch</span>}
           {fit === 'no' && <span>Not your niche</span>}
           {fit && ' · '}
           {[item.channel_name, item.video_views != null ? formatViews(item.video_views) : null].filter(Boolean).join(' · ')}
-        </p>
+        </p>}
 
         {/* stopPropagation so keeping or dropping never also opens the card. */}
         {!readOnly && <div className="idea-card__actions" onClick={e => e.stopPropagation()}>

@@ -8,6 +8,7 @@ import { buildQueries } from '../_shared/niche-query.ts';
 import { loadChannelScan } from '../_shared/channel-scan.ts';
 import { buildVoice, VOICE_TTL_MS } from '../_shared/voice.ts';
 import { buildBrain, loadBrain } from '../_shared/brain.ts';
+import { suggestFromChannel, canSuggest } from '../_shared/own-ideas.ts';
 
 const CORS = corsHeaders({ methods: 'POST, OPTIONS' });
 
@@ -35,6 +36,10 @@ const CORS = corsHeaders({ methods: 'POST, OPTIONS' });
 //   (and so a badge or an email can say so).
 
 const DROP_SIZE = 10;
+// At least this many of the ten are ideas from the creator's own channel
+// (own-ideas.ts), when there are uploads to learn from. They also fill any
+// seats the outliers leave empty, so a thin niche no longer means a thin drop.
+const OWN_MIN = 3;
 const DROP_HOUR = 9;
 const PITCH_POOL = 30;                       // candidates pitched to pick DROP_SIZE from
 const PER_CHANNEL = 2;
@@ -152,7 +157,23 @@ async function nicheChannels(supabase: any, query: string, ytApiKey: string): Pr
 
 // Builds one creator's drop for `dropDate`. Assumes the claim on
 // user_tokens.idea_drop_date is already held. Returns how many ideas landed.
+// Other channels' outliers first, then ideas from their own channel in the
+// seats left (at least OWN_MIN of them).
 async function buildDrop(supabase: any, userId: string, dropDate: string, profile: any, ytApiKey: string): Promise<number> {
+  const own = canSuggest(await loadChannelScan(supabase, userId));
+  const outliers = await dropOutliers(supabase, userId, dropDate, profile, ytApiKey, own ? DROP_SIZE - OWN_MIN : DROP_SIZE);
+  if (!own) return outliers;
+  let suggested = 0;
+  try {
+    suggested = await suggestFromChannel(supabase, userId, DROP_SIZE - outliers, dropDate);
+  } catch (e) {
+    console.error('[daily-ideas] own ideas failed:', e);
+  }
+  return outliers + suggested;
+}
+
+// Picks up to `limit` outliers from tracked and niche channels into the drop.
+async function dropOutliers(supabase: any, userId: string, dropDate: string, profile: any, ytApiKey: string, limit: number): Promise<number> {
   // 1. Tracked channels, refreshed if stale.
   const { data: tracked } = await supabase
     .from('competitor_channels').select('channel_id, channel_name').eq('user_id', userId);
@@ -253,14 +274,14 @@ async function buildDrop(supabase: any, userId: string, dropDate: string, profil
   const perChannel = new Map<string, number>();
   const picked: string[] = [];
   for (const p of ordered) {
-    if (picked.length >= DROP_SIZE) break;
+    if (picked.length >= limit) break;
     const n = perChannel.get(p.channel_id) ?? 0;
     if (n >= PER_CHANNEL) continue;
     perChannel.set(p.channel_id, n + 1);
     picked.push(p.video_id);
   }
   for (const p of ordered) {
-    if (picked.length >= DROP_SIZE) break;
+    if (picked.length >= limit) break;
     if (!picked.includes(p.video_id)) picked.push(p.video_id);
   }
   const chosen = picked;
@@ -442,18 +463,27 @@ Deno.serve(async (req: Request) => {
       }
     }
 
-    const { data: items } = await supabase
+    const { data: rows } = await supabase
       .from('competitor_ideas').select('*')
       .eq('user_id', user.id).eq('drop_date', dropDate)
       .order('outlier_score', { ascending: false, nullsFirst: false });
+    // Own-channel ideas dealt in among the outliers (one after every two),
+    // not left in a block at the end where the grid buries them.
+    const ownRows = (rows ?? []).filter((r: any) => r.source === 'ai');
+    const items: any[] = [];
+    for (const r of (rows ?? []).filter((r: any) => r.source !== 'ai')) {
+      items.push(r);
+      if (items.length % 3 === 2 && ownRows.length) items.push(ownRows.shift());
+    }
+    items.push(...ownRows);
 
     let needsProfile = false;
-    if (!items?.length) {
+    if (!items.length) {
       const [brain, scan] = await Promise.all([loadBrain(supabase, user.id), loadChannelScan(supabase, user.id)]);
       needsProfile = !brain && !scan?.videos?.length;
     }
 
-    return json({ date: dropDate, nextAt: nextDropAt(tz), size: DROP_SIZE, items: items ?? [], needsProfile, more });
+    return json({ date: dropDate, nextAt: nextDropAt(tz), size: DROP_SIZE, items, needsProfile, more });
   } catch (error) {
     console.error('[daily-ideas]', error);
     return json({ error: error instanceof Error ? error.message : 'Internal server error' }, 500);
