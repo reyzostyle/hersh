@@ -82,7 +82,7 @@ ${list}
 Write ${count} new video ideas for them, each one built on something that measurably worked on THIS channel: a subject, a format, a kind of hook or a setup from an upload that beat their usual. Push what worked one step further or into a new subject; never just remake the same video. Spread the ideas across different winning uploads where you can, and use a below-usual upload only to say what to avoid.
 
 For each idea:
-- pitch: the working title, under 80 characters, the way they would title it. Not advice, not "Make a video about".
+- pitch: the working title, under 80 characters, the way they would title it but without hashtags. Not advice, not "Make a video about".
 - premise: two short sentences. What happens on screen, and the first line they say.
 - basis: the number of the upload it builds on.
 - why: under 70 characters, what to repeat from that upload. Plain words, no numbers (they are shown next to it).
@@ -95,6 +95,8 @@ Never use an em-dash or en-dash, only the regular hyphen.`;
   const raw = await callLLM(prompt, { maxTokens: 3000, tier: 'writer' });
   const parsed = parseModelJson(raw, 'own-ideas') as { ideas?: Array<{ pitch?: string; premise?: string; basis?: number; why?: string }> };
   const clean = (s: unknown, max: number) => String(s ?? '').replace(/[—–]/g, '-').trim().slice(0, max);
+  // Their titles carry hashtags; on a card they are noise.
+  const untag = (s: string) => s.replace(/(^|\s)#[\w-]+/g, '').replace(/\s{2,}/g, ' ').trim();
 
   const rows = (parsed.ideas ?? [])
     .filter(r => r.pitch && r.premise)
@@ -102,7 +104,7 @@ Never use an em-dash or en-dash, only the regular hyphen.`;
     .map(r => {
       const src = uploads.find(v => v.n === Number(r.basis));
       const basis: IdeaBasis | null = src ? {
-        video_id: src.id ?? null, title: src.title, views: src.views, multiple: src.multiple, why: clean(r.why, 120),
+        video_id: src.id ?? null, title: untag(src.title), views: src.views, multiple: src.multiple, why: clean(r.why, 120),
       } : null;
       return {
         user_id: userId,
@@ -111,7 +113,7 @@ Never use an em-dash or en-dash, only the regular hyphen.`;
         channel_id: null,
         channel_name: scan.channelTitle || null,
         video_title: null,
-        pitch: clean(r.pitch, 140),
+        pitch: untag(clean(r.pitch, 140)),
         adapted_idea: clean(r.premise, 600),
         fit: 'yes',
         basis,
