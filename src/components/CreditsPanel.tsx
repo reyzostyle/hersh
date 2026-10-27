@@ -16,17 +16,17 @@ import { type useUsage } from '../lib/useUsage';
 //
 // A top-up is a one-time purchase on top of the plan, not another tier, so it
 // lives here and not on the pricing grid.
-const CREDIT_PACK = { id: 'small', credits: 100, price: '$4.99' };
+const CREDIT_PACK = { id: 'small', credits: 50, price: '$4.99' };
 
 type Usage = ReturnType<typeof useUsage>['usage'];
 
 export function creditsLeftLine(usage: Usage): string {
   if (!usage) return 'Your balance';
-  // Pro is sold as unlimited. The real fair-use ceiling stays server-side, so
-  // this never prints a number that undercuts the promise they paid for.
-  if (usage.plan === 'agency') return 'Unlimited on Pro';
   const left = Math.max(0, usage.creditsLimit - usage.creditsUsed);
-  return usage.plan === 'free' ? `${left} free credits left` : `${left} credits left this month`;
+  // Free has no credits since 2026-10-28, only the daily ideas (a bonus from
+  // a code still shows as a number).
+  if (usage.plan === 'free') return left > 0 ? `${left} credits left` : 'Daily ideas · no credits';
+  return `${left} credits left this month`;
 }
 
 export function CreditsPanel({ usage }: { usage: Usage }) {
@@ -35,7 +35,6 @@ export function CreditsPanel({ usage }: { usage: Usage }) {
 
   if (!usage) return <p className="text-sm" style={{ color: 'var(--text-muted)' }}>Loading...</p>;
 
-  const unlimited = usage.plan === 'agency';
   const isFree = usage.plan === 'free';
   const left = Math.max(0, usage.creditsLimit - usage.creditsUsed);
   const percent = Math.min((usage.creditsUsed / Math.max(1, usage.creditsLimit)) * 100, 100);
@@ -61,10 +60,6 @@ export function CreditsPanel({ usage }: { usage: Usage }) {
     }
   };
 
-  if (unlimited) {
-    return <p className="text-sm" style={{ color: 'var(--text-muted)' }}>No monthly cap on Pro. Use it as much as you like.</p>;
-  }
-
   return (
     <div>
       <p className="font-semibold leading-none" style={{ color: 'var(--text)', fontSize: 28, letterSpacing: '-0.02em' }}>
@@ -76,10 +71,12 @@ export function CreditsPanel({ usage }: { usage: Usage }) {
              style={{ width: `${100 - percent}%`, background: percent >= 90 ? 'rgb(var(--danger-rgb))' : 'var(--text)' }} />
       </div>
       <p className="mt-2 text-[12px]" style={{ color: 'var(--text-faint)' }}>
-        {isFree ? 'A one-time grant. Plans refill every month.' : 'Refills with your plan every month.'}
+        {isFree ? 'The free plan is the daily ideas. Credits come with Plus (100 a month) or Pro (300).' : 'Refills with your plan every month.'}
       </p>
 
-      <div className="mt-5 flex items-center justify-between gap-3 flex-wrap">
+      {/* Top-ups are for subscribers: at the same price per credit, selling
+          them on free would undercut Plus. */}
+      {!isFree && <div className="mt-5 flex items-center justify-between gap-3 flex-wrap">
         <p className="text-[13px]" style={{ color: 'var(--text-muted)' }}>
           {CREDIT_PACK.credits} more for {CREDIT_PACK.price}, on top of your plan, never expire.
         </p>
@@ -87,7 +84,7 @@ export function CreditsPanel({ usage }: { usage: Usage }) {
           {buying ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Plus className="w-3.5 h-3.5" />}
           Buy credits
         </Button>
-      </div>
+      </div>}
       {buyError && <ErrorNotice message={buyError} className="mt-3" />}
     </div>
   );

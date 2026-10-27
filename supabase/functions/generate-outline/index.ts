@@ -53,7 +53,7 @@ Deno.serve(async (req: Request) => {
     // No plan gate. Competitors used to be Plus-only in five separate places,
     // which meant nobody could see the feature before paying for it - and the
     // gate was redundant anyway: the credit pool already is the trial. A free
-    // account has 20 credits, one-time, and this costs four of them.
+    // account has no credits since 2026-10-28; this costs four.
     const { data: profile } = await supabase
       .from('user_tokens')
       .select('channel_niche, channel_description, channel_context, target_audience')

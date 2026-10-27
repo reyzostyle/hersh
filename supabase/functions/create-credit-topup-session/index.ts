@@ -12,7 +12,7 @@ const CORS = corsHeaders({ methods: 'GET, POST, PUT, DELETE, OPTIONS' });
 // represents — it's what the webhook credits on payment success, since
 // Stripe doesn't know what "a credit" means, only what was paid.
 const PACKS: Record<string, { envVar: string; credits: number }> = {
-  small: { envVar: 'STRIPE_CREDIT_PACK_SMALL_PRODUCT_ID', credits: 100 },
+  small: { envVar: 'STRIPE_CREDIT_PACK_SMALL_PRODUCT_ID', credits: 50 }, // $4.99; was 100 until 2026-10-28
 };
 
 Deno.serve(async (req: Request) => {
@@ -65,9 +65,14 @@ Deno.serve(async (req: Request) => {
 
     const { data: tokenRow } = await supabase
       .from('user_tokens')
-      .select('stripe_customer_id')
+      .select('stripe_customer_id, plan')
       .eq('user_id', userId)
       .maybeSingle();
+    // Top-ups are for subscribers (2026-10-28): free has no credits, and a pack
+    // at the subscription's price per credit would replace Plus.
+    if (!tokenRow?.plan || tokenRow.plan === 'free') {
+      return new Response(JSON.stringify({ error: 'Credit packs are for Plus and Pro.' }), { status: 400, headers: { ...CORS, 'Content-Type': 'application/json' } });
+    }
 
     let customerId = tokenRow?.stripe_customer_id;
     if (customerId) {

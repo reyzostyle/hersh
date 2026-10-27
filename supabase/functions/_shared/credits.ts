@@ -7,9 +7,15 @@
 // Limits are set from a WORST-CASE dollar budget, not an average: a user can
 // legally spend the whole allowance on the single most-underpriced action
 // (video), so that's what the ceiling has to survive. At these numbers the
-// worst case is ~$0.13 (free), ~$0.78 (Plus), ~$2.60 (Pro) of model spend
-// per period. Realistic mixed usage lands at roughly a third of that.
-export const CREDIT_LIMITS: Record<string, number> = { free: 20, pro: 300, agency: 1000 };
+// worst case is set out next to CREDIT_LIMITS. Realistic mixed usage lands at
+// roughly a third of that.
+// 2026-10-28 (Ivan): free 0, Plus 100, Pro 300. Free keeps the daily drop and
+// nothing else; credits are what you pay for. Sized on Gemini 3.8 Flash at its
+// 2027 price ($1.50/$7.50 per MTok): worst case ~$0.03 a credit (a chat answer
+// that writes a full script), so ~$3 (Plus) and ~$9 (Pro) at the ceiling,
+// plus ~$1.50 a month of daily-drop research per active user. Measured usage
+// over the 30 days before: 10-20 credits per active user.
+export const CREDIT_LIMITS: Record<string, number> = { free: 0, pro: 100, agency: 300 };
 
 // Ordered by real DOLLAR cost (not raw token count — output tokens bill
 // ~8x input, so a big-input/small-output action like video is cheaper than

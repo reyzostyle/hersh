@@ -29,8 +29,8 @@ nonisolated struct Account: Decodable {
         case youtubeChannelThumbnail = "youtube_channel_thumbnail"
     }
 
-    // Mirrors src/lib/useUsage.ts.
-    static let limits = ["free": 20, "pro": 300, "agency": 1000]
+    // Mirrors src/lib/useUsage.ts (free 0, Plus 100, Pro 300 since 2026-10-28).
+    static let limits = ["free": 0, "pro": 100, "agency": 300]
     static let names = ["free": "Trial", "pro": "Plus", "agency": "Pro"]
 
     var planName: String { Self.names[plan ?? "free"] ?? "Trial" }
@@ -69,10 +69,10 @@ struct SettingsView: View {
                             HStack {
                                 Text("Credits").font(.tBody).foregroundStyle(Color.text)
                                 Spacer()
-                                Text(account.map { "\($0.creditsLeft) of \($0.creditLimit) left" } ?? (loading ? "…" : "—"))
+                                Text(account.map { $0.creditLimit == 0 ? "Daily ideas only" : "\($0.creditsLeft) of \($0.creditLimit) left" } ?? (loading ? "…" : "—"))
                                     .font(.tBody).foregroundStyle(Color.textMuted).monospacedDigit()
                             }
-                            if let a = account {
+                            if let a = account, a.creditLimit > 0 {
                                 GeometryReader { g in
                                     Capsule().fill(Color.white.opacity(0.08))
                                         .overlay(alignment: .leading) {

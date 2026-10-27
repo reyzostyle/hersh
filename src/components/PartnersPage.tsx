@@ -95,11 +95,11 @@ function PartnerSide({ userId }: { userId?: string }) {
 const STEPS = [
   { n: '01', t: 'Take your link', d: 'Pick the name that goes in it. Yours in one click, no application to fill in.' },
   { n: '02', t: 'Share it', d: 'In a video description, a newsletter, a pinned comment. Anywhere your audience already is.' },
-  { n: '03', t: 'They sign up and subscribe', d: 'They get 20 credits free first, so nobody has to gamble on a card to try it.' },
+  { n: '03', t: 'They sign up and subscribe', d: 'They get ten free ideas every morning first, so they see it work before they pay.' },
   { n: '04', t: 'You get paid every month', d: 'Not once. Every month they stay, for their first twelve.' },
 ];
 
-const BLURB = `I use Chumoku to work out why my shorts land or don't. It watches the video and tells you what to fix, and it pulls the shorts already beating their own channel so you have something proven to build on. 20 free credits to start: `;
+const BLURB = `I use Chumoku to work out why my shorts land or don't. It watches the video and tells you what to fix, and it pulls the shorts already beating their own channel so you have something proven to build on. Ten new ideas every morning, free: `;
 
 function Pitch({ onClaimed }: { onClaimed: () => void }) {
   const [copied, setCopied] = useState(false);

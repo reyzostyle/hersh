@@ -18,7 +18,7 @@ export const FAQS: { q: string; a: string }[] = [
   },
   {
     q: 'Is it free to try?',
-    a: 'Yes, 20 credits when you sign up. Browsing ideas is free, a chat message costs 1 credit and a steal costs 5.',
+    a: 'The daily ideas are free: ten new ones every morning. Everything after that runs on credits, which come with Plus (100 a month) or Pro (300). A chat message costs 1 credit and a steal costs 5.',
   },
   {
     q: 'Do I need to connect YouTube?',

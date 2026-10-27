@@ -112,7 +112,7 @@ const specimen = (score: string, line: string) => `
 // that is what the mail leads on, and the first action asks for the link that
 // makes it true.
 function welcome(ctx: EmailCtx): RenderedEmail {
-  const text = `you're in. 20 credits are on your account, nothing to activate.
+  const text = `you're in. your first ten ideas are already waiting, nothing to activate.
 
 chumoku only does short-form. not long-form, not podcast clips, not
 everything at once. that is why it can name the second people left instead
@@ -129,21 +129,21 @@ after that you can just talk to it. ask why a video flopped, hand it a hook
 to score, or ask it to write the next script. it answers against your
 channel, not against short-form in general.
 
-analyze your first short: ${ctx.appUrl}
+see today's ideas: ${ctx.appUrl}
 
 unsubscribe: ${ctx.unsubscribeUrl}`;
 
   return {
-    subject: "you're in. 20 credits are on your account",
+    subject: "you're in. your first ten ideas are waiting",
     text,
     html: layout({
       preheader: 'paste your last short and see the second people left',
-      ctaLabel: 'analyze my first short',
+      ctaLabel: "see today's ideas",
       ctaUrl: ctx.appUrl,
       unsubscribeUrl: ctx.unsubscribeUrl,
       body:
         h("you're in.") +
-        p(`${strong('20 credits')} are on your account, nothing to activate.`) +
+        p(`your first ${strong('ten ideas')} are already waiting, nothing to activate. ten new ones land every morning.`) +
         p(`chumoku only does ${strong('short-form')}. not long-form, not podcast clips, not everything at once. that is why it can name the second people left instead of handing you a generic content tip.`) +
         p('paste a link to your last short. it watches the whole thing and comes back with something like this:') +
         specimen('62', 'the open repeats what the thumbnail already gave away. cut to the reveal at 0:11 and let the video explain itself backwards.') +
@@ -236,25 +236,17 @@ unsubscribe: ${ctx.unsubscribeUrl}`;
 
 // Step 4 — +5d.
 //
-// Pro is unlimited under fair use, and that is not a contradiction with the
-// 1000 in credits.ts: the Terms allow "approximately 100 uses per category per
-// billing month", and 100 videos at 5 plus 100 hooks at 2 plus 100 scripts at
-// 3 is exactly 1000. The pool is the allowance, converted. On any single
-// category it is more generous than the Terms promise, not less.
-//
-// The word unlimited stays, and so does the qualifier. Selling unlimited and
-// mentioning fair use only in a document nobody opens is how a plan becomes a
-// complaint.
+// Since 2026-10-28 free has no credits and Pro is 300, not unlimited, so this
+// mail says what free is (the daily ideas) and what credits buy.
 function upgrade(ctx: EmailCtx): RenderedEmail {
   const url = `${ctx.appUrl}/#pricing`;
   const text = `you have had about a week with it, so here is the honest version.
 
-the free 20 credits are a one-time grant. they do not refill monthly. once
-they are gone that is it until you upgrade.
+the free plan is the ten ideas every morning. the rest, turning an idea into
+an outline and a script, steals, the chat, runs on credits.
 
-Plus is $9.99 a month and gets you 300 credits plus the ideas feed, which
-is the part people stay for. Pro is $19.99 and is unlimited under fair use,
-for posting daily or running more than one channel.
+Plus is $9.99 a month and gets you 100 credits, about twenty steals or a
+hundred chat messages. Pro is $19.99 and gets you 300, for posting every day.
 
 the part worth knowing: the more you use it, the better it gets at your
 channel specifically. it reads your uploads, remembers the ideas you kept
@@ -266,17 +258,17 @@ see the plans: ${url}
 unsubscribe: ${ctx.unsubscribeUrl}`;
 
   return {
-    subject: 'running low on credits?',
+    subject: 'from an idea to a script',
     text,
     html: layout({
-      preheader: 'the free 20 are one-time, here is what the paid tiers change',
+      preheader: 'the ideas are free, here is what the paid tiers add',
       ctaLabel: 'see the plans',
       ctaUrl: url,
       unsubscribeUrl: ctx.unsubscribeUrl,
       body:
-        h('the free 20 do not refill.') +
-        p(`they are a ${strong('one-time grant')}. once they are gone that is it until you upgrade.`) +
-        p(`${strong('Plus, $9.99 a month')}, gets you 300 credits plus the ideas feed, which is the part people stay for. ${strong('Pro, $19.99')}, is unlimited under fair use, for posting daily or running more than one channel.`) +
+        h('the ideas are free. the scripts are not.') +
+        p(`the free plan is the ${strong('ten ideas every morning')}. turning one into an outline and a script, steals and the chat run on credits.`) +
+        p(`${strong('Plus, $9.99 a month')}, gets you 100 credits, about twenty steals or a hundred chat messages. ${strong('Pro, $19.99')}, gets you 300, for posting every day.`) +
         p('the part worth knowing: the more you use it, the better it gets at your channel specifically. it reads your uploads, remembers the ideas you kept and the notes you wrote, and answers against them. rationing credits is rationing that.'),
     }),
   };

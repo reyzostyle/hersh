@@ -214,7 +214,7 @@ function AuthModal({ initialMode, onClose, context }: {
             {emailSent ? 'Almost there' : mode === 'forgot' ? 'Reset password' : mode === 'login' ? 'Welcome back' : (context?.title ?? 'Start for free')}
           </p>
           <p className="text-[13px]" style={{ color: 'var(--text-muted)' }}>
-            {emailSent ? 'Confirm your email to activate your account.' : mode === 'forgot' ? "We'll send you a reset link." : mode === 'login' ? 'Sign in to your Chumoku account.' : (context?.sub ?? '20 free credits to start.')}
+            {emailSent ? 'Confirm your email to activate your account.' : mode === 'forgot' ? "We'll send you a reset link." : mode === 'login' ? 'Sign in to your Chumoku account.' : (context?.sub ?? 'Ten new ideas every morning.')}
           </p>
         </div>
 
@@ -518,7 +518,7 @@ interface Plan {
 // on top of that; Pro's yearlyMonthlyPrice is the real ~35% cut).
 // breakdown amounts are 300 credits divided by each action's real cost in
 // supabase/functions/_shared/credits.ts (video 5, hook 1, script 1,
-// competitor items 1) — i.e. what 300 credits buys if spent entirely on
+// competitor items 1) — i.e. what 100 credits buys if spent entirely on
 // that one thing, not an average. Keep in sync if CREDIT_COSTS changes.
 const pricingPlans: Plan[] = [
   {
@@ -527,19 +527,24 @@ const pricingPlans: Plan[] = [
     // render as the bold rows and features as the ticked ones, and this is the
     // one line that separates paid from the free trial (enforced server-side
     // in fetch-competitor-ideas / generate-outline, not just hidden in the UI).
-    quotas: ['300 credits a month', '5 tracked channels'],
+    quotas: ['100 credits a month', '5 tracked channels'],
     breakdown: [
-      { amount: '60', label: 'steals' },
-      { amount: '300', label: 'chat messages' },
-      { amount: '300', label: 'angles' },
+      { amount: '20', label: 'steals' },
+      { amount: '100', label: 'chat messages' },
+      { amount: '100', label: 'angles' },
     ],
     features: ['Your version of every idea, free', 'Scripts written for your channel', 'Steal and Ask on every Short'],
     cta: 'Get Plus', highlight: false,
   },
   {
     name: 'Pro', monthlyPrice: 19.99, yearlyMonthlyPrice: 12.99, yearlyTotal: 155.99,
-    quotas: ['Unlimited credits', '5 tracked channels'],
-    features: ['Everything in Plus', 'Highest fair-use ceiling'],
+    quotas: ['300 credits a month', '5 tracked channels'],
+    breakdown: [
+      { amount: '60', label: 'steals' },
+      { amount: '300', label: 'chat messages' },
+      { amount: '300', label: 'angles' },
+    ],
+    features: ['Everything in Plus', 'For posting every day'],
     cta: 'Get Pro', highlight: true,
   },
 ];
@@ -856,7 +861,7 @@ export function LandingPage() {
                 </button>
               </div>
               <p className="label-mono mt-3 text-center" style={heroError ? { color: 'rgb(var(--danger-rgb))' } : undefined}>
-                {heroError || '20 free credits'}
+                {heroError || 'Ten new ideas every morning'}
               </p>
             </form>
           </div>
@@ -960,17 +965,15 @@ export function LandingPage() {
 
           {/* The free tier as a row, not a third card: it is the contrast that
               makes the paid cards land, but equal card weight would sell it as
-              a real option. The numbers match CREDIT_LIMITS.free in
-              supabase/functions/_shared/credits.ts (20, one time, never
-              resets) and the Competitors gate really is enforced server-side
-              for free accounts. */}
+              a real option. Free has no credits since 2026-10-28
+              (CREDIT_LIMITS.free = 0): the daily ideas, nothing else. */}
           <Reveal delay={140}>
             <div
               className="px-5 py-4 flex flex-col sm:flex-row sm:items-center gap-x-3 gap-y-1.5"
               style={{ border: '1px dashed var(--line-strong)', borderRadius: 'var(--r-md)' }}
             >
               <span className="text-[13.5px] font-medium" style={{ color: 'var(--text)' }}>Free</span>
-              <span className="text-[13.5px]" style={{ color: 'var(--text-muted)' }}>20 credits, one time</span>
+              <span className="text-[13.5px]" style={{ color: 'var(--text-muted)' }}>Ten new ideas every morning</span>
               <span className="label-mono sm:ml-auto">3 tracked channels</span>
             </div>
           </Reveal>
@@ -1011,7 +1014,7 @@ export function LandingPage() {
                   <ArrowUpRight className="w-3.5 h-3.5" />
                 </a>
               </div>
-              <p className="label-mono mt-6">20 free credits</p>
+              <p className="label-mono mt-6">Ten new ideas every morning</p>
             </div>
           </Reveal>
         </section>
@@ -1130,9 +1133,9 @@ export function LandingPage() {
           }}
           context={
             heroSteal && authModal === 'signup'
-              ? { title: 'Create an account to steal it', sub: 'It runs the moment you are in. 20 free credits.' }
+              ? { title: 'Create an account to steal it', sub: 'It runs the moment you are in.' }
               : heroGate && authModal === 'signup'
-                ? { title: 'Your breakdown is ready', sub: 'Create an account to see it. 20 free credits.' }
+                ? { title: 'Your breakdown is ready', sub: 'Create an account to see it.' }
                 : undefined
           }
         />

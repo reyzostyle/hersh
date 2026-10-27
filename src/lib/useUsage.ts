@@ -10,7 +10,13 @@ import { supabase } from './supabase';
 // picked (worst-case $ budget, compressed real-cost ratios) — and for why the
 // dollar figures written down there are stale by roughly 4.4x since the model
 // moved off Claude Sonnet.
-export const CREDIT_LIMITS: Record<string, number> = { free: 20, pro: 300, agency: 1000 };
+// 2026-10-28 (Ivan): free 0, Plus 100, Pro 300. Free keeps the daily drop and
+// nothing else; credits are what you pay for. Sized on Gemini 3.8 Flash at its
+// 2027 price ($1.50/$7.50 per MTok): worst case ~$0.03 a credit (a chat answer
+// that writes a full script), so ~$3 (Plus) and ~$9 (Pro) at the ceiling,
+// plus ~$1.50 a month of daily-drop research per active user. Measured usage
+// over the 30 days before: 10-20 credits per active user.
+export const CREDIT_LIMITS: Record<string, number> = { free: 0, pro: 100, agency: 300 };
 export const CREDIT_COSTS = {
   video_analysis: 5,
   // One credit each since scoring became a tool inside the chat's answer
