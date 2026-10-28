@@ -121,7 +121,7 @@ export type StealResult = { idea: CompetitorIdea } | { limit: true; cost: number
 export async function stealVideo(url: string, token: string): Promise<StealResult> {
   const res = await callFunction('steal-video', token, { url });
   const data = await res.json();
-  if (data.error === 'limit_reached') return { limit: true, cost: data.cost ?? 5 };
+  if (data.error === 'limit_reached') return { limit: true, cost: data.cost ?? 3 };
   if (!res.ok) throw new Error(data.error || 'Could not steal that video');
   return { idea: data.idea as CompetitorIdea };
 }

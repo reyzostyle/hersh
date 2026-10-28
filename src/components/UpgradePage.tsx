@@ -41,10 +41,10 @@ const plans: Plan[] = [
     yearlyMonthlyPrice: 9.99,
     // Rewritten 2026-09-30 with the product: no scores and no Analytics any
     // more, so nothing here promises either.
-    quotas: ['100 credits / month', 'Steal and Ask on every Short', 'Ideas pitched for your channel'],
+    quotas: ['About 30 scripts / month', '100 credits: 3 a script, 1 a message', 'Ideas pitched for your channel'],
     features: [
       'Your version of every idea, free',
-      'Angles, outlines and scripts',
+      'A script from any idea in one press',
       'A chat that knows your channel',
       'Retention read on your own videos',
       'Track up to 5 channels',
@@ -57,7 +57,7 @@ const plans: Plan[] = [
     monthlyPrice: 19.99,
     yearlyTotal: 155.99,
     yearlyMonthlyPrice: 12.99,
-    quotas: ['300 credits / month', 'Same coverage as Plus', 'For posting every day'],
+    quotas: ['About 100 scripts / month', '300 credits', 'For posting every day'],
     features: [
       'Everything in Plus',
       'Highest monthly limits',

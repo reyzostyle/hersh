@@ -17,8 +17,19 @@ import { supabase } from './supabase';
 // plus ~$1.50 a month of daily-drop research per active user. Measured usage
 // over the 30 days before: 10-20 credits per active user.
 export const CREDIT_LIMITS: Record<string, number> = { free: 0, pro: 100, agency: 300 };
+// Two prices since 2026-10-28 (Ivan): 3 for anything that makes something
+// (a script from an idea, a steal, a video review, five more ideas), 1 for a
+// chat message. Plus 100 is ~30 scripts, Pro 300 ~100. The most expensive of
+// them, a script that watches the source Short, is ~$0.05 at 2027 Gemini
+// prices, ~$0.017 a credit: under the ~$0.03 worst case the limits are sized on.
+// competitor_idea / competitor_outline are the old angle and outline steps,
+// kept only for clients that still call enrich-competitor-video and
+// generate-outline.
 export const CREDIT_COSTS = {
-  video_analysis: 5,
+  video_analysis: 3,
+  // From an idea to a finished script in one press (write-script): reads
+  // and watches the source when there is one, then writes.
+  script: 3,
   // One credit each since scoring became a tool inside the chat's answer
   // rather than its own screen. Mirrors _shared/credits.ts.
   competitor_idea: 1,

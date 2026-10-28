@@ -163,7 +163,7 @@ final class IdeasStore {
     var loadingSaved = false
     var error: String?
     // Which ideas have a model call running, and which step.
-    enum Step { case angle, outline, script }
+    enum Step { case script }
     var working: [String: Step] = [:]
 
     // Today's drop, built server-side on the first call of the day, so the
@@ -277,17 +277,10 @@ extension IdeasStore {
     nonisolated private struct IdeaResponse: Decodable { let idea: Idea }
     nonisolated private struct ErrorBody: Decodable { let error: String? }
 
-    // Step 1, one credit: the model reads the video and writes this creator's angle.
-    func revealAngle(_ idea: Idea) async -> String? {
-        await run(idea, .angle, "enrich-competitor-video", ["videoId": .string(idea.videoId), "adaptForProfile": .bool(true)])
-    }
+    static let scriptCost = 3 // CREDIT_COSTS.script
 
-    // Step 2, four credits: it watches the video and writes the outline.
-    func buildOutline(_ idea: Idea) async -> String? {
-        await run(idea, .outline, "generate-outline", ["ideaId": .string(idea.id)])
-    }
-
-    // Step 3, one credit: the outline turned into words to say on camera.
+    // The whole way from the idea to the words to say, in one call: reads and
+    // watches the source Short when there is one, then writes. 3 credits.
     func writeScript(_ idea: Idea) async -> String? {
         await run(idea, .script, "write-script", ["ideaId": .string(idea.id)])
     }

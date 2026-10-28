@@ -237,7 +237,7 @@ ${(a.weak_spots ?? []).map(s => `- ${s}`).join('\n') || '- none noted'}
     if (typeof ideaId === 'string' && ideaId) {
       const { data: idea } = await supabase
         .from('competitor_ideas')
-        .select('pitch, adapted_idea, outline, video_title, channel_name, source, basis')
+        .select('pitch, adapted_idea, outline, script, video_title, channel_name, source, basis')
         .eq('id', ideaId).eq('user_id', user.id).maybeSingle();
       if (idea) {
         const o = idea.outline as { hook?: string; sections?: Array<{ title: string; content: string; duration: string }>; cta?: string } | null;
@@ -252,6 +252,7 @@ ${o ? `Outline already agreed - the script follows it beat for beat:
 Hook: ${o.hook ?? ''}
 ${(o.sections ?? []).map(sec => `- ${sec.duration} ${sec.title}: ${sec.content}`).join('\n')}
 End: ${o.cta ?? ''}` : ''}
+${idea.script ? `\nThe script already written for it (they will want changes to THIS text; when you rewrite it, give the whole new version):\n\"\"\"\n${idea.script}\n\"\"\"` : ''}
 
 `;
       }

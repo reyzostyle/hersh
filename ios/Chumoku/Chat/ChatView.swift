@@ -43,12 +43,14 @@ struct ChatView: View {
         .sheet(isPresented: $historyOpen) { history }
         .task { await chat.loadThreads() }
         .task(id: chat.pending?.text) {
-            // "Write the script in Chat" from an idea: a fresh conversation
-            // that opens with it.
+            // "Continue in Chat" from a script: a fresh conversation about
+            // that idea, the first line waiting in the box.
             guard let p = chat.pending else { return }
             chat.pending = nil
             chat.startNew()
-            await chat.send(p.text, ideaId: p.ideaId)
+            chat.ideaId = p.ideaId
+            draft = p.text
+            typing = true
         }
     }
 

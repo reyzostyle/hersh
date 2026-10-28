@@ -39,9 +39,13 @@ final class ChatStore {
     var messages: [ChatMessage] = []
     var sending = false
     var error: String?
-    // Set from an idea ("Write the script in Chat"): MainTabs switches to Chat
-    // and ChatView sends it as the opening message.
+    // Set from an idea's script ("Continue in Chat"): MainTabs switches to
+    // Chat, which opens a new conversation about that idea with the text
+    // waiting in the composer, not sent, so it costs nothing until they send.
     var pending: (text: String, ideaId: String)?
+    // The idea this conversation is about; sent with every message so the
+    // chat has its script.
+    var ideaId: String?
 
     static let shared = ChatStore()
 
@@ -62,6 +66,7 @@ final class ChatStore {
 
     func open(_ thread: ChatThread) async {
         threadId = thread.id
+        ideaId = nil
         messages = []
         error = nil
         nonisolated struct Row: Decodable { let id: String; let role: String; let content: String? }
@@ -78,6 +83,7 @@ final class ChatStore {
 
     func startNew() {
         threadId = nil
+        ideaId = nil
         messages = []
         error = nil
     }
@@ -102,7 +108,7 @@ final class ChatStore {
         nonisolated struct Failed: Decodable { let error: String? }
         var body: [String: AnyJSON] = ["question": .string(q)]
         if let threadId { body["threadId"] = .string(threadId) }
-        if let ideaId { body["ideaId"] = .string(ideaId) }
+        if let id = ideaId ?? self.ideaId { body["ideaId"] = .string(id) }
         do {
             let res: Answer = try await supabase.functions.invoke("chat-followup", options: FunctionInvokeOptions(body: body))
             messages.append(ChatMessage(role: "assistant", content: res.answer))

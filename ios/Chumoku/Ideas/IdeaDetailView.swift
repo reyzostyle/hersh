@@ -53,7 +53,7 @@ struct IdeaDetailView: View {
             }
         }
         .padding(.top, 28)
-        scriptStep(n: 2, ready: true)
+        scriptStep(n: 2)
             .padding(.top, 12)
     }
 
@@ -69,92 +69,59 @@ struct IdeaDetailView: View {
         return parts.isEmpty ? nil : parts.joined(separator: " ")
     }
 
+    // An idea from a Short: just the script. The reading and watching happen
+    // inside the one call (write-script), not as steps to unlock.
     @ViewBuilder private var videoSteps: some View {
-                StepCard(n: 1, title: "Your angle", done: current.adaptedIdea != nil) {
-                    if let angle = current.adaptedIdea {
-                        Text(angle).font(.tBody).foregroundStyle(Color.text).lineSpacing(3)
-                        if let concept = current.concept {
-                            Button { withAnimation(.ui) { showWhy.toggle() } } label: {
-                                HStack(spacing: 4) {
-                                    Text("Why the original worked")
-                                    Image(systemName: "chevron.down").rotationEffect(.degrees(showWhy ? 180 : 0))
-                                }
-                                .font(.tSmall).foregroundStyle(Color.textFaint)
-                            }
-                            .padding(.top, 12)
-                            if showWhy {
-                                Text(concept).font(.tSmall).foregroundStyle(Color.textMuted).padding(.top, 6).transition(.opacity)
-                            }
-                        }
-                    } else if step == .angle {
-                        Working(label: "Reading the video")
-                    } else {
-                        Button("Reveal the angle · 1 credit") { act { await store.revealAngle(current) } }
-                            .buttonStyle(.pill)
-                    }
-                }
-                .padding(.top, 28)
-
-                StepCard(n: 2, title: "Outline", done: current.outline != nil, dim: current.adaptedIdea == nil) {
-                    if let outline = current.outline {
-                        VStack(alignment: .leading, spacing: 16) {
-                            Block(label: "Hook", text: outline.hook)
-                            ForEach(Array(outline.sections.enumerated()), id: \.offset) { _, s in
-                                Block(label: [s.title, s.duration].compactMap { $0 }.joined(separator: " · "), text: s.content)
-                            }
-                            Block(label: "End", text: outline.cta)
-                        }
-                    } else if step == .outline {
-                        Working(label: "Watching it frame by frame")
-                    } else if current.adaptedIdea != nil {
-                        Button("Build the outline · 4 credits") { act { await store.buildOutline(current) } }
-                            .buttonStyle(.pill)
-                    } else {
-                        Label("Reveal the angle first", systemImage: "lock").font(.tSmall).foregroundStyle(Color.textFaint)
-                    }
-                }
-                .padding(.top, 12)
-
-                scriptStep(n: 3, ready: current.outline != nil)
-                    .padding(.top, 12)
+        scriptStep(n: 1)
+            .padding(.top, 28)
     }
 
-    private func scriptStep(n: Int, ready: Bool) -> some View {
-        StepCard(n: n, title: "Script", done: current.script != nil, dim: !ready) {
+    // One press from the idea to the words to say (2026-10-28, was angle ->
+    // outline -> script at 1 + 4 + 1). Then the chat, to argue with it.
+    private func scriptStep(n: Int) -> some View {
+        StepCard(n: n, title: "Script", done: current.script != nil) {
             if let script = current.script {
-                Text(script).font(.tBody).foregroundStyle(Color.text).lineSpacing(5).textSelection(.enabled)
-                HStack(spacing: 18) {
-                    ShareLink(item: script) { Text("Share") }
-                    Button("Rewrite · 1 credit") { act { await store.writeScript(current) } }
+                let lines = script.split(separator: "\n", omittingEmptySubsequences: true).map(String.init)
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("Hook").font(.tLabel).foregroundStyle(Color.textMuted)
+                    Text(lines.first ?? "").font(.tHeading).foregroundStyle(Color.text)
                 }
-                .font(.tSmall).foregroundStyle(Color.textFaint).padding(.top, 8)
-            } else if step == .script {
-                Working(label: "Writing what you'll say")
-            } else if ready {
-                Text(current.isOwn
-                     ? "The words you say on camera, in your voice."
-                     : "The outline says what happens. This writes the words you say on camera.")
-                    .font(.tSmall).foregroundStyle(Color.textMuted)
-                Button("Write the script · 1 credit") { act { await store.writeScript(current) } }
+                Text(lines.dropFirst().joined(separator: "\n"))
+                    .font(.tBody).foregroundStyle(Color.text).lineSpacing(5).textSelection(.enabled)
+                    .padding(.top, 6)
+                if let concept = current.concept, !current.isOwn {
+                    Button { withAnimation(.ui) { showWhy.toggle() } } label: {
+                        HStack(spacing: 4) {
+                            Text("Why the original worked")
+                            Image(systemName: "chevron.down").rotationEffect(.degrees(showWhy ? 180 : 0))
+                        }
+                        .font(.tSmall).foregroundStyle(Color.textFaint)
+                    }
+                    .padding(.top, 4)
+                    if showWhy {
+                        Text(concept).font(.tSmall).foregroundStyle(Color.textMuted).transition(.opacity)
+                    }
+                }
+                Button("Continue in Chat") { continueInChat() }
                     .buttonStyle(.pill)
-                chatLink
+                    .padding(.top, 8)
+                ShareLink(item: script) { Text("Share") }
+                    .font(.tSmall).foregroundStyle(Color.textMuted)
+                    .frame(maxWidth: .infinity)
+            } else if step == .script {
+                Working(label: current.isOwn ? "Writing it in your voice" : "Watching the video and writing it in your voice")
             } else {
-                Label("Build the outline first", systemImage: "lock").font(.tSmall).foregroundStyle(Color.textFaint)
+                Button("Write my script · \(IdeasStore.scriptCost) credits") { act { await store.writeScript(current) } }
+                    .buttonStyle(.pill)
             }
         }
     }
 
-    // The web's way to the script: a conversation that starts from this idea
-    // and can be argued with line by line. Keeps the idea, as the web does.
-    private var chatLink: some View {
-        Button("Or work on it in Chat") {
-            if current.liked != true { Task { await store.rule(current, liked: true) } }
-            let name = current.outline?.hook ?? current.pitch ?? current.headline
-            chat.pending = ("Write the full script for my saved idea \"\(name)\".", current.id)
-        }
-        .font(.tSmall).foregroundStyle(Color.textMuted)
-        .frame(maxWidth: .infinity)
-        .padding(.top, 2)
+    // The chat, on this idea and its script, with a first line waiting in
+    // the box: opening it costs nothing. Keeps the idea, as the web does.
+    private func continueInChat() {
+        if current.liked != true { Task { await store.rule(current, liked: true) } }
+        chat.pending = ("Make the hook of this script hit harder.", current.id)
     }
 
     private var header: some View {

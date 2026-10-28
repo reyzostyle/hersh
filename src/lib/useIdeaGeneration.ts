@@ -53,6 +53,7 @@ export function useIdeaGeneration(idea: CompetitorIdea, onUpdated: (updated: Com
     error,
     errorIsPlanLimit,
     generateOutline: () => run('generate-outline', setGeneratingOutline),
-    generateScript: () => run('generate-competitor-script', setGeneratingScript),
+    // From the idea to a finished script in one press (2026-10-28).
+    generateScript: () => run('write-script', setGeneratingScript),
   };
 }

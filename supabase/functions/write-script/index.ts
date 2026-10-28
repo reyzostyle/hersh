@@ -1,31 +1,44 @@
+// deno-lint-ignore-file no-explicit-any
 import { corsHeaders } from '../_shared/http.ts';
 import { createClient } from 'npm:@supabase/supabase-js@2.57.4';
 import { callLLM } from '../_shared/llm.ts';
 import { loadVoiceBlock } from '../_shared/voice.ts';
 import { loadBrain, brainBlock } from '../_shared/brain.ts';
+import { loadChannelScan, channelScanBlock } from '../_shared/channel-scan.ts';
+import { fetchTranscript, extractConceptAndAdapt, generateOutline } from '../_shared/steal.ts';
 import { loadCreditStatus, canAfford, spendCredits, CREDIT_COSTS } from '../_shared/credits.ts';
 
-// The words to say, for the teleprompter (iOS app, 2026-10-20). An outline
-// tells you what to SHOW in each beat, which is no use to someone filming
-// themselves talking to camera: they need the sentences. This turns the
-// outline into a word-for-word talking-head script in the creator's own
-// register, and keeps it on the idea (competitor_ideas.script, a column that
-// had sat unused since full scripts were dropped in August).
+// From an idea to the words to say, in one press (2026-10-28).
+//
+// It used to be three steps with three prices: reveal the angle (1, reads the
+// video), build the outline (4, watches it), write the script (1). Ivan: the
+// angle step is odd, it mostly repeats the pitch already on the card, and
+// nobody wants three buttons for one text. So this does all of it, for
+// CREDIT_COSTS.script, and the result is the script with the hook on top; the
+// angle and outline are still worked out and stored (the chat reads them),
+// just never asked for.
+//
+// - An idea from a Short: read it if not read yet, watch it if there is no
+//   outline yet, then write. Steps already paid for under the old ladder are
+//   reused, not redone.
+// - An idea Chumoku researched (source 'ai'): no video, written from its
+//   premise and suggested first line.
+// - A script that already exists is handed back free. Rewrites happen in Chat.
 const CORS = corsHeaders({ methods: 'POST, OPTIONS' });
 const ADMIN_EMAIL = 'reyzostyle@gmail.com';
 
 const SYSTEM = `You write talking-head scripts for vertical Shorts: one creator, on camera, talking straight to the phone.
 
-You get an outline (what each beat is about, sometimes written as what to show), or for an idea with no outline yet just its premise and suggested first line, and what we know about the creator. Write the exact words they will read off a teleprompter.
+You get an outline (what each beat is about, sometimes written as what to show), or for an idea with no outline just its premise and suggested first line, and what we know about the creator. Write the exact words they will read off a teleprompter.
 
 Rules:
 - Spoken words only. No stage directions, no brackets, no "[cut to]", no visual notes, no headings, no emojis.
 - If the outline says to show something, turn it into what the creator SAYS while it is on screen, or describe it in words if it must land without visuals.
-- The first line is the hook from the outline, tightened so it lands in the first two seconds.
+- The first line is the hook, tightened so it lands in the first two seconds.
 - Short sentences. One idea per line. A line break between lines so it reads well on a prompter.
 - About 130-170 words total unless the outline clearly needs more. Shorts reward cutting.
 - Sound like this creator talks, not like an ad. Plain words, no hype words.
-- End with the call to action from the outline, said naturally.
+- End with the call to action from the outline, said naturally, or a light ending (a follow or a question, never a sales line).
 
 Return only the script text.`;
 
@@ -49,44 +62,77 @@ Deno.serve(async (req: Request) => {
 
     const { data: idea } = await supabase.from('competitor_ideas').select('*').eq('id', ideaId).eq('user_id', user.id).maybeSingle();
     if (!idea) return json({ error: 'Idea not found' }, 404);
-    // An idea Chumoku researched (source 'ai') has no video to outline, so its
-    // premise and suggested first line stand in for the outline.
-    const own = idea.source === 'ai';
-    if (!idea.outline && !own) return json({ error: 'Build the outline first.' }, 400);
+    if (idea.script) return json({ success: true, idea, charged: 0 });
 
-    const cost = CREDIT_COSTS.competitor_script;
+    const cost = CREDIT_COSTS.script;
     const status = await loadCreditStatus(supabase, user.id);
     if (!canAfford(status, cost, isAdmin)) return json({ error: 'limit_reached', cost }, 402);
 
-    const [brain, voice] = await Promise.all([loadBrain(supabase, user.id), loadVoiceBlock(supabase, user.id)]);
-    const o = idea.outline as { hook: string; sections: { title: string; content: string; duration?: string }[]; cta: string } | null;
+    const own = idea.source === 'ai';
+    const [brain, voice, scan] = await Promise.all([
+      loadBrain(supabase, user.id), loadVoiceBlock(supabase, user.id), loadChannelScan(supabase, user.id),
+    ]);
+    const scanBlock = channelScanBlock(scan);
+
+    let concept: string | null = idea.concept;
+    let adapted: string | null = idea.adapted_idea;
+    let outline = idea.outline as { hook: string; sections: { title: string; content: string; duration?: string }[]; cta: string } | null;
+
+    if (!own) {
+      const { data: profile } = await supabase
+        .from('user_tokens').select('channel_niche, channel_description, channel_context, target_audience')
+        .eq('user_id', user.id).maybeSingle();
+      const profileBlock = brain ? brainBlock(brain) : `## What they told us about their channel
+Niche: ${profile?.channel_niche || 'not set'}
+Description: ${profile?.channel_description || 'not set'}
+Audience: ${profile?.target_audience || 'not set'}
+Extra context: ${profile?.channel_context || 'not set'}`;
+      // Read: what the video is, and this creator's version of it.
+      if (!adapted) {
+        const transcript = await fetchTranscript(idea.video_id);
+        const read = await extractConceptAndAdapt(
+          idea.video_id, idea.video_title || '', idea.video_views || 0, idea.outlier_score ?? null,
+          transcript, profileBlock, scanBlock, brain?.niche || profile?.channel_niche || '',
+        );
+        concept = read.concept || concept;
+        adapted = read.adapted_idea || idea.pitch || null;
+      }
+      // Watch: the beats, the cuts, the first frame.
+      if (!outline) {
+        outline = await generateOutline(idea.video_id, idea.video_title || '', adapted || idea.pitch || '', profileBlock, scanBlock, voice);
+      }
+    }
+
     const prompt = [
       brainBlock(brain),
       voice,
-      o
+      outline
         ? [
-          idea.adapted_idea ? `THEIR ANGLE\n${idea.adapted_idea}` : '',
-          `OUTLINE\nHook: ${o.hook}\n${o.sections.map(s => `${s.title}${s.duration ? ` (${s.duration})` : ''}: ${s.content}`).join('\n')}\nEnd: ${o.cta}`,
+          adapted ? `THEIR ANGLE\n${adapted}` : '',
+          `OUTLINE\nHook: ${outline.hook}\n${outline.sections.map(s => `${s.title}${s.duration ? ` (${s.duration})` : ''}: ${s.content}`).join('\n')}\nEnd: ${outline.cta}`,
         ].filter(Boolean).join('\n\n')
         : [
           `THE IDEA\n${idea.pitch ?? ''}`,
-          idea.adapted_idea ? `PREMISE\n${idea.adapted_idea}` : '',
+          adapted ? `PREMISE\n${adapted}` : '',
           idea.basis?.hook ? `SUGGESTED FIRST LINE\n${idea.basis.hook}` : '',
           idea.basis?.source ? `BASED ON\n${idea.basis.source}. Use only facts you are sure of; never invent numbers or quotes.` : '',
-          'No outline: give it a hook, two or three beats and a light ending (a follow or a question, never a sales line).',
+          'No outline: give it a hook, two or three beats and a light ending.',
         ].filter(Boolean).join('\n\n'),
     ].filter(Boolean).join('\n\n');
 
     const script = (await callLLM(prompt, { system: SYSTEM, maxTokens: 1200, tier: 'writer' }))
-      .replace(/^```[a-z]*\n?|```$/g, '').trim();
+      .replace(/^```[a-z]*\n?|```$/g, '').replace(/[—–]/g, '-').trim();
     if (!script) throw new Error('Empty script');
 
-    const { data: updated, error } = await supabase.from('competitor_ideas').update({ script }).eq('id', ideaId).select('*').single();
+    // Writing a script keeps the idea: it lands in Saved, as a steal does.
+    const { data: updated, error } = await supabase.from('competitor_ideas')
+      .update({ concept, adapted_idea: adapted, outline, script, liked: true })
+      .eq('id', ideaId).select('*').single();
     if (error) throw error;
     await spendCredits(supabase, user.id, status, cost);
-    return json({ success: true, idea: updated });
+    return json({ success: true, idea: updated, charged: cost });
   } catch (e) {
     console.error('[write-script]', e);
-    return json({ error: e instanceof Error ? e.message : 'Internal error' }, 500);
+    return json({ error: 'Could not write the script. Nothing was charged. Try again.' }, 500);
   }
 });

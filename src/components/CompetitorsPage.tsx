@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase, getSessionToken, getUserId } from '../lib/supabase';
 import {
-  callFunction, stealVideo, fetchDailyDrop, itemFromIdea, filterIdeas,
+  stealVideo, fetchDailyDrop, itemFromIdea, filterIdeas,
   type CompetitorIdea, type FeedItem, type IdeaFilter,
 } from '../lib/competitors';
 import { takeRequestedVideo } from '../lib/projects';
@@ -22,11 +22,6 @@ export function CompetitorsPage() {
   const [initialLoading, setInitialLoading] = useState(true);
   const [ideaFilter, setIdeaFilter] = useState<IdeaFilter>('new');
   const [openVideoId, setOpenVideoId] = useState<string | null>(null);
-  const [enrichingId, setEnrichingId] = useState<string | null>(null);
-  // Every angle is written for the creator's channel. This was a checkbox in
-  // the channels panel that nothing saved; the panel moved to Settings
-  // without it.
-  const adaptForProfile = true;
   const [stealing, setStealing] = useState(false);
   // A finished steal lands on its card first - the result at a glance, the
   // thing that gets filmed - and the outline is one press further.
@@ -190,37 +185,6 @@ export function CompetitorsPage() {
     setIdeas(prev => prev.map(i => saved.get(i.video_id) ?? i));
   };
 
-  // Runs the model on one video: transcript in, concept and an angle for this
-  // channel out. The only billed action on this screen, and it happens because
-  // someone asked for this specific video.
-  const enrich = async (item: FeedItem): Promise<CompetitorIdea | null> => {
-    if (item.idea?.concept) return item.idea;
-    setEnrichingId(item.video_id);
-    setFetchError('');
-    try {
-      const token = await getSessionToken();
-      if (!token) throw new Error('Not authenticated');
-      const res = await callFunction('enrich-competitor-video', token, { videoId: item.video_id, adaptForProfile });
-      const data = await res.json();
-      if (data.error === 'upgrade_required') {
-        window.dispatchEvent(new CustomEvent('chumoku:navigate', { detail: 'upgrade' }));
-        return null;
-      }
-      if (data.error === 'limit_reached') {
-        setFetchError("You've used all your credits for this month.");
-        return null;
-      }
-      if (!res.ok) throw new Error(data.error || 'Could not read that video');
-      handleIdeaUpdated(data.idea, { persist: false });
-      return data.idea as CompetitorIdea;
-    } catch (e) {
-      setFetchError(e instanceof Error ? e.message : 'Could not read that video');
-      return null;
-    } finally {
-      setEnrichingId(null);
-    }
-  };
-
   // Writes through to the database as well as local state, except when the
   // caller has already persisted (an enrichment response is the stored row).
   const handleIdeaUpdated = (updated: CompetitorIdea, { persist = true }: { persist?: boolean } = {}) => {
@@ -295,8 +259,6 @@ export function CompetitorsPage() {
       <CompetitorVideoView
         item={openItem}
         onBack={() => setOpenVideoId(null)}
-        onBreakDown={() => enrich(openItem)}
-        breaking={enrichingId === openItem.video_id}
         onSave={() => ruleOn([openItem], openItem.idea?.liked === true ? null : true)}
         onDismiss={() => ruleOn([openItem], openItem.idea?.liked === false ? null : false)}
         onUpdated={handleIdeaUpdated}

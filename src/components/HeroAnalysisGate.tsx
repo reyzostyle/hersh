@@ -44,7 +44,7 @@ function AnalysisScreenStill({ url }: { url: string }) {
             <ArrowUp className="w-3.5 h-3.5" style={{ color: 'var(--on-accent)' }} />
           </span>
         </div>
-        <p className="label-mono mt-2.5 text-center">5 credits a video, 3 a script, 2 a hook</p>
+        <p className="label-mono mt-2.5 text-center">3 credits a video or a script, 1 a message</p>
       </div>
     </div>
   );

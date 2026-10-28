@@ -41,8 +41,19 @@ export const CREDIT_LIMITS: Record<string, number> = { free: 0, pro: 100, agency
 // video doesn't read as prohibitively expensive next to everything else;
 // the resulting margin varies with usage mix, which is exactly why the
 // limits above are sized against the worst case rather than the average.
+// Two prices since 2026-10-28 (Ivan): 3 for anything that makes something
+// (a script from an idea, a steal, a video review, five more ideas), 1 for a
+// chat message. Plus 100 is ~30 scripts, Pro 300 ~100. The most expensive of
+// them, a script that watches the source Short, is ~$0.05 at 2027 Gemini
+// prices, ~$0.017 a credit: under the ~$0.03 worst case the limits are sized on.
+// competitor_idea / competitor_outline are the old angle and outline steps,
+// kept only for clients that still call enrich-competitor-video and
+// generate-outline.
 export const CREDIT_COSTS = {
-  video_analysis: 5,
+  video_analysis: 3,
+  // From an idea to a finished script in one press (write-script): reads
+  // and watches the source when there is one, then writes.
+  script: 3,
   // Both were priced when a hook check and a script check were their own
   // screens, each a deliberate trip. They are one tool call inside an answer
   // now (see chat-followup), the same kind of text call a question is, and

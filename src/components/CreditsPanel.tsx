@@ -71,7 +71,7 @@ export function CreditsPanel({ usage }: { usage: Usage }) {
              style={{ width: `${100 - percent}%`, background: percent >= 90 ? 'rgb(var(--danger-rgb))' : 'var(--text)' }} />
       </div>
       <p className="mt-2 text-[12px]" style={{ color: 'var(--text-faint)' }}>
-        {isFree ? 'The free plan is the daily ideas. Credits come with Plus (100 a month) or Pro (300).' : 'Refills with your plan every month.'}
+        {isFree ? 'The free plan is the daily ideas. Scripts come with Plus (about 30 a month) or Pro (about 100).' : 'Refills with your plan every month. A script is 3, a chat message 1.'}
       </p>
 
       {/* Top-ups are for subscribers: at the same price per credit, selling

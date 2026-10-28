@@ -1,4 +1,5 @@
-import { AltArrowLeftOutlineIcon as ArrowLeft, SquareArrowRightUpOutlineIcon as ExternalLink, LockKeyholeMinimalisticOutlineIcon as Lock } from '@solar-icons/react';
+import { useState } from 'react';
+import { AltArrowLeftOutlineIcon as ArrowLeft, SquareArrowRightUpOutlineIcon as ExternalLink } from '@solar-icons/react';
 import { ShortThumb } from './ShortThumb';
 import { formatViews, isOwnIdea, isOwnRemix, ownIdeaLabel, type FeedItem, type CompetitorIdea } from '../lib/competitors';
 import { AiIdeaCover } from './AiIdeaCover';
@@ -9,23 +10,21 @@ import { resetAnalysisSession } from './AnalysisChat';
 import { Page, Button, Skeleton } from './Page';
 import { ErrorNotice } from './ErrorNotice';
 
-// One idea, opened up a step at a time (rebuilt 2026-09-30).
+// One idea, and one button to the script (2026-10-28).
 //
-// The screen used to be the other channel's title as a heading and then two
-// paragraphs and an outline in one long scroll. What Ivan asked for instead is
-// the thing he liked about the steal checklist: press a button, watch it work,
-// see what comes out - a small reveal each time. So the steps are stacked and
-// locked in order: the angle (1 credit, reads the video), the outline (4,
-// watches it), the script (in Chat, where it can be argued with). A locked
-// step shows its shape blurred, so there is always something to unlock.
+// It was three locked steps: the angle (1 credit), the outline (4), the script
+// (in Chat). Ivan: opening the angle is odd, it mostly repeats the pitch on
+// the card, and three presses for one text is two too many. Now "Write my
+// script" does the reading, watching and writing in one call (write-script),
+// the script comes back with the hook on top, and "Continue in Chat" is where
+// it gets argued with. The angle and outline are still made and kept, for the
+// chat; nobody has to ask for them.
 export function CompetitorVideoView({
-  item, onBack, onBreakDown, breaking, onSave, onDismiss, onUpdated, backLabel = 'Feed',
+  item, onBack, onSave, onDismiss, onUpdated, backLabel = 'Feed',
 }: {
   backLabel?: string;
   item: FeedItem;
   onBack: () => void;
-  onBreakDown: () => void;
-  breaking: boolean;
   onSave: () => void;
   onDismiss: () => void;
   onUpdated: (idea: CompetitorIdea) => void;
@@ -34,28 +33,33 @@ export function CompetitorVideoView({
   const isSaved = idea?.liked === true;
   const isDismissed = idea?.liked === false;
 
-  const { generatingOutline, generateOutline, error, errorIsPlanLimit } =
+  const { generatingScript, generateScript, error, errorIsPlanLimit } =
     useIdeaGeneration(idea ?? ({ id: '' } as CompetitorIdea), onUpdated);
 
-  const hasAngle = !!idea?.concept;
-  const outline = idea?.outline ?? null;
-
-  const writeScript = () => {
+  // The chat, opened on this idea with its script, a first line waiting in
+  // the composer. Kept, so it lands in Saved with the conversation.
+  const continueInChat = () => {
     if (!idea) return;
-    // Kept, so the chat's lookup finds it among their saved ideas and it lands
-    // in Saved with the conversation that follows.
     if (!isSaved) onSave();
-    const name = outline?.hook || idea.pitch || idea.video_title || 'this idea';
     try {
-      localStorage.setItem(PENDING_CHAT_KEY, JSON.stringify({ text: `Write the full script for my saved idea "${name}".`, ideaId: idea.id }));
+      localStorage.setItem(PENDING_CHAT_KEY, JSON.stringify({ text: 'Make the hook of this script hit harder.', ideaId: idea.id, draft: true }));
     } catch { /* ignore */ }
     resetAnalysisSession();
     window.dispatchEvent(new CustomEvent('chumoku:navigate', { detail: 'analyze' }));
   };
 
+  const errorBlock = error && (
+    <div className="mb-6">
+      {errorIsPlanLimit
+        ? <p className="t-small" style={{ color: 'var(--text-muted)' }}>{error}</p>
+        : <ErrorNotice message={error} />}
+    </div>
+  );
+  const script = <ScriptCard idea={idea ?? null} writing={generatingScript} onWrite={generateScript} onChat={continueInChat} />;
+
   if (idea && isOwnIdea(idea)) {
     return (
-      <OwnIdeaView idea={idea} backLabel={backLabel} onBack={onBack} onSave={onSave} onDismiss={onDismiss} onWrite={writeScript} />
+      <OwnIdeaView idea={idea} backLabel={backLabel} onBack={onBack} onSave={onSave} onDismiss={onDismiss} error={errorBlock} script={script} />
     );
   }
 
@@ -97,80 +101,8 @@ export function CompetitorVideoView({
         </div>
       </div>
 
-      {error && (
-        <div className="mb-6">
-          {errorIsPlanLimit
-            ? <p className="t-small" style={{ color: 'var(--text-muted)' }}>{error}</p>
-            : <ErrorNotice message={error} />}
-        </div>
-      )}
-
-      <ol className="flex flex-col gap-3">
-        {/* 1. The angle */}
-        <Step n={1} title="Your angle" done={hasAngle}>
-          {hasAngle ? (
-            <div className="animate-msg-in">
-              <p className="t-body" style={{ color: 'var(--text)' }}>{idea!.adapted_idea}</p>
-              {idea!.concept && (
-                <details className="mt-4">
-                  <summary className="t-small cursor-pointer select-none" style={{ color: 'var(--text-faint)' }}>Why the original worked</summary>
-                  <p className="t-small mt-2" style={{ color: 'var(--text-muted)' }}>{idea!.concept}</p>
-                </details>
-              )}
-            </div>
-          ) : breaking ? (
-            <Working label="Reading the video" lines={3} />
-          ) : (
-            <Locked lines={3}>
-              <Button variant="primary" onClick={onBreakDown}>Reveal the angle · {CREDIT_COSTS.competitor_idea} credit</Button>
-            </Locked>
-          )}
-        </Step>
-
-        {/* 2. The outline */}
-        <Step n={2} title="Outline" done={!!outline} dim={!hasAngle}>
-          {outline ? (
-            <div className="animate-msg-in">
-              <p className="t-label mb-1.5" style={{ color: 'var(--text-muted)' }}>Hook</p>
-              <p className="t-heading mb-5" style={{ color: 'var(--text)' }}>{outline.hook}</p>
-              <ol className="flex flex-col gap-3">
-                {outline.sections?.map((sec, i) => (
-                  <li key={i} className="grid grid-cols-[3.5rem_1fr] gap-3">
-                    <span className="t-small tabular-nums" style={{ color: 'var(--text-faint)' }}>{sec.duration}</span>
-                    <div>
-                      <p className="t-small font-medium" style={{ color: 'var(--text)' }}>{sec.title}</p>
-                      <p className="t-small" style={{ color: 'var(--text-muted)' }}>{sec.content}</p>
-                    </div>
-                  </li>
-                ))}
-              </ol>
-              {outline.cta && (
-                <p className="t-small mt-4" style={{ color: 'var(--text-muted)' }}><span style={{ color: 'var(--text-faint)' }}>End · </span>{outline.cta}</p>
-              )}
-            </div>
-          ) : generatingOutline ? (
-            <Working label="Watching it frame by frame" lines={4} />
-          ) : (
-            <Locked lines={4}>
-              {hasAngle
-                ? <Button variant="primary" onClick={generateOutline}>Build the outline · {CREDIT_COSTS.competitor_outline} credits</Button>
-                : <p className="t-small flex items-center gap-1.5" style={{ color: 'var(--text-faint)' }}><Lock className="w-3.5 h-3.5" />Reveal the angle first</p>}
-            </Locked>
-          )}
-        </Step>
-
-        {/* 3. The script, in Chat */}
-        <Step n={3} title="Script" dim={!outline}>
-          {outline ? (
-            <div className="flex flex-col items-start gap-3">
-              <p className="t-small" style={{ color: 'var(--text-muted)' }}>Chumoku writes it in Chat, where you can push back on any line.</p>
-              <Button variant="primary" onClick={writeScript}>Write the script in Chat</Button>
-            </div>
-          ) : (
-            <p className="t-small flex items-center gap-1.5" style={{ color: 'var(--text-faint)' }}><Lock className="w-3.5 h-3.5" />Build the outline first</p>
-          )}
-        </Step>
-      </ol>
+      {errorBlock}
+      {script}
     </Page>
   );
 }
@@ -178,13 +110,14 @@ export function CompetitorVideoView({
 // An idea Chumoku found for the creator. No video to read or watch, so no
 // angle or outline to unlock: the premise is already the angle, and the next
 // step is the script.
-function OwnIdeaView({ idea, backLabel, onBack, onSave, onDismiss, onWrite }: {
+function OwnIdeaView({ idea, backLabel, onBack, onSave, onDismiss, error, script }: {
   idea: CompetitorIdea;
   backLabel: string;
   onBack: () => void;
   onSave: () => void;
   onDismiss: () => void;
-  onWrite: () => void;
+  error: React.ReactNode;
+  script: React.ReactNode;
 }) {
   const basis = idea.basis;
   return (
@@ -210,7 +143,8 @@ function OwnIdeaView({ idea, backLabel, onBack, onSave, onDismiss, onWrite }: {
         </div>
       </div>
 
-      <ol className="flex flex-col gap-3">
+      {error}
+      <ol className="flex flex-col gap-3 mb-3">
         <Step n={1} title="The idea" done>
           <p className="t-body" style={{ color: 'var(--text)' }}>{idea.adapted_idea}</p>
           {basis && (
@@ -222,14 +156,57 @@ function OwnIdeaView({ idea, backLabel, onBack, onSave, onDismiss, onWrite }: {
             </p>
           )}
         </Step>
-        <Step n={2} title="Script">
-          <div className="flex flex-col items-start gap-3">
-            <p className="t-small" style={{ color: 'var(--text-muted)' }}>Chumoku writes it in Chat, where you can push back on any line.</p>
-            <Button variant="primary" onClick={onWrite}>Write the script in Chat</Button>
-          </div>
-        </Step>
       </ol>
+      {script}
     </Page>
+  );
+}
+
+// The one step: write the script, then take it to the chat.
+function ScriptCard({ idea, writing, onWrite, onChat }: {
+  idea: CompetitorIdea | null;
+  writing: boolean;
+  onWrite: () => void;
+  onChat: () => void;
+}) {
+  const [copied, setCopied] = useState(false);
+  const own = isOwnIdea(idea);
+  const text = idea?.script ?? null;
+  const [hook, ...rest] = (text ?? '').split(/\n+/);
+  return (
+    <section className="idea-step">
+      <div className="flex items-center gap-3 mb-4">
+        <span className="idea-step__n" data-done={text ? 'true' : undefined}>{own ? 2 : 1}</span>
+        <p className="t-heading" style={{ color: 'var(--text)' }}>Script</p>
+      </div>
+      {text ? (
+        <div className="animate-msg-in">
+          <p className="t-label mb-1.5" style={{ color: 'var(--text-muted)' }}>Hook</p>
+          <p className="t-heading mb-4" style={{ color: 'var(--text)' }}>{hook}</p>
+          <p className="t-body whitespace-pre-line" style={{ color: 'var(--text)' }}>{rest.join('\n')}</p>
+          {idea?.concept && !own && (
+            <details className="mt-4">
+              <summary className="t-small cursor-pointer select-none" style={{ color: 'var(--text-faint)' }}>Why the original worked</summary>
+              <p className="t-small mt-2" style={{ color: 'var(--text-muted)' }}>{idea.concept}</p>
+            </details>
+          )}
+          <div className="flex flex-wrap items-center gap-2 mt-6">
+            <Button variant="primary" onClick={onChat}>Continue in Chat</Button>
+            <Button variant="ghost" onClick={() => {
+              navigator.clipboard?.writeText(text).then(() => { setCopied(true); window.setTimeout(() => setCopied(false), 1500); }).catch(() => {});
+            }}>{copied ? 'Copied' : 'Copy'}</Button>
+          </div>
+        </div>
+      ) : writing ? (
+        <Working label={own ? 'Writing it in your voice' : 'Watching the video and writing it in your voice'} lines={5} />
+      ) : (
+        <Locked lines={5}>
+          <Button variant="primary" onClick={onWrite} disabled={!idea || idea.id.startsWith('pending-')}>
+            Write my script · {CREDIT_COSTS.script} credits
+          </Button>
+        </Locked>
+      )}
+    </section>
   );
 }
 

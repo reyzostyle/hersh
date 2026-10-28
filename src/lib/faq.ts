@@ -18,7 +18,7 @@ export const FAQS: { q: string; a: string }[] = [
   },
   {
     q: 'Is it free to try?',
-    a: 'The daily ideas are free: ten new ones every morning. Everything after that runs on credits, which come with Plus (100 a month) or Pro (300). A chat message costs 1 credit and a steal costs 5.',
+    a: 'The daily ideas are free: ten new ones every morning. Scripts and the chat run on credits: Plus is about 30 scripts a month, Pro about 100. A script or a steal costs 3 credits, a chat message 1.',
   },
   {
     q: 'Do I need to connect YouTube?',

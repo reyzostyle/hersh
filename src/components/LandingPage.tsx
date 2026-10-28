@@ -518,7 +518,7 @@ interface Plan {
 // on top of that; Pro's yearlyMonthlyPrice is the real ~35% cut).
 // breakdown amounts are 300 credits divided by each action's real cost in
 // supabase/functions/_shared/credits.ts (video 5, hook 1, script 1,
-// competitor items 1) — i.e. what 100 credits buys if spent entirely on
+// competitor items 1) — i.e. what the credits buy if spent entirely on
 // that one thing, not an average. Keep in sync if CREDIT_COSTS changes.
 const pricingPlans: Plan[] = [
   {
@@ -527,22 +527,22 @@ const pricingPlans: Plan[] = [
     // render as the bold rows and features as the ticked ones, and this is the
     // one line that separates paid from the free trial (enforced server-side
     // in fetch-competitor-ideas / generate-outline, not just hidden in the UI).
-    quotas: ['100 credits a month', '5 tracked channels'],
+    quotas: ['About 30 scripts a month', '5 tracked channels'],
     breakdown: [
-      { amount: '20', label: 'steals' },
-      { amount: '100', label: 'chat messages' },
-      { amount: '100', label: 'angles' },
+      { amount: '100', label: 'credits' },
+      { amount: '3', label: 'a script' },
+      { amount: '1', label: 'a chat message' },
     ],
     features: ['Your version of every idea, free', 'Scripts written for your channel', 'Steal and Ask on every Short'],
     cta: 'Get Plus', highlight: false,
   },
   {
     name: 'Pro', monthlyPrice: 19.99, yearlyMonthlyPrice: 12.99, yearlyTotal: 155.99,
-    quotas: ['300 credits a month', '5 tracked channels'],
+    quotas: ['About 100 scripts a month', '5 tracked channels'],
     breakdown: [
-      { amount: '60', label: 'steals' },
-      { amount: '300', label: 'chat messages' },
-      { amount: '300', label: 'angles' },
+      { amount: '300', label: 'credits' },
+      { amount: '3', label: 'a script' },
+      { amount: '1', label: 'a chat message' },
     ],
     features: ['Everything in Plus', 'For posting every day'],
     cta: 'Get Pro', highlight: true,

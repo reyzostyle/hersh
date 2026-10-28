@@ -257,8 +257,6 @@ function StealRun({ url }: { url: string }) {
       item={itemFromIdea(idea)}
       backLabel="All ideas"
       onBack={() => window.open(`${SITE_URL}/?utm_source=extension`, '_blank', 'noopener')}
-      onBreakDown={() => {}}
-      breaking={false}
       onSave={() => update({ liked: idea.liked === true ? null : true })}
       onDismiss={() => update({ liked: idea.liked === false ? null : false })}
       onUpdated={setIdea}

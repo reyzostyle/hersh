@@ -460,6 +460,9 @@ export function AnalysisChat() {
   );
   const [threadId, setThreadId] = useState<string | null>(() => session?.threadId ?? null);
   const [composer, setComposer] = useState('');
+  // The idea a conversation opened from a script is about (see the pending
+  // chat handoff below); sent with each message so the chat has its script.
+  const ideaRef = useRef<string | null>(null);
   const [busy, setBusy] = useState(false);
   // Which pipeline is running, so the working line can name its actual stages.
   const [busyKind, setBusyKind] = useState<keyof typeof STAGES>('video');
@@ -590,7 +593,15 @@ export function AnalysisChat() {
     const message = take(PENDING_CHAT_KEY);
     if (message) {
       try {
-        const { text, ideaId } = JSON.parse(message) as { text: string; ideaId?: string };
+        const { text, ideaId, draft } = JSON.parse(message) as { text: string; ideaId?: string; draft?: boolean };
+        // "Continue in Chat" from a written script: the idea rides along with
+        // every message of this conversation, and the opener waits in the
+        // composer, so opening the chat never spends a credit on its own.
+        if (draft) {
+          ideaRef.current = ideaId ?? null;
+          setComposer(text);
+          return;
+        }
         routeMessage(text, { ideaId });
       } catch {
         routeMessage(message);
@@ -1077,7 +1088,7 @@ export function AnalysisChat() {
       askWithImages(shots, text);
       return;
     }
-    routeMessage(text);
+    routeMessage(text, { ideaId: ideaRef.current ?? undefined });
   };
 
 

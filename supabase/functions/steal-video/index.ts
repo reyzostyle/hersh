@@ -82,7 +82,8 @@ Deno.serve(async (req: Request) => {
     }
 
     const needsRead = !existing?.concept;
-    const cost = (needsRead ? CREDIT_COSTS.competitor_idea : 0) + CREDIT_COSTS.competitor_outline;
+    // One price for a steal, read or not (2026-10-28).
+    const cost = CREDIT_COSTS.script;
     const isAdmin = user.email === ADMIN_EMAIL;
     const creditStatus = await loadCreditStatus(supabase, user.id);
     if (!canAfford(creditStatus, cost, isAdmin)) return json({ error: 'limit_reached', cost });
