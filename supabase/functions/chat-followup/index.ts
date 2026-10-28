@@ -7,6 +7,7 @@ import { loadCreditStatus, canAfford, spendCredits, CREDIT_COSTS } from '../_sha
 import { CREATOR_TOOLS, runCreatorTool } from '../_shared/creator-tools.ts';
 import { SYSTEM } from '../_shared/chat-prompt.ts';
 import { loadBrain, brainLine } from '../_shared/brain.ts';
+import { ownVideoRetention, retentionBlock, loadUsual } from '../_shared/retention.ts';
 
 const CORS = corsHeaders({ methods: 'POST, OPTIONS' });
 
@@ -137,9 +138,11 @@ Deno.serve(async (req: Request) => {
     let analysis: Record<string, unknown> | null = null;
     let earlierReviews = 0;
     let history = '';
+    let analysisId: string | null = null;
     if (threadId) {
       const { data: thread } = await supabase
-        .from('chat_threads').select('id').eq('id', threadId).eq('user_id', user.id).maybeSingle();
+        .from('chat_threads').select('id, analysis_id').eq('id', threadId).eq('user_id', user.id).maybeSingle();
+      analysisId = thread?.analysis_id ?? null;
       if (!thread) {
         return new Response(JSON.stringify({ error: 'Thread not found' }), { status: 404, headers: CORS });
       }
@@ -229,6 +232,27 @@ ${(a.weak_spots ?? []).map(s => `- ${s}`).join('\n') || '- none noted'}
 `
       : '';
 
+    // The reviewed video's real retention, when the video is theirs.
+    //
+    // "How do I improve this video's script?" after a review was answered from
+    // the review alone, and the review's drops were the model's own reading
+    // of a curve summarised badly: "a 25% drop at 0:05-0:07" on a Short whose
+    // curve falls from 142% to 63% between 0:04 and 0:12. The measured curve,
+    // with what is said at each second, now sits beside the review and wins
+    // over it.
+    let retention = '';
+    if (analysis && analysisId) {
+      const { data: an } = await supabase
+        .from('analyses').select('video_ids, is_my_video, hook_analysis')
+        .eq('id', analysisId).eq('user_id', user.id).maybeSingle();
+      const videoId = an?.video_ids?.[0];
+      const mine = an?.hook_analysis?.ownership === 'mine' || an?.is_my_video === true;
+      if (videoId && mine) {
+        const { row } = await ownVideoRetention(supabase, user.id, videoId, { beats: true });
+        if (row) retention = `${retentionBlock(row, await loadUsual(supabase, user.id, videoId), { script: true })}\nWhere this and the review above disagree about when or how many people left, this is right and the review is wrong.\n\n`;
+      }
+    }
+
     // The saved idea the message is about, when it was sent from an idea's
     // "Write the script" step. Read here, scoped to its owner, so the script
     // follows the outline that was actually built rather than whatever a
@@ -264,7 +288,7 @@ ${idea.script ? `\nThe script already written for it (they will want changes to 
 
     const voice = await loadVoiceBlock(supabase, user.id);
     const today = new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
-    const prompt = `## Today\n${today}\n\n${block ? `## Who you are talking to\n${block}\n\n` : ''}${voice}${ideaBlock}${reviewBlock}${history ? `## The conversation so far\n${history}\n\n` : ''}${hasImage ? `## Attached\n${images.length === 1 ? 'A screenshot is' : `${images.length} screenshots are`} attached above. They are the evidence for whatever they are asking.\n\n` : ''}${messageBlock}`;
+    const prompt = `## Today\n${today}\n\n${block ? `## Who you are talking to\n${block}\n\n` : ''}${voice}${ideaBlock}${reviewBlock}${retention}${history ? `## The conversation so far\n${history}\n\n` : ''}${hasImage ? `## Attached\n${images.length === 1 ? 'A screenshot is' : `${images.length} screenshots are`} attached above. They are the evidence for whatever they are asking.\n\n` : ''}${messageBlock}`;
 
     // One call, tools on it. A lookup pays for a second round trip only when
     // the answer depends on something only this account knows.

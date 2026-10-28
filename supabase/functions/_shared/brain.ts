@@ -16,6 +16,7 @@
 import { callLLM } from './llm.ts';
 import { parseModelJson } from './json.ts';
 import { loadChannelScan, type ChannelScan } from './channel-scan.ts';
+import type { RetentionLessons } from './retention-sync.ts';
 
 export interface ChannelBrain {
   // Second person, written to be read by the creator as well as by the model:
@@ -36,6 +37,11 @@ export interface ChannelBrain {
   // built on a guess should not be delivered in the same voice as advice built
   // on twenty titles.
   source: 'uploads' | 'stated';
+  // What their real retention curves add up to (retention-sync.ts). Not part
+  // of the stored read: attached by loadBrain from its own column, so the
+  // weekly rebuild can never wipe it and every prompt that takes the brain
+  // gets it.
+  retention?: RetentionLessons | null;
 }
 
 // The niche vocabulary, moved here from src/lib/niches.ts when the chips came
@@ -75,7 +81,7 @@ ${titles ? `Their last ${scan.videos.length} uploads, newest first:\n${titles}` 
 export async function buildBrain(supabase: any, userId: string): Promise<ChannelBrain | null> {
   const { data: row } = await supabase
     .from('user_tokens')
-    .select('creator_level, channel_description, channel_niche, target_audience, channel_context, brain, brain_overrides')
+    .select('creator_level, channel_description, channel_niche, target_audience, channel_context, brain, brain_overrides, retention_lessons')
     .eq('user_id', userId)
     .maybeSingle();
 
@@ -120,7 +126,7 @@ ${stated}
 
 ## What they actually publish
 ${scanEvidence(scan)}
-${bestTitles ? `\nTheir most viewed videos of all time:\n${bestTitles}\n` : ''}${previous?.summary ? `
+${bestTitles ? `\nTheir most viewed videos of all time:\n${bestTitles}\n` : ''}${retentionEvidence(row?.retention_lessons as RetentionLessons | null)}${previous?.summary ? `
 ## The previous read (last week)
 ${previous.summary}
 Niche: ${previous.niche} | Format: ${previous.format}
@@ -201,8 +207,33 @@ export function mergeBrain(brain: ChannelBrain | null, overrides: BrainOverrides
 // deno-lint-ignore no-explicit-any
 export async function loadBrain(supabase: any, userId: string): Promise<ChannelBrain | null> {
   const { data } = await supabase
-    .from('user_tokens').select('brain, brain_overrides').eq('user_id', userId).maybeSingle();
-  return mergeBrain((data?.brain as ChannelBrain) ?? null, (data?.brain_overrides as BrainOverrides) ?? null);
+    .from('user_tokens').select('brain, brain_overrides, retention_lessons').eq('user_id', userId).maybeSingle();
+  const brain = mergeBrain((data?.brain as ChannelBrain) ?? null, (data?.brain_overrides as BrainOverrides) ?? null);
+  const lessons = data?.retention_lessons as RetentionLessons | null;
+  return brain && lessons?.lessons?.length ? { ...brain, retention: lessons } : brain;
+}
+
+// For the brain's own read: the retention lessons are evidence about what
+// works on the channel, measured rather than inferred from titles.
+function retentionEvidence(l: RetentionLessons | null): string {
+  if (!l?.lessons?.length) return '';
+  return `
+## What their real retention curves show (YouTube Analytics, ${l.videos} Shorts)
+${l.summary}
+${l.lessons.map(x => `- ${x.rule} (${x.evidence})`).join('\n')}
+This is measured. Let it shape strengths and watch_outs where it applies.
+`;
+}
+
+// The lessons as prompt lines, for brainBlock and brainLine.
+function retentionLines(l: RetentionLessons | null | undefined, max: number): string {
+  if (!l?.lessons?.length) return '';
+  const nums = [
+    l.stayed_median != null ? `${Math.round(l.stayed_median)}% of feed viewers stay past the first seconds` : null,
+    l.avg_view_median != null ? `average view ${Math.round(l.avg_view_median)}% of the video` : null,
+  ].filter(Boolean).join(', ');
+  return `What their real retention shows (YouTube Analytics, ${l.videos} of their Shorts${nums ? `; usually ${nums}` : ''}): ${l.summary}
+${l.lessons.slice(0, max).map(x => `- ${x.rule}`).join('\n')}`;
 }
 
 // The prompt block. One shape for every caller, so "their channel" means the
@@ -220,6 +251,7 @@ ${brain.voice ? `Voice: ${brain.voice}` : ''}
 ${brain.strengths.length ? `\nWhat already works for them:\n${list(brain.strengths)}` : ''}
 ${brain.watch_outs.length ? `\nDo not suggest:\n${list(brain.watch_outs)}` : ''}
 ${brain.adapt_rules.length ? `\nWhen remaking anything for this channel:\n${list(brain.adapt_rules)}` : ''}
+${brain.retention?.lessons?.length ? `\n${retentionLines(brain.retention, 5)}\nThese come from their own viewers, so they outrank general advice: write every hook, opening and ending against them.` : ''}
 ${brain.source === 'stated'
   ? '\nThis profile was written from what they told us; their channel is not connected, so none of it is confirmed by real uploads. Do not treat it as fact about their audience or their numbers.'
   : '\nThis profile was read off their real uploads. Trust it over anything the video in front of you implies about them.'}
@@ -238,5 +270,6 @@ export function brainLine(brain: ChannelBrain | null): string {
     brain.niche && `Niche: ${brain.niche}`,
     brain.format && `Format: ${brain.format}`,
     brain.audience && `Audience: ${brain.audience}`,
+    retentionLines(brain.retention, 3),
   ].filter(Boolean).join('\n');
 }

@@ -4,6 +4,8 @@ import { loadCreditStatus, canAfford, spendCredits, CREDIT_COSTS } from '../_sha
 import { analyzeVideo } from '../_shared/analyze-video.ts';
 import { parseImages, type AttachedImage } from '../_shared/images.ts';
 import { loadBrain } from '../_shared/brain.ts';
+import { freshAccessToken } from '../_shared/youtube-token.ts';
+import { ownVideoRetention, retentionBlock, loadUsual, beatsFromTimeline, attachBeats, type RetentionRow } from '../_shared/retention.ts';
 
 const CORS = corsHeaders({ methods: 'GET, POST, PUT, DELETE, OPTIONS' });
 
@@ -49,22 +51,6 @@ async function fetchPublicVideoData(videoId: string, accessTokenOrApiKey: string
   };
 }
 
-async function refreshAccessToken(refreshToken: string): Promise<string> {
-  const res = await fetch('https://oauth2.googleapis.com/token', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: new URLSearchParams({
-      client_id: Deno.env.get('YOUTUBE_CLIENT_ID')!,
-      client_secret: Deno.env.get('YOUTUBE_CLIENT_SECRET')!,
-      refresh_token: refreshToken,
-      grant_type: 'refresh_token',
-    }),
-  });
-  if (!res.ok) throw new Error(`Token refresh failed: ${await res.text()}`);
-  const tokens = await res.json();
-  return tokens.access_token;
-}
-
 // The connected account's own channel id (authoritative for ownership).
 async function getOwnChannelId(accessToken: string): Promise<string | null> {
   try {
@@ -78,65 +64,6 @@ async function getOwnChannelId(accessToken: string): Promise<string | null> {
   } catch {
     return null;
   }
-}
-
-// Pull the audience-retention curve + summary for one of the user's OWN videos
-// via the YouTube Analytics API (requires the yt-analytics.readonly scope).
-// Returns null if the scope is missing (403), the video isn't owned, or there's
-// no data yet (too new / too few views).
-async function fetchOwnRetention(accessToken: string, videoId: string): Promise<{
-  averageViewPercentage: number | null;
-  averageViewDuration: number | null;
-  curve: { t: number; watch: number }[];
-} | null> {
-  const endDate = new Date().toISOString().split('T')[0];
-  const startDate = new Date(Date.now() - 730 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
-  const auth = { headers: { Authorization: `Bearer ${accessToken}` } };
-  const base = `https://youtubeanalytics.googleapis.com/v2/reports?ids=channel==MINE&startDate=${startDate}&endDate=${endDate}&filters=video==${videoId}`;
-
-  let averageViewPercentage: number | null = null;
-  let averageViewDuration: number | null = null;
-  try {
-    const res = await fetch(`${base}&metrics=averageViewDuration,averageViewPercentage&dimensions=video`, auth);
-    if (res.ok) {
-      const d = await res.json();
-      if (d.rows?.length) {
-        averageViewDuration = Math.round(d.rows[0][1]) || null;
-        averageViewPercentage = Math.round(d.rows[0][2]) || null;
-      }
-    }
-  } catch { /* ignore */ }
-
-  let curve: { t: number; watch: number }[] = [];
-  try {
-    const res = await fetch(`${base}&metrics=audienceWatchRatio&dimensions=elapsedVideoTimeRatio`, auth);
-    if (res.ok) {
-      const d = await res.json();
-      curve = (d.rows || [])
-        .map((r: number[]) => ({ t: r[0], watch: r[1] }))
-        .sort((a: { t: number }, b: { t: number }) => a.t - b.t);
-    }
-  } catch { /* ignore */ }
-
-  if (averageViewPercentage == null && curve.length === 0) return null;
-  return { averageViewPercentage, averageViewDuration, curve };
-}
-
-// Turn the retention curve into a short, human-readable list of the biggest
-// viewer drop-offs for the analysis prompt.
-function summarizeRetentionDrops(curve: { t: number; watch: number }[]): string {
-  if (!curve || curve.length < 2) return '';
-  const segs: { at: number; drop: number }[] = [];
-  for (let i = 1; i < curve.length; i++) {
-    const drop = curve[i - 1].watch - curve[i].watch; // positive = viewers left
-    if (drop > 0) segs.push({ at: curve[i].t, drop });
-  }
-  segs.sort((a, b) => b.drop - a.drop);
-  const top = segs.slice(0, 3).filter(s => s.drop >= 0.03); // ignore <3% noise
-  if (top.length === 0) return '';
-  return top
-    .map(s => `at ~${Math.round(s.at * 100)}% of the video: -${Math.round(s.drop * 100)}% viewers`)
-    .join('; ');
 }
 
 Deno.serve(async (req: Request) => {
@@ -266,19 +193,15 @@ Deno.serve(async (req: Request) => {
     // If this video belongs to the connected YouTube account, pull its private
     // retention curve (Analytics API) and treat it as the user's own content.
     // Requires the yt-analytics.readonly scope; degrades silently without it.
+    //
+    // The curve is read in seconds and stored by _shared/retention.ts, and the
+    // prompt gets the drops with their exact seconds. Until 2026-10-28 this
+    // passed "at ~12% of the video: -25% viewers" and let the model convert.
+    let retentionRow: RetentionRow | null = null;
     if (tokenRow?.access_token) {
       try {
-        let accessToken = tokenRow.access_token as string;
-        const expiry = tokenRow.token_expiry ? new Date(tokenRow.token_expiry) : new Date(0);
-        if (expiry < new Date() && tokenRow.refresh_token) {
-          accessToken = await refreshAccessToken(tokenRow.refresh_token);
-          const newExpiry = new Date();
-          newExpiry.setSeconds(newExpiry.getSeconds() + 3600);
-          await supabase
-            .from('user_tokens')
-            .update({ access_token: accessToken, token_expiry: newExpiry.toISOString(), updated_at: new Date().toISOString() })
-            .eq('user_id', userId);
-        }
+        const accessToken = await freshAccessToken(supabase, userId);
+        if (!accessToken) throw new Error('YouTube token could not be refreshed');
 
         // Synced videos are already known-own. For pasted/unsynced videos, match
         // the video's channel against the connected account's channel.
@@ -294,12 +217,16 @@ Deno.serve(async (req: Request) => {
 
         if (isOwn) {
           video.is_external = false;
-          const rt = await fetchOwnRetention(accessToken, videoId);
-          if (rt) {
-            if (rt.averageViewPercentage != null) video.retention_percentage = rt.averageViewPercentage;
-            if (rt.averageViewDuration != null) video.average_view_duration = rt.averageViewDuration;
-            video.retention_drops = summarizeRetentionDrops(rt.curve);
-            console.log(`[analyze-with-gemini] Own video: avg%=${rt.averageViewPercentage}, drops="${video.retention_drops}"`);
+          const { row } = await ownVideoRetention(supabase, userId, videoId, {
+            token: accessToken,
+            meta: { title: video.title, duration: video.duration, published_at: video.published_at ?? null },
+          });
+          if (row) {
+            retentionRow = row;
+            if (row.avg_view_pct != null) video.retention_percentage = Math.round(row.avg_view_pct);
+            if (row.avg_view_s != null) video.average_view_duration = Math.round(row.avg_view_s);
+            video.retention_block = retentionBlock(row, await loadUsual(supabase, userId, videoId));
+            console.log(`[analyze-with-gemini] Own video: stayed=${row.stayed_pct}, avg%=${row.avg_view_pct}, drops=${JSON.stringify(row.drops)}`);
           }
         }
       } catch (e) {
@@ -325,6 +252,13 @@ Deno.serve(async (req: Request) => {
       video, profile, videoContext, supabase, profile.creator_level, images,
     );
     console.log('[analyze-with-gemini] Done, transcript length:', analysis.transcript?.length);
+
+    // The review watched it beat by beat; that timeline is what is said and
+    // shown at each second, so the drops get pinned without a second watch.
+    if (retentionRow && !retentionRow.beats_at) {
+      const beats = beatsFromTimeline(analysis.timeline);
+      if (beats) await attachBeats(supabase, retentionRow, beats).catch(e => console.log('[analyze-with-gemini] beats not stored:', e));
+    }
 
     // Save transcript only for own videos
     if (analysis.transcript && !video.is_external) {

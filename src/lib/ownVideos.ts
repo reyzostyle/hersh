@@ -61,6 +61,15 @@ export async function syncOwnVideos(force = false): Promise<boolean> {
       method: 'POST',
       headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
     });
+    // Then their retention, per Short, from the list just written. Not
+    // awaited: it watches new uploads to note what is said by second, which
+    // takes a minute, and nothing on screen waits for it. It skips whatever
+    // is still fresh, so most calls do almost nothing.
+    void fetch(`${FUNCTIONS_URL}/sync-retention`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: '{}',
+    }).catch(() => {});
     return true;
   } catch {
     // Background housekeeping. A page must never break over it.

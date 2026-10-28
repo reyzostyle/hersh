@@ -25,6 +25,7 @@
 
 import { type ToolSpec, type ToolCall, searchWeb } from './llm.ts';
 import { searchCreatorContent } from './embeddings.ts';
+import { ownVideoRetention, retentionBlock, loadUsual, MAX_SHORT_S } from './retention.ts';
 
 // Deliberately small. Every row here is tokens the answer is paying for, and a
 // question about "my ideas" is answered as well by the eight most relevant as
@@ -72,8 +73,20 @@ export const CREATOR_TOOLS: ToolSpec[] = [
   {
     name: 'my_videos',
     description:
-      "The creator's own uploaded videos with real numbers - views, retention percentage, average view duration. Use when the question is about how their channel is actually performing, or needs a real number rather than an impression.",
+      "The creator's own uploaded videos with real numbers - views, average view, how many stayed to watch instead of swiping, the biggest drop. Use when the question is about how their channel is actually performing, or needs a real number rather than an impression.",
     parameters: { type: 'OBJECT', properties: {} },
+  },
+  {
+    name: 'video_retention',
+    description:
+      "The real YouTube retention of one of the creator's own Shorts, measured: how many stayed to watch instead of swiping away, the curve second by second, every drop with its exact seconds and size, what was said and shown at each second, and their usual numbers to compare with. Use it whenever they ask why a video lost people, where viewers leave or drop off, about their swipe rate, or how to improve a video, its hook or its script. Never answer those from memory or from a review.",
+    parameters: {
+      type: 'OBJECT',
+      properties: {
+        video: { type: 'STRING', description: "Words from the video's title, its YouTube link or 11-character id, or 'latest' for their newest Short." },
+      },
+      required: ['video'],
+    },
   },
   {
     name: 'search_conversations',
@@ -237,17 +250,62 @@ async function recentAnalyses(supabase: DB, userId: string) {
 async function myVideos(supabase: DB, userId: string) {
   const { data } = await supabase
     .from('videos')
-    .select('title, views, retention_percentage, average_view_duration, duration, published_at')
+    .select('video_id, title, views, retention_percentage, average_view_duration, duration, published_at')
     .eq('user_id', userId).order('published_at', { ascending: false }).limit(LIMIT);
   // deno-lint-ignore no-explicit-any
-  return (data ?? []).map((v: any) => ({
-    title: v.title,
-    views: v.views,
-    retention_percent: v.retention_percentage,
-    avg_view_seconds: v.average_view_duration,
-    length_seconds: v.duration,
-    published: v.published_at?.slice(0, 10),
-  }));
+  const ids = (data ?? []).map((v: any) => v.video_id);
+  const { data: rt } = ids.length
+    ? await supabase.from('video_retention').select('video_id, stayed_pct, drops').eq('user_id', userId).in('video_id', ids)
+    : { data: [] };
+  // deno-lint-ignore no-explicit-any
+  const byId = new Map((rt ?? []).map((r: any) => [r.video_id, r]));
+  // deno-lint-ignore no-explicit-any
+  return (data ?? []).map((v: any) => {
+    // deno-lint-ignore no-explicit-any
+    const r: any = byId.get(v.video_id);
+    const top = r?.drops?.[0];
+    const mm = (x: number) => `${Math.floor(x / 60)}:${String(x % 60).padStart(2, '0')}`;
+    return {
+      title: v.title,
+      views: v.views,
+      average_view_percent: v.retention_percentage,
+      avg_view_seconds: v.average_view_duration,
+      stayed_to_watch_percent: r?.stayed_pct ?? null,
+      biggest_drop: top ? `${mm(top.from_s)} to ${mm(top.to_s)}, ${top.from_pct}% down to ${top.to_pct}%` : null,
+      length_seconds: v.duration,
+      published: v.published_at?.slice(0, 10),
+    };
+  });
+}
+
+// One video's measured retention, as the block every prompt uses. Fetched
+// live (and kept) when the stored row is old, with what is said by second.
+async function videoRetention(supabase: DB, userId: string, ref: string) {
+  const raw = (ref ?? '').trim();
+  const id = raw.match(/(?:v=|shorts\/|youtu\.be\/)([\w-]{11})/)?.[1] ?? (/^[\w-]{11}$/.test(raw) ? raw : null);
+  const pick = (title: string | null) => {
+    let q = supabase.from('videos').select('video_id, title, duration, published_at')
+      .eq('user_id', userId).lte('duration', MAX_SHORT_S)
+      .order('published_at', { ascending: false, nullsFirst: false }).limit(1);
+    if (title) q = q.ilike('title', `%${title.replace(/[%,()]/g, ' ').trim()}%`);
+    return q;
+  };
+  let v = null;
+  if (id) v = (await supabase.from('videos').select('video_id, title, duration, published_at').eq('user_id', userId).eq('video_id', id).limit(1)).data?.[0] ?? null;
+  // An eleven-letter word is also an id-shaped string: try it as a title too.
+  if (!v && (!id || id === raw)) v = (await pick(raw && !/^latest$/i.test(raw) ? raw : null)).data?.[0] ?? null;
+  if (!v && !id) {
+    const { data: recent } = await supabase.from('videos').select('title')
+      .eq('user_id', userId).order('published_at', { ascending: false }).limit(LIMIT);
+    // deno-lint-ignore no-explicit-any
+    return { error: `None of their videos matches "${raw}".`, their_recent_videos: (recent ?? []).map((r: any) => r.title) };
+  }
+  const videoId = v?.video_id ?? id!;
+  const { row, error } = await ownVideoRetention(supabase, userId, videoId, { beats: true, meta: v ?? undefined });
+  if (error === 'no_scope') return { error: 'YouTube did not give Chumoku access to retention for this channel. They fix it by reconnecting YouTube in Settings and leaving the analytics box ticked.' };
+  if (!row) return { error: error === 'not_connected' ? 'Their YouTube channel is not connected, so there is no retention to read.' : 'No retention for this video yet: it is too new, has too few views, or is not on their connected channel.', title: v?.title ?? null };
+  const usual = await loadUsual(supabase, userId, videoId);
+  return { title: row.title, retention: retentionBlock(row, usual, { script: true }) };
 }
 
 async function searchConversations(supabase: DB, userId: string, query: string) {
@@ -295,6 +353,7 @@ export async function runCreatorTool(supabase: DB, userId: string, call: ToolCal
     case 'open_project': return await openProject(supabase, userId, arg('name'));
     case 'recent_analyses': return await recentAnalyses(supabase, userId);
     case 'my_videos': return await myVideos(supabase, userId);
+    case 'video_retention': return await videoRetention(supabase, userId, arg('video'));
     case 'search_conversations': return await searchConversations(supabase, userId, arg('query'));
     // Public web, nothing of the creator's goes out except the query.
     case 'search_web': return await searchWeb(arg('query'));

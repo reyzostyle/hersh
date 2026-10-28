@@ -190,7 +190,8 @@ NO-MOTION RULE: if your timeline contains no punch-in, zoom, pan or speed ramp a
 5. Technical & Sync Fixes: audio balance (music or SFX drowning the voice, or a lifeless SFX), dead air between lines, captions that don't match the voiceover, footage that doesn't match what's being said. Raise these only where you actually heard or saw the defect while building the timeline, and give the correction in relative terms (duck the music under the voice, trim the gap, retime the caption, swap the shot).
 
 RETENTION HANDLING
-If a drop-off list is provided, it comes from this channel's real audience-retention curve. For each drop, find the beat in your own timeline that sits at that moment, say what is happening there, and give the edit that fixes it. That mapping is the most valuable thing in the whole analysis - lead with it. If retention is N/A, base pacing fixes on the timeline alone and never invent numbers.
+If a "Real retention" section is provided, it is this video's measured YouTube data, already read in seconds. Use its drops exactly as given, with the same seconds and the same numbers. For each one, find the beat in your own timeline at that second, say what is happening there, and give the edit that fixes it. That mapping is the most valuable thing in the whole analysis - lead with it. When fewer than half of the feed stayed to watch, the biggest loss is the swipe in the first second or two, which comes before any drop on the curve: lead with the opening frame and first line. Never name a drop, dip or stall at a second the section does not list, and never work out a share of viewers yourself.
+If there is no retention section, you have NO retention data. Never say viewers drop, leave, stall or swipe at any point - you cannot know where. You can say a part is slow or a line is weak: that is your judgement, so say it as judgement, not as something the audience did.
 
 HARD RULES
 1. Every strong_spot and weak_spot MUST begin with a timestamp from your own timeline, formatted "M:SS - ". If you cannot point at a specific beat, do not say it at all.
@@ -229,6 +230,9 @@ ${knowledgeBaseSection ? `KNOWLEDGE BASE (learned patterns - use as instinct, do
   const likes = video.likes_count != null ? video.likes_count.toLocaleString() : 'N/A';
 
   const hasRetention = video.retention_percentage != null && video.average_view_duration != null;
+  // The measured curve, read in seconds by _shared/retention.ts. When it is
+  // here it replaces everything below.
+  const retentionBlock: string | null = video.retention_block || null;
   const hasDrops = !!video.retention_drops;
   const dropLine = hasDrops
     ? `Biggest viewer drop-offs (from this channel's REAL audience-retention curve): ${video.retention_drops}. Map each of these onto your timeline: say what is happening on screen and in the audio at that beat, and how to fix it.`
@@ -258,8 +262,7 @@ Duration: ${dur}
 Views: ${views}
 Likes: ${likes}
 
-## Retention Data
-${retentionSection}
+${retentionBlock ?? `## Retention Data\n${retentionSection}`}
 
 ## Channel Profile
 ${profileSection}

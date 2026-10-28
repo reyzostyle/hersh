@@ -12,6 +12,7 @@ import { formatViews } from '../lib/competitors';
 import { useUsage } from '../lib/useUsage';
 import { CreditsPanel, creditsLeftLine } from './CreditsPanel';
 import { ChannelsSettings } from './ChannelsSettings';
+import { RetentionLessons } from './RetentionLessons';
 
 function YouTubeLogo({ className }: { className?: string }) {
   return (
@@ -541,6 +542,9 @@ export function SettingsPage() {
             setBrainOverrides(next);
           }}
         />
+        {openCard === 'brain' && youtubeStatus?.connected && user?.id && (
+          <RetentionLessons userId={user.id} onReconnect={connectYouTube} />
+        )}
       </SettingsCard>
 
       {/* ── Competitor channels (moved here from Ideas, 2026-10-27) ── */}
