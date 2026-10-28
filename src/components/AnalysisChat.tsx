@@ -15,6 +15,7 @@ import {
 } from '../lib/projects';
 import { uploadChatImages, signChatImages } from '../lib/chatImages';
 import { take, PENDING_CHAT_KEY } from '../lib/intents';
+import { openRetention } from '../lib/retention';
 
 
 // Defined next to the table it is stored in - see lib/projects.ts. The chat
@@ -261,6 +262,17 @@ function ReviewMessage({ a, fresh, onAdvance }: { a: Analysis; fresh?: boolean; 
       )}
       <div className="flex items-center gap-3 -ml-1">
         {a.overall_assessment && <CopyButton text={analysisAsText(a)} title="Copy this review" />}
+        {/* Their own Short has a measured curve: the second people left and
+            what was said there, one press from the review that talks about it. */}
+        {a.ownership === 'mine' && a.video_id && (
+          <button
+            onClick={() => openRetention(a.video_id)}
+            className="t-small transition-colors hover:text-[var(--text)]"
+            style={{ color: 'var(--text-faint)' }}
+          >
+            See where people left
+          </button>
+        )}
         {more > 0 && (
           <button
             onClick={() => setOpen(o => !o)}
@@ -463,6 +475,9 @@ export function AnalysisChat() {
   // The idea a conversation opened from a script is about (see the pending
   // chat handoff below); sent with each message so the chat has its script.
   const ideaRef = useRef<string | null>(null);
+  // The same for one of their own Shorts, opened from the retention screen:
+  // its measured curve goes with each message (chat-followup).
+  const videoRef = useRef<string | null>(null);
   const [busy, setBusy] = useState(false);
   // Which pipeline is running, so the working line can name its actual stages.
   const [busyKind, setBusyKind] = useState<keyof typeof STAGES>('video');
@@ -593,16 +608,17 @@ export function AnalysisChat() {
     const message = take(PENDING_CHAT_KEY);
     if (message) {
       try {
-        const { text, ideaId, draft } = JSON.parse(message) as { text: string; ideaId?: string; draft?: boolean };
+        const { text, ideaId, videoId, draft } = JSON.parse(message) as { text: string; ideaId?: string; videoId?: string; draft?: boolean };
         // "Continue in Chat" from a written script: the idea rides along with
         // every message of this conversation, and the opener waits in the
         // composer, so opening the chat never spends a credit on its own.
         if (draft) {
           ideaRef.current = ideaId ?? null;
+          videoRef.current = videoId ?? null;
           setComposer(text);
           return;
         }
-        routeMessage(text, { ideaId });
+        routeMessage(text, { ideaId, videoId });
       } catch {
         routeMessage(message);
       }
@@ -687,6 +703,8 @@ export function AnalysisChat() {
     session = null;
     setMessages([]);
     setThreadId(null);
+    ideaRef.current = null;
+    videoRef.current = null;
     setFiles([]);
     setComposer('');
     setFailure(null);
@@ -742,6 +760,7 @@ export function AnalysisChat() {
         // floor by this client until now - which is why the chat could
         // congratulate someone on a competitor's score.
         ownership: data.analysis?.hook_analysis?.ownership ?? 'unknown',
+        video_id: videoId,
       };
       push({ role: 'assistant', content: '', analysis: a });
       if (tid) {
@@ -914,13 +933,15 @@ export function AnalysisChat() {
   // this closure yet.
   const routeMessage = async (
     text: string,
-    { silent = false, tid, images, previews, shots, ideaId }: {
+    { silent = false, tid, images, previews, shots, ideaId, videoId }: {
       silent?: boolean; tid?: string | null;
       images?: { mimeType: string; base64: string }[]; previews?: string[]; shots?: File[];
       // The saved idea this message is about, when it came from an idea's
       // "Write the script" step: the server reads the outline itself rather
       // than hoping a lookup by name finds the right one.
       ideaId?: string;
+      // One of their own Shorts, from the retention screen.
+      videoId?: string;
     } = {},
   ) => {
     const thread = tid ?? threadId;
@@ -936,7 +957,7 @@ export function AnalysisChat() {
       const res = await fetchWithRetry(`${FUNCTIONS_URL}/chat-followup`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ threadId: thread, question: text, images, ideaId }),
+        body: JSON.stringify({ threadId: thread, question: text, images, ideaId, videoId }),
         signal,
       });
       const data = await res.json();
@@ -975,7 +996,7 @@ export function AnalysisChat() {
       // their credits to do the wrong thing. fetchWithRetry has already
       // ridden out anything transient by the time this runs.
       reloadUsage();
-      setFailure(asFailure(e, () => routeMessage(text, { silent: true, tid, images, previews, shots })));
+      setFailure(asFailure(e, () => routeMessage(text, { silent: true, tid, images, previews, shots, ideaId, videoId })));
     } finally {
       endRun(signal);
     }
@@ -1088,7 +1109,7 @@ export function AnalysisChat() {
       askWithImages(shots, text);
       return;
     }
-    routeMessage(text, { ideaId: ideaRef.current ?? undefined });
+    routeMessage(text, { ideaId: ideaRef.current ?? undefined, videoId: videoRef.current ?? undefined });
   };
 
 

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { ArrowRightUpOutlineIcon as ArrowUpRight, ChatRoundOutlineIcon as Chat, BookmarkOutlineIcon as Bookmark, LightbulbOutlineIcon as Bulb, SettingsOutlineIcon as Gear } from '@solar-icons/react';
+import { ArrowRightUpOutlineIcon as ArrowUpRight, ChatRoundOutlineIcon as Chat, BookmarkOutlineIcon as Bookmark, LightbulbOutlineIcon as Bulb, SettingsOutlineIcon as Gear, GraphNewOutlineIcon as Graph } from '@solar-icons/react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { NavTab, HIDDEN_TABS } from './AppShell';
@@ -17,8 +17,9 @@ interface Tool {
   icon: React.ReactNode;
 }
 
-// The product is three things since 2026-09-29, in the order you use them:
-// find an idea, talk it through, keep what worked.
+// The product is four things, in the order you use them: find an idea, talk it
+// through, keep what worked, and once it is posted, see the second people left
+// (Retention, 2026-10-28).
 const tools: Tool[] = [
   {
     // The tab is still `competitors` everywhere it is persisted or dispatched.
@@ -37,6 +38,11 @@ const tools: Tool[] = [
     id: 'saved',
     label: 'Saved',
     icon: <Bookmark className="w-[18px] h-[18px]" />,
+  },
+  {
+    id: 'retention',
+    label: 'Retention',
+    icon: <Graph className="w-[18px] h-[18px]" />,
   },
 ];
 

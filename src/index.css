@@ -965,3 +965,28 @@ button.row:active,
   padding: 4px 7px; border-radius: 999px; background: rgba(0, 0, 0, 0.62); color: #fff;
   backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
 }
+
+/* ─── Retention ───────────────────────────────────────────────────────────────
+   A Short's cover in a list row. maxresdefault is the vertical picture
+   pillarboxed in a 16:9 frame, and a 9:16 box cropped to cover lands exactly
+   on the picture, so no zoom is needed to lose the black bars. */
+.ret-thumb { position: relative; display: block; aspect-ratio: 9 / 16; overflow: hidden; border-radius: 8px; background: #000; }
+.ret-thumb img { width: 100%; height: 100%; object-fit: cover; opacity: 0; transition: opacity 0.35s ease; }
+.ret-thumb img[data-loaded="true"] { opacity: 1; }
+
+/* The four numbers beside the video: a column next to the player on a phone,
+   two by two up to a wide desktop, one row only where each cell has room for
+   its label in full, with hairlines only between cells in each arrangement. */
+.ret-stats { display: grid; grid-template-columns: minmax(0, 1fr); }
+.ret-stats > div + div { border-top: 1px solid var(--line); }
+@media (min-width: 640px) {
+  .ret-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .ret-stats > div + div { border-top: none; }
+  .ret-stats > div:nth-child(n + 3) { border-top: 1px solid var(--line); }
+  .ret-stats > div:nth-child(even) { border-left: 1px solid var(--line); }
+}
+@media (min-width: 1280px) {
+  .ret-stats { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .ret-stats > div:nth-child(n + 3) { border-top: none; }
+  .ret-stats > div + div { border-left: 1px solid var(--line); }
+}

@@ -8,6 +8,7 @@ import { fetchStats, fetchCurve, perSecond, findDrops, mmss, rawReport, ownVideo
 // lessons drawn from it (_shared/retention-sync.ts).
 //
 // - signed in (Settings, or the app after it syncs the uploads): the caller;
+//   with videoId, just that Short, its transcript read if it has none;
 // - pg_cron, hourly, with x-cron-secret: whoever has not been synced for a
 //   day, oldest first, until the time budget is spent. A body with userId
 //   runs that one account; with debug and videoId it also returns the raw
@@ -92,6 +93,15 @@ Deno.serve(async (req: Request) => {
     if (!authHeader?.startsWith('Bearer ')) return json({ error: 'Unauthorized' }, 401);
     const { data: { user }, error: authErr } = await supabase.auth.getUser(authHeader.replace('Bearer ', ''));
     if (authErr || !user) return json({ error: 'Unauthorized' }, 401);
+
+    // One of their Shorts, with what is said in it: the retention screen asks
+    // for this when a curve has no transcript yet, or when it opens a Short
+    // that is not stored. Theirs is checked by the read itself: Analytics
+    // answers for channel==MINE only.
+    if (typeof body.videoId === 'string' && /^[\w-]{11}$/.test(body.videoId)) {
+      const { row, error } = await ownVideoRetention(supabase, user.id, body.videoId, { beats: true });
+      return json({ row, error });
+    }
 
     const r = await syncUser(supabase, user.id, { beatsBudget: 4, deadline: started + CRON_BUDGET_MS, force: !!body.force });
     return json(r);

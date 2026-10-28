@@ -1,12 +1,12 @@
 import { useState, useEffect, createContext, useRef } from 'react';
-import { SettingsOutlineIcon as Settings, LogoutOutlineIcon as LogOut, HamburgerMenuOutlineIcon as Menu, CloseCircleOutlineIcon as X, BoltOutlineIcon as Zap, LightbulbOutlineIcon as Bulb, ChatRoundOutlineIcon as Chat, BookmarkOutlineIcon as Bookmark, SidebarMinimalisticOutlineIcon as PanelLeftClose, SidebarMinimalisticOutlineIcon as PanelLeftOpen, WidgetOutlineIcon as HubIcon, ClapperboardEditOutlineIcon as EditIcon } from '@solar-icons/react';
+import { SettingsOutlineIcon as Settings, LogoutOutlineIcon as LogOut, HamburgerMenuOutlineIcon as Menu, CloseCircleOutlineIcon as X, BoltOutlineIcon as Zap, LightbulbOutlineIcon as Bulb, ChatRoundOutlineIcon as Chat, BookmarkOutlineIcon as Bookmark, SidebarMinimalisticOutlineIcon as PanelLeftClose, SidebarMinimalisticOutlineIcon as PanelLeftOpen, WidgetOutlineIcon as HubIcon, ClapperboardEditOutlineIcon as EditIcon, GraphNewOutlineIcon as Graph } from '@solar-icons/react';
 import { useAuth } from '../contexts/AuthContext';
 
 export const MobileHeaderContext = createContext<{
   setRightAction: (node: React.ReactNode) => void;
 }>({ setRightAction: () => {} });
 
-export type NavTab = 'home' | 'analyze' | 'saved' | 'competitors' | 'edit' | 'upgrade' | 'settings' | 'partners' | 'admin' | 'affiliate-admin';
+export type NavTab = 'home' | 'analyze' | 'saved' | 'retention' | 'competitors' | 'edit' | 'upgrade' | 'settings' | 'partners' | 'admin' | 'affiliate-admin';
 
 // Vibe editing is the owner's alone while it is being proven (2026-10-20).
 // The edit-plan function re-checks the email server-side; this only hides the
@@ -50,6 +50,10 @@ const baseNavItems: NavItem[] = [
   { id: 'competitors', label: 'Ideas', icon: <Bulb className="w-4 h-4" /> },
   { id: 'analyze', label: 'Chat', icon: <Chat className="w-4 h-4" /> },
   { id: 'saved', label: 'Saved', icon: <Bookmark className="w-4 h-4" /> },
+  // After posting (2026-10-28): every Short's real curve, where people left
+  // and what was said there. Measured numbers, not a score, which is what
+  // Analytics lacked when it was taken out.
+  { id: 'retention', label: 'Retention', icon: <Graph className="w-4 h-4" /> },
   { id: 'edit', label: 'Edit', icon: <EditIcon className="w-4 h-4" /> },
   { id: 'upgrade', label: 'Upgrade', icon: <Zap className="w-4 h-4" />, highlight: true },
   { id: 'settings', label: 'Settings', icon: <Settings className="w-4 h-4" /> },

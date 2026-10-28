@@ -93,7 +93,7 @@ Deno.serve(async (req: Request) => {
 
     // threadId is optional now: the first message of a conversation can be a
     // question, and there is no thread until something is worth keeping.
-    const { threadId, question, image, images: rawImages, ideaId } = await req.json();
+    const { threadId, question, image, images: rawImages, ideaId, videoId: askedVideo } = await req.json();
 
     // `image` is still read so a client from before the array shipped keeps
     // working across the gap between the two deploys.
@@ -251,6 +251,15 @@ ${(a.weak_spots ?? []).map(s => `- ${s}`).join('\n') || '- none noted'}
         const { row } = await ownVideoRetention(supabase, user.id, videoId, { beats: true });
         if (row) retention = `${retentionBlock(row, await loadUsual(supabase, user.id, videoId), { script: true })}\nWhere this and the review above disagree about when or how many people left, this is right and the review is wrong.\n\n`;
       }
+    }
+
+    // A conversation opened from the retention screen ("Fix this drop",
+    // "Improve the script") names its Short. Theirs or nothing: the stored
+    // row is read under their own id, and a live read only answers for the
+    // channel connected to this account.
+    if (!retention && typeof askedVideo === 'string' && /^[\w-]{11}$/.test(askedVideo)) {
+      const { row } = await ownVideoRetention(supabase, user.id, askedVideo, { beats: true });
+      if (row) retention = `## The Short they are asking about\nOne of their own, opened from its retention curve. "This Short", "this video" and "the drop" mean this one.\n\n${retentionBlock(row, await loadUsual(supabase, user.id, askedVideo), { script: true })}\n\n`;
     }
 
     // The saved idea the message is about, when it was sent from an idea's

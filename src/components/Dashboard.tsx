@@ -4,6 +4,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { HomePage } from './HomePage';
 import { AnalysisChat } from './AnalysisChat';
 import { SavedPage } from './SavedPage';
+import { RetentionPage } from './RetentionPage';
 import { UpgradePage } from './UpgradePage';
 import { SettingsPage } from './SettingsPage';
 import { PartnersPage } from './PartnersPage';
@@ -11,7 +12,7 @@ import { PartnersAdminPage } from './PartnersAdminPage';
 import { CompetitorsPage } from './CompetitorsPage';
 import { AdminPage } from './AdminPage';
 import { ShareChooser } from './ShareChooser';
-import { peek, take, PENDING_ANALYZE_KEY, PENDING_STEAL_KEY, PENDING_SHARE_KEY } from '../lib/intents';
+import { peek, take, PENDING_ANALYZE_KEY, PENDING_STEAL_KEY, PENDING_SHARE_KEY, OPEN_RETENTION_KEY } from '../lib/intents';
 
 // Loaded on first open: the editor pulls in a video decoder/encoder that no
 // other screen needs.
@@ -21,7 +22,7 @@ const EditPage = lazy(() => import('./EditPage'));
 // only reached by entering the admin code in Settings. AdminPage itself
 // re-checks the caller's email before rendering anything or fetching data.
 // 'home' also has no nav entry: it's reached from the brand row in the sidebar.
-const VALID_TABS: NavTab[] = ['home', 'analyze', 'saved', 'competitors', 'edit', 'upgrade', 'partners', 'settings', 'admin', 'affiliate-admin'];
+const VALID_TABS: NavTab[] = ['home', 'analyze', 'saved', 'retention', 'competitors', 'edit', 'upgrade', 'partners', 'settings', 'admin', 'affiliate-admin'];
 
 // Tabs removed on 2026-09-29, and where anything still asking for them lands:
 // Projects became Saved, Analytics' channel numbers moved into Settings.
@@ -42,9 +43,10 @@ export function Dashboard() {
   // there instead of stranding it on the hub. This also carries the link
   // across onboarding: Dashboard mounts after it, and the key is still set.
   // A Steal from the extension or the share sheet goes to Ideas the same way,
-  // where CompetitorsPage picks it up.
+  // where CompetitorsPage picks it up, and a review's "See where people left"
+  // from the extension to Retention.
   const [activeTab, setActiveTab] = useState<NavTab>(
-    () => (peek(PENDING_ANALYZE_KEY) ? 'analyze' : peek(PENDING_STEAL_KEY) ? 'competitors' : 'home')
+    () => (peek(PENDING_ANALYZE_KEY) ? 'analyze' : peek(PENDING_STEAL_KEY) ? 'competitors' : peek(OPEN_RETENTION_KEY) ? 'retention' : 'home')
   );
 
   // A link shared from a phone arrives without saying what it is for.
@@ -94,6 +96,7 @@ export function Dashboard() {
       {activeTab === 'home' && <HomePage onNavigate={setActiveTab} />}
       {activeTab === 'analyze' && <AnalysisChat />}
       {activeTab === 'saved' && <SavedPage />}
+      {activeTab === 'retention' && <RetentionPage />}
       {activeTab === 'edit' && isOwner && <Suspense fallback={null}><EditPage /></Suspense>}
       {activeTab === 'competitors' && <CompetitorsPage />}
       {activeTab === 'upgrade' && <UpgradePage />}

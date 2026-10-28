@@ -3,6 +3,7 @@
 //
 //   /?analyze=<url>   run the analysis, same as pasting into the hero
 //   /?steal=<url>     rebuild that Short's format for this channel
+//   /?retention=<id>  open the retention screen on one of their Shorts
 //   /share?text=...   the share sheet; asks which of the two
 //
 // Each is turned into a one-shot key in localStorage and stripped from the
@@ -15,6 +16,9 @@ export const PENDING_SHARE_KEY = 'chumoku_pending_share_url';
 // A message for the chat to send as soon as it opens: "write the script for
 // this idea", pressed at the end of an idea's steps.
 export const PENDING_CHAT_KEY = 'chumoku_pending_chat_message';
+// One of their Shorts for the retention screen to open on: a review's "See
+// where people left", in the app or arriving as /?retention=<id>.
+export const OPEN_RETENTION_KEY = 'chumoku_open_retention';
 
 export type Intent = 'analyze' | 'steal' | 'share';
 
@@ -54,6 +58,7 @@ export function captureIntents(): void {
   const p = url.searchParams;
   const analyze = p.get('analyze');
   const steal = p.get('steal');
+  const retention = p.get('retention');
   const shared = url.pathname.replace(/\/$/, '') === '/share'
     ? findYouTubeLink(p.get('url')) || findYouTubeLink(p.get('text')) || findYouTubeLink(p.get('title'))
     : null;
@@ -61,11 +66,14 @@ export function captureIntents(): void {
   if (analyze) { set(PENDING_ANALYZE_KEY, analyze); arrivedWith = 'analyze'; }
   else if (steal) { set(PENDING_STEAL_KEY, steal); arrivedWith = 'steal'; }
   else if (shared) { set(PENDING_SHARE_KEY, shared); arrivedWith = 'share'; }
+  // Not an intent for the landing page to act on: it only says which screen
+  // the app opens on once they are signed in.
+  else if (retention && /^[\w-]{11}$/.test(retention)) set(OPEN_RETENTION_KEY, retention);
   else if (url.pathname.replace(/\/$/, '') !== '/share') return;
 
   // /share with nothing usable in it still leaves for the app rather than
   // rendering a path nothing routes.
-  ['analyze', 'steal', 'url', 'text', 'title'].forEach(k => p.delete(k));
+  ['analyze', 'steal', 'retention', 'url', 'text', 'title'].forEach(k => p.delete(k));
   const path = url.pathname.replace(/\/$/, '') === '/share' ? '/' : url.pathname;
   const qs = p.toString();
   window.history.replaceState({}, '', path + (qs ? `?${qs}` : '') + url.hash);

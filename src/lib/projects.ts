@@ -108,6 +108,9 @@ export interface ThreadAnalysis {
   // written before this was carried through - both read as 'unknown', which is
   // the honest value rather than a guess.
   ownership?: 'mine' | 'theirs' | 'unknown';
+  // The reviewed YouTube video, so a review of their own Short can open its
+  // retention curve. Absent on uploads and on reviews from before 2026-10-28.
+  video_id?: string;
 }
 
 export interface ThreadMessage {
