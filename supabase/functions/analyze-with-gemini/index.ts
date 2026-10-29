@@ -1,3 +1,4 @@
+import { loadLanguage } from '../_shared/language.ts';
 import { corsHeaders } from '../_shared/http.ts';
 import { createClient } from 'npm:@supabase/supabase-js@2.57.4';
 import { loadCreditStatus, canAfford, spendCredits, CREDIT_COSTS } from '../_shared/credits.ts';
@@ -239,6 +240,7 @@ Deno.serve(async (req: Request) => {
       // account waiting on a video analysis should not also be paying for a
       // second model call it did not ask for. See _shared/brain.ts.
       brain: await loadBrain(supabase, userId),
+      language: await loadLanguage(supabase, userId),
       channel_niche: tokenRow?.channel_niche || '',
       channel_description: tokenRow?.channel_description || '',
       channel_context: tokenRow?.channel_context || '',

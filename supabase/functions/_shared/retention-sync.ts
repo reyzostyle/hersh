@@ -9,6 +9,7 @@
 // written against them.
 
 import { callLLM } from './llm.ts';
+import { languageRule, loadLanguage } from './language.ts';
 import { parseModelJson } from './json.ts';
 import { freshAccessToken } from './youtube-token.ts';
 import {
@@ -221,7 +222,7 @@ Rules:
 Answer with JSON only:
 {"summary": "one or two sentences to the creator, second person: where they lose people and what holds them", "lessons": [{"rule": "...", "evidence": "..."}]}`;
 
-  const raw = await callLLM(prompt, { maxTokens: 1200, tier: 'writer' });
+  const raw = await callLLM(prompt + languageRule(await loadLanguage(supabase, userId)), { maxTokens: 1200, tier: 'writer' });
   const parsed = parseModelJson<{ summary?: string; lessons?: Array<{ rule?: string; evidence?: string }> }>(raw, 'retention lessons');
   const clean = (s: unknown) => String(s ?? '').replace(/[—–]/g, '-').trim();
   const lessons: RetentionLessons = {

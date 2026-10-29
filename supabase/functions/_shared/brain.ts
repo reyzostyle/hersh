@@ -14,6 +14,7 @@
 // should not also be paying for a second model call they did not ask for.
 
 import { callLLM } from './llm.ts';
+import { languageRule, loadLanguage } from './language.ts';
 import { parseModelJson } from './json.ts';
 import { loadChannelScan, type ChannelScan } from './channel-scan.ts';
 import type { RetentionLessons } from './retention-sync.ts';
@@ -154,7 +155,7 @@ Answer with JSON and nothing else:
   "adapt_rules": ["3-5 instructions for remaking someone else's video on THIS channel: what to keep, what to swap, what will never fit. Written as orders to whoever is doing the adapting, not as advice to the creator."]
 }`;
 
-  const raw = await callLLM(prompt, { maxTokens: 1200, tier: 'writer' });
+  const raw = await callLLM(prompt + languageRule(await loadLanguage(supabase, userId)), { maxTokens: 1200, tier: 'writer' });
   const parsed = parseModelJson<Partial<ChannelBrain>>(raw, 'channel brain');
 
   const asList = (v: unknown): string[] =>

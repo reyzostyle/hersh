@@ -1,3 +1,4 @@
+import { languageRule, loadLanguage } from '../_shared/language.ts';
 import { corsHeaders } from '../_shared/http.ts';
 import { createClient } from 'npm:@supabase/supabase-js@2.57.4';
 import { loadCreditStatus, canAfford, spendCredits, CREDIT_COSTS } from '../_shared/credits.ts';
@@ -109,6 +110,7 @@ Deno.serve(async (req: Request) => {
     // built a brain yet. They were the only source until 2026-09-09, and they
     // were usually empty.
     const brain = adaptForProfile ? await loadBrain(supabase, user.id) : null;
+    const lang = languageRule(await loadLanguage(supabase, user.id));
     const niche = adaptForProfile ? (brain?.niche || profile?.channel_niche || '') : '';
     const profileBlock = !adaptForProfile
       ? ''
@@ -124,7 +126,7 @@ Extra context: ${profile?.channel_context || 'not set'}`;
     const transcript = await fetchTranscript(videoId);
     const { concept, adapted_idea } = await extractConceptAndAdapt(
       videoId, pooled.title || '', pooled.views || 0, pooled.outlier_score, transcript,
-      profileBlock, scanBlock, niche,
+      profileBlock + lang, scanBlock, niche,
     );
 
     // Upsert, not insert: the row may already exist as the record of a save or

@@ -1,6 +1,7 @@
 import type { AttachedImage } from './images.ts';
 import { parseModelJson } from './json.ts';
 import { brainLine, type ChannelBrain } from './brain.ts';
+import { languageRule } from './language.ts';
 import { geminiGenerationConfig } from './llm.ts';
 
 // Shared video analysis: one Gemini call that both WATCHES the video and writes
@@ -294,7 +295,7 @@ ${opts.scored ? `  "score_breakdown": { "hook": <0-30>, "retention": <0-25>, "pa
   "weak_spots": [
     "M:SS - what is wrong at this beat + the exact fix to apply, doable in under 3 minutes (max 2 sentences)"
   ]
-}`;
+}` + languageRule(profile?.language);
 
   console.log('[gemini] Analyzing video:', source.fileUri);
 

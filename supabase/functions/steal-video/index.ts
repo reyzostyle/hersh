@@ -1,3 +1,4 @@
+import { languageRule, loadLanguage } from '../_shared/language.ts';
 import { corsHeaders } from '../_shared/http.ts';
 import { loadVoiceBlock } from '../_shared/voice.ts';
 import { createClient } from 'npm:@supabase/supabase-js@2.57.4';
@@ -115,7 +116,7 @@ Deno.serve(async (req: Request) => {
 
     // Same profile the feed adapts against: the brain if built, the four typed
     // boxes if not. A steal is always adapted - adapting is the point of it.
-    const brain = await loadBrain(supabase, user.id);
+    const [brain, language] = await Promise.all([loadBrain(supabase, user.id), loadLanguage(supabase, user.id)]);
     const { data: profile } = await supabase
       .from('user_tokens').select('channel_niche, channel_description, channel_context, target_audience')
       .eq('user_id', user.id).maybeSingle();
@@ -134,13 +135,13 @@ Extra context: ${profile?.channel_context || 'not set'}`;
     let adaptedIdea: string = existing?.adapted_idea || '';
     if (needsRead) {
       const transcript = await fetchTranscript(videoId);
-      const read = await extractConceptAndAdapt(videoId, title, views, outlierScore, transcript, profileBlock, scanBlock, niche);
+      const read = await extractConceptAndAdapt(videoId, title, views, outlierScore, transcript, profileBlock + languageRule(language), scanBlock, niche);
       concept = read.concept;
       adaptedIdea = read.adapted_idea;
     }
     if (!concept && !adaptedIdea) throw new Error('Could not read that video. Nothing was charged.');
 
-    const outline = await generateOutline(videoId, title, adaptedIdea, profileBlock, scanBlock, await loadVoiceBlock(supabase, user.id));
+    const outline = await generateOutline(videoId, title, adaptedIdea, profileBlock + languageRule(language), scanBlock, await loadVoiceBlock(supabase, user.id));
 
     const { data: idea, error: upsertError } = await supabase
       .from('competitor_ideas')

@@ -1,3 +1,4 @@
+import { languageRule, loadLanguage } from '../_shared/language.ts';
 import { corsHeaders } from '../_shared/http.ts';
 import { loadVoiceBlock } from '../_shared/voice.ts';
 import { createClient } from 'npm:@supabase/supabase-js@2.57.4';
@@ -92,7 +93,7 @@ Deno.serve(async (req: Request) => {
     // The brain if it has been built, the four hand-typed boxes if not. See
     // _shared/brain.ts: an outline written against an empty profile is an
     // outline written for nobody, which is what most of these were.
-    const brain = await loadBrain(supabase, userId);
+    const [brain, language] = await Promise.all([loadBrain(supabase, userId), loadLanguage(supabase, userId)]);
     const profileBlock = brain ? brainBlock(brain) : `## What they told us about their channel
 Niche: ${profile?.channel_niche || 'not set'}
 Description: ${profile?.channel_description || 'not set'}
@@ -104,7 +105,7 @@ Extra context: ${profile?.channel_context || 'not set'}`;
       idea.video_id,
       idea.video_title || '',
       idea.adapted_idea || '',
-      profileBlock,
+      profileBlock + languageRule(language),
       scanBlock,
       await loadVoiceBlock(supabase, userId),
     );

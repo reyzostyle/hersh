@@ -7,6 +7,7 @@ import { loadCreditStatus, canAfford, spendCredits, CREDIT_COSTS } from '../_sha
 import { CREATOR_TOOLS, runCreatorTool } from '../_shared/creator-tools.ts';
 import { SYSTEM } from '../_shared/chat-prompt.ts';
 import { loadBrain, brainLine } from '../_shared/brain.ts';
+import { chatLanguageRule, loadLanguage } from '../_shared/language.ts';
 import { ownVideoRetention, retentionBlock, loadUsual } from '../_shared/retention.ts';
 
 const CORS = corsHeaders({ methods: 'POST, OPTIONS' });
@@ -131,7 +132,7 @@ Deno.serve(async (req: Request) => {
       .maybeSingle();
     // The brain in its short form - four lines, not the whole block. A
     // follow-up runs on under a thousand tokens of input by design.
-    const brain = await loadBrain(supabase, user.id);
+    const [brain, language] = await Promise.all([loadBrain(supabase, user.id), loadLanguage(supabase, user.id)]);
 
     // ── Load the thread, if there is one ─────────────────────────────────────
     // Scoped to its owner here rather than trusted from the body.
@@ -297,7 +298,7 @@ ${idea.script ? `\nThe script already written for it (they will want changes to 
 
     const voice = await loadVoiceBlock(supabase, user.id);
     const today = new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
-    const prompt = `## Today\n${today}\n\n${block ? `## Who you are talking to\n${block}\n\n` : ''}${voice}${ideaBlock}${reviewBlock}${retention}${history ? `## The conversation so far\n${history}\n\n` : ''}${hasImage ? `## Attached\n${images.length === 1 ? 'A screenshot is' : `${images.length} screenshots are`} attached above. They are the evidence for whatever they are asking.\n\n` : ''}${messageBlock}`;
+    const prompt = `${chatLanguageRule(language)}## Today\n${today}\n\n${block ? `## Who you are talking to\n${block}\n\n` : ''}${voice}${ideaBlock}${reviewBlock}${retention}${history ? `## The conversation so far\n${history}\n\n` : ''}${hasImage ? `## Attached\n${images.length === 1 ? 'A screenshot is' : `${images.length} screenshots are`} attached above. They are the evidence for whatever they are asking.\n\n` : ''}${messageBlock}`;
 
     // One call, tools on it. A lookup pays for a second round trip only when
     // the answer depends on something only this account knows.

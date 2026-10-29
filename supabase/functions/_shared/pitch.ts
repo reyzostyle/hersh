@@ -1,4 +1,5 @@
 // deno-lint-ignore-file no-explicit-any
+import { languageRule, loadLanguage } from './language.ts';
 import { callLLM } from './llm.ts';
 import { parseModelJson } from './json.ts';
 import { loadBrain, brainBlock } from './brain.ts';
@@ -55,7 +56,7 @@ Respond with JSON only, one entry per Short, same ids:
 
 Never use an em-dash or en-dash, only the regular hyphen.`;
 
-  const raw = await callLLM(prompt, { maxTokens: 2400 });
+  const raw = await callLLM(prompt + languageRule(await loadLanguage(supabase, userId)), { maxTokens: 2400 });
   const parsed = parseModelJson(raw, 'pitch-ideas') as { ideas?: Array<{ id?: string; pitch?: string; fit?: string }> };
   const byId = new Map(todo.map(p => [p.video_id, p]));
 

@@ -1,6 +1,7 @@
 // deno-lint-ignore-file no-explicit-any
 import { corsHeaders } from '../_shared/http.ts';
 import { createClient } from 'npm:@supabase/supabase-js@2.57.4';
+import { languageRule, loadLanguage } from '../_shared/language.ts';
 import { callLLM } from '../_shared/llm.ts';
 import { loadVoiceBlock } from '../_shared/voice.ts';
 import { loadBrain, brainBlock } from '../_shared/brain.ts';
@@ -69,9 +70,11 @@ Deno.serve(async (req: Request) => {
     if (!canAfford(status, cost, isAdmin)) return json({ error: 'limit_reached', cost }, 402);
 
     const own = idea.source === 'ai';
-    const [brain, voice, scan] = await Promise.all([
+    const [brain, voice, scan, language] = await Promise.all([
       loadBrain(supabase, user.id), loadVoiceBlock(supabase, user.id), loadChannelScan(supabase, user.id),
+      loadLanguage(supabase, user.id),
     ]);
+    const lang = languageRule(language);
     const scanBlock = channelScanBlock(scan);
 
     let concept: string | null = idea.concept;
@@ -92,14 +95,14 @@ Extra context: ${profile?.channel_context || 'not set'}`;
         const transcript = await fetchTranscript(idea.video_id);
         const read = await extractConceptAndAdapt(
           idea.video_id, idea.video_title || '', idea.video_views || 0, idea.outlier_score ?? null,
-          transcript, profileBlock, scanBlock, brain?.niche || profile?.channel_niche || '',
+          transcript, profileBlock + lang, scanBlock, brain?.niche || profile?.channel_niche || '',
         );
         concept = read.concept || concept;
         adapted = read.adapted_idea || idea.pitch || null;
       }
       // Watch: the beats, the cuts, the first frame.
       if (!outline) {
-        outline = await generateOutline(idea.video_id, idea.video_title || '', adapted || idea.pitch || '', profileBlock, scanBlock, voice);
+        outline = await generateOutline(idea.video_id, idea.video_title || '', adapted || idea.pitch || '', profileBlock + lang, scanBlock, voice);
       }
     }
 
@@ -118,6 +121,7 @@ Extra context: ${profile?.channel_context || 'not set'}`;
           idea.basis?.source ? `BASED ON\n${idea.basis.source}. Use only facts you are sure of; never invent numbers or quotes.` : '',
           'No outline: give it a hook, two or three beats and a light ending.',
         ].filter(Boolean).join('\n\n'),
+      lang.trim(),
     ].filter(Boolean).join('\n\n');
 
     const script = (await callLLM(prompt, { system: SYSTEM, maxTokens: 1200, tier: 'writer' }))
