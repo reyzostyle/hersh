@@ -1,32 +1,39 @@
 import SwiftUI
 import Supabase
 
-// The account as the web app keeps it (user_tokens), read-only here except
-// for the phone's own filming preferences. Anything that costs money or needs
-// an OAuth dance (upgrading, connecting YouTube, editing the brain) is one
-// tap away on chumoku.co.
-nonisolated struct Brain: Decodable, Hashable {
-    let summary: String?
-    let niche: String?
-    let format: String?
-    let audience: String?
-    let voice: String?
-}
-
+// The account as the web app keeps it (user_tokens). The same settings as
+// chumoku.co, minus anything about money other than the balance: upgrading,
+// cancelling, codes and the affiliate page point at payment outside the app,
+// which gets an App Store build rejected (3.1.1).
 nonisolated struct Account: Decodable {
     let plan: String?
     let creditsUsed: Int?
     let bonusCredits: Int?
     let youtubeChannelName: String?
     let youtubeChannelThumbnail: String?
+    let accessToken: String?
+    let updatedAt: String?
+    let channelDescription: String?
+    let creatorLevel: String?
     let brain: Brain?
+    let brainAt: String?
+    let brainOverrides: BrainOverrides?
+    let voice: HeardVoice?
+    let retentionLessons: RetentionLessons?
 
     enum CodingKeys: String, CodingKey {
-        case plan, brain
+        case plan, brain, voice
         case creditsUsed = "credits_used"
         case bonusCredits = "bonus_credits"
         case youtubeChannelName = "youtube_channel_name"
         case youtubeChannelThumbnail = "youtube_channel_thumbnail"
+        case accessToken = "access_token"
+        case updatedAt = "updated_at"
+        case channelDescription = "channel_description"
+        case creatorLevel = "creator_level"
+        case brainAt = "brain_at"
+        case brainOverrides = "brain_overrides"
+        case retentionLessons = "retention_lessons"
     }
 
     // Mirrors src/lib/useUsage.ts (free 0, Plus 100, Pro 300 since 2026-10-28).
@@ -36,7 +43,14 @@ nonisolated struct Account: Decodable {
     var planName: String { Self.names[plan ?? "free"] ?? "Trial" }
     var creditLimit: Int { (Self.limits[plan ?? "free"] ?? 20) + (bonusCredits ?? 0) }
     var creditsLeft: Int { max(0, creditLimit - (creditsUsed ?? 0)) }
+    var youtubeConnected: Bool { !(accessToken ?? "").isEmpty }
 }
+
+private let creatorLevels: [(String, String, String)] = [
+    ("beginner", "Beginner", "New to Shorts, learning fundamentals"),
+    ("intermediate", "Intermediate", "Know the basics, working on execution"),
+    ("advanced", "Advanced", "Experienced creator, want nuance"),
+]
 
 struct SettingsView: View {
     @Environment(AuthModel.self) private var auth
@@ -45,7 +59,24 @@ struct SettingsView: View {
     @State private var account: Account?
     @State private var loading = true
     @State private var storage: String = "…"
-    @State private var brainOpen = false
+    @State private var loadFailed = false
+    // Channel profile
+    @State private var level = "intermediate"
+    @State private var about = ""
+    @State private var profileSaving = false
+    @State private var profileSaved = false
+    @State private var profileError: String?
+    // The brain
+    @State private var overrides = BrainOverrides()
+    @State private var brainBuilding = false
+    @State private var brainError: String?
+    // Name and password
+    @State private var name = ""
+    @State private var nameSaving = false
+    @State private var nameSaved = false
+    @State private var nameError: String?
+    @State private var changingPassword = false
+    @FocusState private var focus: Bool
     @State private var confirmClear = false
     @State private var confirmDelete = false
     @State private var deleting = false
@@ -61,7 +92,42 @@ struct SettingsView: View {
                     Text("Settings").font(.tTitle).foregroundStyle(Color.text).padding(.top, 8)
 
                     section("Account") {
+                        // A name typed here is what the product calls you, as on the web.
+                        HStack(spacing: 10) {
+                            Text("Name").font(.tBody).foregroundStyle(Color.text)
+                            TextField("What we should call you", text: $name)
+                                .font(.tBody).foregroundStyle(Color.textMuted)
+                                .multilineTextAlignment(.trailing)
+                                .textInputAutocapitalization(.words)
+                                .submitLabel(.done)
+                                .focused($focus)
+                                .onSubmit { Task { await saveName() } }
+                            if nameSaving { ProgressView().controlSize(.small) }
+                            else if nameSaved { Image(systemName: "checkmark").font(.system(size: 13, weight: .semibold)).foregroundStyle(Color.process) }
+                            else if name.trimmingCharacters(in: .whitespaces) != currentName && !name.trimmingCharacters(in: .whitespaces).isEmpty {
+                                Button("Save") { Task { await saveName() } }
+                                    .font(.geist(14, .medium)).foregroundStyle(Color.text).buttonStyle(.plain)
+                            }
+                        }
+                        .padding(16)
+                        if let nameError {
+                            Text(nameError).font(.tSmall).foregroundStyle(Color.danger)
+                                .frame(maxWidth: .infinity, alignment: .leading).padding(.horizontal, 16).padding(.bottom, 12)
+                        }
+                        divider
                         row("Email", auth.user?.email ?? "")
+                        if hasPassword {
+                            divider
+                            Button { changingPassword = true } label: {
+                                HStack {
+                                    Text("Change password").font(.tBody).foregroundStyle(Color.text)
+                                    Spacer()
+                                    Image(systemName: "chevron.right").font(.system(size: 12, weight: .semibold)).foregroundStyle(Color.textFaint)
+                                }
+                                .padding(16).contentShape(Rectangle())
+                            }
+                            .buttonStyle(.plain)
+                        }
                         divider
                         row("Plan", account?.planName ?? (loading ? "…" : "Trial"))
                         divider
@@ -88,67 +154,64 @@ struct SettingsView: View {
                         // outside the app gets an App Store build rejected.
                     }
 
-                    section("Channel") {
-                        HStack(spacing: 12) {
-                            AsyncImage(url: account?.youtubeChannelThumbnail.flatMap(URL.init(string:))) { img in
-                                img.resizable().scaledToFill()
-                            } placeholder: { Color.white.opacity(0.08) }
-                            .frame(width: 36, height: 36)
-                            .clipShape(Circle())
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text(account?.youtubeChannelName ?? (loading ? "…" : "Not connected"))
+                    section("Channel profile") {
+                        VStack(alignment: .leading, spacing: 16) {
+                            VStack(alignment: .leading, spacing: 8) {
+                                Text("Where you are").font(.tLabel).foregroundStyle(Color.textMuted)
+                                Seg(options: creatorLevels.map { ($0.0, $0.1) }, value: $level)
+                                Text(creatorLevels.first { $0.0 == level }?.2 ?? "")
+                                    .font(.tSmall).foregroundStyle(Color.textFaint)
+                            }
+                            VStack(alignment: .leading, spacing: 8) {
+                                Text("Anything worth knowing").font(.tLabel).foregroundStyle(Color.textMuted)
+                                TextField("What you make, who it is for, what you are trying to fix. A sentence is enough.", text: $about, axis: .vertical)
                                     .font(.tBody).foregroundStyle(Color.text)
-                                Text("YouTube").font(.tSmall).foregroundStyle(Color.textFaint)
+                                    .lineLimit(3...8)
+                                    .focused($focus)
+                                    .padding(14)
+                                    .background(RoundedRectangle(cornerRadius: Radius.sm, style: .continuous).fill(Color.white.opacity(0.04)))
+                                    .overlay(RoundedRectangle(cornerRadius: Radius.sm, style: .continuous).strokeBorder(Color.line, lineWidth: 1))
+                                Text("There is no wrong answer here. Whatever you leave out is read off your uploads.")
+                                    .font(.tSmall).foregroundStyle(Color.textFaint)
                             }
-                            Spacer()
-                            if account?.youtubeChannelName != nil {
-                                Image(systemName: "checkmark.circle.fill")
-                                    .font(.system(size: 20))
-                                    .foregroundStyle(Color.process)
+                            if let e = profileError ?? (loadFailed ? "Could not read your profile just now, so saving is off to avoid writing over it. Pull to refresh." : nil) {
+                                Text(e).font(.tSmall).foregroundStyle(Color.danger)
                             }
+                            Button { Task { await saveProfile() } } label: {
+                                Text(profileSaving ? "Saving" : profileSaved ? "Saved" : "Save")
+                            }
+                            .buttonStyle(.pill)
+                            .disabled(profileSaving || loadFailed || loading)
                         }
                         .padding(16)
-                        if account?.youtubeChannelName == nil && !loading {
-                            divider
-                            linkRow("Connect on chumoku.co", url: "https://chumoku.co")
+                    }
+
+                    section("Chumoku brain") {
+                        if loading {
+                            Skeleton(cornerRadius: Radius.sm).frame(height: 80).padding(16)
+                        } else {
+                            BrainSection(
+                                brain: account?.brain,
+                                builtAt: account?.brainAt,
+                                heardVoice: account?.voice?.howTheyTalk,
+                                lessons: account?.youtubeConnected == true ? account?.retentionLessons : nil,
+                                overrides: $overrides,
+                                building: brainBuilding,
+                                error: brainError,
+                                onBuild: { Task { await buildBrain(force: false) } }
+                            )
                         }
                     }
 
-                    if let brain = account?.brain {
-                        section("What Chumoku knows about you") {
-                            Button { withAnimation(.ui) { brainOpen.toggle() } } label: {
-                                HStack(alignment: .top) {
-                                    Text(brain.summary ?? brain.niche ?? "Your channel")
-                                        .font(.tBody).foregroundStyle(Color.text)
-                                        .lineLimit(brainOpen ? nil : 2)
-                                        .multilineTextAlignment(.leading)
-                                    Spacer()
-                                    Image(systemName: "chevron.down")
-                                        .font(.system(size: 13, weight: .semibold)).foregroundStyle(Color.textFaint)
-                                        .rotationEffect(.degrees(brainOpen ? 180 : 0))
-                                        .padding(.top, 4)
-                                }
-                                .padding(16)
-                                .contentShape(Rectangle())
-                            }
-                            .buttonStyle(.plain)
-                            .sensoryFeedback(.selection, trigger: brainOpen)
-                            if brainOpen {
-                                ForEach([("Niche", brain.niche), ("Format", brain.format), ("Audience", brain.audience), ("Voice", brain.voice)], id: \.0) { item in
-                                    if let value = item.1, !value.isEmpty {
-                                        divider
-                                        VStack(alignment: .leading, spacing: 4) {
-                                            Text(item.0).font(.tLabel).foregroundStyle(Color.textMuted)
-                                            Text(value).font(.tSmall).foregroundStyle(Color.text)
-                                        }
-                                        .frame(maxWidth: .infinity, alignment: .leading)
-                                        .padding(16)
-                                    }
-                                }
-                                divider
-                                linkRow("Edit on chumoku.co", url: "https://chumoku.co")
-                            }
-                        }
+                    section("YouTube account") {
+                        YouTubeSection(
+                            connected: account?.youtubeConnected ?? false,
+                            channelName: account?.youtubeChannelName,
+                            channelThumbnail: account?.youtubeChannelThumbnail,
+                            syncedAt: account?.updatedAt,
+                            loading: loading,
+                            onChange: { await load() }
+                        )
                     }
 
                     section("Competitor channels") {
@@ -239,6 +302,8 @@ struct SettingsView: View {
                 Text("Your ideas, chats, channels, credits and brain are deleted for good, here and on chumoku.co. A paid plan is cancelled now. This can't be undone.")
             }
             .sensoryFeedback(.warning, trigger: confirmDelete) { _, on in on }
+            .scrollDismissesKeyboard(.interactively)
+            .sheet(isPresented: $changingPassword) { PasswordSheet(email: auth.user?.email) }
         }
         .task { await load() }
     }
@@ -261,14 +326,113 @@ struct SettingsView: View {
 
     private func load() async {
         storage = films.diskUsage()
+        if name.isEmpty { name = currentName }
         defer { loading = false }
         guard let uid = auth.user?.id else { return }
-        account = try? await supabase.from("user_tokens")
-            .select("plan, credits_used, bonus_credits, youtube_channel_name, youtube_channel_thumbnail, brain")
-            .eq("user_id", value: uid)
-            .single()
-            .execute()
-            .value
+        do {
+            let rows: [Account] = try await supabase.from("user_tokens")
+                .select("plan, credits_used, bonus_credits, youtube_channel_name, youtube_channel_thumbnail, access_token, updated_at, channel_description, creator_level, brain, brain_at, brain_overrides, voice, retention_lessons")
+                .eq("user_id", value: uid)
+                .limit(1)
+                .execute()
+                .value
+            account = rows.first
+            loadFailed = false
+            about = account?.channelDescription ?? ""
+            level = account?.creatorLevel ?? "intermediate"
+            overrides = account?.brainOverrides ?? BrainOverrides()
+        } catch {
+            // Empty fields saved over a perfectly good profile would be worse
+            // than not saving at all.
+            loadFailed = true
+        }
+    }
+
+    // MARK: name, profile, brain
+
+    private var currentName: String {
+        let meta = auth.user?.userMetadata ?? [:]
+        for key in ["display_name", "full_name", "name"] {
+            if case .string(let v) = meta[key], !v.trimmingCharacters(in: .whitespaces).isEmpty { return v.trimmingCharacters(in: .whitespaces) }
+        }
+        return auth.user?.email?.split(separator: "@").first.map(String.init) ?? ""
+    }
+
+    // Apple and Google accounts have no password to change.
+    private var hasPassword: Bool {
+        auth.user?.identities?.contains { $0.provider == "email" } ?? false
+    }
+
+    private func saveName() async {
+        let n = name.trimmingCharacters(in: .whitespaces)
+        guard !n.isEmpty, n != currentName else { return }
+        focus = false
+        nameSaving = true
+        nameError = nil
+        defer { nameSaving = false }
+        do {
+            try await supabase.auth.update(user: UserAttributes(data: ["display_name": .string(String(n.prefix(40)))]))
+            nameSaved = true
+            try? await Task.sleep(for: .seconds(2.5))
+            nameSaved = false
+        } catch {
+            nameError = error.localizedDescription
+        }
+    }
+
+    // One button, two things, as on the web: the two fields go to the row,
+    // and the brain is rebuilt off them.
+    private func saveProfile() async {
+        guard let uid = auth.user?.id else { return }
+        nonisolated struct Patch: Encodable { let channel_description: String; let creator_level: String }
+        nonisolated struct NewRow: Encodable {
+            let user_id: String; let channel_description: String; let creator_level: String
+            let access_token = ""; let refresh_token = ""
+        }
+        focus = false
+        profileSaving = true
+        profileError = nil
+        defer { profileSaving = false }
+        do {
+            if account != nil {
+                try await supabase.from("user_tokens").update(Patch(channel_description: about, creator_level: level))
+                    .eq("user_id", value: uid).execute()
+            } else {
+                try await supabase.from("user_tokens")
+                    .insert(NewRow(user_id: uid.uuidString.lowercased(), channel_description: about, creator_level: level)).execute()
+            }
+        } catch {
+            profileError = "Failed to save: \(error.localizedDescription)"
+            return
+        }
+        profileSaving = false
+        profileSaved = true
+        Task { try? await Task.sleep(for: .seconds(2.5)); profileSaved = false }
+        await buildBrain(force: true)
+    }
+
+    // `force` skips build-brain's one-minute cooldown; only a profile save
+    // passes it, so Rebuild pressed twice reads the channel once.
+    private func buildBrain(force: Bool) async {
+        nonisolated struct Result: Decodable { let brain: Brain?; let cached: Bool?; let reason: String?; let error: String? }
+        nonisolated struct Failed: Decodable { let error: String? }
+        brainBuilding = true
+        brainError = nil
+        defer { brainBuilding = false }
+        do {
+            let r: Result = try await supabase.functions.invoke("build-brain", options: FunctionInvokeOptions(body: ["force": force]))
+            if r.cached == true {
+                brainError = "Rebuilt less than a minute ago. Give it a moment."
+            } else if r.brain != nil {
+                await load()
+            } else if r.reason == "nothing_to_read" {
+                brainError = "Nothing to read yet. Say a line about yourself above, or connect your channel."
+            }
+        } catch let FunctionsError.httpError(_, data) {
+            brainError = (try? JSONDecoder().decode(Failed.self, from: data))?.error ?? "Could not read your channel"
+        } catch {
+            brainError = "Could not read your channel"
+        }
     }
 
     // MARK: pieces
@@ -313,5 +477,59 @@ struct SettingsView: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
+    }
+}
+
+// The current password is checked by signing in with it first, as on the web.
+private struct PasswordSheet: View {
+    let email: String?
+    @Environment(\.dismiss) private var dismiss
+    @State private var current = ""
+    @State private var next = ""
+    @State private var saving = false
+    @State private var error: String?
+
+    var body: some View {
+        NavigationStack {
+            VStack(spacing: 12) {
+                SecureField("Current password", text: $current).textContentType(.password).field()
+                SecureField("New password", text: $next).textContentType(.newPassword).field()
+                if let error {
+                    Text(error).font(.tSmall).foregroundStyle(Color.danger).frame(maxWidth: .infinity, alignment: .leading)
+                }
+                Button { Task { await save() } } label: { Text(saving ? "Updating" : "Update password") }
+                    .buttonStyle(.pill)
+                    .disabled(saving || current.isEmpty || next.isEmpty)
+                    .padding(.top, 8)
+                Spacer()
+            }
+            .padding(20)
+            .background(Color.bg.ignoresSafeArea())
+            .navigationTitle("Change password")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } } }
+        }
+        .presentationDetents([.medium])
+        .preferredColorScheme(.dark)
+    }
+
+    private func save() async {
+        guard next.count >= 6 else { error = "New password must be at least 6 characters"; return }
+        guard let email else { error = "Could not confirm your account"; return }
+        saving = true
+        error = nil
+        defer { saving = false }
+        do {
+            try await supabase.auth.signIn(email: email, password: current)
+        } catch {
+            self.error = "Current password is incorrect"
+            return
+        }
+        do {
+            try await supabase.auth.update(user: UserAttributes(password: next))
+            dismiss()
+        } catch {
+            self.error = error.localizedDescription
+        }
     }
 }

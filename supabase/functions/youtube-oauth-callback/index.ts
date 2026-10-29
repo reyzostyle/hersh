@@ -15,15 +15,18 @@ Deno.serve(async (req: Request) => {
   if (req.method === 'GET') {
     const url = new URL(req.url);
     const code = url.searchParams.get('code');
-    const state = url.searchParams.get('state'); // userId passed via state
+    // userId passed via state; the iOS app appends ":ios" so the browser
+    // sheet it opened is closed by a redirect to its own scheme.
+    const [state, from] = (url.searchParams.get('state') ?? '').split(':');
+    const back = from === 'ios' ? 'chumoku://youtube' : APP_URL;
     const errorParam = url.searchParams.get('error');
 
     if (errorParam) {
-      return Response.redirect(`${APP_URL}?youtube_error=${errorParam}`, 302);
+      return Response.redirect(`${back}?youtube_error=${errorParam}`, 302);
     }
 
     if (!code || !state) {
-      return Response.redirect(`${APP_URL}?youtube_error=missing_params`, 302);
+      return Response.redirect(`${back}?youtube_error=missing_params`, 302);
     }
 
     try {
@@ -53,7 +56,7 @@ Deno.serve(async (req: Request) => {
       if (!tokenResponse.ok) {
         const errText = await tokenResponse.text();
         console.error('[GET] Token exchange failed:', errText);
-        return Response.redirect(`${APP_URL}?youtube_error=${encodeURIComponent(errText)}`, 302);
+        return Response.redirect(`${back}?youtube_error=${encodeURIComponent(errText)}`, 302);
       }
 
       const tokens = await tokenResponse.json();
@@ -100,14 +103,14 @@ Deno.serve(async (req: Request) => {
 
       if (error) {
         console.error('[GET] DB error:', error);
-        return Response.redirect(`${APP_URL}?youtube_error=${encodeURIComponent(error.message)}`, 302);
+        return Response.redirect(`${back}?youtube_error=${encodeURIComponent(error.message)}`, 302);
       }
 
-      return Response.redirect(`${APP_URL}?youtube_connected=true`, 302);
+      return Response.redirect(`${back}?youtube_connected=true`, 302);
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       console.error('[GET] Fatal error:', msg);
-      return Response.redirect(`${APP_URL}?youtube_error=${encodeURIComponent(msg)}`, 302);
+      return Response.redirect(`${back}?youtube_error=${encodeURIComponent(msg)}`, 302);
     }
   }
 
