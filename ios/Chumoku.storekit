@@ -1,0 +1,128 @@
+{
+  "identifier": "C4A0B1E2",
+  "nonRenewingSubscriptions": [],
+  "products": [
+    {
+      "displayPrice": "4.99",
+      "familyShareable": false,
+      "internalID": "6754000005",
+      "localizations": [
+        {
+          "description": "50 credits on top of your plan",
+          "displayName": "50 credits",
+          "locale": "en_US"
+        }
+      ],
+      "productID": "co.chumoku.app.credits50",
+      "referenceName": "50 credits",
+      "type": "Consumable"
+    }
+  ],
+  "settings": {
+    "_failTransactionsEnabled": false,
+    "_locale": "en_US",
+    "_storefront": "USA",
+    "_storeKitErrors": []
+  },
+  "subscriptionGroups": [
+    {
+      "id": "21580001",
+      "localizations": [],
+      "name": "Chumoku",
+      "subscriptions": [
+        {
+          "adHocOffers": [],
+          "codeOffers": [],
+          "displayPrice": "19.99",
+          "familyShareable": false,
+          "groupNumber": 1,
+          "internalID": "1938057840",
+          "introductoryOffer": null,
+          "localizations": [
+            {
+              "description": "300 credits a month",
+              "displayName": "Pro",
+              "locale": "en_US"
+            }
+          ],
+          "productID": "co.chumoku.app.pro.monthly",
+          "recurringSubscriptionPeriod": "P1M",
+          "referenceName": "Pro monthly",
+          "subscriptionGroupID": "21580001",
+          "type": "RecurringSubscription",
+          "winbackOffers": []
+        },
+        {
+          "adHocOffers": [],
+          "codeOffers": [],
+          "displayPrice": "155.99",
+          "familyShareable": false,
+          "groupNumber": 1,
+          "internalID": "3413530288",
+          "introductoryOffer": null,
+          "localizations": [
+            {
+              "description": "300 credits a month",
+              "displayName": "Pro",
+              "locale": "en_US"
+            }
+          ],
+          "productID": "co.chumoku.app.pro.yearly",
+          "recurringSubscriptionPeriod": "P1Y",
+          "referenceName": "Pro yearly",
+          "subscriptionGroupID": "21580001",
+          "type": "RecurringSubscription",
+          "winbackOffers": []
+        },
+        {
+          "adHocOffers": [],
+          "codeOffers": [],
+          "displayPrice": "9.99",
+          "familyShareable": false,
+          "groupNumber": 2,
+          "internalID": "8609719432",
+          "introductoryOffer": null,
+          "localizations": [
+            {
+              "description": "100 credits a month",
+              "displayName": "Plus",
+              "locale": "en_US"
+            }
+          ],
+          "productID": "co.chumoku.app.plus.monthly",
+          "recurringSubscriptionPeriod": "P1M",
+          "referenceName": "Plus monthly",
+          "subscriptionGroupID": "21580001",
+          "type": "RecurringSubscription",
+          "winbackOffers": []
+        },
+        {
+          "adHocOffers": [],
+          "codeOffers": [],
+          "displayPrice": "119.99",
+          "familyShareable": false,
+          "groupNumber": 2,
+          "internalID": "3816474782",
+          "introductoryOffer": null,
+          "localizations": [
+            {
+              "description": "100 credits a month",
+              "displayName": "Plus",
+              "locale": "en_US"
+            }
+          ],
+          "productID": "co.chumoku.app.plus.yearly",
+          "recurringSubscriptionPeriod": "P1Y",
+          "referenceName": "Plus yearly",
+          "subscriptionGroupID": "21580001",
+          "type": "RecurringSubscription",
+          "winbackOffers": []
+        }
+      ]
+    }
+  ],
+  "version": {
+    "major": 4,
+    "minor": 0
+  }
+}

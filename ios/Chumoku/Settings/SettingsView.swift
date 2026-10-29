@@ -2,9 +2,9 @@ import SwiftUI
 import Supabase
 
 // The account as the web app keeps it (user_tokens). The same settings as
-// chumoku.co, minus anything about money other than the balance: upgrading,
-// cancelling, codes and the affiliate page point at payment outside the app,
-// which gets an App Store build rejected (3.1.1).
+// chumoku.co; plans are bought here through Apple (PlansView). Stripe
+// cancelling, codes and the affiliate page stay on the web: they point at
+// payment outside the app, which gets an App Store build rejected (3.1.1).
 nonisolated struct Account: Decodable {
     let plan: String?
     let creditsUsed: Int?
@@ -77,6 +77,8 @@ struct SettingsView: View {
     @State private var nameError: String?
     @State private var changingPassword = false
     @FocusState private var focus: Bool
+    @State private var manageSubscription = false
+    @State private var appleSubscription: String?
     @State private var confirmClear = false
     @State private var confirmDelete = false
     @State private var deleting = false
@@ -129,13 +131,22 @@ struct SettingsView: View {
                             .buttonStyle(.plain)
                         }
                         divider
-                        row("Plan", account?.planName ?? (loading ? "…" : "Trial"))
+                        Button { Purchases.shared.showPlans = true } label: {
+                            HStack {
+                                Text("Plan").font(.tBody).foregroundStyle(Color.text)
+                                Spacer()
+                                Text(account?.planName ?? (loading ? "…" : "Trial")).font(.tBody).foregroundStyle(Color.textMuted)
+                                Image(systemName: "chevron.right").font(.system(size: 12, weight: .semibold)).foregroundStyle(Color.textFaint)
+                            }
+                            .padding(16).contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
                         divider
                         VStack(alignment: .leading, spacing: 10) {
                             HStack {
                                 Text("Credits").font(.tBody).foregroundStyle(Color.text)
                                 Spacer()
-                                Text(account.map { $0.creditLimit == 0 ? "Daily ideas only" : "\($0.creditsLeft) of \($0.creditLimit) left" } ?? (loading ? "…" : "—"))
+                                Text(account.map { $0.creditLimit == 0 ? String(localized: "Daily ideas only") : String(localized: "\($0.creditsLeft) of \($0.creditLimit) left") } ?? (loading ? "…" : "—"))
                                     .font(.tBody).foregroundStyle(Color.textMuted).monospacedDigit()
                             }
                             if let a = account, a.creditLimit > 0 {
@@ -150,8 +161,21 @@ struct SettingsView: View {
                             }
                         }
                         .padding(16)
-                        // No upgrade or top-up link here: pointing at payment
-                        // outside the app gets an App Store build rejected.
+                        divider
+                        Button { Purchases.shared.showPlans = true } label: {
+                            Text((account?.plan ?? "free") == "free" ? "See plans" : "Get more credits")
+                                .font(.tBody).foregroundStyle(Color.text)
+                                .frame(maxWidth: .infinity, alignment: .leading).padding(16).contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
+                        if appleSubscription != nil {
+                            divider
+                            Button { manageSubscription = true } label: {
+                                Text("Manage subscription").font(.tBody).foregroundStyle(Color.text)
+                                    .frame(maxWidth: .infinity, alignment: .leading).padding(16).contentShape(Rectangle())
+                            }
+                            .buttonStyle(.plain)
+                        }
                     }
 
                     section("Channel profile") {
@@ -304,6 +328,9 @@ struct SettingsView: View {
             .sensoryFeedback(.warning, trigger: confirmDelete) { _, on in on }
             .scrollDismissesKeyboard(.interactively)
             .sheet(isPresented: $changingPassword) { PasswordSheet(email: auth.user?.email) }
+            .manageSubscriptionsSheet(isPresented: $manageSubscription)
+            .onChange(of: Purchases.shared.changed) { Task { await load() } }
+            .onChange(of: manageSubscription) { _, open in if !open { Task { await load() } } }
         }
         .task { await load() }
     }
@@ -327,6 +354,7 @@ struct SettingsView: View {
     private func load() async {
         storage = films.diskUsage()
         if name.isEmpty { name = currentName }
+        appleSubscription = await Purchases.shared.activeSubscription()
         defer { loading = false }
         guard let uid = auth.user?.id else { return }
         do {

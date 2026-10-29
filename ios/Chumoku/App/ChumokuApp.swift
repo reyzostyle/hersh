@@ -18,6 +18,9 @@ struct ChumokuApp: App {
                 .environment(chat)
                 .preferredColorScheme(.dark)
                 .tint(.white)
+                // Listening from launch: renewals and purchases left
+                // unfinished last time arrive whenever StoreKit has them.
+                .task { Purchases.shared.start() }
         }
     }
 }
@@ -69,5 +72,7 @@ struct MainTabs: View {
         .onChange(of: notes.recordNow) { _, now in if now { tab = .ideas } }
         // An idea sent to Chat ("Work on it in Chat") brings Chat forward.
         .onChange(of: chat.pending?.text) { _, text in if text != nil { tab = .chat } }
+        // Anything that runs out of credits opens the plans.
+        .sheet(isPresented: Bindable(Purchases.shared).showPlans) { PlansView() }
     }
 }

@@ -38,6 +38,11 @@ targets:
         DEVELOPMENT_TEAM: 7M6YY6SQ7L
         CODE_SIGN_ENTITLEMENTS: Chumoku/Chumoku.entitlements
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+    scheme:
+      # Purchases in the simulator run against this file instead of the App
+      # Store (Xcode → Product → Run). Its transactions are signed by Xcode,
+      # so apple-iap refuses them unless APPLE_IAP_ALLOW_XCODE=1 is set.
+      storeKitConfiguration: Chumoku.storekit
     info:
       path: Chumoku/Info.plist
       properties:

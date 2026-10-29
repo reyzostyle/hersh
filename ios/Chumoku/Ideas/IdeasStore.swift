@@ -194,7 +194,10 @@ final class IdeasStore {
         do {
             let drop = try await fetchDrop(more: true)
             apply(drop)
-            if drop.more?.error == "limit_reached" { moreNote = "That takes \(Self.moreCost) credits and you're out for this month." }
+            if drop.more?.error == "limit_reached" {
+                moreNote = "That takes \(Self.moreCost) credits and you're out for this month."
+                Purchases.shared.showPlans = true
+            }
             else if (drop.more?.added ?? 0) == 0 { moreNote = "Could not research anything new just now. Try again in a minute." }
         } catch {
             moreNote = "Could not research just now. Try again in a minute."
@@ -298,9 +301,10 @@ extension IdeasStore {
             return nil
         } catch let FunctionsError.httpError(_, data) {
             let msg = (try? JSONDecoder().decode(ErrorBody.self, from: data))?.error
-            // No pointing at chumoku.co to buy: the App Store rejects that.
-            if msg == "limit_reached" { return "You're out of credits for this month." }
-            if msg == "upgrade_required" { return "This isn't included in your plan." }
+            if msg == "limit_reached" || msg == "upgrade_required" {
+                Purchases.shared.showPlans = true
+                return msg == "limit_reached" ? "You're out of credits for this month." : "This isn't included in your plan."
+            }
             return msg ?? "Something went wrong. Try again."
         } catch {
             return "Something went wrong. Try again."

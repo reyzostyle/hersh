@@ -117,9 +117,10 @@ final class ChatStore {
             if threadId == nil { await keepFirst(question: q, answer: res.answer) }
             else { await loadThreads() }
         } catch let FunctionsError.httpError(code, data) {
-            // No "upgrade" wording: the App Store rejects pointing at payment
-            // outside the app.
-            if code == 403 { error = "You're out of credits for this month." }
+            if code == 403 {
+                error = "You're out of credits for this month."
+                Purchases.shared.showPlans = true
+            }
             else { error = (try? JSONDecoder().decode(Failed.self, from: data))?.error ?? "Could not get an answer. Try again." }
         } catch {
             self.error = "Could not get an answer. Try again."
