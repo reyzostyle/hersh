@@ -10,7 +10,6 @@ struct SignInView: View {
     @State private var busy = false
     @State private var error: String?
     @State private var confirmSent = false
-    @State private var nonce = ""
     @FocusState private var focus: Field?
     enum Field { case email, password }
 
@@ -70,24 +69,23 @@ struct SignInView: View {
 
                 // Below the email form, closer to the thumb (Ivan, 2026-10-30). Apple
                 // above Google and the same size (App Store 4.8).
-                SignInWithAppleButton(.continue) { request in
-                    nonce = AuthModel.newNonce()
-                    request.requestedScopes = [.fullName, .email]
-                    request.nonce = AuthModel.sha256(nonce)
-                } onCompletion: { result in
-                    switch result {
-                    case .success(let authorization):
-                        guard let credential = authorization.credential as? ASAuthorizationAppleIDCredential else { return }
-                        let raw = nonce
-                        run { try await auth.signInWithApple(credential, nonce: raw) }
-                    case .failure(let err):
-                        // Closing Apple's sheet is not an error worth showing.
-                        if (err as? ASAuthorizationError)?.code != .canceled { error = err.localizedDescription }
+                Button {
+                    run {
+                        let raw = AuthModel.newNonce()
+                        do {
+                            let credential = try await AppleSignIn.credential(hashedNonce: AuthModel.sha256(raw))
+                            try await auth.signInWithApple(credential, nonce: raw)
+                        } catch let e as ASAuthorizationError where e.code == .canceled {
+                            // Closing Apple's sheet is not an error worth showing.
+                        }
+                    }
+                } label: {
+                    HStack(spacing: 10) {
+                        Image(systemName: "applelogo").font(.system(size: 17, weight: .medium))
+                        Text("Continue with Apple")
                     }
                 }
-                .signInWithAppleButtonStyle(.white)
-                .frame(height: 48)
-                .clipShape(Capsule())
+                .buttonStyle(.pillSecondary)
                 .disabled(busy)
 
                 Button {

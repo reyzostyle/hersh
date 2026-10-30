@@ -119,3 +119,48 @@ final class AppleAuthorizationCode: NSObject, ASAuthorizationControllerDelegate,
         return scene?.keyWindow ?? ASPresentationAnchor()
     }
 }
+
+// Sign in with Apple from our own button: the system one only comes white or
+// black, and next to Google it should look the same (Ivan, 2026-10-30).
+final class AppleSignIn: NSObject, ASAuthorizationControllerDelegate, ASAuthorizationControllerPresentationContextProviding {
+    private var continuation: CheckedContinuation<ASAuthorizationAppleIDCredential, Error>?
+    private var controller: ASAuthorizationController?
+
+    // `hashedNonce` is what Apple puts in the token; the raw one goes to Supabase.
+    static func credential(hashedNonce: String) async throws -> ASAuthorizationAppleIDCredential {
+        try await AppleSignIn().run(hashedNonce)
+    }
+
+    private func run(_ hashedNonce: String) async throws -> ASAuthorizationAppleIDCredential {
+        try await withCheckedThrowingContinuation { c in
+            continuation = c
+            let request = ASAuthorizationAppleIDProvider().createRequest()
+            request.requestedScopes = [.fullName, .email]
+            request.nonce = hashedNonce
+            let controller = ASAuthorizationController(authorizationRequests: [request])
+            controller.delegate = self
+            controller.presentationContextProvider = self
+            self.controller = controller
+            controller.performRequests()
+        }
+    }
+
+    func authorizationController(controller: ASAuthorizationController, didCompleteWithAuthorization authorization: ASAuthorization) {
+        if let credential = authorization.credential as? ASAuthorizationAppleIDCredential {
+            continuation?.resume(returning: credential)
+        } else {
+            continuation?.resume(throwing: ASAuthorizationError(.unknown))
+        }
+        continuation = nil
+    }
+
+    func authorizationController(controller: ASAuthorizationController, didCompleteWithError error: Error) {
+        continuation?.resume(throwing: error)
+        continuation = nil
+    }
+
+    func presentationAnchor(for controller: ASAuthorizationController) -> ASPresentationAnchor {
+        let scene = UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }.first
+        return scene?.keyWindow ?? ASPresentationAnchor()
+    }
+}
