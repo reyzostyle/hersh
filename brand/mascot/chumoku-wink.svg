@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 220" width="400" height="440">
+  <title>Chumoku, wink</title>
+  <ellipse cx="100" cy="206" rx="52" ry="7" fill="#000" opacity="0.22"/>
+  <ellipse cx="78" cy="197" rx="15" ry="8" fill="#E8DFD0" stroke="#1B1B1F" stroke-width="3"/>
+  <ellipse cx="122" cy="197" rx="15" ry="8" fill="#E8DFD0" stroke="#1B1B1F" stroke-width="3"/>
+  <g transform="translate(100,200) scale(1,1.0) translate(-100,-200)">
+    <path d="M100 62 C152 62 180 102 178 146 C176 186 146 200 100 200 C54 200 24 186 22 146 C20 102 48 62 100 62 Z"
+          fill="#F7F2EA" stroke="#1B1B1F" stroke-width="3.5"/>
+    <path d="M40 168 C56 190 144 190 160 168 C150 186 128 194 100 194 C72 194 50 186 40 168 Z" fill="#E8DFD0" opacity="0.7"/>
+    <ellipse cx="70" cy="92" rx="16" ry="9" fill="#FFFFFF" opacity="0.8" transform="rotate(-24 70 92)"/>
+  </g>
+  <ellipse cx="78" cy="135" rx="10" ry="13" fill="#1B1B1F"/><circle cx="81.5" cy="130" r="3.6" fill="#FFF"/><circle cx="75" cy="140" r="1.6" fill="#FFF" opacity="0.8"/><path d="M113 140 Q122 128 131 140" fill="none" stroke="#1B1B1F" stroke-width="4" stroke-linecap="round"/><ellipse cx="62" cy="158" rx="10" ry="5.5" fill="#FF9EAA" opacity="0.7"/><ellipse cx="138" cy="158" rx="10" ry="5.5" fill="#FF9EAA" opacity="0.7"/><path d="M91 155 Q100 166 109 155" fill="none" stroke="#1B1B1F" stroke-width="3.2" stroke-linecap="round"/>
+  <g transform="translate(128,64) rotate(-18) scale(1.0)"><path d="M0 0 C -15 -3 -19 -25 -8 -35 C 4 -33 9 -14 0 0 Z" transform="rotate(0) translate(5,0)" fill="#FFFFFF" stroke="#1B1B1F" stroke-width="2.6" stroke-linejoin="round"/><path d="M0 0 C -15 -3 -19 -25 -8 -35 C 4 -33 9 -14 0 0 Z" transform="rotate(72) translate(5,0)" fill="#FFFFFF" stroke="#1B1B1F" stroke-width="2.6" stroke-linejoin="round"/><path d="M0 0 C -15 -3 -19 -25 -8 -35 C 4 -33 9 -14 0 0 Z" transform="rotate(144) translate(5,0)" fill="#FFFFFF" stroke="#1B1B1F" stroke-width="2.6" stroke-linejoin="round"/><path d="M0 0 C -15 -3 -19 -25 -8 -35 C 4 -33 9 -14 0 0 Z" transform="rotate(216) translate(5,0)" fill="#FFFFFF" stroke="#1B1B1F" stroke-width="2.6" stroke-linejoin="round"/><path d="M0 0 C -15 -3 -19 -25 -8 -35 C 4 -33 9 -14 0 0 Z" transform="rotate(288) translate(5,0)" fill="#FFFFFF" stroke="#1B1B1F" stroke-width="2.6" stroke-linejoin="round"/><circle r="6.5" fill="#F5C451" stroke="#1B1B1F" stroke-width="2.4"/></g>
+</svg>

@@ -93,6 +93,11 @@ const strong = (s: string) => `<strong style="color:${TEXT};font-weight:600;">${
 
 // A headline, so the mail opens with a statement instead of the first line of a
 // paragraph. Same job as the display type at the top of a page in the app.
+// The mascot, from chumoku.co/mascot (brand/mascot/make.py). PNG, because
+// mail clients do not render SVG.
+const mascot = (pose: 'happy' | 'excited' | 'wink') =>
+  `<img src="https://chumoku.co/mascot/chumoku-${pose}.png" width="84" height="92" alt="" style="display:block;margin:0 0 6px -6px;border:0;">`;
+
 const h = (s: string) =>
   `<p style="margin:0 0 16px 0;font-size:21px;line-height:1.3;font-weight:600;color:${TEXT};letter-spacing:-0.2px;">${s}</p>`;
 
@@ -117,42 +122,59 @@ const specimen = (score: string, line: string) => `
 // that is what the mail leads on, and the first action asks for the link that
 // makes it true.
 function welcome(ctx: EmailCtx): RenderedEmail {
-  const text = `you're in. your first ten ideas are already waiting, nothing to activate.
+  // Rewritten 2026-10-30 (Ivan: "looks nice and has some adorable text").
+  // The old one sold a 62 / 100 score the product dropped a month earlier.
+  // Written as Chumoku itself saying hello: short, warm, one thing to do.
+  const text = `hi, i'm chumoku.
 
-chumoku only does short-form. not long-form, not podcast clips, not
-everything at once. that is why it can name the second people left instead
-of handing you a generic content tip.
+every morning i go through the shorts that just did way better than their
+channel usually does, and turn the best ones into ideas for yours. not
+for creators in general. for you.
 
-paste a link to your last short and it watches the whole thing, then tells
-you what to change in the edit. something like:
+your first ten are already waiting.
 
-  62 / 100
-  the open repeats what the thumbnail already gave away. cut to the
-  reveal at 0:11 and let the video explain itself backwards.
+  1. pick one you like
+  2. press once, and i write the script the way you talk
+  3. film it
 
-after that you can just talk to it. ask why a video flopped, hand it a hook
-to score, or ask it to write the next script. it answers against your
-channel, not against short-form in general.
+if you connect your youtube, i read your own shorts too, so every week
+the ideas get a little more yours.
 
-see today's ideas: ${ctx.appUrl}
+really glad you're here.
+chumoku (and ivan, who made me)
+
+see your ideas: ${ctx.appUrl}
 
 unsubscribe: ${ctx.unsubscribeUrl}`;
 
+  const step = (n: string, line: string) => `
+<tr><td style="padding:0 0 10px 0;">
+  <table role="presentation" cellpadding="0" cellspacing="0"><tr>
+    <td style="width:26px;height:26px;border-radius:13px;background:${BG};border:1px solid ${LINE};text-align:center;font-size:12px;font-weight:600;color:${TEXT};">${n}</td>
+    <td style="padding-left:12px;font-size:15px;color:${TEXT};">${line}</td>
+  </tr></table>
+</td></tr>`;
+
   return {
-    subject: "you're in. your first ten ideas are waiting",
+    subject: "hi, i'm chumoku. your first ideas are here",
     text,
     html: layout({
-      preheader: 'paste your last short and see the second people left',
-      ctaLabel: "see today's ideas",
+      preheader: 'ten ideas for your channel, already waiting',
+      ctaLabel: 'see your ideas',
       ctaUrl: ctx.appUrl,
       unsubscribeUrl: ctx.unsubscribeUrl,
       body:
-        h("you're in.") +
-        p(`your first ${strong('ten ideas')} are already waiting, nothing to activate. ten new ones land every morning.`) +
-        p(`chumoku only does ${strong('short-form')}. not long-form, not podcast clips, not everything at once. that is why it can name the second people left instead of handing you a generic content tip.`) +
-        p('paste a link to your last short. it watches the whole thing and comes back with something like this:') +
-        specimen('62', 'the open repeats what the thumbnail already gave away. cut to the reveal at 0:11 and let the video explain itself backwards.') +
-        p('then you can just talk to it. ask why a video flopped, hand it a hook to score, or ask it to write the next script. it answers against your channel, not against short-form in general.'),
+        mascot('happy') +
+        h("hi, i'm chumoku.") +
+        p(`every morning i go through the shorts that just did ${strong('way better than their channel usually does')}, and turn the best ones into ideas for yours. not for creators in general. for you.`) +
+        p(`your first ${strong('ten')} are already waiting.`) +
+        `<table role="presentation" cellpadding="0" cellspacing="0" style="margin:4px 0 16px 0;">
+          ${step('1', 'pick one you like')}
+          ${step('2', 'press once, and i write the script the way you talk')}
+          ${step('3', 'film it')}
+        </table>` +
+        p('if you connect your youtube, i read your own shorts too, so every week the ideas get a little more yours.') +
+        p(`really glad you're here.<br><span style="color:${MUTED};">chumoku (and ivan, who made me)</span>`),
     }),
   };
 }
@@ -325,6 +347,7 @@ open today's ideas: ${opts.appUrl}`;
     html: layout({
       preheader: `about ${scripts} scripts a month, starting now`,
       body:
+        mascot('excited') +
         h(`you're on ${name}.`) +
         p(`${strong(`${credits} credits`)}, starting now. a script from an idea is 3, a message in the chat is 1, so that is about ${scripts} scripts a month.`) +
         p(`they come back every month on the day you subscribed. ${manage}`),

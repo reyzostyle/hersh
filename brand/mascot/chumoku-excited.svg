@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 220" width="400" height="440">
+  <title>Chumoku, excited</title>
+  <ellipse cx="100" cy="206" rx="52" ry="7" fill="#000" opacity="0.22"/>
+  <ellipse cx="78" cy="197" rx="15" ry="8" fill="#E8DFD0" stroke="#1B1B1F" stroke-width="3"/>
+  <ellipse cx="122" cy="197" rx="15" ry="8" fill="#E8DFD0" stroke="#1B1B1F" stroke-width="3"/>
+  <g transform="translate(100,200) scale(1,0.96) translate(-100,-200)">
+    <path d="M100 62 C152 62 180 102 178 146 C176 186 146 200 100 200 C54 200 24 186 22 146 C20 102 48 62 100 62 Z"
+          fill="#F7F2EA" stroke="#1B1B1F" stroke-width="3.5"/>
+    <path d="M40 168 C56 190 144 190 160 168 C150 186 128 194 100 194 C72 194 50 186 40 168 Z" fill="#E8DFD0" opacity="0.7"/>
+    <ellipse cx="70" cy="92" rx="16" ry="9" fill="#FFFFFF" opacity="0.8" transform="rotate(-24 70 92)"/>
+  </g>
+  <path d="M69 139 Q78 127 87 139" fill="none" stroke="#1B1B1F" stroke-width="4" stroke-linecap="round"/><path d="M113 139 Q122 127 131 139" fill="none" stroke="#1B1B1F" stroke-width="4" stroke-linecap="round"/><ellipse cx="62" cy="158" rx="10" ry="5.5" fill="#FF9EAA" opacity="0.75"/><ellipse cx="138" cy="158" rx="10" ry="5.5" fill="#FF9EAA" opacity="0.75"/><path d="M90 152 Q100 152 110 152 Q109 168 100 168 Q91 168 90 152 Z" fill="#1B1B1F"/><path d="M94 162 Q100 158 106 162 Q103 167 100 167 Q97 167 94 162 Z" fill="#FF7A8A"/><path d="M30 84 L32 90 L38 92 L32 94 L30 100 L28 94 L22 92 L28 90 Z" fill="#F5C451" stroke="#1B1B1F" stroke-width="2"/><path d="M176 104 L178 110 L184 112 L178 114 L176 120 L174 114 L168 112 L174 110 Z" fill="#F5C451" stroke="#1B1B1F" stroke-width="2"/><path d="M20 132 L22 138 L28 140 L22 142 L20 148 L18 142 L12 140 L18 138 Z" fill="#F5C451" stroke="#1B1B1F" stroke-width="2"/>
+  <g transform="translate(128,60) rotate(-8) scale(1.05)"><path d="M0 0 C -15 -3 -19 -25 -8 -35 C 4 -33 9 -14 0 0 Z" transform="rotate(0) translate(5,0)" fill="#FFFFFF" stroke="#1B1B1F" stroke-width="2.6" stroke-linejoin="round"/><path d="M0 0 C -15 -3 -19 -25 -8 -35 C 4 -33 9 -14 0 0 Z" transform="rotate(72) translate(5,0)" fill="#FFFFFF" stroke="#1B1B1F" stroke-width="2.6" stroke-linejoin="round"/><path d="M0 0 C -15 -3 -19 -25 -8 -35 C 4 -33 9 -14 0 0 Z" transform="rotate(144) translate(5,0)" fill="#FFFFFF" stroke="#1B1B1F" stroke-width="2.6" stroke-linejoin="round"/><path d="M0 0 C -15 -3 -19 -25 -8 -35 C 4 -33 9 -14 0 0 Z" transform="rotate(216) translate(5,0)" fill="#FFFFFF" stroke="#1B1B1F" stroke-width="2.6" stroke-linejoin="round"/><path d="M0 0 C -15 -3 -19 -25 -8 -35 C 4 -33 9 -14 0 0 Z" transform="rotate(288) translate(5,0)" fill="#FFFFFF" stroke="#1B1B1F" stroke-width="2.6" stroke-linejoin="round"/><circle r="6.5" fill="#F5C451" stroke="#1B1B1F" stroke-width="2.4"/></g>
+</svg>
