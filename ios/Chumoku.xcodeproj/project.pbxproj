@@ -33,6 +33,7 @@
 		8582604101D38B742DF3F55A /* ChatStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = D802CAA593C275E5685BFDD9 /* ChatStore.swift */; };
 		8C6AE76FB7C005EBF0118485 /* Preview.swift in Sources */ = {isa = PBXBuildFile; fileRef = 29C26DF9678B73ED6D099641 /* Preview.swift */; };
 		8FB89E138E14C6B7B4F86A76 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = BEDF9C89556A1EA144BB15A7 /* Assets.xcassets */; };
+		973C613F8E43F6CA8577ED47 /* Reminders.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7BCC3B7485DFE131331F4C12 /* Reminders.swift */; };
 		98717BC3AAF35CE61BF943D5 /* DemoData.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF9C13ADB49FEB37931FF719 /* DemoData.swift */; };
 		9ABE44253EC188BDD3F2CD50 /* Camera.swift in Sources */ = {isa = PBXBuildFile; fileRef = 78B7559265267EB1A2870A2C /* Camera.swift */; };
 		9C738A8052CFAFADC167193A /* Teleprompter.swift in Sources */ = {isa = PBXBuildFile; fileRef = E62F4F5CB345EE71077C9847 /* Teleprompter.swift */; };
@@ -82,6 +83,7 @@
 		607E11B128FE5F70C46E54FE /* Transcribe.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Transcribe.swift; sourceTree = "<group>"; };
 		74252CA53B67361453582E24 /* Geist-Bold.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Geist-Bold.ttf"; sourceTree = "<group>"; };
 		78B7559265267EB1A2870A2C /* Camera.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Camera.swift; sourceTree = "<group>"; };
+		7BCC3B7485DFE131331F4C12 /* Reminders.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Reminders.swift; sourceTree = "<group>"; };
 		88E5C186532085CD489D3B9A /* FilmHome.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FilmHome.swift; sourceTree = "<group>"; };
 		8D513106465E583AA7EF1AFE /* EditorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditorView.swift; sourceTree = "<group>"; };
 		943D6727EE7DFE0662A8AD85 /* YouTubeSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = YouTubeSection.swift; sourceTree = "<group>"; };
@@ -286,6 +288,7 @@
 				3640ACCED4A4ACA7ADE00AAC /* Config.swift */,
 				466852EF2362EF8241403495 /* Language.swift */,
 				5E1DAD92B85167998A5D7CDB /* Purchases.swift */,
+				7BCC3B7485DFE131331F4C12 /* Reminders.swift */,
 			);
 			path = Core;
 			sourceTree = "<group>";
@@ -339,6 +342,7 @@
 				fr,
 				ja,
 				"pt-BR",
+				ru,
 			);
 			mainGroup = C5510D7C7BA62C49DC95B60D;
 			minimizedProjectReferenceProxies = 1;
@@ -407,6 +411,7 @@
 				802F0BCEEEB6556BBE7B158D /* PlansView.swift in Sources */,
 				8C6AE76FB7C005EBF0118485 /* Preview.swift in Sources */,
 				BFDAEA385BB5CD080170F2DF /* Purchases.swift in Sources */,
+				973C613F8E43F6CA8577ED47 /* Reminders.swift in Sources */,
 				6A828AA0B9F531E58D3C37F0 /* Render.swift in Sources */,
 				9E6228BECD12F400C5521C5F /* Review.swift in Sources */,
 				0762AB8FA1CB2BAED6E8341D /* SettingsView.swift in Sources */,

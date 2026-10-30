@@ -89,7 +89,16 @@ struct BrainSection: View {
     @Binding var overrides: BrainOverrides
     let building: Bool
     let error: String?
+    // What they told us (user_tokens.creator_level, channel_description).
+    // The brain is built from it plus their uploads, so it lives here rather
+    // than in a section of its own that looked like a second profile.
+    @Binding var level: String
+    @Binding var about: String
+    let levels: [(String, String, String)]
+    let canSaveProfile: Bool
     let onBuild: () -> Void
+    // Saves the two fields and rebuilds the brain off them.
+    let onSaveProfile: () async -> Void
 
     @Environment(AuthModel.self) private var auth
     @State private var open = false
@@ -171,12 +180,20 @@ struct BrainSection: View {
             .sheet(isPresented: $editing) {
                 BrainEditor(start: Dictionary(uniqueKeysWithValues: Field.allCases.map { f in
                     (f.rawValue, f.isList ? list(f, brain).joined(separator: "\n") : text(f, brain))
-                })) { draft in
-                    await save(overrides(from: draft, brain))
+                }), level: level, about: about, levels: levels) { draft, newLevel, newAbout in
+                    guard await save(overrides(from: draft, brain)) else { return false }
+                    // A changed profile is new input: rebuild off it. Hand
+                    // edits are overrides and survive the rebuild.
+                    if newLevel != level || newAbout != about, canSaveProfile {
+                        level = newLevel
+                        about = newAbout
+                        Task { await onSaveProfile() }
+                    }
+                    return true
                 }
             }
 
-            if let lessons, !lessons.lessons.isEmpty {
+            if open, let lessons, !lessons.lessons.isEmpty {
                 Rectangle().fill(Color.line).frame(height: 1).padding(.leading, 16)
                 LessonsView(lessons: lessons)
             }
@@ -185,15 +202,16 @@ struct BrainSection: View {
                 Text("Nothing here yet. Build it and every idea, outline and rewrite after that is written for your channel instead of for a generic one.")
                     .font(.tSmall).foregroundStyle(Color.textMuted)
                     .fixedSize(horizontal: false, vertical: true)
+                ProfileFields(level: $level, about: $about, levels: levels)
                 if let error { Text(error).font(.tSmall).foregroundStyle(Color.danger) }
-                Button { onBuild() } label: {
+                Button { Task { await onSaveProfile() } } label: {
                     HStack(spacing: 8) {
                         if building { ProgressView().controlSize(.small).tint(Color.bg) }
                         Text(building ? "Reading your channel" : "Build it")
                     }
                 }
                 .buttonStyle(.pill)
-                .disabled(building)
+                .disabled(building || !canSaveProfile)
             }
             .padding(16)
         }
@@ -299,13 +317,20 @@ struct BrainSection: View {
 
 private struct BrainEditor: View {
     @State var draft: [String: String]
-    let onSave: ([String: String]) async -> Bool
+    @State var level: String
+    @State var about: String
+    let levels: [(String, String, String)]
+    let onSave: ([String: String], String, String) async -> Bool
     @Environment(\.dismiss) private var dismiss
     @State private var saving = false
     @State private var failed = false
 
-    init(start: [String: String], onSave: @escaping ([String: String]) async -> Bool) {
+    init(start: [String: String], level: String, about: String, levels: [(String, String, String)],
+         onSave: @escaping ([String: String], String, String) async -> Bool) {
         _draft = State(initialValue: start)
+        _level = State(initialValue: level)
+        _about = State(initialValue: about)
+        self.levels = levels
         self.onSave = onSave
     }
 
@@ -313,6 +338,8 @@ private struct BrainEditor: View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 20) {
+                    ProfileFields(level: $level, about: $about, levels: levels)
+                    Rectangle().fill(Color.line).frame(height: 1)
                     ForEach(Field.allCases, id: \.self) { f in
                         VStack(alignment: .leading, spacing: 8) {
                             Text(f.label).font(.tLabel).foregroundStyle(Color.textMuted)
@@ -342,7 +369,7 @@ private struct BrainEditor: View {
                     Button {
                         Task {
                             saving = true
-                            let ok = await onSave(draft)
+                            let ok = await onSave(draft, level, about)
                             saving = false
                             if ok { dismiss() } else { failed = true }
                         }
@@ -353,6 +380,33 @@ private struct BrainEditor: View {
             }
         }
         .preferredColorScheme(.dark)
+    }
+}
+
+// Where they are and a line about themselves: the input the brain is read
+// from when there are no uploads, and context on top of them when there are.
+private struct ProfileFields: View {
+    @Binding var level: String
+    @Binding var about: String
+    let levels: [(String, String, String)]
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            VStack(alignment: .leading, spacing: 8) {
+                Text("Where you are").font(.tLabel).foregroundStyle(Color.textMuted)
+                Seg(options: levels.map { ($0.0, $0.1) }, value: $level)
+                Text(levels.first { $0.0 == level }?.2 ?? "").font(.tSmall).foregroundStyle(Color.textFaint)
+            }
+            VStack(alignment: .leading, spacing: 8) {
+                Text("About you").font(.tLabel).foregroundStyle(Color.textMuted)
+                TextField("What you make, who it is for, what you are trying to fix. A sentence is enough.", text: $about, axis: .vertical)
+                    .font(.tBody).foregroundStyle(Color.text)
+                    .lineLimit(2...8)
+                    .padding(14)
+                    .background(RoundedRectangle(cornerRadius: Radius.sm, style: .continuous).fill(Color.white.opacity(0.04)))
+                    .overlay(RoundedRectangle(cornerRadius: Radius.sm, style: .continuous).strokeBorder(Color.line, lineWidth: 1))
+            }
+        }
     }
 }
 

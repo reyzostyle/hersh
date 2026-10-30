@@ -75,5 +75,6 @@ struct MainTabs: View {
         // Anything that runs out of credits opens the plans.
         .sheet(isPresented: Bindable(Purchases.shared).showPlans) { PlansView() }
         .task { await ContentLanguage.sync() }
+        .task { await Purchases.shared.refreshPlan() }
     }
 }

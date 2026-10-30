@@ -9,6 +9,7 @@ enum ContentLanguage {
     static let all: [(code: String, name: String)] = [
         ("en", "English"), ("es", "Español"), ("pt", "Português"),
         ("fr", "Français"), ("de", "Deutsch"), ("ja", "日本語"),
+        ("ru", "Русский"),
     ]
     static let pickedKey = "language.picked"
 

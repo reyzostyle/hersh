@@ -36,6 +36,12 @@
             "state": "translated",
             "value": "%@ / 月"
           }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ / мес"
+          }
         }
       }
     },
@@ -69,6 +75,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "%@ / 年"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ / год"
           }
         }
       }
@@ -104,6 +116,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "%@回視聴"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ просмотров"
           }
         }
       }
@@ -147,6 +165,12 @@
             "state": "translated",
             "value": "%1$lld / %2$lld"
           }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$lld из %2$lld"
+          }
         }
       }
     },
@@ -180,6 +204,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "残り%1$lld / %2$lld"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Осталось %1$lld из %2$lld"
           }
         }
       }
@@ -217,6 +247,12 @@
             "state": "translated",
             "value": "チャンネル平均の%lld倍"
           }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld× от канала"
+          }
         }
       }
     },
@@ -250,6 +286,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "28日で+%@"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "+%@ за 28 дн."
           }
         }
       }
@@ -289,6 +331,12 @@
             "state": "translated",
             "value": "100クレジット: 台本は3、メッセージは1"
           }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "100 кредитов: 3 за сценарий, 1 за сообщение"
+          }
         }
       }
     },
@@ -322,6 +370,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "300クレジット"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "300 кредитов"
           }
         }
       }
@@ -357,6 +411,12 @@
             "state": "translated",
             "value": "+5件 · %lldクレジット"
           }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ещё 5 идей · %lld кредита"
+          }
         }
       }
     },
@@ -390,6 +450,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "50クレジット"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "50 кредитов"
           }
         }
       }
@@ -426,6 +492,12 @@
             "state": "translated",
             "value": "あなたのチャンネルを知っているチャット"
           }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Чат, который знает твой канал"
+          }
         }
       }
     },
@@ -459,6 +531,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "月に約100本の台本"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Около 100 сценариев в месяц"
           }
         }
       }
@@ -494,6 +572,52 @@
             "state": "translated",
             "value": "月に約30本の台本"
           }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Около 30 сценариев в месяц"
+          }
+        }
+      }
+    },
+    "About you": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sobre ti"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sobre você"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "À propos de toi"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Über dich"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "あなたについて"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "О тебе"
+          }
         }
       }
     },
@@ -528,6 +652,12 @@
             "state": "translated",
             "value": "アカウント"
           }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Аккаунт"
+          }
         }
       }
     },
@@ -561,6 +691,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "追加"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Добавить"
           }
         }
       }
@@ -601,6 +737,12 @@
             "state": "translated",
             "value": "上級"
           }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Продвинутый"
+          }
         }
       }
     },
@@ -634,6 +776,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "%lld枠すべて使用中です。"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Заняты все места: %lld."
           }
         }
       }
@@ -669,39 +817,11 @@
             "state": "translated",
             "value": "分析"
           }
-        }
-      }
-    },
-    "Anything worth knowing": {
-      "localizations": {
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Algo que debamos saber"
-          }
         },
-        "pt-BR": {
+        "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Algo que devemos saber"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Ce qu'il faut savoir"
-          }
-        },
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Was wir wissen sollten"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "伝えておきたいこと"
+            "value": "Аналитика"
           }
         }
       }
@@ -737,6 +857,12 @@
             "state": "translated",
             "value": "アプリの言語"
           }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Язык приложения"
+          }
         }
       }
     },
@@ -770,6 +896,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "Appleがこの購入を確認できませんでした。"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Apple не смогла подтвердить покупку."
           }
         }
       }
@@ -805,6 +937,12 @@
             "state": "translated",
             "value": "チャンネル、アイデア、台本について何でも聞いてください。回答ごとに1クレジットです。"
           }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Спрашивай что угодно про канал, идею или сценарий. Каждый ответ стоит 1 кредит."
+          }
         }
       }
     },
@@ -838,6 +976,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "視聴者"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Аудитория"
           }
         }
       }
@@ -876,6 +1020,12 @@
             "state": "translated",
             "value": "初心者"
           }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Новичок"
+          }
         }
       }
     },
@@ -909,6 +1059,92 @@
           "stringUnit": {
             "state": "translated",
             "value": "作成する"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Собрать"
+          }
+        }
+      }
+    },
+    "Built": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Creado"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Criado"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Prêt"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Erstellt"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "作成済み"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Собран"
+          }
+        }
+      }
+    },
+    "Can't be changed": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No se puede cambiar"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Não pode ser alterado"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Non modifiable"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nicht änderbar"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "変更できません"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Нельзя изменить"
           }
         }
       }
@@ -944,6 +1180,12 @@
             "state": "translated",
             "value": "キャンセル"
           }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Отмена"
+          }
         }
       }
     },
@@ -978,39 +1220,11 @@
             "state": "translated",
             "value": "パスワードを変更"
           }
-        }
-      }
-    },
-    "Channel profile": {
-      "localizations": {
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Perfil del canal"
-          }
         },
-        "pt-BR": {
+        "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Perfil do canal"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Profil de la chaîne"
-          }
-        },
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Kanalprofil"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "チャンネルのプロフィール"
+            "value": "Сменить пароль"
           }
         }
       }
@@ -1045,6 +1259,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "チャット"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Чат"
           }
         }
       }
@@ -1082,11 +1302,14 @@
             "state": "translated",
             "value": "メールを確認してから、サインインしてください。"
           }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Подтверди почту по ссылке в письме, потом войди."
+          }
         }
       }
-    },
-    "Chumoku": {
-      "shouldTranslate": false
     },
     "Chumoku brain": {
       "localizations": {
@@ -1118,6 +1341,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "Chumokuブレイン"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Мозг Chumoku"
           }
         }
       }
@@ -1154,6 +1383,12 @@
             "state": "translated",
             "value": "閉じる"
           }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Закрыть"
+          }
         }
       }
     },
@@ -1187,6 +1422,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "競合チャンネル"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Каналы конкурентов"
           }
         }
       }
@@ -1222,6 +1463,12 @@
             "state": "translated",
             "value": "連携"
           }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Подключить"
+          }
         }
       }
     },
@@ -1255,6 +1502,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "設定でYouTubeチャンネルを連携すると、Chumokuが何を探せばいいかわかります。"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Подключи YouTube-канал в настройках, чтобы Chumoku знал, что искать."
           }
         }
       }
@@ -1290,6 +1543,12 @@
             "state": "translated",
             "value": "連携済み"
           }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Подключён"
+          }
         }
       }
     },
@@ -1324,6 +1583,12 @@
             "state": "translated",
             "value": "チャットで続ける"
           }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Продолжить в чате"
+          }
         }
       }
     },
@@ -1357,6 +1622,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "Googleで続ける"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Продолжить с Google"
           }
         }
       }
@@ -1393,6 +1664,12 @@
             "state": "translated",
             "value": "このチャンネルを追加できませんでした。"
           }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Не удалось добавить канал."
+          }
         }
       }
     },
@@ -1426,6 +1703,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "アカウントを確認できませんでした"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Не удалось подтвердить аккаунт"
           }
         }
       }
@@ -1461,6 +1744,12 @@
             "state": "translated",
             "value": "このアカウントを連携できませんでした。もう一度お試しください。"
           }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Не удалось подключить аккаунт. Попробуй ещё раз."
+          }
         }
       }
     },
@@ -1494,6 +1783,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "アカウントを削除できませんでした。もう一度お試しください。"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Не удалось удалить аккаунт. Попробуй ещё раз."
           }
         }
       }
@@ -1529,6 +1824,12 @@
             "state": "translated",
             "value": "連携を解除できませんでした。もう一度お試しください。"
           }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Не удалось отключить. Попробуй ещё раз."
+          }
         }
       }
     },
@@ -1562,6 +1863,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "回答を取得できませんでした。もう一度お試しください。"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Не удалось получить ответ. Попробуй ещё раз."
           }
         }
       }
@@ -1597,6 +1904,12 @@
             "state": "translated",
             "value": "非表示のアイデアを読み込めませんでした。"
           }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Не удалось загрузить скрытые идеи."
+          }
         }
       }
     },
@@ -1630,6 +1943,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "保存したアイデアを読み込めませんでした。"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Не удалось загрузить сохранённые идеи."
           }
         }
       }
@@ -1665,6 +1984,12 @@
             "state": "translated",
             "value": "今日のアイデアを読み込めませんでした。"
           }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Не удалось загрузить идеи на сегодня."
+          }
         }
       }
     },
@@ -1698,6 +2023,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "チャンネルを読み取れませんでした"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Не удалось прочитать канал"
           }
         }
       }
@@ -1733,6 +2064,12 @@
             "state": "translated",
             "value": "プロフィールを読み込めなかったため、上書きを防ぐために保存を止めています。引っ張って更新してください。"
           }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Не удалось загрузить профиль, поэтому сохранение выключено, чтобы ничего не затереть. Потяни вниз, чтобы обновить."
+          }
         }
       }
     },
@@ -1766,6 +2103,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "このチャンネルを削除できませんでした。"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Не удалось убрать канал."
           }
         }
       }
@@ -1801,6 +2144,12 @@
             "state": "translated",
             "value": "今は新しいものを見つけられませんでした。1分後にもう一度お試しください。"
           }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ничего нового сейчас не нашлось. Попробуй через минуту."
+          }
         }
       }
     },
@@ -1834,6 +2183,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "今はリサーチできませんでした。1分後にもう一度お試しください。"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Сейчас не получилось поискать. Попробуй через минуту."
           }
         }
       }
@@ -1869,6 +2224,12 @@
             "state": "translated",
             "value": "保存できませんでした。もう一度お試しください。"
           }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Не удалось сохранить. Попробуй ещё раз."
+          }
         }
       }
     },
@@ -1902,6 +2263,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "App Storeに接続できませんでした。"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Не удалось связаться с App Store."
           }
         }
       }
@@ -1937,6 +2304,12 @@
             "state": "translated",
             "value": "録画前のカウントダウン"
           }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Обратный отсчёт перед записью"
+          }
         }
       }
     },
@@ -1970,6 +2343,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "作成"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Создать"
           }
         }
       }
@@ -2005,6 +2384,12 @@
             "state": "translated",
             "value": "アカウントを作成"
           }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Создать аккаунт"
+          }
         }
       }
     },
@@ -2039,73 +2424,11 @@
             "state": "translated",
             "value": "アカウントを作成"
           }
-        }
-      }
-    },
-    "Creators, feedback, early features": {
-      "localizations": {
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Creadores, feedback, funciones antes que nadie"
-          }
         },
-        "pt-BR": {
+        "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Criadores, feedback, recursos antes de todo mundo"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Créateurs, retours, fonctions en avant-première"
-          }
-        },
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Creator, Feedback, neue Funktionen zuerst"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "クリエイター、フィードバック、新機能の先行公開"
-          }
-        }
-      }
-    },
-    "Credits": {
-      "localizations": {
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Créditos"
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Créditos"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Crédits"
-          }
-        },
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Credits"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "クレジット"
+            "value": "Создай аккаунт"
           }
         }
       }
@@ -2141,6 +2464,12 @@
             "state": "translated",
             "value": "現在のパスワード"
           }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Текущий пароль"
+          }
         }
       }
     },
@@ -2174,6 +2503,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "現在のパスワードが正しくありません"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Текущий пароль неверный"
           }
         }
       }
@@ -2211,6 +2546,12 @@
             "state": "translated",
             "value": "毎日のアイデアのみ"
           }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Только идеи дня"
+          }
         }
       }
     },
@@ -2246,6 +2587,12 @@
             "state": "translated",
             "value": "アカウントを削除"
           }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Удалить аккаунт"
+          }
         }
       }
     },
@@ -2280,6 +2627,12 @@
             "state": "translated",
             "value": "テイクをすべて削除"
           }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Удалить все дубли"
+          }
         }
       }
     },
@@ -2313,6 +2666,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "このiPhoneのテイクをすべて削除しますか？"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Удалить все дубли на этом iPhone?"
           }
         }
       }
@@ -2350,6 +2709,12 @@
             "state": "translated",
             "value": "Chumokuのアカウントを削除しますか？"
           }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Удалить аккаунт Chumoku?"
+          }
         }
       }
     },
@@ -2383,6 +2748,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "アカウントを削除中"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Удаляем аккаунт"
           }
         }
       }
@@ -2418,6 +2789,12 @@
             "state": "translated",
             "value": "デモモード: ここにChumokuの回答が表示されます。実際に話すにはサインインしてください。"
           }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Демо-режим: здесь отвечает Chumoku. Войди, чтобы поговорить по-настоящему."
+          }
         }
       }
     },
@@ -2451,6 +2828,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "詳細"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Подробнее"
           }
         }
       }
@@ -2486,6 +2869,12 @@
             "state": "translated",
             "value": "連携を解除"
           }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Отключить аккаунт"
+          }
         }
       }
     },
@@ -2519,6 +2908,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "このYouTubeアカウントの連携を解除しますか？"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Отключить этот аккаунт YouTube?"
           }
         }
       }
@@ -2554,6 +2949,12 @@
             "state": "translated",
             "value": "解除中"
           }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Отключаем"
+          }
         }
       }
     },
@@ -2587,6 +2988,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "非表示"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Скрыть"
           }
         }
       }
@@ -2622,6 +3029,12 @@
             "state": "translated",
             "value": "非表示"
           }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Скрытые"
+          }
         }
       }
     },
@@ -2655,6 +3068,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "完了"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Готово"
           }
         }
       }
@@ -2691,6 +3110,12 @@
             "state": "translated",
             "value": "過去のチャット"
           }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Прошлые чаты"
+          }
         }
       }
     },
@@ -2724,6 +3149,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "編集"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Изменить"
           }
         }
       }
@@ -2761,6 +3192,12 @@
             "state": "translated",
             "value": "メール"
           }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Почта"
+          }
         }
       }
     },
@@ -2796,6 +3233,12 @@
             "state": "translated",
             "value": "Plusのすべて"
           }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Всё, что в Plus"
+          }
         }
       }
     },
@@ -2829,6 +3272,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "経験豊富で、細かい部分まで詰めたい"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Опытный автор, нужны детали"
           }
         }
       }
@@ -2865,6 +3314,12 @@
             "state": "translated",
             "value": "保存できませんでした: %@"
           }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Не удалось сохранить: %@"
+          }
         }
       }
     },
@@ -2899,6 +3354,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "これを撮る"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Снять это"
           }
         }
       }
@@ -2936,6 +3397,12 @@
             "state": "translated",
             "value": "撮影"
           }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Съёмка"
+          }
         }
       }
     },
@@ -2970,6 +3437,12 @@
             "state": "translated",
             "value": "写真に保存済みの完成動画は残ります。"
           }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Готовые видео в Фото останутся."
+          }
         }
       }
     },
@@ -3003,6 +3476,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "あなたのチャンネル向き"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Подходит твоему каналу"
           }
         }
       }
@@ -3040,6 +3519,12 @@
             "state": "translated",
             "value": "フォーマット"
           }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Формат"
+          }
         }
       }
     },
@@ -3073,6 +3558,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "あなたのShorts %lld本から。"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "По %lld твоим Shorts."
           }
         }
       }
@@ -3109,6 +3600,12 @@
             "state": "translated",
             "value": "%@にする"
           }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Подключить %@"
+          }
         }
       }
     },
@@ -3142,6 +3639,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "クレジットを追加"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ещё кредиты"
           }
         }
       }
@@ -3178,6 +3681,12 @@
             "state": "translated",
             "value": "グリッド"
           }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Сетка"
+          }
         }
       }
     },
@@ -3211,6 +3720,52 @@
           "stringUnit": {
             "state": "translated",
             "value": "アカウントをお持ちですか？サインイン"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Уже есть аккаунт? Войти"
+          }
+        }
+      }
+    },
+    "Help": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ayuda"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ajuda"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aide"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hilfe"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ヘルプ"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Помощь"
           }
         }
       }
@@ -3246,6 +3801,12 @@
             "state": "translated",
             "value": "詳細を隠す"
           }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Скрыть детали"
+          }
         }
       }
     },
@@ -3280,6 +3841,12 @@
             "state": "translated",
             "value": "フック"
           }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Хук"
+          }
         }
       }
     },
@@ -3313,6 +3880,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "アイデアをあなた向けに作り直すルール"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Как идеи переделываются под тебя"
           }
         }
       }
@@ -3349,6 +3922,12 @@
             "state": "translated",
             "value": "アイデア"
           }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Идеи"
+          }
         }
       }
     },
@@ -3382,6 +3961,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "アイデアと台本"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Идеи и сценарии"
           }
         }
       }
@@ -3419,6 +4004,12 @@
             "state": "translated",
             "value": "中級"
           }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Средний"
+          }
         }
       }
     },
@@ -3453,6 +4044,12 @@
             "state": "translated",
             "value": "Discordに参加"
           }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Наш Discord"
+          }
         }
       }
     },
@@ -3486,6 +4083,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "そのままにする"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Оставить"
           }
         }
       }
@@ -3522,6 +4125,12 @@
             "state": "translated",
             "value": "基本はわかっていて、仕上がりを磨いている"
           }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Основы знаю, прокачиваю исполнение"
+          }
         }
       }
     },
@@ -3555,6 +4164,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "言語"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Язык"
           }
         }
       }
@@ -3590,6 +4205,12 @@
             "state": "translated",
             "value": "最終読み取り: %@。"
           }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Последнее чтение: %@."
+          }
         }
       }
     },
@@ -3623,6 +4244,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "最終同期: %@"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Последняя синхронизация: %@"
           }
         }
       }
@@ -3660,39 +4287,51 @@
             "state": "translated",
             "value": "読み込み中…"
           }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Загрузка…"
+          }
         }
       }
     },
-    "Manage subscription": {
+    "Manage": {
       "localizations": {
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Gestionar suscripción"
+            "value": "Gestionar"
           }
         },
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "Gerenciar assinatura"
+            "value": "Gerenciar"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Gérer l'abonnement"
+            "value": "Gérer"
           }
         },
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Abo verwalten"
+            "value": "Verwalten"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "サブスクリプションを管理"
+            "value": "管理"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Управлять"
           }
         }
       }
@@ -3728,6 +4367,12 @@
             "state": "translated",
             "value": "Chumokuにメッセージ"
           }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Сообщение для Chumoku"
+          }
         }
       }
     },
@@ -3761,6 +4406,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "前面カメラを反転"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Зеркалить фронтальную камеру"
           }
         }
       }
@@ -3796,6 +4447,12 @@
             "state": "translated",
             "value": "月額"
           }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Помесячно"
+          }
         }
       }
     },
@@ -3829,6 +4486,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "名前"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Имя"
           }
         }
       }
@@ -3864,6 +4527,12 @@
             "state": "translated",
             "value": "新しいチャット"
           }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Новый чат"
+          }
         }
       }
     },
@@ -3897,6 +4566,52 @@
           "stringUnit": {
             "state": "translated",
             "value": "はじめての方はアカウントを作成"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Впервые здесь? Создай аккаунт"
+          }
+        }
+      }
+    },
+    "New ideas are in": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ya tienes ideas nuevas"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ideias novas chegaram"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "De nouvelles idées sont là"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Neue Ideen sind da"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "新しいアイデアが届きました"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Новые идеи готовы"
           }
         }
       }
@@ -3932,6 +4647,12 @@
             "state": "translated",
             "value": "次まで%@"
           }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Новые идеи через %@"
+          }
         }
       }
     },
@@ -3966,6 +4687,12 @@
             "state": "translated",
             "value": "新しいパスワード"
           }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Новый пароль"
+          }
         }
       }
     },
@@ -3999,6 +4726,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "新しいパスワードは6文字以上にしてください"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Новый пароль должен быть не короче 6 символов"
           }
         }
       }
@@ -4035,6 +4768,12 @@
             "state": "translated",
             "value": "Shortsは始めたばかりで、基本を学んでいる"
           }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Только начинаю в Shorts, учу основы"
+          }
         }
       }
     },
@@ -4068,6 +4807,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "ジャンル"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ниша"
           }
         }
       }
@@ -4103,6 +4848,12 @@
             "state": "translated",
             "value": "連携しているアカウントはありません"
           }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Аккаунт не подключён"
+          }
         }
       }
     },
@@ -4136,6 +4887,92 @@
           "stringUnit": {
             "state": "translated",
             "value": "まだチャットはありません。"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Чатов пока нет."
+          }
+        }
+      }
+    },
+    "Not built yet": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aún no creado"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ainda não criado"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pas encore prêt"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Noch nicht erstellt"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "未作成"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ещё не собран"
+          }
+        }
+      }
+    },
+    "Not connected": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sin conectar"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Não conectado"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Non connecté"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nicht verbunden"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "未連携"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Не подключён"
           }
         }
       }
@@ -4171,6 +5008,12 @@
             "state": "translated",
             "value": "デモモードでは使えません。"
           }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "В демо-режиме недоступно."
+          }
         }
       }
     },
@@ -4204,6 +5047,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "メモ"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Заметки"
           }
         }
       }
@@ -4240,6 +5089,12 @@
             "state": "translated",
             "value": "非表示にしたものはありません。"
           }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Скрытых нет."
+          }
         }
       }
     },
@@ -4273,6 +5128,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "まだありません。作成すると、以降のアイデア、構成、書き直しはすべて一般向けではなくあなたのチャンネル向けになります。"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Пока пусто. Собери его, и каждая идея, план и переписка будут под твой канал, а не под абстрактный."
           }
         }
       }
@@ -4308,6 +5169,12 @@
             "state": "translated",
             "value": "今は新しいものはありません。引っ張って再確認できます。"
           }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Пока ничего нового. Потяни вниз, чтобы проверить."
+          }
         }
       }
     },
@@ -4341,6 +5208,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "まだ保存したものはありません。アイデアを保存するとここに表示されます。"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Пока ничего не сохранено. Сохрани идею, и она будет здесь."
           }
         }
       }
@@ -4376,6 +5249,12 @@
             "state": "translated",
             "value": "まだ読み取れるものがありません。上に一言書くか、チャンネルを連携してください。"
           }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Пока нечего читать. Напиши пару слов о себе выше или подключи канал."
+          }
         }
       }
     },
@@ -4409,6 +5288,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "このApple IDに復元できる購入はありません。"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "На этом Apple ID нечего восстанавливать."
           }
         }
       }
@@ -4444,6 +5329,12 @@
             "state": "translated",
             "value": "プランに上乗せ。有効期限はありません。"
           }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Сверх тарифа. Не сгорают."
+          }
         }
       }
     },
@@ -4477,6 +5368,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "1行に1つ。"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "По одному на строку."
           }
         }
       }
@@ -4512,6 +5409,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "開く"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Открыть"
           }
         }
       }
@@ -4549,6 +5452,12 @@
             "state": "translated",
             "value": "支払いは完了していますが、まだアカウントに反映されていません。次回起動時に反映されます。"
           }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Оплачено, но до аккаунта ещё не дошло. Появится при следующем запуске."
+          }
         }
       }
     },
@@ -4583,45 +5492,17 @@
             "state": "translated",
             "value": "パスワード"
           }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Пароль"
+          }
         }
       }
     },
     "Picking takes · %llds": {},
     "Pictures and clips go on top of you, from where the playhead is. Drag to place, pinch to size.": {},
-    "Plan": {
-      "localizations": {
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Plan"
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Plano"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Formule"
-          }
-        },
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Tarif"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "プラン"
-          }
-        }
-      }
-    },
     "Plans": {
       "localizations": {
         "es": {
@@ -4652,6 +5533,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "プラン"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Тарифы"
           }
         }
       }
@@ -4686,6 +5573,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "プランは解約するまで表示価格で自動更新されます。期間終了の24時間前までに、Apple IDのサブスクリプション設定からいつでも解約できます。お支払いはApple IDに請求されます。"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Подписка продлевается автоматически по указанной цене, пока ты её не отменишь. Отменить можно в любой момент в настройках подписок Apple ID, не позднее чем за 24 часа до конца периода. Оплата списывается с Apple ID."
           }
         }
       }
@@ -4722,6 +5615,12 @@
             "state": "translated",
             "value": "プライバシー"
           }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Конфиденциальность"
+          }
         }
       }
     },
@@ -4757,6 +5656,12 @@
             "state": "translated",
             "value": "読み取り中"
           }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Читаем"
+          }
         }
       }
     },
@@ -4790,6 +5695,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "チャンネルを読み取り中"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Читаем твой канал"
           }
         }
       }
@@ -4825,6 +5736,12 @@
             "state": "translated",
             "value": "作り直す"
           }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Пересобрать"
+          }
         }
       }
     },
@@ -4859,6 +5776,12 @@
             "state": "translated",
             "value": "1分以内に作り直したばかりです。少し待ってください。"
           }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Пересобран меньше минуты назад. Подожди немного."
+          }
         }
       }
     },
@@ -4892,6 +5815,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "再連携"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Переподключить"
           }
         }
       }
@@ -4929,6 +5858,12 @@
             "state": "translated",
             "value": "4Kで録画"
           }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Снимать в 4K"
+          }
         }
       }
     },
@@ -4962,6 +5897,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "あなたのShortのリミックス"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ремикс твоего Shorts"
           }
         }
       }
@@ -4997,6 +5938,12 @@
             "state": "translated",
             "value": "あなたのShortのリミックス · 普段の%@倍"
           }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ремикс твоего Shorts · %@× от обычного"
+          }
         }
       }
     },
@@ -5031,6 +5978,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "%@を削除"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Убрать %@"
           }
         }
       }
@@ -5068,6 +6021,12 @@
             "state": "translated",
             "value": "あなたのためにリサーチ"
           }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Найдено для тебя"
+          }
         }
       }
     },
@@ -5101,6 +6060,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "リサーチ中"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ищем"
           }
         }
       }
@@ -5137,6 +6102,12 @@
             "state": "translated",
             "value": "元に戻す"
           }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Вернуть"
+          }
         }
       }
     },
@@ -5170,6 +6141,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "購入を復元"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Восстановить покупки"
           }
         }
       }
@@ -5205,6 +6182,12 @@
             "state": "translated",
             "value": "iPhoneと同じ"
           }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Как на iPhone"
+          }
         }
       }
     },
@@ -5238,6 +6221,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "保存"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Сохранить"
           }
         }
       }
@@ -5275,6 +6264,12 @@
             "state": "translated",
             "value": "保存済み"
           }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Сохранено"
+          }
         }
       }
     },
@@ -5310,6 +6305,12 @@
             "state": "translated",
             "value": "保存中"
           }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Сохраняем"
+          }
         }
       }
     },
@@ -5344,44 +6345,16 @@
             "state": "translated",
             "value": "台本"
           }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Сценарий"
+          }
         }
       }
     },
     "Scroll the strip to move through the video. Tap a clip to trim it by its edges, move or delete it. Split cuts at the white line.": {},
-    "See plans": {
-      "localizations": {
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Ver planes"
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Ver planos"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Voir les formules"
-          }
-        },
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Tarife ansehen"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "プランを見る"
-          }
-        }
-      }
-    },
     "Send": {
       "localizations": {
         "es": {
@@ -5412,6 +6385,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "送信"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Отправить"
           }
         }
       }
@@ -5448,6 +6427,12 @@
             "state": "translated",
             "value": "設定"
           }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Настройки"
+          }
         }
       }
     },
@@ -5481,6 +6466,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "共有"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Поделиться"
           }
         }
       }
@@ -5518,6 +6509,12 @@
             "state": "translated",
             "value": "サインイン"
           }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Войти"
+          }
         }
       }
     },
@@ -5551,6 +6548,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "Chumokuにサインイン"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Вход в Chumoku"
           }
         }
       }
@@ -5586,6 +6589,12 @@
             "state": "translated",
             "value": "サインアウト"
           }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Выйти"
+          }
         }
       }
     },
@@ -5620,6 +6629,12 @@
             "state": "translated",
             "value": "スキップ"
           }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Пропустить"
+          }
         }
       }
     },
@@ -5653,6 +6668,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "問題が発生しました。もう一度お試しください。"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Что-то пошло не так. Попробуй ещё раз."
           }
         }
       }
@@ -5689,6 +6710,12 @@
             "state": "translated",
             "value": "登録者"
           }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Подписчики"
+          }
         }
       }
     },
@@ -5722,6 +6749,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "概要"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Коротко"
           }
         }
       }
@@ -5757,6 +6790,12 @@
             "state": "translated",
             "value": "スワイプ"
           }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Свайп"
+          }
         }
       }
     },
@@ -5791,6 +6830,12 @@
             "state": "translated",
             "value": "月額に切り替える"
           }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Перейти на помесячную"
+          }
         }
       }
     },
@@ -5824,6 +6869,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "年額に切り替える"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Перейти на годовую"
           }
         }
       }
@@ -5861,6 +6912,12 @@
             "state": "translated",
             "value": "このiPhoneのテイク"
           }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Дубли на этом iPhone"
+          }
         }
       }
     },
@@ -5897,6 +6954,12 @@
             "state": "translated",
             "value": "利用規約"
           }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Условия"
+          }
         }
       }
     },
@@ -5930,6 +6993,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "利用条件"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Условия использования"
           }
         }
       }
@@ -5965,6 +7034,12 @@
             "state": "translated",
             "value": "%lldクレジット必要ですが、今月分を使い切っています。"
           }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Нужно %lld кредита, а в этом месяце они закончились."
+          }
         }
       }
     },
@@ -5998,6 +7073,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "アイデア"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Идея"
           }
         }
       }
@@ -6033,39 +7114,11 @@
             "state": "translated",
             "value": "購入できませんでした。もう一度お試しください。"
           }
-        }
-      }
-    },
-    "There is no wrong answer here. Whatever you leave out is read off your uploads.": {
-      "localizations": {
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Aquí no hay respuestas incorrectas. Lo que no pongas lo sacamos de tus videos."
-          }
         },
-        "pt-BR": {
+        "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Não existe resposta errada. O que você deixar de fora a gente tira dos seus vídeos."
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Il n'y a pas de mauvaise réponse. Ce que tu laisses de côté, on le lit dans tes vidéos."
-          }
-        },
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Hier gibt es keine falsche Antwort. Was du weglässt, lesen wir aus deinen Uploads."
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "正解も不正解もありません。書かなかったことは、あなたの動画から読み取ります。"
+            "value": "Покупка не прошла. Попробуй ещё раз."
           }
         }
       }
@@ -6101,6 +7154,12 @@
             "state": "translated",
             "value": "考え中"
           }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Думаю"
+          }
         }
       }
     },
@@ -6134,6 +7193,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "これはあなたのプランに含まれていません。"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Это не входит в твой тариф."
           }
         }
       }
@@ -6169,6 +7234,12 @@
             "state": "translated",
             "value": "今日"
           }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Сегодня"
+          }
         }
       }
     },
@@ -6202,6 +7273,52 @@
           "stringUnit": {
             "state": "translated",
             "value": "今日 (%lld)"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Сегодня (%lld)"
+          }
+        }
+      }
+    },
+    "Today's Shorts that beat their channel, remade for yours.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Los Shorts de hoy que superaron a su canal, adaptados al tuyo."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Os Shorts de hoje que superaram o próprio canal, adaptados ao seu."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Les Shorts du jour qui ont battu leur chaîne, refaits pour la tienne."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Die Shorts von heute, die ihren Kanal geschlagen haben, umgebaut für deinen."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "チャンネル平均を超えた今日のShortsを、あなた向けに。"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Shorts, которые сегодня обогнали свой канал, переделанные под твой."
           }
         }
       }
@@ -6237,6 +7354,12 @@
             "state": "translated",
             "value": "総視聴回数"
           }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Всего просмотров"
+          }
         }
       }
     },
@@ -6270,6 +7393,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "最大5チャンネルを追跡"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "До 5 каналов для отслеживания"
           }
         }
       }
@@ -6305,6 +7434,12 @@
             "state": "translated",
             "value": "トライアル"
           }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Пробный"
+          }
         }
       }
     },
@@ -6338,6 +7473,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "再試行"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Повторить"
           }
         }
       }
@@ -6374,6 +7515,12 @@
             "state": "translated",
             "value": "自分の編集を取り消す"
           }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Отменить мои правки"
+          }
         }
       }
     },
@@ -6407,6 +7554,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "保存を解除"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Убрать из сохранённых"
           }
         }
       }
@@ -6442,6 +7595,12 @@
             "state": "translated",
             "value": "無題"
           }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Без названия"
+          }
         }
       }
     },
@@ -6475,6 +7634,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "無題のチャット"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Чат без названия"
           }
         }
       }
@@ -6510,6 +7675,12 @@
             "state": "translated",
             "value": "最大%lldチャンネル。Chumokuもあなたのジャンルのチャンネルを自動で見つけます。"
           }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "До %lld каналов. Chumoku и сам находит каналы в твоей нише."
+          }
         }
       }
     },
@@ -6543,6 +7714,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "パスワードを更新"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Обновить пароль"
           }
         }
       }
@@ -6578,6 +7755,12 @@
             "state": "translated",
             "value": "更新: %@。"
           }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Обновлено: %@."
+          }
         }
       }
     },
@@ -6611,6 +7794,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "毎週、あなたの投稿から自動で更新されます。"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Обновляется каждую неделю по твоим видео."
           }
         }
       }
@@ -6646,6 +7835,52 @@
             "state": "translated",
             "value": "更新中"
           }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Обновляем"
+          }
+        }
+      }
+    },
+    "Upgrade": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mejorar plan"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Assinar"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Passer à Plus"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Upgrade"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "アップグレード"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Улучшить"
+          }
         }
       }
     },
@@ -6679,6 +7914,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "通常、最初の数秒を過ぎても%lld%%が見続けています。"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Обычно после первых секунд остаются %lld%%."
           }
         }
       }
@@ -6714,6 +7955,12 @@
             "state": "translated",
             "value": "28日間の視聴回数"
           }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Просмотры за 28 дн."
+          }
         }
       }
     },
@@ -6747,6 +7994,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "話し方"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Подача"
           }
         }
       }
@@ -6783,6 +8036,12 @@
             "state": "translated",
             "value": "承認待ちです。完了するとここに表示されます。"
           }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ждём подтверждения. Как только пройдёт, появится здесь."
+          }
         }
       }
     },
@@ -6816,6 +8075,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "28日間の総再生時間"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Время просмотра за 28 дн."
           }
         }
       }
@@ -6852,6 +8117,12 @@
             "state": "translated",
             "value": "動画を見て、あなたの話し方で書いています"
           }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Смотрим видео и пишем твоими словами"
+          }
         }
       }
     },
@@ -6885,6 +8156,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "すでにうまくいっていること"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Что уже работает"
           }
         }
       }
@@ -6920,6 +8197,12 @@
             "state": "translated",
             "value": "呼び名"
           }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Как к тебе обращаться"
+          }
         }
       }
     },
@@ -6953,6 +8236,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "提案しないこと"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Что мы не будем предлагать"
           }
         }
       }
@@ -6988,6 +8277,12 @@
             "state": "translated",
             "value": "何を作っていて、誰向けで、何を改善したいか。一文で十分です。"
           }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Что снимаешь, для кого и что хочешь улучшить. Хватит одной фразы."
+          }
         }
       }
     },
@@ -7021,6 +8316,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "視聴維持率からわかること"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Что говорит твоё удержание"
           }
         }
       }
@@ -7057,6 +8358,12 @@
             "state": "translated",
             "value": "今のレベル"
           }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Твой уровень"
+          }
         }
       }
     },
@@ -7090,6 +8397,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "元の動画がうまくいった理由"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Почему оригинал зашёл"
           }
         }
       }
@@ -7127,6 +8440,12 @@
             "state": "translated",
             "value": "台本を書く · %lldクレジット"
           }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Написать сценарий · %lld кредита"
+          }
         }
       }
     },
@@ -7162,6 +8481,12 @@
             "state": "translated",
             "value": "あなたの話し方で書いています"
           }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Пишем твоими словами"
+          }
         }
       }
     },
@@ -7195,6 +8520,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "あなたが書いた内容から作成しています。チャンネルを連携すると、実際の投稿から読み取ります。"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Собрано из того, что ты написал. Подключи канал, и это будет читаться с твоих реальных видео."
           }
         }
       }
@@ -7230,6 +8561,12 @@
             "state": "translated",
             "value": "年額"
           }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "На год"
+          }
         }
       }
     },
@@ -7264,6 +8601,12 @@
             "state": "translated",
             "value": "解除する"
           }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Да, отключить"
+          }
         }
       }
     },
@@ -7297,6 +8640,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "今月のクレジットを使い切りました。"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Кредиты на этот месяц закончились."
           }
         }
       }
@@ -7335,6 +8684,12 @@
             "state": "translated",
             "value": "YouTubeアカウント"
           }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Аккаунт YouTube"
+          }
         }
       }
     },
@@ -7368,6 +8723,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "あなたの編集は残ります。"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Твои правки сохраняются."
           }
         }
       }
@@ -7403,6 +8764,12 @@
             "state": "translated",
             "value": "アイデア、チャット、チャンネル、クレジット、ブレインは、ここでもchumoku.coでも完全に削除されます。有料プランは今すぐ解約されます。元に戻せません。"
           }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Идеи, чаты, каналы, кредиты и мозг удалятся навсегда, здесь и на chumoku.co. Платная подписка отменится сразу. Это нельзя отменить."
+          }
         }
       }
     },
@@ -7437,6 +8804,12 @@
             "state": "translated",
             "value": "現在のプラン"
           }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Твой тариф"
+          }
         }
       }
     },
@@ -7470,6 +8843,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "現在のプラン（%@）"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Твой тариф, оплата %@"
           }
         }
       }
@@ -7506,6 +8885,12 @@
             "state": "translated",
             "value": "月額"
           }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "помесячно"
+          }
         }
       }
     },
@@ -7539,6 +8924,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "または"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "или"
           }
         }
       }
@@ -7575,6 +8966,12 @@
             "state": "translated",
             "value": "未検証"
           }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "не проверено"
+          }
         }
       }
     },
@@ -7608,6 +9005,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "年額"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "за год"
           }
         }
       }

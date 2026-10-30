@@ -28,6 +28,8 @@ final class Purchases {
     var showPlans = false
     // Bumped after a purchase lands, so screens showing the balance reload.
     var changed = 0
+    // The account's plan ('free', 'pro', 'agency'), for the Upgrade buttons.
+    var plan: String?
 
     private var updates: Task<Void, Never>?
 
@@ -89,6 +91,16 @@ final class Purchases {
         return nil
     }
 
+    func refreshPlan() async {
+        nonisolated struct Row: Decodable { let plan: String? }
+        #if DEBUG
+        if IdeasStore.isDemo { plan = "free"; return }
+        #endif
+        guard let uid = try? await supabase.auth.session.user.id else { plan = nil; return }
+        let row: Row? = try? await supabase.from("user_tokens").select("plan").eq("user_id", value: uid).single().execute().value
+        plan = row?.plan ?? "free"
+    }
+
     private func report(_ result: VerificationResult<Transaction>) async {
         nonisolated struct Failed: Decodable { let error: String? }
         guard case .verified(let transaction) = result else {
@@ -99,6 +111,7 @@ final class Purchases {
             try await supabase.functions.invoke("apple-iap", options: FunctionInvokeOptions(body: ["jws": result.jwsRepresentation]))
             await transaction.finish()
             changed += 1
+            await refreshPlan()
         } catch let FunctionsError.httpError(code, data) {
             let text = (try? JSONDecoder().decode(Failed.self, from: data))?.error
             message = text ?? String(localized: "Paid, but it hasn't reached your account yet. It will on the next launch.")

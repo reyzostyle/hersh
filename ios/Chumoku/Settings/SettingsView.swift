@@ -64,7 +64,6 @@ struct SettingsView: View {
     @State private var level = "intermediate"
     @State private var about = ""
     @State private var profileSaving = false
-    @State private var profileSaved = false
     @State private var profileError: String?
     // The brain
     @State private var overrides = BrainOverrides()
@@ -73,9 +72,10 @@ struct SettingsView: View {
     // Name and password
     @State private var name = ""
     @State private var nameSaving = false
-    @State private var nameSaved = false
     @State private var nameError: String?
+    @State private var editingName = false
     @State private var changingPassword = false
+    @State private var open: String?
     @FocusState private var focus: Bool
     @State private var manageSubscription = false
     @State private var appleSubscription: String?
@@ -91,170 +91,34 @@ struct SettingsView: View {
     var body: some View {
         NavigationStack {
             ScrollView {
-                VStack(alignment: .leading, spacing: 0) {
-                    Text("Settings").font(.tTitle).foregroundStyle(Color.text).padding(.top, 8)
+                VStack(alignment: .leading, spacing: 10) {
+                    Text("Settings").font(.tTitle).foregroundStyle(Color.text).padding(.top, 8).padding(.bottom, 14)
 
-                    section("Account") {
-                        // A name typed here is what the product calls you, as on the web.
-                        HStack(spacing: 10) {
-                            Text("Name").font(.tBody).foregroundStyle(Color.text)
-                            TextField("What we should call you", text: $name)
-                                .font(.tBody).foregroundStyle(Color.textMuted)
-                                .multilineTextAlignment(.trailing)
-                                .textInputAutocapitalization(.words)
-                                .submitLabel(.done)
-                                .focused($focus)
-                                .onSubmit { Task { await saveName() } }
-                            if nameSaving { ProgressView().controlSize(.small) }
-                            else if nameSaved { Image(systemName: "checkmark").font(.system(size: 13, weight: .semibold)).foregroundStyle(Color.process) }
-                            else if name.trimmingCharacters(in: .whitespaces) != currentName && !name.trimmingCharacters(in: .whitespaces).isEmpty {
-                                Button("Save") { Task { await saveName() } }
-                                    .font(.geist(14, .medium)).foregroundStyle(Color.text).buttonStyle(.plain)
-                            }
-                        }
-                        .padding(16)
-                        if let nameError {
-                            Text(nameError).font(.tSmall).foregroundStyle(Color.danger)
-                                .frame(maxWidth: .infinity, alignment: .leading).padding(.horizontal, 16).padding(.bottom, 12)
-                        }
-                        divider
-                        row("Email", auth.user?.email ?? "")
-                        if hasPassword {
-                            divider
-                            Button { changingPassword = true } label: {
-                                HStack {
-                                    Text("Change password").font(.tBody).foregroundStyle(Color.text)
-                                    Spacer()
-                                    Image(systemName: "chevron.right").font(.system(size: 12, weight: .semibold)).foregroundStyle(Color.textFaint)
-                                }
-                                .padding(16).contentShape(Rectangle())
-                            }
-                            .buttonStyle(.plain)
-                        }
-                        divider
-                        Button { Purchases.shared.showPlans = true } label: {
-                            HStack {
-                                Text("Plan").font(.tBody).foregroundStyle(Color.text)
-                                Spacer()
-                                Text(account?.planName ?? (loading ? "…" : String(localized: "Trial"))).font(.tBody).foregroundStyle(Color.textMuted)
-                                Image(systemName: "chevron.right").font(.system(size: 12, weight: .semibold)).foregroundStyle(Color.textFaint)
-                            }
-                            .padding(16).contentShape(Rectangle())
-                        }
-                        .buttonStyle(.plain)
-                        divider
-                        VStack(alignment: .leading, spacing: 10) {
-                            HStack {
-                                Text("Credits").font(.tBody).foregroundStyle(Color.text)
-                                Spacer()
-                                Text(account.map { $0.creditLimit == 0 ? String(localized: "Daily ideas only") : String(localized: "\($0.creditsLeft) of \($0.creditLimit) left") } ?? (loading ? "…" : "—"))
-                                    .font(.tBody).foregroundStyle(Color.textMuted).monospacedDigit()
-                            }
-                            if let a = account, a.creditLimit > 0 {
-                                GeometryReader { g in
-                                    Capsule().fill(Color.white.opacity(0.08))
-                                        .overlay(alignment: .leading) {
-                                            Capsule().fill(Color.white)
-                                                .frame(width: g.size.width * CGFloat(a.creditsLeft) / CGFloat(max(1, a.creditLimit)))
-                                        }
-                                }
-                                .frame(height: 4)
-                            }
-                        }
-                        .padding(16)
-                        divider
-                        Button { Purchases.shared.showPlans = true } label: {
-                            Text((account?.plan ?? "free") == "free" ? "See plans" : "Get more credits")
-                                .font(.tBody).foregroundStyle(Color.text)
-                                .frame(maxWidth: .infinity, alignment: .leading).padding(16).contentShape(Rectangle())
-                        }
-                        .buttonStyle(.plain)
-                        if appleSubscription != nil {
-                            divider
-                            Button { manageSubscription = true } label: {
-                                Text("Manage subscription").font(.tBody).foregroundStyle(Color.text)
-                                    .frame(maxWidth: .infinity, alignment: .leading).padding(16).contentShape(Rectangle())
-                            }
-                            .buttonStyle(.plain)
-                        }
+                    planCard
+
+                    // One section open at a time, each saying in its header
+                    // what is inside, so the page fits on a screen closed.
+                    fold("account", "Account", value: auth.user?.email) { accountContent }
+
+                    fold("brain", "Chumoku brain", value: loading ? nil : (account?.brain != nil ? String(localized: "Built") : String(localized: "Not built yet"))) {
+                        BrainSection(
+                            brain: account?.brain,
+                            builtAt: account?.brainAt,
+                            heardVoice: account?.voice?.howTheyTalk,
+                            lessons: account?.youtubeConnected == true ? account?.retentionLessons : nil,
+                            overrides: $overrides,
+                            building: brainBuilding || profileSaving,
+                            error: brainError ?? profileError ?? (loadFailed ? String(localized: "Could not read your profile just now, so saving is off to avoid writing over it. Pull to refresh.") : nil),
+                            level: $level,
+                            about: $about,
+                            levels: creatorLevels,
+                            canSaveProfile: !loadFailed && !loading,
+                            onBuild: { Task { await buildBrain(force: false) } },
+                            onSaveProfile: { await saveProfile() }
+                        )
                     }
 
-                    section("Language") {
-                        Menu {
-                            Button { pick(nil) } label: {
-                                if pickedLanguage == nil { Label("Same as iPhone", systemImage: "checkmark") } else { Text("Same as iPhone") }
-                            }
-                            ForEach(ContentLanguage.all, id: \.code) { l in
-                                Button { pick(l.code) } label: {
-                                    if pickedLanguage == l.code { Label(l.name, systemImage: "checkmark") } else { Text(verbatim: l.name) }
-                                }
-                            }
-                        } label: {
-                            HStack {
-                                Text("Ideas and scripts").font(.tBody).foregroundStyle(Color.text)
-                                Spacer()
-                                Text(verbatim: ContentLanguage.name(pickedLanguage ?? ContentLanguage.device)).font(.tBody).foregroundStyle(Color.textMuted)
-                                Image(systemName: "chevron.up.chevron.down").font(.system(size: 11, weight: .semibold)).foregroundStyle(Color.textFaint)
-                            }
-                            .padding(16).contentShape(Rectangle())
-                        }
-                        .buttonStyle(.plain)
-                        divider
-                        // iOS keeps a per-app language for any app that ships
-                        // more than one; this opens Chumoku's page in Settings.
-                        linkRow("App language", url: UIApplication.openSettingsURLString)
-                    }
-
-                    section("Channel profile") {
-                        VStack(alignment: .leading, spacing: 16) {
-                            VStack(alignment: .leading, spacing: 8) {
-                                Text("Where you are").font(.tLabel).foregroundStyle(Color.textMuted)
-                                Seg(options: creatorLevels.map { ($0.0, $0.1) }, value: $level)
-                                Text(creatorLevels.first { $0.0 == level }?.2 ?? "")
-                                    .font(.tSmall).foregroundStyle(Color.textFaint)
-                            }
-                            VStack(alignment: .leading, spacing: 8) {
-                                Text("Anything worth knowing").font(.tLabel).foregroundStyle(Color.textMuted)
-                                TextField("What you make, who it is for, what you are trying to fix. A sentence is enough.", text: $about, axis: .vertical)
-                                    .font(.tBody).foregroundStyle(Color.text)
-                                    .lineLimit(3...8)
-                                    .focused($focus)
-                                    .padding(14)
-                                    .background(RoundedRectangle(cornerRadius: Radius.sm, style: .continuous).fill(Color.white.opacity(0.04)))
-                                    .overlay(RoundedRectangle(cornerRadius: Radius.sm, style: .continuous).strokeBorder(Color.line, lineWidth: 1))
-                                Text("There is no wrong answer here. Whatever you leave out is read off your uploads.")
-                                    .font(.tSmall).foregroundStyle(Color.textFaint)
-                            }
-                            if let e = profileError ?? (loadFailed ? String(localized: "Could not read your profile just now, so saving is off to avoid writing over it. Pull to refresh.") : nil) {
-                                Text(e).font(.tSmall).foregroundStyle(Color.danger)
-                            }
-                            Button { Task { await saveProfile() } } label: {
-                                Text(profileSaving ? "Saving" : profileSaved ? "Saved" : "Save")
-                            }
-                            .buttonStyle(.pill)
-                            .disabled(profileSaving || loadFailed || loading)
-                        }
-                        .padding(16)
-                    }
-
-                    section("Chumoku brain") {
-                        if loading {
-                            Skeleton(cornerRadius: Radius.sm).frame(height: 80).padding(16)
-                        } else {
-                            BrainSection(
-                                brain: account?.brain,
-                                builtAt: account?.brainAt,
-                                heardVoice: account?.voice?.howTheyTalk,
-                                lessons: account?.youtubeConnected == true ? account?.retentionLessons : nil,
-                                overrides: $overrides,
-                                building: brainBuilding,
-                                error: brainError,
-                                onBuild: { Task { await buildBrain(force: false) } }
-                            )
-                        }
-                    }
-
-                    section("YouTube account") {
+                    fold("youtube", "YouTube account", value: loading ? nil : (account?.youtubeConnected == true ? (account?.youtubeChannelName ?? String(localized: "Connected")) : String(localized: "Not connected"))) {
                         YouTubeSection(
                             connected: account?.youtubeConnected ?? false,
                             channelName: account?.youtubeChannelName,
@@ -265,49 +129,31 @@ struct SettingsView: View {
                         )
                     }
 
-                    section("Competitor channels") {
-                        ChannelsSection(plan: account?.plan)
-                    }
+                    fold("channels", "Competitor channels") { ChannelsSection(plan: account?.plan) }
+
+                    fold("language", "Language", value: ContentLanguage.name(pickedLanguage ?? ContentLanguage.device)) { languageContent }
 
                     if Features.filming {
-                    section("Filming") {
-                        toggle("Countdown before recording", $countdown)
-                        divider
-                        toggle("Mirror the front camera", $mirror)
-                        divider
-                        toggle("Record in 4K", $fourK)
-                        divider
-                        row("Takes on this iPhone", storage)
-                        divider
-                        Button { confirmClear = true } label: {
-                            Text("Delete all takes").font(.tBody).foregroundStyle(Color.danger)
-                                .frame(maxWidth: .infinity, alignment: .leading).padding(16).contentShape(Rectangle())
-                        }
-                        .buttonStyle(.plain)
-                    }
-                    }
-
-                    Button { if let u = URL(string: "https://discord.com/invite/N8S6C95Ry2") { openURL(u) } } label: {
-                        HStack(spacing: 14) {
-                            Image(systemName: "bubble.left.and.bubble.right.fill")
-                                .font(.system(size: 20)).foregroundStyle(.white)
-                                .frame(width: 46, height: 46)
-                                .background(Circle().fill(Color(red: 0.35, green: 0.4, blue: 0.95)))
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text("Join the Discord").font(.geist(16, .medium)).foregroundStyle(Color.text)
-                                Text("Creators, feedback, early features").font(.tSmall).foregroundStyle(Color.textMuted)
+                        fold("filming", "Filming") {
+                            toggle("Countdown before recording", $countdown)
+                            divider
+                            toggle("Mirror the front camera", $mirror)
+                            divider
+                            toggle("Record in 4K", $fourK)
+                            divider
+                            row("Takes on this iPhone", storage)
+                            divider
+                            Button { confirmClear = true } label: {
+                                Text("Delete all takes").font(.tBody).foregroundStyle(Color.danger)
+                                    .frame(maxWidth: .infinity, alignment: .leading).padding(16).contentShape(Rectangle())
                             }
-                            Spacer()
-                            Image(systemName: "arrow.up.right").font(.system(size: 13, weight: .semibold)).foregroundStyle(Color.textFaint)
+                            .buttonStyle(.plain)
                         }
-                        .padding(16)
-                        .background(RoundedRectangle(cornerRadius: Radius.md, style: .continuous).fill(Color(red: 0.35, green: 0.4, blue: 0.95).opacity(0.12)))
-                        .overlay(RoundedRectangle(cornerRadius: Radius.md, style: .continuous).strokeBorder(Color(red: 0.35, green: 0.4, blue: 0.95).opacity(0.35), lineWidth: 1))
                     }
-                    .buttonStyle(.plain)
-                    .padding(.top, 28)
 
-                    section("Chumoku") {
+                    fold("help", "Help") {
+                        linkRow("Join the Discord", url: "https://discord.com/invite/N8S6C95Ry2")
+                        divider
                         linkRow("Privacy", url: "https://chumoku.co/privacy")
                         divider
                         linkRow("Terms", url: "https://chumoku.co/terms")
@@ -315,7 +161,7 @@ struct SettingsView: View {
 
                     Button("Sign out") { Task { await auth.signOut() } }
                         .buttonStyle(.pillGhost)
-                        .padding(.top, 28)
+                        .padding(.top, 18)
 
                     // Required by the App Store for any app you can sign up in.
                     Button { confirmDelete = true } label: {
@@ -331,7 +177,6 @@ struct SettingsView: View {
                     }
                     .buttonStyle(.plain)
                     .disabled(deleting)
-                    .padding(.top, 8)
                     if let deleteError {
                         Text(deleteError).font(.tSmall).foregroundStyle(Color.danger)
                             .frame(maxWidth: .infinity).multilineTextAlignment(.center)
@@ -362,6 +207,154 @@ struct SettingsView: View {
         .task { await load() }
     }
 
+    // The plan, the balance and the way to more, always on top: the one
+    // thing on this page that is about money is never folded away.
+    private var planCard: some View {
+        let free = (account?.plan ?? "free") == "free"
+        return VStack(alignment: .leading, spacing: 14) {
+            HStack(alignment: .firstTextBaseline) {
+                Text(verbatim: account?.planName ?? (loading ? " " : String(localized: "Trial")))
+                    .font(.tHeading).foregroundStyle(Color.text)
+                Spacer()
+                Text(account.map { $0.creditLimit == 0 ? String(localized: "Daily ideas only") : String(localized: "\($0.creditsLeft) of \($0.creditLimit) left") } ?? " ")
+                    .font(.tSmall).foregroundStyle(Color.textMuted).monospacedDigit()
+            }
+            if let a = account, a.creditLimit > 0 {
+                GeometryReader { g in
+                    Capsule().fill(Color.white.opacity(0.08))
+                        .overlay(alignment: .leading) {
+                            Capsule().fill(Color.white)
+                                .frame(width: g.size.width * CGFloat(a.creditsLeft) / CGFloat(max(1, a.creditLimit)))
+                        }
+                }
+                .frame(height: 4)
+            }
+            if free {
+                Button("Upgrade") { Purchases.shared.showPlans = true }.buttonStyle(.pill)
+            } else {
+                HStack(spacing: 8) {
+                    Button("Get more credits") { Purchases.shared.showPlans = true }.buttonStyle(.pillSecondary)
+                    if appleSubscription != nil {
+                        Button("Manage") { manageSubscription = true }.buttonStyle(.pillSecondary)
+                    }
+                }
+            }
+        }
+        .padding(16)
+        .background(RoundedRectangle(cornerRadius: Radius.md, style: .continuous).fill(Color.raised))
+        .overlay(RoundedRectangle(cornerRadius: Radius.md, style: .continuous).strokeBorder(Color.line, lineWidth: 1))
+    }
+
+    // Editable things say Edit; the email, which cannot change here, says
+    // so with a lock instead of looking like a field.
+    @ViewBuilder private var accountContent: some View {
+        if editingName {
+            VStack(alignment: .leading, spacing: 10) {
+                Text("Name").font(.tLabel).foregroundStyle(Color.textMuted)
+                TextField("What we should call you", text: $name)
+                    .textInputAutocapitalization(.words)
+                    .submitLabel(.done)
+                    .focused($focus)
+                    .onSubmit { Task { await saveName() } }
+                    .field()
+                if let nameError { Text(nameError).font(.tSmall).foregroundStyle(Color.danger) }
+                HStack(spacing: 8) {
+                    Button("Cancel") { name = currentName; nameError = nil; editingName = false; focus = false }
+                        .buttonStyle(.pillSecondary)
+                    Button { Task { await saveName() } } label: { Text(nameSaving ? "Saving" : "Save") }
+                        .buttonStyle(.pill)
+                        .disabled(nameSaving || name.trimmingCharacters(in: .whitespaces).isEmpty)
+                }
+            }
+            .padding(16)
+        } else {
+            HStack(spacing: 10) {
+                Text("Name").font(.tBody).foregroundStyle(Color.text)
+                Spacer()
+                Text(verbatim: currentName).font(.tBody).foregroundStyle(Color.textMuted).lineLimit(1)
+                Button("Edit") { name = currentName; editingName = true; focus = true }
+                    .font(.geist(14, .medium)).foregroundStyle(Color.text).buttonStyle(.plain)
+            }
+            .padding(16)
+        }
+        divider
+        HStack(spacing: 10) {
+            Text("Email").font(.tBody).foregroundStyle(Color.text)
+            Spacer()
+            Text(verbatim: auth.user?.email ?? "").font(.tBody).foregroundStyle(Color.textFaint).lineLimit(1)
+            Image(systemName: "lock.fill").font(.system(size: 11)).foregroundStyle(Color.textFaint)
+                .accessibilityLabel(Text("Can't be changed"))
+        }
+        .padding(16)
+        if hasPassword {
+            divider
+            Button { changingPassword = true } label: {
+                HStack {
+                    Text("Change password").font(.tBody).foregroundStyle(Color.text)
+                    Spacer()
+                    Image(systemName: "chevron.right").font(.system(size: 12, weight: .semibold)).foregroundStyle(Color.textFaint)
+                }
+                .padding(16).contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+        }
+    }
+
+    @ViewBuilder private var languageContent: some View {
+        Menu {
+            Button { pick(nil) } label: {
+                if pickedLanguage == nil { Label("Same as iPhone", systemImage: "checkmark") } else { Text("Same as iPhone") }
+            }
+            ForEach(ContentLanguage.all, id: \.code) { l in
+                Button { pick(l.code) } label: {
+                    if pickedLanguage == l.code { Label(l.name, systemImage: "checkmark") } else { Text(verbatim: l.name) }
+                }
+            }
+        } label: {
+            HStack {
+                Text("Ideas and scripts").font(.tBody).foregroundStyle(Color.text)
+                Spacer()
+                Text(verbatim: ContentLanguage.name(pickedLanguage ?? ContentLanguage.device)).font(.tBody).foregroundStyle(Color.textMuted)
+                Image(systemName: "chevron.up.chevron.down").font(.system(size: 11, weight: .semibold)).foregroundStyle(Color.textFaint)
+            }
+            .padding(16).contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        divider
+        // iOS keeps a per-app language for any app that ships more than one;
+        // this opens Chumoku's page in Settings.
+        linkRow("App language", url: UIApplication.openSettingsURLString)
+    }
+
+    private func fold<Content: View>(_ id: String, _ title: LocalizedStringKey, value: String? = nil, @ViewBuilder _ content: () -> Content) -> some View {
+        let isOpen = open == id
+        return VStack(spacing: 0) {
+            Button { withAnimation(.ui) { open = isOpen ? nil : id } } label: {
+                HStack(spacing: 10) {
+                    Text(title).font(.tBody).foregroundStyle(Color.text)
+                    Spacer(minLength: 12)
+                    if let value, !isOpen {
+                        Text(verbatim: value).font(.tSmall).foregroundStyle(Color.textFaint).lineLimit(1)
+                    }
+                    Image(systemName: "chevron.down")
+                        .font(.system(size: 12, weight: .semibold)).foregroundStyle(Color.textFaint)
+                        .rotationEffect(.degrees(isOpen ? 180 : 0))
+                }
+                .padding(16)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            if isOpen {
+                Rectangle().fill(Color.line).frame(height: 1)
+                content()
+            }
+        }
+        .background(RoundedRectangle(cornerRadius: Radius.md, style: .continuous).fill(Color.raised))
+        .overlay(RoundedRectangle(cornerRadius: Radius.md, style: .continuous).strokeBorder(Color.line, lineWidth: 1))
+        .clipShape(RoundedRectangle(cornerRadius: Radius.md, style: .continuous))
+        .sensoryFeedback(.selection, trigger: isOpen)
+    }
+
     private func deleteAccount() async {
         nonisolated struct Failed: Decodable { let error: String? }
         deleting = true
@@ -387,6 +380,7 @@ struct SettingsView: View {
         storage = films.diskUsage()
         if name.isEmpty { name = currentName }
         appleSubscription = await Purchases.shared.activeSubscription()
+        await Purchases.shared.refreshPlan()
         defer { loading = false }
         guard let uid = auth.user?.id else { return }
         do {
@@ -430,16 +424,14 @@ struct SettingsView: View {
 
     private func saveName() async {
         let n = name.trimmingCharacters(in: .whitespaces)
-        guard !n.isEmpty, n != currentName else { return }
+        guard !n.isEmpty, n != currentName else { editingName = false; return }
         focus = false
         nameSaving = true
         nameError = nil
         defer { nameSaving = false }
         do {
             try await supabase.auth.update(user: UserAttributes(data: ["display_name": .string(String(n.prefix(40)))]))
-            nameSaved = true
-            try? await Task.sleep(for: .seconds(2.5))
-            nameSaved = false
+            editingName = false
         } catch {
             nameError = error.localizedDescription
         }
@@ -471,8 +463,6 @@ struct SettingsView: View {
             return
         }
         profileSaving = false
-        profileSaved = true
-        Task { try? await Task.sleep(for: .seconds(2.5)); profileSaved = false }
         await buildBrain(force: true)
     }
 
@@ -501,16 +491,6 @@ struct SettingsView: View {
     }
 
     // MARK: pieces
-
-    private func section<Content: View>(_ title: LocalizedStringKey, @ViewBuilder _ content: () -> Content) -> some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Text(title).font(.tLabel).foregroundStyle(Color.textMuted).padding(.leading, 4)
-            VStack(spacing: 0) { content() }
-                .background(RoundedRectangle(cornerRadius: Radius.md, style: .continuous).fill(Color.raised))
-                .overlay(RoundedRectangle(cornerRadius: Radius.md, style: .continuous).strokeBorder(Color.line, lineWidth: 1))
-        }
-        .padding(.top, 28)
-    }
 
     private var divider: some View { Rectangle().fill(Color.line).frame(height: 1).padding(.leading, 16) }
 

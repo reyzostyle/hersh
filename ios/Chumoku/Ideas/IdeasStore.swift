@@ -216,6 +216,8 @@ final class IdeasStore {
         today = drop.items
         needsProfile = drop.needsProfile ?? false
         nextAt = ISO8601DateFormatter.withFractions.date(from: drop.nextAt) ?? ISO8601DateFormatter().date(from: drop.nextAt)
+        let next = nextAt
+        Task { await Reminders.schedule(at: next) }
     }
 
     func loadSaved() async {
@@ -259,6 +261,10 @@ final class IdeasStore {
         var moved = idea
         moved.liked = liked
         if liked == true, !saved.contains(where: { $0.id == idea.id }) { saved.insert(moved, at: 0) }
+        if liked == true {
+            let next = nextAt
+            Task { await Reminders.askOnce(); await Reminders.schedule(at: next) }
+        }
         if liked == false, !dismissed.contains(where: { $0.id == idea.id }) { dismissed.insert(moved, at: 0) }
         if liked != true { saved.removeAll { $0.id == idea.id } }
         if liked != false { dismissed.removeAll { $0.id == idea.id } }

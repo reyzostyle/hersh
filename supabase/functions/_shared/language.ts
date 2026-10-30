@@ -1,5 +1,6 @@
 // deno-lint-ignore-file no-explicit-any
 // The language a creator reads Chumoku in (user_tokens.language, 2026-10-30).
+// Russian added the same day.
 // The iOS app sets it from the phone's language until they pick one in
 // Settings; unset means English, which is also every prompt's own language.
 //
@@ -13,6 +14,7 @@ export const LANGUAGES: Record<string, string> = {
   fr: 'French',
   de: 'German',
   ja: 'Japanese',
+  ru: 'Russian',
 };
 
 export async function loadLanguage(supabase: any, userId: string): Promise<string | null> {

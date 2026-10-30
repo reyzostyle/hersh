@@ -57,7 +57,7 @@ targets:
         # The languages Localizable.xcstrings carries; iOS offers them as the
         # app's language and picks one from the phone's list.
         CFBundleDevelopmentRegion: en
-        CFBundleLocalizations: [en, es, pt-BR, fr, de, ja]
+        CFBundleLocalizations: [en, es, pt-BR, fr, de, ja, ru]
         UILaunchScreen:
           UIColorName: Background
         UIUserInterfaceStyle: Dark
