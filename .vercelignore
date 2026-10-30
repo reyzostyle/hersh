@@ -1,0 +1,14 @@
+# The site is src/, public/ and the build config. Everything else here is
+# other products sharing the repo (the iOS app and its multi-GB build folder,
+# the extension, SoundSea, videos), and uploading it trips Vercel's file limit.
+ios
+videos
+music-player
+discord-bot
+extension
+dist-extension
+dist
+dist-ssr
+supabase
+*.mp4
+*.mov
