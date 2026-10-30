@@ -28,46 +28,7 @@ struct SignInView: View {
                     .foregroundStyle(Color.text)
                     .padding(.top, 28)
 
-                // Apple first and the same size as Google (App Store 4.8).
-                SignInWithAppleButton(.continue) { request in
-                    nonce = AuthModel.newNonce()
-                    request.requestedScopes = [.fullName, .email]
-                    request.nonce = AuthModel.sha256(nonce)
-                } onCompletion: { result in
-                    switch result {
-                    case .success(let authorization):
-                        guard let credential = authorization.credential as? ASAuthorizationAppleIDCredential else { return }
-                        let raw = nonce
-                        run { try await auth.signInWithApple(credential, nonce: raw) }
-                    case .failure(let err):
-                        // Closing Apple's sheet is not an error worth showing.
-                        if (err as? ASAuthorizationError)?.code != .canceled { error = err.localizedDescription }
-                    }
-                }
-                .signInWithAppleButtonStyle(.white)
-                .frame(height: 48)
-                .clipShape(Capsule())
-                .disabled(busy)
-                .padding(.top, 36)
-
-                Button {
-                    run { try await auth.signInWithGoogle() }
-                } label: {
-                    HStack(spacing: 10) {
-                        Image("Google").resizable().frame(width: 18, height: 18)
-                        Text("Continue with Google")
-                    }
-                }
-                .buttonStyle(.pillSecondary)
-                .disabled(busy)
-                .padding(.top, 10)
-
-                HStack(spacing: 12) {
-                    Rectangle().fill(Color.line).frame(height: 1)
-                    Text("or").font(.tSmall).foregroundStyle(Color.textFaint)
-                    Rectangle().fill(Color.line).frame(height: 1)
-                }
-                .padding(.vertical, 24)
+                Spacer().frame(height: 36)
 
                 VStack(spacing: 10) {
                     TextField("", text: $email, prompt: Text("Email").foregroundStyle(Color.textFaint))
@@ -100,6 +61,48 @@ struct SignInView: View {
                     .disabled(busy || email.isEmpty || password.count < 6)
                     .padding(.top, 16)
 
+                HStack(spacing: 12) {
+                    Rectangle().fill(Color.line).frame(height: 1)
+                    Text("or").font(.tSmall).foregroundStyle(Color.textFaint)
+                    Rectangle().fill(Color.line).frame(height: 1)
+                }
+                .padding(.vertical, 24)
+
+                // Below the email form, closer to the thumb (Ivan, 2026-10-30). Apple
+                // above Google and the same size (App Store 4.8).
+                SignInWithAppleButton(.continue) { request in
+                    nonce = AuthModel.newNonce()
+                    request.requestedScopes = [.fullName, .email]
+                    request.nonce = AuthModel.sha256(nonce)
+                } onCompletion: { result in
+                    switch result {
+                    case .success(let authorization):
+                        guard let credential = authorization.credential as? ASAuthorizationAppleIDCredential else { return }
+                        let raw = nonce
+                        run { try await auth.signInWithApple(credential, nonce: raw) }
+                    case .failure(let err):
+                        // Closing Apple's sheet is not an error worth showing.
+                        if (err as? ASAuthorizationError)?.code != .canceled { error = err.localizedDescription }
+                    }
+                }
+                .signInWithAppleButtonStyle(.white)
+                .frame(height: 48)
+                .clipShape(Capsule())
+                .disabled(busy)
+
+                Button {
+                    run { try await auth.signInWithGoogle() }
+                } label: {
+                    HStack(spacing: 10) {
+                        Image("Google").resizable().frame(width: 18, height: 18)
+                        Text("Continue with Google")
+                    }
+                }
+                .buttonStyle(.pillSecondary)
+                .disabled(busy)
+                .padding(.top, 10)
+
+
                 Button {
                     withAnimation(.easeOut(duration: 0.2)) { creating.toggle(); error = nil }
                 } label: {
@@ -109,6 +112,7 @@ struct SignInView: View {
                         .frame(maxWidth: .infinity)
                 }
                 .padding(.top, 20)
+                .padding(.bottom, 24)
             }
             .padding(.horizontal, 24)
         }
