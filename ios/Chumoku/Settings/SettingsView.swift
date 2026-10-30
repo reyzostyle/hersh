@@ -151,13 +151,42 @@ struct SettingsView: View {
                         }
                     }
 
-                    fold("help", "Help") {
-                        linkRow("Join the Discord", url: "https://discord.com/invite/N8S6C95Ry2")
-                        divider
-                        linkRow("Privacy", url: "https://chumoku.co/privacy")
-                        divider
-                        linkRow("Terms", url: "https://chumoku.co/terms")
+                    if auth.user?.email == Owner.email {
+                        NavigationLink { AdminView() } label: {
+                            HStack {
+                                Text(verbatim: "Admin").font(.tBody).foregroundStyle(Color.text)
+                                Spacer()
+                                Image(systemName: "chevron.right").font(.system(size: 12, weight: .semibold)).foregroundStyle(Color.textFaint)
+                            }
+                            .padding(16)
+                            .background(RoundedRectangle(cornerRadius: Radius.md, style: .continuous).fill(Color.raised))
+                            .overlay(RoundedRectangle(cornerRadius: Radius.md, style: .continuous).strokeBorder(Color.line, lineWidth: 1))
+                            .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
                     }
+
+                    // Where people talk to us: in plain sight, not folded into
+                    // a Help section, and not the big banner it once was.
+                    Button { if let u = URL(string: "https://discord.com/invite/N8S6C95Ry2") { openURL(u) } } label: {
+                        HStack(spacing: 12) {
+                            Image(systemName: "bubble.left.and.bubble.right.fill")
+                                .font(.system(size: 15)).foregroundStyle(.white)
+                                .frame(width: 34, height: 34)
+                                .background(Circle().fill(Color(red: 0.35, green: 0.4, blue: 0.95)))
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("Join the Discord").font(.tBody).foregroundStyle(Color.text)
+                                Text("Creators, feedback, early features").font(.tSmall).foregroundStyle(Color.textMuted)
+                            }
+                            Spacer()
+                            Image(systemName: "arrow.up.right").font(.system(size: 12, weight: .semibold)).foregroundStyle(Color.textFaint)
+                        }
+                        .padding(14)
+                        .background(RoundedRectangle(cornerRadius: Radius.md, style: .continuous).fill(Color(red: 0.35, green: 0.4, blue: 0.95).opacity(0.1)))
+                        .overlay(RoundedRectangle(cornerRadius: Radius.md, style: .continuous).strokeBorder(Color(red: 0.35, green: 0.4, blue: 0.95).opacity(0.3), lineWidth: 1))
+                        .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
 
                     Button("Sign out") { Task { await auth.signOut() } }
                         .buttonStyle(.pillGhost)
@@ -181,6 +210,13 @@ struct SettingsView: View {
                         Text(deleteError).font(.tSmall).foregroundStyle(Color.danger)
                             .frame(maxWidth: .infinity).multilineTextAlignment(.center)
                     }
+                    HStack(spacing: 8) {
+                        Button("Privacy") { if let u = URL(string: "https://chumoku.co/privacy") { openURL(u) } }
+                        Text(verbatim: "·")
+                        Button("Terms") { if let u = URL(string: "https://chumoku.co/terms") { openURL(u) } }
+                    }
+                    .font(.geist(12)).foregroundStyle(Color.textFaint).buttonStyle(.plain)
+                    .frame(maxWidth: .infinity).padding(.top, 4)
                 }
                 .padding(.horizontal, 20)
                 .padding(.bottom, 40)

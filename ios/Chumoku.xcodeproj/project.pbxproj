@@ -40,6 +40,7 @@
 		9E6228BECD12F400C5521C5F /* Review.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0FB3B3F7ACD7EBBB8271CAA9 /* Review.swift */; };
 		A12CF398B62C6CF25312C1B1 /* Cut.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5D7517D2C34A1A734C5F0E8A /* Cut.swift */; };
 		A2123109F78FC54FA552371F /* IdeaDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0592EFD2BC3EAA6CC60AB994 /* IdeaDetailView.swift */; };
+		A2E6797AC69FDE271F4EB4DF /* AdminView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 422464FD5A7366291D42CC02 /* AdminView.swift */; };
 		A63102BEF9F1424D487E094D /* TakesList.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3CD1A6505CF3CE8786E1D5B7 /* TakesList.swift */; };
 		A9C9B2B15A0E1D299AD2A9CC /* Geist-Medium.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 2EC11A3BAF5D20EE04BF1938 /* Geist-Medium.ttf */; };
 		AA46F1B2B77D858424E4E57F /* SwipeStack.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9E241987CFFBE811F5693E58 /* SwipeStack.swift */; };
@@ -75,6 +76,7 @@
 		3640ACCED4A4ACA7ADE00AAC /* Config.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Config.swift; sourceTree = "<group>"; };
 		3771FBED7BF255D75870D7A5 /* ChannelsSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChannelsSection.swift; sourceTree = "<group>"; };
 		3CD1A6505CF3CE8786E1D5B7 /* TakesList.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TakesList.swift; sourceTree = "<group>"; };
+		422464FD5A7366291D42CC02 /* AdminView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AdminView.swift; sourceTree = "<group>"; };
 		42D7D85A64832CEF1ED137A3 /* BrainSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BrainSection.swift; sourceTree = "<group>"; };
 		43CEF4717D8D88410336472A /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		466852EF2362EF8241403495 /* Language.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Language.swift; sourceTree = "<group>"; };
@@ -151,6 +153,7 @@
 		4343C09140D9AA80A74AB08E /* Settings */ = {
 			isa = PBXGroup;
 			children = (
+				422464FD5A7366291D42CC02 /* AdminView.swift */,
 				42D7D85A64832CEF1ED137A3 /* BrainSection.swift */,
 				3771FBED7BF255D75870D7A5 /* ChannelsSection.swift */,
 				CA13D94487788712A44FED30 /* PlansView.swift */,
@@ -392,6 +395,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				A2E6797AC69FDE271F4EB4DF /* AdminView.swift in Sources */,
 				7E4C504051AF3197DFD3B853 /* AiCover.swift in Sources */,
 				0DCB243E6CA77E2C5EB69CD2 /* AnalyticsView.swift in Sources */,
 				4B94E0469164BFB0BC67C60E /* Backend.swift in Sources */,
