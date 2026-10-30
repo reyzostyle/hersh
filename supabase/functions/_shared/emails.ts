@@ -51,7 +51,10 @@ function layout(opts: {
   body: string;
   ctaLabel: string;
   ctaUrl: string;
-  unsubscribeUrl: string;
+  // Absent on mail about something they did (a purchase): that is not
+  // marketing, there is nothing to unsubscribe from.
+  unsubscribeUrl?: string;
+  footer?: string;
 }): string {
   return `<!doctype html>
 <html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
@@ -74,8 +77,10 @@ function layout(opts: {
           <a href="${opts.ctaUrl}" style="display:inline-block;background:${ACCENT};color:${ON_ACCENT};font-family:${FONT};font-size:14px;font-weight:600;text-decoration:none;padding:12px 22px;border-radius:10px;">${opts.ctaLabel}</a>
         </td></tr>
         <tr><td style="padding:18px 30px 26px 30px;font-family:${FONT};font-size:12px;line-height:1.6;color:${FAINT};border-top:1px solid ${LINE};">
-          you're getting this because you made a chumoku account.
-          <a href="${opts.unsubscribeUrl}" style="color:${FAINT};text-decoration:underline;">unsubscribe</a>
+          ${opts.unsubscribeUrl
+            ? `you're getting this because you made a chumoku account.
+          <a href="${opts.unsubscribeUrl}" style="color:${FAINT};text-decoration:underline;">unsubscribe</a>`
+            : (opts.footer ?? '')}
         </td></tr>
       </table>
     </td></tr>
@@ -293,4 +298,39 @@ export const DRIP_STEPS: Record<number, (ctx: EmailCtx) => RenderedEmail> = {
 export function renderStep(step: number, ctx: EmailCtx): RenderedEmail | null {
   const fn = DRIP_STEPS[step];
   return fn ? fn(ctx) : null;
+}
+
+// Sent once, when a subscription is paid for the first time (stripe-webhook,
+// _shared/apple.ts). What they bought in numbers, when it comes back, and how
+// to stop it, in the same voice as the drip.
+export function subscribed(opts: { appUrl: string; plan: 'pro' | 'agency'; store: 'stripe' | 'apple' }): RenderedEmail {
+  const name = opts.plan === 'agency' ? 'pro' : 'plus';
+  const credits = opts.plan === 'agency' ? 300 : 100;
+  const scripts = opts.plan === 'agency' ? 100 : 30;
+  const manage = opts.store === 'apple'
+    ? "cancel any time in your apple id's subscriptions on your iphone."
+    : 'cancel any time in settings on chumoku.co.';
+  const text = `you're on ${name}.
+
+${credits} credits, starting now. a script from an idea is 3, a message in
+the chat is 1, so that is about ${scripts} scripts a month.
+
+they come back every month on the day you subscribed. ${manage}
+
+open today's ideas: ${opts.appUrl}`;
+
+  return {
+    subject: `you're on ${name}. ${credits} credits are yours`,
+    text,
+    html: layout({
+      preheader: `about ${scripts} scripts a month, starting now`,
+      body:
+        h(`you're on ${name}.`) +
+        p(`${strong(`${credits} credits`)}, starting now. a script from an idea is 3, a message in the chat is 1, so that is about ${scripts} scripts a month.`) +
+        p(`they come back every month on the day you subscribed. ${manage}`),
+      ctaLabel: "open today's ideas",
+      ctaUrl: opts.appUrl,
+      footer: "you're getting this because you subscribed to chumoku.",
+    }),
+  };
 }

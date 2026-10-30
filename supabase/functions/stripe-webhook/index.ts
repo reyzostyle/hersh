@@ -1,6 +1,8 @@
 import { corsHeaders } from '../_shared/http.ts';
 import { createClient } from 'npm:@supabase/supabase-js@2.57.4';
 import Stripe from 'npm:stripe@14.21.0';
+import { subscribed } from '../_shared/emails.ts';
+import { sendEmail } from '../_shared/send-email.ts';
 
 const CORS = corsHeaders({ methods: 'GET, POST, PUT, DELETE, OPTIONS' });
 
@@ -175,6 +177,8 @@ Deno.serve(async (req: Request) => {
 
       // Record the affiliate earning if this user came via someone's link
       await recordReferralConversion(supabase, userId, amountCents, plan, subscriptionId || null, 'initial');
+
+      await sendEmail(supabase, userId, subscribed({ appUrl: 'https://chumoku.co', plan: plan === 'agency' ? 'agency' : 'pro', store: 'stripe' }));
     }
 
     if (event.type === 'customer.subscription.deleted') {

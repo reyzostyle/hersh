@@ -9,6 +9,8 @@ import {
   type JWSTransactionDecodedPayload,
 } from 'npm:@apple/app-store-server-library@1.6.0';
 import { Buffer } from 'node:buffer';
+import { subscribed } from './emails.ts';
+import { sendEmail } from './send-email.ts';
 
 export const BUNDLE_ID = 'co.chumoku.app';
 
@@ -145,6 +147,7 @@ export async function applyTransaction(supabase: any, t: JWSTransactionDecodedPa
         user_id: owner, plan, event_type: 'subscribed',
         amount_cents: t.currency === 'USD' && t.price ? Math.round(t.price / 10) : null,
       });
+      await sendEmail(supabase, owner, subscribed({ appUrl: 'https://chumoku.co', plan: plan === 'agency' ? 'agency' : 'pro', store: 'apple' }));
     }
     return { ok: true, plan };
   }
