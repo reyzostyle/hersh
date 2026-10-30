@@ -1,4 +1,5 @@
 import SwiftUI
+import Supabase
 
 @main
 struct ChumokuApp: App {
@@ -31,7 +32,8 @@ struct RootView: View {
     var body: some View {
         Group {
             #if DEBUG
-            if IdeasStore.isDemo { MainTabs() } else { content }
+            if ProcessInfo.processInfo.arguments.contains("-onboarding") { OnboardingView {} }
+            else if IdeasStore.isDemo { MainTabs() } else { content }
             #else
             content
             #endif
@@ -44,7 +46,37 @@ struct RootView: View {
             switch auth.state {
             case .loading: Color.bg.ignoresSafeArea()
             case .signedOut: SignInView()
-            case .signedIn(let user): MainTabs().id(user.id)
+            case .signedIn(let user): SignedInRoot().id(user.id)
+            }
+        }
+    }
+}
+
+// Onboarding once, for an account that has neither finished it (here or on
+// the web) nor a brain to show for it; everyone else goes straight in.
+struct SignedInRoot: View {
+    @Environment(AuthModel.self) private var auth
+    @State private var needsOnboarding: Bool?
+
+    var body: some View {
+        Group {
+            switch needsOnboarding {
+            case nil: Color.bg.ignoresSafeArea()
+            case true?: OnboardingView { withAnimation(.ui) { needsOnboarding = false } }
+            case false?: MainTabs()
+            }
+        }
+        .task {
+            nonisolated struct Row: Decodable { let onboarding_completed: Bool?; let brain: Brain? }
+            guard let uid = auth.user?.id else { needsOnboarding = false; return }
+            do {
+                let rows: [Row] = try await supabase.from("user_tokens").select("onboarding_completed, brain")
+                    .eq("user_id", value: uid).limit(1).execute().value
+                let row = rows.first
+                needsOnboarding = row?.onboarding_completed != true && row?.brain == nil
+            } catch {
+                // A failed read must not trap an existing account in onboarding.
+                needsOnboarding = false
             }
         }
     }

@@ -70,9 +70,16 @@ struct PillButtonStyle: ButtonStyle {
             )
             .overlay(Capsule().strokeBorder(kind == .ghost ? Color.lineStrong : .clear, lineWidth: 1))
             .opacity(configuration.isPressed ? 0.75 : 1)
+            .modifier(DimWhenDisabled())
             .animation(.easeOut(duration: 0.12), value: configuration.isPressed)
             .sensoryFeedback(.impact(weight: .light, intensity: 0.6), trigger: configuration.isPressed) { _, pressed in pressed }
     }
+}
+
+// A disabled pill looks it: a style cannot read isEnabled itself, a view can.
+private struct DimWhenDisabled: ViewModifier {
+    @Environment(\.isEnabled) private var enabled
+    func body(content: Content) -> some View { content.opacity(enabled ? 1 : 0.4) }
 }
 
 extension ButtonStyle where Self == PillButtonStyle {

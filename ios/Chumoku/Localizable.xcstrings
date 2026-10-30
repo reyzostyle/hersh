@@ -501,6 +501,46 @@
         }
       }
     },
+    "A sentence is enough.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Una frase basta."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Uma frase basta."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Une phrase suffit."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ein Satz reicht."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "一文で十分です。"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Хватит одной фразы."
+          }
+        }
+      }
+    },
     "About 100 scripts a month": {
       "localizations": {
         "es": {
@@ -1351,6 +1391,46 @@
         }
       }
     },
+    "Chumoku reads your Shorts and picks every idea for your channel. Read-only, nothing is ever posted.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chumoku lee tus Shorts y elige cada idea para tu canal. Solo lectura, nunca publica nada."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O Chumoku lê seus Shorts e escolhe cada ideia para o seu canal. Só leitura, nada é publicado."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chumoku lit tes Shorts et choisit chaque idée pour ta chaîne. Lecture seule, rien n'est jamais publié."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chumoku liest deine Shorts und wählt jede Idee für deinen Kanal. Nur lesen, es wird nie etwas gepostet."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ChumokuがあなたのShortsを読み、チャンネルに合うアイデアを選びます。読み取りのみで、投稿は一切しません。"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chumoku читает твои Shorts и подбирает каждую идею под твой канал. Только чтение, ничего не публикуется."
+          }
+        }
+      }
+    },
     "Cleaning %lld%%": {},
     "Close": {
       "localizations": {
@@ -1472,6 +1552,86 @@
         }
       }
     },
+    "Connect YouTube": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Conectar YouTube"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Conectar YouTube"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Connecter YouTube"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "YouTube verbinden"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "YouTubeを連携"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Подключить YouTube"
+          }
+        }
+      }
+    },
+    "Connect your YouTube": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Conecta tu YouTube"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Conecte seu YouTube"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Connecte ton YouTube"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Verbinde dein YouTube"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "YouTubeを連携"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Подключи YouTube"
+          }
+        }
+      }
+    },
     "Connect your YouTube channel in Settings so Chumoku knows what to look for.": {
       "localizations": {
         "es": {
@@ -1548,6 +1708,46 @@
           "stringUnit": {
             "state": "translated",
             "value": "Подключён"
+          }
+        }
+      }
+    },
+    "Continue": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Continuar"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Continuar"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Continuer"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Weiter"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "続ける"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Продолжить"
           }
         }
       }
@@ -1668,6 +1868,46 @@
           "stringUnit": {
             "state": "translated",
             "value": "Продолжить с Google"
+          }
+        }
+      }
+    },
+    "Cooking Shorts for students, gym tips, my startup...": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Shorts de cocina para estudiantes, tips de gym, mi startup..."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Shorts de culinária para estudantes, dicas de academia, minha startup..."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Shorts cuisine pour étudiants, conseils muscu, ma startup..."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Koch-Shorts für Studis, Gym-Tipps, mein Startup..."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "学生向け料理Shorts、筋トレのコツ、自分のスタートアップ…"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Кулинарные Shorts для студентов, советы по залу, мой стартап..."
           }
         }
       }
@@ -3242,6 +3482,46 @@
       }
     },
     "End here": {},
+    "Every idea and script is written against this. Change it any time in Settings.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cada idea y guion se escribe a partir de esto. Cámbialo cuando quieras en Ajustes."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cada ideia e roteiro é escrito com base nisso. Mude quando quiser em Ajustes."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chaque idée et chaque script partent de ça. Modifiable à tout moment dans Réglages."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Jede Idee und jedes Skript baut darauf auf. Jederzeit änderbar in den Einstellungen."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "アイデアと台本はすべてこれをもとに書かれます。設定からいつでも変更できます。"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Все идеи и сценарии пишутся с опорой на это. Поменять можно в любой момент в настройках."
+          }
+        }
+      }
+    },
     "Everything in Plus": {
       "localizations": {
         "es": {
@@ -3690,6 +3970,46 @@
       }
     },
     "Getting ready": {},
+    "Got it": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Listo"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pronto"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "C'est noté"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Verstanden"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "把握しました"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Понятно"
+          }
+        }
+      }
+    },
     "Grid": {
       "localizations": {
         "es": {
@@ -3926,6 +4246,46 @@
           "stringUnit": {
             "state": "translated",
             "value": "Как идеи переделываются под тебя"
+          }
+        }
+      }
+    },
+    "I don't have a channel yet": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aún no tengo canal"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ainda não tenho canal"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Je n'ai pas encore de chaîne"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ich habe noch keinen Kanal"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "まだチャンネルがない"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "У меня пока нет канала"
           }
         }
       }
@@ -4332,6 +4692,46 @@
           "stringUnit": {
             "state": "translated",
             "value": "Загрузка…"
+          }
+        }
+      }
+    },
+    "Looking at your Shorts": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mirando tus Shorts"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Olhando seus Shorts"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "On regarde tes Shorts"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wir sehen uns deine Shorts an"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "あなたのShortsを確認中"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Смотрим твои Shorts"
           }
         }
       }
@@ -6395,6 +6795,46 @@
       }
     },
     "Scroll the strip to move through the video. Tap a clip to trim it by its edges, move or delete it. Split cuts at the white line.": {},
+    "See today's ideas": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ver las ideas de hoy"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ver as ideias de hoje"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Voir les idées du jour"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Heutige Ideen ansehen"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "今日のアイデアを見る"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Идеи на сегодня"
+          }
+        }
+      }
+    },
     "Send": {
       "localizations": {
         "es": {
@@ -8206,6 +8646,46 @@
         }
       }
     },
+    "What do you make?": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "¿Qué haces?"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O que você cria?"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tu fais quoi ?"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Was machst du?"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "どんな動画を作っていますか？"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Что ты снимаешь?"
+          }
+        }
+      }
+    },
     "What we should call you": {
       "localizations": {
         "es": {
@@ -8448,6 +8928,46 @@
       }
     },
     "Word": {},
+    "Working out what works for you": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Viendo qué te funciona"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vendo o que funciona para você"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "On regarde ce qui marche pour toi"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wir schauen, was bei dir funktioniert"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "あなたに合うものを分析中"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Разбираемся, что у тебя работает"
+          }
+        }
+      }
+    },
     "Write an idea": {},
     "Write my script · %lld credits": {
       "localizations": {

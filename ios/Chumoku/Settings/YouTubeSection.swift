@@ -32,7 +32,7 @@ struct YouTubeSection: View {
     @State private var error: String?
 
     // The web client's id; public, it is in every OAuth URL.
-    private static let clientId = "558477063142-a7fscn1mppr73br9thnhi325qtb45vdj.apps.googleusercontent.com"
+    fileprivate static let clientId = "558477063142-a7fscn1mppr73br9thnhi325qtb45vdj.apps.googleusercontent.com"
 
     var body: some View {
         VStack(spacing: 0) {
@@ -133,32 +133,15 @@ struct YouTubeSection: View {
 
     private func connect() async {
         guard let uid = auth.user?.id else { return }
-        var c = URLComponents(string: "https://accounts.google.com/o/oauth2/v2/auth")!
-        c.queryItems = [
-            .init(name: "client_id", value: Self.clientId),
-            .init(name: "redirect_uri", value: Config.supabaseURL.appending(path: "functions/v1/youtube-oauth-callback").absoluteString),
-            .init(name: "response_type", value: "code"),
-            .init(name: "scope", value: "https://www.googleapis.com/auth/youtube.readonly https://www.googleapis.com/auth/yt-analytics.readonly"),
-            .init(name: "access_type", value: "offline"),
-            .init(name: "prompt", value: "consent"),
-            .init(name: "state", value: "\(uid.uuidString.lowercased()):ios"),
-        ]
         connecting = true
         error = nil
         defer { connecting = false }
-        do {
-            let back = try await webAuth.authenticate(using: c.url!, callback: .customScheme("chumoku"), additionalHeaderFields: [:])
-            let q = URLComponents(url: back, resolvingAgainstBaseURL: false)?.queryItems ?? []
-            if q.contains(where: { $0.name == "youtube_connected" }) {
-                stats = nil
-                await onChange()
-            } else if q.contains(where: { $0.name == "youtube_error" }) {
-                error = String(localized: "Could not connect that account. Try again.")
-            }
-        } catch let e as ASWebAuthenticationSessionError where e.code == .canceledLogin {
-            // Closed the sheet: nothing to say.
-        } catch {
-            self.error = String(localized: "Could not connect that account. Try again.")
+        switch await YouTubeConnect.run(webAuth, user: uid) {
+        case .connected:
+            stats = nil
+            await onChange()
+        case .failed: error = String(localized: "Could not connect that account. Try again.")
+        case .cancelled: break
         }
     }
 
@@ -192,6 +175,35 @@ struct YouTubeSection: View {
             await onChange()
         } catch {
             self.error = String(localized: "Could not disconnect. Try again.")
+        }
+    }
+}
+
+// Google's consent screen in a browser sheet, back through
+// youtube-oauth-callback to chumoku://youtube. Settings and onboarding both
+// connect this way.
+enum YouTubeConnect {
+    enum Outcome { case connected, failed, cancelled }
+
+    static func run(_ webAuth: WebAuthenticationSession, user: UUID) async -> Outcome {
+        var c = URLComponents(string: "https://accounts.google.com/o/oauth2/v2/auth")!
+        c.queryItems = [
+            .init(name: "client_id", value: YouTubeSection.clientId),
+            .init(name: "redirect_uri", value: Config.supabaseURL.appending(path: "functions/v1/youtube-oauth-callback").absoluteString),
+            .init(name: "response_type", value: "code"),
+            .init(name: "scope", value: "https://www.googleapis.com/auth/youtube.readonly https://www.googleapis.com/auth/yt-analytics.readonly"),
+            .init(name: "access_type", value: "offline"),
+            .init(name: "prompt", value: "consent"),
+            .init(name: "state", value: "\(user.uuidString.lowercased()):ios"),
+        ]
+        do {
+            let back = try await webAuth.authenticate(using: c.url!, callback: .customScheme("chumoku"), additionalHeaderFields: [:])
+            let q = URLComponents(url: back, resolvingAgainstBaseURL: false)?.queryItems ?? []
+            return q.contains(where: { $0.name == "youtube_connected" }) ? .connected : .failed
+        } catch let e as ASWebAuthenticationSessionError where e.code == .canceledLogin {
+            return .cancelled
+        } catch {
+            return .failed
         }
     }
 }
