@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { ArrowRightUpOutlineIcon as ArrowUpRight, ChatRoundOutlineIcon as Chat, BookmarkOutlineIcon as Bookmark, LightbulbOutlineIcon as Bulb, SettingsOutlineIcon as Gear, GraphNewOutlineIcon as Graph } from '@solar-icons/react';
+import { ArrowRightUpOutlineIcon as ArrowUpRight, ChatRoundOutlineIcon as Chat, BookmarkOutlineIcon as Bookmark, LightbulbOutlineIcon as Bulb, SettingsOutlineIcon as Gear } from '@solar-icons/react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { NavTab, HIDDEN_TABS } from './AppShell';
@@ -38,11 +38,6 @@ const tools: Tool[] = [
     id: 'saved',
     label: 'Saved',
     icon: <Bookmark className="w-[18px] h-[18px]" />,
-  },
-  {
-    id: 'retention',
-    label: 'Retention',
-    icon: <Graph className="w-[18px] h-[18px]" />,
   },
 ];
 

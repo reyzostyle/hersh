@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
 import { RefreshOutlineIcon as Loader2 } from '@solar-icons/react';
 import { FUNCTIONS_URL, supabase, getSessionToken } from '../lib/supabase';
-import { openRetention } from '../lib/retention';
 import { Button, Collapse } from './Page';
 
 // What the creator's real retention curves add up to, under the brain in
@@ -127,7 +126,6 @@ export function RetentionLessons({ userId, onReconnect }: { userId: string; onRe
       {error && <p className="text-red-400 text-sm">{error}</p>}
       {problem !== 'no_scope' && problem !== 'not_connected' && (
         <div className="flex flex-wrap gap-2">
-          <Button variant="secondary" onClick={() => openRetention()}>See every Short</Button>
           <Button variant="ghost" onClick={refresh} disabled={busy}>
             {busy && <Loader2 className="w-4 h-4 animate-spin" />}
             {busy ? 'Reading your retention' : 'Refresh'}
