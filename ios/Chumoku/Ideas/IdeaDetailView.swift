@@ -221,7 +221,7 @@ struct IdeaDetailView: View {
 
 private struct StepCard<Content: View>: View {
     let n: Int
-    let title: String
+    let title: LocalizedStringKey
     var done = false
     var dim = false
     @ViewBuilder let content: Content
@@ -263,10 +263,10 @@ private struct Block: View {
 
 // What is running, said in words, with the text pulsing instead of a spinner.
 struct Working: View {
-    let label: String
+    let label: LocalizedStringKey
     @State private var on = false
     var body: some View {
-        Text(label + "…")
+        (Text(label) + Text(verbatim: "…"))
             .font(.tSmall)
             .foregroundStyle(Color.textMuted)
             .opacity(on ? 1 : 0.45)

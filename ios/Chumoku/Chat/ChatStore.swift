@@ -99,7 +99,7 @@ final class ChatStore {
         #if DEBUG
         if IdeasStore.isDemo {
             try? await Task.sleep(for: .seconds(1))
-            messages.append(ChatMessage(role: "assistant", content: "Demo mode: this is where Chumoku answers. Sign in to talk for real."))
+            messages.append(ChatMessage(role: "assistant", content: String(localized: "Demo mode: this is where Chumoku answers. Sign in to talk for real.")))
             return
         }
         #endif
@@ -118,12 +118,12 @@ final class ChatStore {
             else { await loadThreads() }
         } catch let FunctionsError.httpError(code, data) {
             if code == 403 {
-                error = "You're out of credits for this month."
+                error = String(localized: "You're out of credits for this month.")
                 Purchases.shared.showPlans = true
             }
-            else { error = (try? JSONDecoder().decode(Failed.self, from: data))?.error ?? "Could not get an answer. Try again." }
+            else { error = (try? JSONDecoder().decode(Failed.self, from: data))?.error ?? String(localized: "Could not get an answer. Try again.") }
         } catch {
-            self.error = "Could not get an answer. Try again."
+            self.error = String(localized: "Could not get an answer. Try again.")
         }
     }
 

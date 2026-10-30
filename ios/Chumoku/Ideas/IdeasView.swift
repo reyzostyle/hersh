@@ -17,11 +17,11 @@ struct IdeasView: View {
     private var tabs: [(Tab, String)] {
         let undecided = store.today.filter { $0.liked == nil }.count
         var t: [(Tab, String)] = [
-            (.today, store.today.isEmpty ? "Today" : "Today (\(undecided))"),
-            (.saved, "Saved"),
-            (.dismissed, "Dismissed"),
+            (.today, store.today.isEmpty ? String(localized: "Today") : String(localized: "Today (\(undecided))")),
+            (.saved, String(localized: "Saved")),
+            (.dismissed, String(localized: "Dismissed")),
         ]
-        if Features.filming { t.append((.notes, "Notes")) }
+        if Features.filming { t.append((.notes, String(localized: "Notes"))) }
         return t
     }
 
@@ -75,7 +75,7 @@ struct IdeasView: View {
                 }
                 .scrollBounceBehavior(.basedOnSize)
                 if tab == .today && !store.today.isEmpty {
-                    Seg(options: [(false, "Grid"), (true, "Swipe")], value: $swipe)
+                    IconSeg(options: [(false, "square.grid.2x2", String(localized: "Grid")), (true, "rectangle.stack", String(localized: "Swipe"))], value: $swipe)
                         .fixedSize()
                 }
             }
@@ -128,12 +128,12 @@ struct IdeasView: View {
 
     private var emptyText: String {
         switch tab {
-        case .saved: return "Nothing saved yet. Save an idea and it lands here."
-        case .dismissed: return "Nothing dismissed."
+        case .saved: return String(localized: "Nothing saved yet. Save an idea and it lands here.")
+        case .dismissed: return String(localized: "Nothing dismissed.")
         default:
-            if store.needsProfile { return "Connect your YouTube channel on chumoku.co so Chumoku knows what to look for." }
+            if store.needsProfile { return String(localized: "Connect your YouTube channel in Settings so Chumoku knows what to look for.") }
             if let note = store.moreNote { return note }
-            return "Nothing new right now. Pull to check again."
+            return String(localized: "Nothing new right now. Pull to check again.")
         }
     }
 

@@ -114,6 +114,40 @@ struct Seg<T: Hashable>: View {
     }
 }
 
+// The same track with icons instead of words, where a row has no room for
+// labels (and two of them in five languages certainly do not fit).
+struct IconSeg<T: Hashable>: View {
+    let options: [(value: T, symbol: String, label: String)]
+    @Binding var value: T
+    @Namespace private var ns
+
+    var body: some View {
+        HStack(spacing: 2) {
+            ForEach(options, id: \.value) { opt in
+                let on = opt.value == value
+                Button {
+                    withAnimation(.ui) { value = opt.value }
+                } label: {
+                    Image(systemName: opt.symbol)
+                        .font(.system(size: 14, weight: .medium))
+                        .foregroundStyle(on ? Color.text : Color.textFaint)
+                        .frame(width: 38, height: 31)
+                        .background {
+                            if on { Capsule().fill(Color.raisedHover).matchedGeometryEffect(id: "thumb", in: ns) }
+                        }
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel(opt.label)
+                .accessibilityAddTraits(on ? .isSelected : [])
+            }
+        }
+        .padding(3)
+        .background(Capsule().fill(Color.raised))
+        .overlay(Capsule().strokeBorder(Color.line, lineWidth: 1))
+        .sensoryFeedback(.selection, trigger: value)
+    }
+}
+
 // A text field on a raised panel, the web inputs' shape.
 struct FieldStyle: ViewModifier {
     func body(content: Content) -> some View {

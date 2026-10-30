@@ -75,8 +75,8 @@ struct ChannelsSection: View {
                     .padding(16)
                 }
                 Text(channels.count >= limit
-                     ? "All \(limit) slots are taken."
-                     : "Up to \(limit) channels. Chumoku also finds channels in your niche on its own.")
+                     ? String(localized: "All \(limit) slots are taken.")
+                     : String(localized: "Up to \(limit) channels. Chumoku also finds channels in your niche on its own."))
                     .font(.tSmall).foregroundStyle(Color.textFaint)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(.horizontal, 16).padding(.bottom, 14).padding(.top, channels.count >= limit ? 14 : 0)
@@ -119,9 +119,9 @@ struct ChannelsSection: View {
                 _ = try? await supabase.functions.invoke("fetch-competitor-ideas", options: FunctionInvokeOptions(body: ["channelId": id])) as Failed
             }
         } catch let FunctionsError.httpError(_, data) {
-            error = (try? JSONDecoder().decode(Failed.self, from: data))?.error ?? "Could not add that channel."
+            error = (try? JSONDecoder().decode(Failed.self, from: data))?.error ?? String(localized: "Could not add that channel.")
         } catch {
-            self.error = "Could not add that channel."
+            self.error = String(localized: "Could not add that channel.")
         }
     }
 
@@ -132,7 +132,7 @@ struct ChannelsSection: View {
             try await supabase.from("competitor_channels").delete().eq("id", value: c.id).execute()
             channels?.removeAll { $0.id == c.id }
         } catch {
-            self.error = "Could not remove that channel."
+            self.error = String(localized: "Could not remove that channel.")
         }
     }
 }

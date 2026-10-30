@@ -146,7 +146,7 @@ struct ChatView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 0) {
                     if chat.threads.isEmpty {
-                        Empty(text: chat.loadingThreads ? "Loading…" : "No chats yet.")
+                        Empty(text: chat.loadingThreads ? String(localized: "Loading…") : String(localized: "No chats yet."))
                     }
                     ForEach(chat.threads) { t in
                         Button {
@@ -154,7 +154,7 @@ struct ChatView: View {
                             Task { await chat.open(t) }
                         } label: {
                             HStack {
-                                Text(t.title?.isEmpty == false ? t.title! : "Untitled chat")
+                                Text(t.title?.isEmpty == false ? t.title! : String(localized: "Untitled chat"))
                                     .font(.tBody).foregroundStyle(Color.text).lineLimit(1)
                                 Spacer()
                                 if t.id == chat.threadId {

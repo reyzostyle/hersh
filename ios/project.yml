@@ -4,6 +4,7 @@ options:
   deploymentTarget:
     iOS: "26.0" # on-device long-form transcription (SpeechTranscriber)
   createIntermediateGroups: true
+  developmentLanguage: en
 settings:
   base:
     SWIFT_VERSION: "6.0"
@@ -47,6 +48,10 @@ targets:
       path: Chumoku/Info.plist
       properties:
         CFBundleDisplayName: Chumoku
+        # The languages Localizable.xcstrings carries; iOS offers them as the
+        # app's language and picks one from the phone's list.
+        CFBundleDevelopmentRegion: en
+        CFBundleLocalizations: [en, es, pt-BR, fr, de, ja]
         UILaunchScreen:
           UIColorName: Background
         UIUserInterfaceStyle: Dark

@@ -74,5 +74,6 @@ struct MainTabs: View {
         .onChange(of: chat.pending?.text) { _, text in if text != nil { tab = .chat } }
         // Anything that runs out of credits opens the plans.
         .sheet(isPresented: Bindable(Purchases.shared).showPlans) { PlansView() }
+        .task { await ContentLanguage.sync() }
     }
 }

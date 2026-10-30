@@ -44,7 +44,7 @@ struct YouTubeSection: View {
                 .clipShape(Circle())
                 VStack(alignment: .leading, spacing: 2) {
                     HStack(spacing: 6) {
-                        Text(connected ? (channelName ?? "Connected") : (loading ? "…" : "No account connected"))
+                        Text(connected ? (channelName ?? String(localized: "Connected")) : (loading ? "…" : String(localized: "No account connected")))
                             .font(.tBody).foregroundStyle(Color.text).lineLimit(1)
                         if connected { Circle().fill(Color.process).frame(width: 6, height: 6) }
                     }
@@ -75,11 +75,11 @@ struct YouTubeSection: View {
             if connected {
                 if let stats, stats.connected {
                     LazyVGrid(columns: [GridItem(.flexible(), spacing: 8), GridItem(.flexible(), spacing: 8)], spacing: 8) {
-                        tile("Subscribers", Idea.compact(stats.subscribers ?? 0),
-                             sub: (stats.subsGained28 ?? 0) > 0 ? "+\(Idea.compact(stats.subsGained28!)) in 28d" : nil)
-                        tile("Views 28d", Idea.compact(stats.views28 ?? 0))
-                        tile("Watch time 28d", "\(Idea.compact((stats.watchMinutes28 ?? 0) / 60))h")
-                        tile("Total views", Idea.compact(stats.totalViews ?? 0))
+                        tile(String(localized: "Subscribers"), Idea.compact(stats.subscribers ?? 0),
+                             sub: (stats.subsGained28 ?? 0) > 0 ? String(localized: "+\(Idea.compact(stats.subsGained28!)) in 28d") : nil)
+                        tile(String(localized: "Views 28d"), Idea.compact(stats.views28 ?? 0))
+                        tile(String(localized: "Watch time 28d"), "\(Idea.compact((stats.watchMinutes28 ?? 0) / 60))h")
+                        tile(String(localized: "Total views"), Idea.compact(stats.totalViews ?? 0))
                     }
                     .padding(.horizontal, 16).padding(.bottom, 16)
                 } else if stats == nil {
@@ -111,9 +111,9 @@ struct YouTubeSection: View {
 
     private var subtitle: String {
         if connected, let syncedAt, let d = ISO8601DateFormatter.flexible(syncedAt) {
-            return "Last synced \(d.formatted(.dateTime.month(.abbreviated).day().year()))"
+            return String(localized: "Last synced \(d.formatted(.dateTime.month(.abbreviated).day().year()))")
         }
-        return "YouTube"
+        return String(localized: "YouTube")
     }
 
     private func tile(_ label: String, _ value: String, sub: String? = nil) -> some View {
@@ -153,12 +153,12 @@ struct YouTubeSection: View {
                 stats = nil
                 await onChange()
             } else if q.contains(where: { $0.name == "youtube_error" }) {
-                error = "Could not connect that account. Try again."
+                error = String(localized: "Could not connect that account. Try again.")
             }
         } catch let e as ASWebAuthenticationSessionError where e.code == .canceledLogin {
             // Closed the sheet: nothing to say.
         } catch {
-            self.error = "Could not connect that account. Try again."
+            self.error = String(localized: "Could not connect that account. Try again.")
         }
     }
 
@@ -191,7 +191,7 @@ struct YouTubeSection: View {
             stats = nil
             await onChange()
         } catch {
-            self.error = "Could not disconnect. Try again."
+            self.error = String(localized: "Could not disconnect. Try again.")
         }
     }
 }

@@ -67,14 +67,14 @@ private enum Field: String, CaseIterable {
 
     var label: String {
         switch self {
-        case .summary: "Summary"
-        case .niche: "Niche"
-        case .format: "Format"
-        case .audience: "Audience"
-        case .voice: "Voice"
-        case .strengths: "What already works"
-        case .watchOuts: "What we will not suggest"
-        case .adaptRules: "How ideas get remade for you"
+        case .summary: String(localized: "Summary")
+        case .niche: String(localized: "Niche")
+        case .format: String(localized: "Format")
+        case .audience: String(localized: "Audience")
+        case .voice: String(localized: "Voice")
+        case .strengths: String(localized: "What already works")
+        case .watchOuts: String(localized: "What we will not suggest")
+        case .adaptRules: String(localized: "How ideas get remade for you")
         }
     }
     var isList: Bool { self == .strengths || self == .watchOuts || self == .adaptRules }
@@ -248,11 +248,11 @@ struct BrainSection: View {
 
     private func note(_ b: Brain) -> String {
         var s = b.source == "uploads"
-            ? "Updates itself every week from your uploads."
-            : "Written from what you wrote. Connect your channel and this gets read off your real uploads instead."
-        if !overrides.isEmpty { s += " Your edits stay." }
+            ? String(localized: "Updates itself every week from your uploads.")
+            : String(localized: "Written from what you wrote. Connect your channel and this gets read off your real uploads instead.")
+        if !overrides.isEmpty { s += " " + String(localized: "Your edits stay.") }
         if let builtAt, let d = ISO8601DateFormatter.flexible(builtAt) {
-            s += " Last read \(d.formatted(.dateTime.month(.abbreviated).day()))."
+            s += " " + String(localized: "Last read \(d.formatted(.dateTime.month(.abbreviated).day())).")
         }
         return s
     }
@@ -291,7 +291,7 @@ struct BrainSection: View {
             saveError = nil
             return true
         } catch {
-            saveError = "Could not save that. Try again."
+            saveError = String(localized: "Could not save that. Try again.")
             return false
         }
     }
@@ -390,10 +390,10 @@ private struct LessonsView: View {
     }
 
     private var footer: String {
-        var s = "From \(lessons.videos ?? lessons.lessons.count) of your Shorts."
-        if let m = lessons.stayedMedian { s += " Usually \(Int(m.rounded()))% stay past the first seconds." }
+        var s = String(localized: "From \(lessons.videos ?? lessons.lessons.count) of your Shorts.")
+        if let m = lessons.stayedMedian { s += " " + String(localized: "Usually \(Int(m.rounded()))% stay past the first seconds.") }
         if let at = lessons.madeAt, let d = ISO8601DateFormatter.flexible(at) {
-            s += " Updated \(d.formatted(.dateTime.month(.abbreviated).day()))."
+            s += " " + String(localized: "Updated \(d.formatted(.dateTime.month(.abbreviated).day())).")
         }
         return s
     }

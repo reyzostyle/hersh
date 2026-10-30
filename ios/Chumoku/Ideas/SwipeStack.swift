@@ -133,7 +133,7 @@ struct SwipeStack: View {
         }
     }
 
-    private func stamp(_ text: String, fill: Color, text color: Color) -> some View {
+    private func stamp(_ text: LocalizedStringKey, fill: Color, text color: Color) -> some View {
         Text(text)
             .font(.geist(14, .medium)).foregroundStyle(color)
             .padding(.horizontal, 12).padding(.vertical, 6)

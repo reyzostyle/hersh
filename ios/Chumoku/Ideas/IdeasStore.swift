@@ -76,7 +76,7 @@ nonisolated struct Idea: Codable, Identifiable, Hashable {
 
     // The line worth reading first: the hook if one was written, then the
     // pitch for this creator, then the source title.
-    var headline: String { outline?.hook ?? pitch ?? videoTitle ?? "Untitled" }
+    var headline: String { outline?.hook ?? pitch ?? videoTitle ?? String(localized: "Untitled") }
 
     var isOwn: Bool { source == "ai" }
 
@@ -95,7 +95,7 @@ nonisolated struct Idea: Codable, Identifiable, Hashable {
 
     // Under the title of an idea Chumoku found: what kind, and that nothing has
     // proved it yet.
-    var ownLabel: String { "\(basis?.isRemix == true ? "Remix of your Short" : "Researched for you") · untested" }
+    var ownLabel: String { "\(basis?.isRemix == true ? String(localized: "Remix of your Short") : String(localized: "Researched for you")) · \(String(localized: "untested"))" }
 
     // The cover of an idea Chumoku found: the line they would open on.
     var openingLine: String {
@@ -109,8 +109,8 @@ nonisolated struct Idea: Codable, Identifiable, Hashable {
     var basisLine: String? {
         guard let b = basis else { return nil }
         if b.isRemix {
-            if let m = b.multiple, m >= 1.2 { return "Remix of your Short · \(String(format: "%.1f", m).replacingOccurrences(of: ".0", with: ""))× your usual" }
-            return "Remix of your Short"
+            if let m = b.multiple, m >= 1.2 { let x = String(format: "%.1f", m).replacingOccurrences(of: ".0", with: ""); return String(localized: "Remix of your Short · \(x)× your usual") }
+            return String(localized: "Remix of your Short")
         }
         return b.source
     }
@@ -127,8 +127,8 @@ nonisolated struct Idea: Codable, Identifiable, Hashable {
 
     var meta: String {
         var parts: [String] = []
-        if let v = videoViews { parts.append("\(Idea.compact(v)) views") }
-        if let o = outlierScore, o >= 1, o < 1000 { parts.append("\(Int(o.rounded()))× its channel") }
+        if let v = videoViews { parts.append(String(localized: "\(Idea.compact(v)) views")) }
+        if let o = outlierScore, o >= 1, o < 1000 { parts.append(String(localized: "\(Int(o.rounded()))× its channel")) }
         return parts.joined(separator: " · ")
     }
 
@@ -178,7 +178,7 @@ final class IdeasStore {
             apply(try await fetchDrop(more: false))
             error = nil
         } catch {
-            self.error = "Could not load today's ideas."
+            self.error = String(localized: "Could not load today's ideas.")
         }
     }
 
@@ -186,7 +186,7 @@ final class IdeasStore {
     // "5 more ideas"). Charged only when some arrive.
     func more() async {
         #if DEBUG
-        if Self.isDemo { moreNote = "Not in demo mode."; return }
+        if Self.isDemo { moreNote = String(localized: "Not in demo mode."); return }
         #endif
         findingMore = true
         moreNote = nil
@@ -195,12 +195,12 @@ final class IdeasStore {
             let drop = try await fetchDrop(more: true)
             apply(drop)
             if drop.more?.error == "limit_reached" {
-                moreNote = "That takes \(Self.moreCost) credits and you're out for this month."
+                moreNote = String(localized: "That takes \(Self.moreCost) credits and you're out for this month.")
                 Purchases.shared.showPlans = true
             }
-            else if (drop.more?.added ?? 0) == 0 { moreNote = "Could not research anything new just now. Try again in a minute." }
+            else if (drop.more?.added ?? 0) == 0 { moreNote = String(localized: "Could not research anything new just now. Try again in a minute.") }
         } catch {
-            moreNote = "Could not research just now. Try again in a minute."
+            moreNote = String(localized: "Could not research just now. Try again in a minute.")
         }
     }
 
@@ -243,7 +243,7 @@ final class IdeasStore {
                 .execute()
                 .value
         } catch {
-            self.error = liked ? "Could not load saved ideas." : "Could not load dismissed ideas."
+            self.error = liked ? String(localized: "Could not load saved ideas.") : String(localized: "Could not load dismissed ideas.")
             return nil
         }
     }
@@ -271,7 +271,7 @@ final class IdeasStore {
                 .eq("id", value: idea.id)
                 .execute()
         } catch {
-            self.error = "Could not save that. Try again."
+            self.error = String(localized: "Could not save that. Try again.")
         }
     }
 }
@@ -291,7 +291,7 @@ extension IdeasStore {
     // Returns an error to show, or nil when the idea was updated.
     private func run(_ idea: Idea, _ step: Step, _ fn: String, _ body: [String: AnyJSON]) async -> String? {
         #if DEBUG
-        if Self.isDemo { return "Not in demo mode." }
+        if Self.isDemo { return String(localized: "Not in demo mode.") }
         #endif
         working[idea.id] = step
         defer { working[idea.id] = nil }
@@ -303,11 +303,11 @@ extension IdeasStore {
             let msg = (try? JSONDecoder().decode(ErrorBody.self, from: data))?.error
             if msg == "limit_reached" || msg == "upgrade_required" {
                 Purchases.shared.showPlans = true
-                return msg == "limit_reached" ? "You're out of credits for this month." : "This isn't included in your plan."
+                return msg == "limit_reached" ? String(localized: "You're out of credits for this month.") : String(localized: "This isn't included in your plan.")
             }
-            return msg ?? "Something went wrong. Try again."
+            return msg ?? String(localized: "Something went wrong. Try again.")
         } catch {
-            return "Something went wrong. Try again."
+            return String(localized: "Something went wrong. Try again.")
         }
     }
 

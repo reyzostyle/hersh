@@ -38,19 +38,19 @@ nonisolated struct Account: Decodable {
 
     // Mirrors src/lib/useUsage.ts (free 0, Plus 100, Pro 300 since 2026-10-28).
     static let limits = ["free": 0, "pro": 100, "agency": 300]
-    static let names = ["free": "Trial", "pro": "Plus", "agency": "Pro"]
+    static var names: [String: String] { ["free": String(localized: "Trial"), "pro": "Plus", "agency": "Pro"] }
 
-    var planName: String { Self.names[plan ?? "free"] ?? "Trial" }
+    var planName: String { Self.names[plan ?? "free"] ?? String(localized: "Trial") }
     var creditLimit: Int { (Self.limits[plan ?? "free"] ?? 20) + (bonusCredits ?? 0) }
     var creditsLeft: Int { max(0, creditLimit - (creditsUsed ?? 0)) }
     var youtubeConnected: Bool { !(accessToken ?? "").isEmpty }
 }
 
-private let creatorLevels: [(String, String, String)] = [
-    ("beginner", "Beginner", "New to Shorts, learning fundamentals"),
-    ("intermediate", "Intermediate", "Know the basics, working on execution"),
-    ("advanced", "Advanced", "Experienced creator, want nuance"),
-]
+private var creatorLevels: [(String, String, String)] { [
+    ("beginner", String(localized: "Beginner"), String(localized: "New to Shorts, learning fundamentals")),
+    ("intermediate", String(localized: "Intermediate"), String(localized: "Know the basics, working on execution")),
+    ("advanced", String(localized: "Advanced"), String(localized: "Experienced creator, want nuance")),
+] }
 
 struct SettingsView: View {
     @Environment(AuthModel.self) private var auth
@@ -83,6 +83,7 @@ struct SettingsView: View {
     @State private var confirmDelete = false
     @State private var deleting = false
     @State private var deleteError: String?
+    @AppStorage(ContentLanguage.pickedKey) private var pickedLanguage: String?
     @AppStorage("film.countdown") private var countdown = true
     @AppStorage("film.mirror") private var mirror = true
     @AppStorage("film.4k") private var fourK = true
@@ -135,7 +136,7 @@ struct SettingsView: View {
                             HStack {
                                 Text("Plan").font(.tBody).foregroundStyle(Color.text)
                                 Spacer()
-                                Text(account?.planName ?? (loading ? "…" : "Trial")).font(.tBody).foregroundStyle(Color.textMuted)
+                                Text(account?.planName ?? (loading ? "…" : String(localized: "Trial"))).font(.tBody).foregroundStyle(Color.textMuted)
                                 Image(systemName: "chevron.right").font(.system(size: 12, weight: .semibold)).foregroundStyle(Color.textFaint)
                             }
                             .padding(16).contentShape(Rectangle())
@@ -178,6 +179,32 @@ struct SettingsView: View {
                         }
                     }
 
+                    section("Language") {
+                        Menu {
+                            Button { pick(nil) } label: {
+                                if pickedLanguage == nil { Label("Same as iPhone", systemImage: "checkmark") } else { Text("Same as iPhone") }
+                            }
+                            ForEach(ContentLanguage.all, id: \.code) { l in
+                                Button { pick(l.code) } label: {
+                                    if pickedLanguage == l.code { Label(l.name, systemImage: "checkmark") } else { Text(verbatim: l.name) }
+                                }
+                            }
+                        } label: {
+                            HStack {
+                                Text("Ideas and scripts").font(.tBody).foregroundStyle(Color.text)
+                                Spacer()
+                                Text(verbatim: ContentLanguage.name(pickedLanguage ?? ContentLanguage.device)).font(.tBody).foregroundStyle(Color.textMuted)
+                                Image(systemName: "chevron.up.chevron.down").font(.system(size: 11, weight: .semibold)).foregroundStyle(Color.textFaint)
+                            }
+                            .padding(16).contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
+                        divider
+                        // iOS keeps a per-app language for any app that ships
+                        // more than one; this opens Chumoku's page in Settings.
+                        linkRow("App language", url: UIApplication.openSettingsURLString)
+                    }
+
                     section("Channel profile") {
                         VStack(alignment: .leading, spacing: 16) {
                             VStack(alignment: .leading, spacing: 8) {
@@ -198,7 +225,7 @@ struct SettingsView: View {
                                 Text("There is no wrong answer here. Whatever you leave out is read off your uploads.")
                                     .font(.tSmall).foregroundStyle(Color.textFaint)
                             }
-                            if let e = profileError ?? (loadFailed ? "Could not read your profile just now, so saving is off to avoid writing over it. Pull to refresh." : nil) {
+                            if let e = profileError ?? (loadFailed ? String(localized: "Could not read your profile just now, so saving is off to avoid writing over it. Pull to refresh.") : nil) {
                                 Text(e).font(.tSmall).foregroundStyle(Color.danger)
                             }
                             Button { Task { await saveProfile() } } label: {
@@ -345,9 +372,9 @@ struct SettingsView: View {
             // The user is gone server-side; only the session on this phone is left.
             try? await supabase.auth.signOut(scope: .local)
         } catch let FunctionsError.httpError(_, data) {
-            deleteError = (try? JSONDecoder().decode(Failed.self, from: data))?.error ?? "Could not delete the account. Try again."
+            deleteError = (try? JSONDecoder().decode(Failed.self, from: data))?.error ?? String(localized: "Could not delete the account. Try again.")
         } catch {
-            deleteError = "Could not delete the account. Try again."
+            deleteError = String(localized: "Could not delete the account. Try again.")
         }
     }
 
@@ -374,6 +401,11 @@ struct SettingsView: View {
             // than not saving at all.
             loadFailed = true
         }
+    }
+
+    private func pick(_ code: String?) {
+        pickedLanguage = code
+        Task { await ContentLanguage.save(code ?? ContentLanguage.device) }
     }
 
     // MARK: name, profile, brain
@@ -430,7 +462,7 @@ struct SettingsView: View {
                     .insert(NewRow(user_id: uid.uuidString.lowercased(), channel_description: about, creator_level: level)).execute()
             }
         } catch {
-            profileError = "Failed to save: \(error.localizedDescription)"
+            profileError = String(localized: "Failed to save: \(error.localizedDescription)")
             return
         }
         profileSaving = false
@@ -450,22 +482,22 @@ struct SettingsView: View {
         do {
             let r: Result = try await supabase.functions.invoke("build-brain", options: FunctionInvokeOptions(body: ["force": force]))
             if r.cached == true {
-                brainError = "Rebuilt less than a minute ago. Give it a moment."
+                brainError = String(localized: "Rebuilt less than a minute ago. Give it a moment.")
             } else if r.brain != nil {
                 await load()
             } else if r.reason == "nothing_to_read" {
-                brainError = "Nothing to read yet. Say a line about yourself above, or connect your channel."
+                brainError = String(localized: "Nothing to read yet. Say a line about yourself above, or connect your channel.")
             }
         } catch let FunctionsError.httpError(_, data) {
-            brainError = (try? JSONDecoder().decode(Failed.self, from: data))?.error ?? "Could not read your channel"
+            brainError = (try? JSONDecoder().decode(Failed.self, from: data))?.error ?? String(localized: "Could not read your channel")
         } catch {
-            brainError = "Could not read your channel"
+            brainError = String(localized: "Could not read your channel")
         }
     }
 
     // MARK: pieces
 
-    private func section<Content: View>(_ title: String, @ViewBuilder _ content: () -> Content) -> some View {
+    private func section<Content: View>(_ title: LocalizedStringKey, @ViewBuilder _ content: () -> Content) -> some View {
         VStack(alignment: .leading, spacing: 10) {
             Text(title).font(.tLabel).foregroundStyle(Color.textMuted).padding(.leading, 4)
             VStack(spacing: 0) { content() }
@@ -477,7 +509,7 @@ struct SettingsView: View {
 
     private var divider: some View { Rectangle().fill(Color.line).frame(height: 1).padding(.leading, 16) }
 
-    private func row(_ label: String, _ value: String) -> some View {
+    private func row(_ label: LocalizedStringKey, _ value: String) -> some View {
         HStack {
             Text(label).font(.tBody).foregroundStyle(Color.text)
             Spacer()
@@ -486,7 +518,7 @@ struct SettingsView: View {
         .padding(16)
     }
 
-    private func toggle(_ label: String, _ value: Binding<Bool>) -> some View {
+    private func toggle(_ label: LocalizedStringKey, _ value: Binding<Bool>) -> some View {
         Toggle(isOn: value) { Text(label).font(.tBody).foregroundStyle(Color.text) }
             .tint(Color.process)
             .padding(.horizontal, 16)
@@ -494,7 +526,7 @@ struct SettingsView: View {
             .sensoryFeedback(.selection, trigger: value.wrappedValue)
     }
 
-    private func linkRow(_ label: String, url: String) -> some View {
+    private func linkRow(_ label: LocalizedStringKey, url: String) -> some View {
         Button { if let u = URL(string: url) { openURL(u) } } label: {
             HStack {
                 Text(label).font(.tBody).foregroundStyle(Color.text)
@@ -542,15 +574,15 @@ private struct PasswordSheet: View {
     }
 
     private func save() async {
-        guard next.count >= 6 else { error = "New password must be at least 6 characters"; return }
-        guard let email else { error = "Could not confirm your account"; return }
+        guard next.count >= 6 else { error = String(localized: "New password must be at least 6 characters"); return }
+        guard let email else { error = String(localized: "Could not confirm your account"); return }
         saving = true
         error = nil
         defer { saving = false }
         do {
             try await supabase.auth.signIn(email: email, password: current)
         } catch {
-            self.error = "Current password is incorrect"
+            self.error = String(localized: "Current password is incorrect")
             return
         }
         do {
