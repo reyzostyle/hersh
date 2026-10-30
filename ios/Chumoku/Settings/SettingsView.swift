@@ -374,9 +374,13 @@ struct SettingsView: View {
                     Text(title).font(.tBody).foregroundStyle(Color.text)
                     Spacer(minLength: 12)
                     if let value, !isOpen {
-                        // Connected, built: a green check, the app's "done".
-                        if ok { Image(systemName: "checkmark.circle.fill").font(.system(size: 13)).foregroundStyle(Color.process) }
                         Text(verbatim: value).font(.tSmall).foregroundStyle(Color.textFaint).lineLimit(1)
+                    }
+                    // Connected, built: a green check, the app's "done". In a
+                    // fixed slot by the chevron, so every row's check lines up
+                    // whatever the text before it.
+                    if ok && !isOpen {
+                        Image(systemName: "checkmark.circle.fill").font(.system(size: 14)).foregroundStyle(Color.process)
                     }
                     Image(systemName: "chevron.down")
                         .font(.system(size: 12, weight: .semibold)).foregroundStyle(Color.textFaint)

@@ -165,15 +165,8 @@ struct IdeaDetailView: View {
                 // Ideas only: saving is the wide action.
                 // White while there is something to do; once saved it goes
                 // quiet, gray with a green check, like a done step.
-                Button {
+                Button(current.liked == true ? "Saved" : "Save") {
                     Task { await store.rule(current, liked: current.liked == true ? nil : true) }
-                } label: {
-                    HStack(spacing: 8) {
-                        if current.liked == true {
-                            Image(systemName: "checkmark.circle.fill").foregroundStyle(Color.process)
-                        }
-                        Text(current.liked == true ? "Saved" : "Save")
-                    }
                 }
                 .buttonStyle(PillButtonStyle(kind: current.liked == true ? .secondary : .primary))
                 .sensoryFeedback(.selection, trigger: current.liked == true)
