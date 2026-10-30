@@ -1,8 +1,7 @@
 import { useEffect, useState } from 'react';
-import { RefreshOutlineIcon as Loader2 } from '@solar-icons/react';
 import { useAuth } from '../contexts/AuthContext';
 import { FUNCTIONS_URL, getSessionToken, fetchWithRetry } from '../lib/supabase';
-import { BackLink } from './Page';
+import { Page, PageHead, BackLink, Tile, Loading, Panel } from './Page';
 
 const ADMIN_EMAIL = 'reyzostyle@gmail.com';
 
@@ -25,45 +24,44 @@ interface Stats {
   daily_subs: number[];
 }
 
-function Sparkline({ values, color }: { values: number[]; color: string }) {
-  const w = 140, h = 44;
+// 28 days as bars, oldest on the left, today on the right. Bars rather than a
+// line: a day with nobody on it should look like nothing, not like a dip.
+function Bars({ values }: { values: number[] }) {
   const max = Math.max(1, ...values);
-  const step = w / Math.max(1, values.length - 1);
-  const points = values.map((v, i) => `${i * step},${h - (v / max) * (h - 4) - 2}`);
-  const line = points.join(' ');
-  const area = `0,${h} ${line} ${w},${h}`;
   return (
-    <svg viewBox={`0 0 ${w} ${h}`} className="w-full h-11" preserveAspectRatio="none">
-      <polygon points={area} fill={color} fillOpacity="0.12" />
-      <polyline points={line} fill="none" stroke={color} strokeWidth="1.5" />
-    </svg>
-  );
-}
-
-function StatCard({ icon, label, value, sub, color, spark }: {
-  icon: string; label: string; value: string; sub?: string; color: string; spark?: number[];
-}) {
-  return (
-    <div className="glass-panel rounded-2xl p-4 sm:p-5">
-      <div className="flex items-center justify-between gap-3">
-        <div className="min-w-0">
-          <div className="flex items-center gap-2 mb-2">
-            <span className="text-base leading-none">{icon}</span>
-            <span className="text-sm font-semibold" style={{ color }}>{label}</span>
-          </div>
-          {sub && <p className="text-xs text-gray-500 mb-1">{sub}</p>}
-          <p className="text-3xl font-bold text-white">{value}</p>
-        </div>
-        {spark && (
-          <div className="w-28 sm:w-36 flex-shrink-0">
-            <Sparkline values={spark} color={color} />
-          </div>
-        )}
-      </div>
+    <div className="flex items-end gap-[3px] h-24 mt-4">
+      {values.map((v, i) => (
+        <div
+          key={i}
+          title={`${v}`}
+          className="flex-1 rounded-[2px]"
+          style={{
+            height: `${Math.max(2, (v / max) * 100)}%`,
+            background: i === values.length - 1 ? 'var(--text)' : 'rgba(255,255,255,0.22)',
+          }}
+        />
+      ))}
     </div>
   );
 }
 
+function Chart({ label, total, sub, values }: { label: string; total: string; sub: string; values: number[] }) {
+  return (
+    <Panel className="min-w-0">
+      <p className="label-mono mb-2">{label}</p>
+      <p className="text-[26px] leading-none font-semibold tracking-tight tabular-nums" style={{ color: 'var(--text)' }}>{total}</p>
+      <p className="text-[12px] mt-1.5" style={{ color: 'var(--text-faint)' }}>{sub}</p>
+      <Bars values={values} />
+      <div className="flex justify-between mt-2 text-[11px]" style={{ color: 'var(--text-faint)' }}>
+        <span>28 days ago</span><span>Today</span>
+      </div>
+    </Panel>
+  );
+}
+
+// The owner's overview of the product: money first, then people, then the
+// plan mix. Same numbers as the iOS app's Admin screen (AdminView.swift),
+// from admin-stats, which refuses anyone but the owner.
 export function AdminPage() {
   const { user } = useAuth();
   const [stats, setStats] = useState<Stats | null>(null);
@@ -88,7 +86,7 @@ export function AdminPage() {
     })();
   }, [isAdmin]);
 
-  // Not the admin: render nothing identifying — just a quiet dead end.
+  // Not the admin: render nothing identifying, just a quiet dead end.
   if (!isAdmin) {
     return (
       <div className="h-full flex items-center justify-center">
@@ -97,19 +95,17 @@ export function AdminPage() {
     );
   }
 
-  if (error) {
-    return (
-      <div className="sheet min-h-full max-w-5xl mx-auto px-5 sm:px-8 pt-12 sm:pt-16 pb-20">
-        <p className="text-sm text-red-400 bg-red-400/10 border border-red-400/20 rounded-lg px-4 py-3">{error}</p>
-      </div>
-    );
-  }
+  const back = <BackLink label="Settings" onClick={() => window.dispatchEvent(new CustomEvent('chumoku:navigate', { detail: 'settings' }))} />;
 
-  if (!stats) {
+  if (error || !stats) {
     return (
-      <div className="h-full flex items-center justify-center">
-        <Loader2 className="w-7 h-7 text-[var(--accent)] animate-spin" />
-      </div>
+      <Page className="animate-tab-in">
+        {back}
+        <PageHead title="Admin" />
+        {error
+          ? <p className="text-sm text-red-400 bg-red-400/10 border border-red-400/20 rounded-lg px-4 py-3">{error}</p>
+          : <Loading rows={6} />}
+      </Page>
     );
   }
 
@@ -121,69 +117,48 @@ export function AdminPage() {
   // so this cannot be split without storing it first.
   const mrr = stats.plan_plus * 9.99 + stats.plan_pro * 19.99;
   const revenue28d = stats.revenue_28d_cents / 100;
+  const money = (n: number) => `$${n.toLocaleString('en-US', { maximumFractionDigits: n < 100 ? 2 : 0 })}`;
+  const sum = (xs: number[]) => xs.reduce((a, b) => a + b, 0);
+  const share = (n: number) => `${Math.round((n / Math.max(1, stats.total_users)) * 100)}%`;
 
   return (
-    <div className="sheet min-h-full max-w-5xl mx-auto px-5 sm:px-8 pt-12 sm:pt-16 pb-20 space-y-3">
-      {/* Reached by typing a code in Settings, and until now there was no way
-          out of it but the sidebar - which does not list this tab. */}
-      <BackLink label="Settings" onClick={() => window.dispatchEvent(new CustomEvent('chumoku:navigate', { detail: 'settings' }))} />
-      <div className="hidden sm:block mb-6">
-        <h1 className="text-2xl font-bold text-white mb-1">Growth</h1>
-        <p className="text-sm text-gray-500">Live numbers across every Chumoku account. Only you can see this.</p>
+    <Page className="animate-tab-in">
+      {back}
+      <PageHead title="Admin" />
+
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5">
+        <Tile label="MRR" value={money(mrr)} sub={`${paying} paying`} />
+        <Tile label="Revenue 28d" value={money(revenue28d)} sub={`${stats.new_subs_28d} new · ${stats.cancels_28d} cancelled`} />
+        <Tile label="Active today" value={String(stats.active_users_today)} sub={`${stats.active_users_7d} this week`} />
+        <Tile label="Users" value={stats.total_users.toLocaleString()} sub={`+${stats.new_users_today} today`} />
       </div>
 
-      <StatCard
-        icon="📈"
-        label="Active subscriptions"
-        value={String(paying)}
-        sub={`${stats.new_subs_today} new today · ${stats.new_subs_28d} in 28d · ${stats.cancels_28d} cancelled`}
-        color="#F59E0B"
-        spark={stats.daily_subs}
-      />
-      <StatCard
-        icon="💰"
-        label="Monthly recurring revenue"
-        value={`$${mrr.toLocaleString()}`}
-        sub={`Plus ${stats.plan_plus} × $9.99 · Pro ${stats.plan_pro} × $19.99`}
-        color="#34D399"
-      />
-      <StatCard
-        icon="💵"
-        label="Revenue"
-        value={`$${revenue28d.toLocaleString()}`}
-        sub="Last 28 days"
-        color="#34D399"
-      />
-      <StatCard
-        icon="🔥"
-        label="Daily active users"
-        value={String(stats.active_users_today)}
-        sub={`Today · ${stats.active_users_7d} in the last 7 days`}
-        color="#F472B6"
-        spark={stats.daily_active}
-      />
-      <StatCard
-        icon="🧑‍🤝‍🧑"
-        label="New signups"
-        value={String(stats.new_users_28d)}
-        sub={`${stats.new_users_today} today · Last 28 days`}
-        color="var(--accent-soft)"
-        spark={stats.daily_signups}
-      />
-      <StatCard
-        icon="👥"
-        label="Signed in"
-        value={String(stats.active_users_28d)}
-        sub="Opened the app within the last 28 days, whether or not they used it"
-        color="var(--accent-soft)"
-      />
-      <StatCard
-        icon="🌍"
-        label="Total users"
-        value={stats.total_users.toLocaleString()}
-        sub={`${stats.plan_free} free · ${paying} paying`}
-        color="#9CA3AF"
-      />
-    </div>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-2.5 mt-2.5">
+        <Chart label="Signups" total={String(sum(stats.daily_signups))} sub="last 28 days" values={stats.daily_signups} />
+        <Chart label="Active users" total={String(stats.active_users_28d)} sub="opened it in the last 28 days" values={stats.daily_active} />
+        <Chart label="New subscriptions" total={String(sum(stats.daily_subs))} sub={`${stats.new_subs_today} today`} values={stats.daily_subs} />
+      </div>
+
+      <Panel className="mt-2.5">
+        <p className="label-mono mb-4">Plans</p>
+        <div className="flex h-2 rounded-full overflow-hidden" style={{ background: 'var(--line)' }}>
+          <div style={{ width: share(stats.plan_pro), background: 'var(--text)' }} />
+          <div style={{ width: share(stats.plan_plus), background: 'rgba(255,255,255,0.45)' }} />
+        </div>
+        <div className="grid grid-cols-3 gap-4 mt-4">
+          {[
+            ['Pro', stats.plan_pro, '$19.99'],
+            ['Plus', stats.plan_plus, '$9.99'],
+            ['Trial', stats.plan_free, 'free'],
+          ].map(([name, n, price]) => (
+            <div key={name as string}>
+              <p className="text-[13px]" style={{ color: 'var(--text-muted)' }}>{name}</p>
+              <p className="text-[20px] font-semibold tabular-nums mt-0.5" style={{ color: 'var(--text)' }}>{(n as number).toLocaleString()}</p>
+              <p className="text-[12px]" style={{ color: 'var(--text-faint)' }}>{share(n as number)} · {price}</p>
+            </div>
+          ))}
+        </div>
+      </Panel>
+    </Page>
   );
 }

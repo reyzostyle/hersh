@@ -1,13 +1,13 @@
 import { useState, useEffect } from 'react';
 import { FUNCTIONS_URL, supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
-import { RefreshOutlineIcon as Loader2, EyeOutlineIcon as Eye, EyeClosedOutlineIcon as EyeOff, RefreshOutlineIcon as RefreshCw, LinkOutlineIcon as Link, AltArrowDownOutlineIcon as ChevronDown, SquareArrowRightUpOutlineIcon as ExternalLink, ArrowRightUpOutlineIcon as ArrowUpRight, LockKeyholeMinimalisticOutlineIcon as Lock } from '@solar-icons/react';
+import { RefreshOutlineIcon as Loader2, EyeOutlineIcon as Eye, EyeClosedOutlineIcon as EyeOff, RefreshOutlineIcon as RefreshCw, LinkOutlineIcon as Link, AltArrowDownOutlineIcon as ChevronDown, SquareArrowRightUpOutlineIcon as ExternalLink, ArrowRightUpOutlineIcon as ArrowUpRight, LockKeyholeMinimalisticOutlineIcon as Lock, ChatRoundOutlineIcon as MessageCircle } from '@solar-icons/react';
 import { getSessionToken, fetchWithRetry } from '../lib/supabase';
 
 import { requestBrain, type ChannelBrain, type BrainOverrides } from '../lib/brain';
 import { syncOwnVideos } from '../lib/ownVideos';
 import { displayNameOf } from '../lib/user';
-import { PageHead, Loading, Tile, Button, Collapse, Skeleton } from './Page';
+import { Page, PageHead, Loading, Tile, Button, Collapse, Skeleton } from './Page';
 import { formatViews } from '../lib/competitors';
 import { useUsage } from '../lib/useUsage';
 import { startTopup, CREDIT_PACK } from './CreditsPanel';
@@ -126,6 +126,8 @@ export function SettingsPage() {
   const [topupError, setTopupError] = useState('');
   // The language ideas and scripts come back in (user_tokens.language).
   const [language, setLanguage] = useState('en');
+  // Where the plan is billed and when the month's credits come back.
+  const [billing, setBilling] = useState<{ resetAt: string | null; store: 'stripe' | 'apple' | null; yearly: boolean }>({ resetAt: null, store: null, yearly: false });
   const [nameSaving, setNameSaving] = useState(false);
   const [nameError, setNameError] = useState('');
 
@@ -208,7 +210,7 @@ export function SettingsPage() {
         const [{ data, error }] = await Promise.all([
           supabase
             .from('user_tokens')
-            .select('updated_at, access_token, plan, youtube_channel_name, youtube_channel_thumbnail, channel_description, creator_level, brain, brain_at, brain_overrides, voice, language')
+            .select('updated_at, access_token, plan, youtube_channel_name, youtube_channel_thumbnail, channel_description, creator_level, brain, brain_at, brain_overrides, voice, language, credits_reset_at, stripe_subscription_id, apple_product_id, apple_expires_at')
             .eq('user_id', user.id)
             .maybeSingle(),
           // Waited on, but not forever: it goes out to YouTube, and a slow
@@ -236,6 +238,11 @@ export function SettingsPage() {
         setChannelDescription(data?.channel_description || '');
         setCreatorLevel(data?.creator_level || 'intermediate');
         setLanguage(data?.language || 'en');
+        setBilling({
+          resetAt: data?.credits_reset_at ?? null,
+          store: data?.apple_product_id && data?.apple_expires_at && new Date(data.apple_expires_at) > new Date() ? 'apple' : data?.stripe_subscription_id ? 'stripe' : null,
+          yearly: !!data?.apple_product_id?.endsWith('yearly'),
+        });
         setBrain((data?.brain as ChannelBrain) ?? null);
         setBrainAt(data?.brain_at ?? null);
         setBrainOverrides((data?.brain_overrides as BrainOverrides) ?? {});
@@ -409,11 +416,8 @@ export function SettingsPage() {
   const go = (tab: string) => window.dispatchEvent(new CustomEvent('chumoku:navigate', { detail: tab }));
 
   return (
-    <div className="sheet min-h-full max-w-2xl mx-auto px-5 sm:px-8 pt-12 sm:pt-16 pb-20">
-
-      <div className="hidden lg:block">
-        <PageHead title="Settings" />
-      </div>
+    <Page className="animate-tab-in">
+      <PageHead title="Settings" />
 
       {loading || usageLoading ? <Loading rows={8} /> : (
       <div className="space-y-2.5 animate-fade-in">
@@ -693,64 +697,106 @@ export function SettingsPage() {
 
       {/* ── Subscription ── (paid only) */}
       {!isFree && (
-        <Fold {...cardProps('subscription')} title="Subscription" value={cancelDone ? 'Cancelled' : `${planName} · renews monthly`}>
-          {cancelDone ? (
-            <p className="text-sm" style={{ color: 'var(--text-muted)' }}>Cancelled. You keep everything until the end of the billing period.</p>
-          ) : confirmCancel ? (
-            <div>
-              <p className="text-xs text-gray-400 leading-relaxed">
-                Cancel your subscription? You'll keep full access until the end of the current billing period.
-              </p>
-              <div className="flex items-center gap-4 mt-3">
-                <Button variant="secondary" size="sm" onClick={() => setConfirmCancel(false)}>Keep plan</Button>
-                <Button variant="text" onClick={cancelSubscription} disabled={cancelLoading} className="t-small hover:!text-red-400">
-                  {cancelLoading ? 'Cancelling' : 'Yes, cancel'}
-                </Button>
-              </div>
+        <Fold {...cardProps('subscription')} title="Subscription" value={cancelDone ? 'Cancelled' : planName}>
+          <div className="space-y-4">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+              <Tile label="Plan" value={planName} sub={planName === 'Pro' ? '300 credits a month' : '100 credits a month'} />
+              <Tile label="Credits left" value={String(left)} sub={usage ? `of ${usage.creditsLimit}` : undefined} />
+              <Tile label="Credits refill" value={billing.resetAt ? new Date(billing.resetAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '—'}
+                    sub={billing.store === 'apple' ? 'Billed by the App Store' : 'Billed by Stripe'} />
             </div>
-          ) : (
-            <Button variant="text" onClick={() => setConfirmCancel(true)} className="t-small">Cancel subscription</Button>
-          )}
-          {cancelError && <p className="mt-2 text-red-400 text-xs">{cancelError}</p>}
+            <div className="flex flex-wrap items-center gap-2">
+              <Button variant="secondary" onClick={() => go('upgrade')}>Change plan</Button>
+              <Button variant="secondary" disabled={topupBusy} onClick={async () => {
+                setTopupBusy(true); setTopupError('');
+                try { await startTopup(); } catch (e) { setTopupError(e instanceof Error ? e.message : 'Failed to start checkout'); setTopupBusy(false); }
+              }}>
+                {topupBusy && <Loader2 className="w-4 h-4 animate-spin" />}
+                {CREDIT_PACK.credits} extra credits · {CREDIT_PACK.price}
+              </Button>
+            </div>
+            <div className="pt-4" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+              {billing.store === 'apple' ? (
+                <p className="text-[13px]" style={{ color: 'var(--text-muted)' }}>
+                  Bought on iPhone, so it is managed there: Settings → your name → Subscriptions.
+                </p>
+              ) : cancelDone ? (
+                <p className="text-[13px]" style={{ color: 'var(--text-muted)' }}>Cancelled. You keep everything until the end of the billing period.</p>
+              ) : confirmCancel ? (
+                <div>
+                  <p className="text-[13px]" style={{ color: 'var(--text-muted)' }}>
+                    Cancel your subscription? You keep everything until the end of the current billing period.
+                  </p>
+                  <div className="flex items-center gap-4 mt-3">
+                    <Button variant="secondary" size="sm" onClick={() => setConfirmCancel(false)}>Keep plan</Button>
+                    <Button variant="text" onClick={cancelSubscription} disabled={cancelLoading} className="t-small hover:!text-red-400">
+                      {cancelLoading ? 'Cancelling' : 'Yes, cancel'}
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <Button variant="text" onClick={() => setConfirmCancel(true)} className="t-small">Cancel subscription</Button>
+              )}
+              {cancelError && <p className="mt-2 text-red-400 text-xs">{cancelError}</p>}
+            </div>
+          </div>
         </Fold>
       )}
 
-      {/* ── Redeem code ── */}
-      <Fold {...cardProps('redeem')} title="Redeem code">
-        <div className="flex items-center gap-2">
-          <input
-            value={redeemCode}
-            onChange={e => { setRedeemCode(e.target.value); setRedeemMsg(null); }}
-            onKeyDown={e => { if (e.key === 'Enter') redeem(); }}
-            placeholder="Enter a code"
-            className="glass-field flex-1 min-w-0 px-4 py-2.5 rounded-lg text-white placeholder-gray-600 text-sm focus:outline-none transition-colors"
-            style={glassInput}
-          />
-          <Button variant="secondary" onClick={redeem} disabled={!redeemCode.trim() || redeeming} className="flex-shrink-0">
-            {redeeming ? 'Redeeming' : 'Redeem'}
-          </Button>
-        </div>
-        {redeemMsg && (
-          <p className={`mt-2 text-xs ${redeemMsg.type === 'success' ? 'text-emerald-400' : 'text-red-400'}`}>{redeemMsg.text}</p>
-        )}
-      </Fold>
+      {/* ── Owner only: the codes field (ADMIN, PARTNERS, perks) and a door
+          to the admin overview. Codes are hidden from everyone else for now
+          (Ivan, 2026-10-30). ── */}
+      {user?.email === ADMIN_EMAIL && (
+        <>
+          <Fold {...cardProps('redeem')} title="Redeem code">
+            <div className="flex items-center gap-2">
+              <input
+                value={redeemCode}
+                onChange={e => { setRedeemCode(e.target.value); setRedeemMsg(null); }}
+                onKeyDown={e => { if (e.key === 'Enter') redeem(); }}
+                placeholder="Enter a code"
+                className="glass-field flex-1 min-w-0 px-4 py-2.5 rounded-lg text-white placeholder-gray-600 text-sm focus:outline-none transition-colors"
+                style={glassInput}
+              />
+              <Button variant="secondary" onClick={redeem} disabled={!redeemCode.trim() || redeeming} className="flex-shrink-0">
+                {redeeming ? 'Redeeming' : 'Redeem'}
+              </Button>
+            </div>
+            {redeemMsg && (
+              <p className={`mt-2 text-xs ${redeemMsg.type === 'success' ? 'text-emerald-400' : 'text-red-400'}`}>{redeemMsg.text}</p>
+            )}
+          </Fold>
+          <div className="row-group">
+            <button className="row" onClick={() => go('admin')}>
+              <span className="flex-1 text-left text-[15px] font-medium" style={{ color: 'var(--text)' }}>Admin</span>
+              <ArrowUpRight className="w-4 h-4 row-arrow" />
+            </button>
+          </div>
+        </>
+      )}
 
-      {/* ── Help ── */}
-      <Fold {...cardProps('help')} title="Help">
-        <div className="flex flex-col items-start gap-3">
-          <a href="https://discord.gg/N8S6C95Ry2" target="_blank" rel="noopener noreferrer" className="text-sm flex items-center gap-1.5 hover:underline" style={{ color: 'var(--text)' }}>
-            Join the Discord <ExternalLink className="w-3.5 h-3.5 opacity-60" />
-          </a>
-          <button onClick={() => go('partners')} className="text-sm flex items-center gap-1.5 hover:underline" style={{ color: 'var(--text)' }}>
-            Affiliate <ArrowUpRight className="w-3.5 h-3.5 opacity-60" />
-          </button>
-          <a href="/privacy" className="text-sm hover:underline" style={{ color: 'var(--text-muted)' }}>Privacy</a>
-          <a href="/terms" className="text-sm hover:underline" style={{ color: 'var(--text-muted)' }}>Terms</a>
-        </div>
-      </Fold>
+      {/* ── Discord: where people talk to us. Not folded away in a Help
+          section, not the big banner it once was either. ── */}
+      <a href="https://discord.gg/N8S6C95Ry2" target="_blank" rel="noopener noreferrer" className="row-group block"
+         style={{ background: 'rgba(88,101,242,0.08)', borderColor: 'rgba(88,101,242,0.28)' }}>
+        <span className="row">
+          <span className="row-icon" style={{ background: '#5865F2' }}><MessageCircle className="w-[18px] h-[18px] text-white" /></span>
+          <span className="flex-1 min-w-0">
+            <span className="block text-[15px] font-medium" style={{ color: 'var(--text)' }}>Join the Discord</span>
+            <span className="block text-[13px] mt-0.5" style={{ color: 'var(--text-muted)' }}>Creators, feedback, early features</span>
+          </span>
+          <ExternalLink className="w-4 h-4 row-arrow" />
+        </span>
+      </a>
+
+      <p className="pt-4 text-center text-[12px]" style={{ color: 'var(--text-faint)' }}>
+        <a href="/privacy" className="hover:underline">Privacy</a>
+        <span className="mx-2">·</span>
+        <a href="/terms" className="hover:underline">Terms</a>
+      </p>
       </div>
       )}
-    </div>
+    </Page>
   );
 }
 

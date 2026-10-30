@@ -4,7 +4,8 @@ import { BoltOutlineIcon as Zap, RefreshOutlineIcon as Loader2 } from '@solar-ic
 import { Check } from './BrandIcons';
 import { ErrorNotice } from './ErrorNotice';
 import { useUsage } from '../lib/useUsage';
-import { PageHead, Button } from './Page';
+import { Page, PageHead, Button } from './Page';
+import { startTopup, CREDIT_PACK } from './CreditsPanel';
 import { BillingSeg } from './BillingSeg';
 
 type Interval = 'month' | 'year';
@@ -69,6 +70,7 @@ const plans: Plan[] = [
 export function UpgradePage() {
   const { usage } = useUsage();
   const [checkingOut, setCheckingOut] = useState<string | null>(null);
+  const [topupBusy, setTopupBusy] = useState(false);
   const [error, setError] = useState('');
   const [interval, setBillingInterval] = useState<Interval>('year');
 
@@ -112,25 +114,19 @@ export function UpgradePage() {
     : 0;
 
   return (
-    <div className="sheet min-h-full max-w-5xl mx-auto px-5 sm:px-8 pt-12 sm:pt-16 pb-20">
+    <Page className="animate-tab-in">
         {/* The billing toggle lives in the header's action slot rather than in a
             centred block of its own. That block plus its margins pushed the
             plans 306px down the page, so on a laptop the cards ran past the
             fold and you had to scroll to see the price you came for. The slot
-            already exists for exactly this and costs no vertical space. */}
-        <div className="hidden lg:block">
-          <PageHead
-            title="Plans"
-            action={<BillingSeg interval={interval} onChange={setBillingInterval} percentOff={proYearlyPercentOff} />}
-          />
-        </div>
+            already exists for exactly this and costs no vertical space. Shown
+            on every width now, like every other tab's header. */}
+        <PageHead
+          title="Plans"
+          action={<BillingSeg interval={interval} onChange={setBillingInterval} percentOff={proYearlyPercentOff} />}
+        />
       <div>
         {error && <ErrorNotice message={error} className="mb-6" />}
-
-        {/* On a phone the header is hidden, so the toggle needs its own row. */}
-        <div className="lg:hidden flex justify-center mb-6">
-          <BillingSeg interval={interval} onChange={setBillingInterval} percentOff={proYearlyPercentOff} />
-        </div>
 
         {/* Plans grid */}
         {/* Full width, so the cards start where the heading above them starts.
@@ -242,11 +238,34 @@ export function UpgradePage() {
           })}
         </div>
 
+        {/* Extra credits, on the page people reach from "Change plan". A
+            one-time pack on top of a plan, for subscribers: at the same price
+            per credit, selling it on free would undercut Plus. */}
+        <div className="row-group mt-4 flex flex-wrap items-center justify-between gap-4" style={{ padding: 20, opacity: currentPlan === 'free' ? 0.55 : 1 }}>
+          <div className="min-w-0">
+            <p className="text-[15px] font-medium" style={{ color: 'var(--text)' }}>{CREDIT_PACK.credits} extra credits</p>
+            <p className="text-[13px] mt-0.5" style={{ color: 'var(--text-muted)' }}>
+              {currentPlan === 'free' ? 'Comes with Plus or Pro. On top of the plan, they never expire.' : 'On top of your plan. They never expire.'}
+            </p>
+          </div>
+          <Button
+            variant="secondary"
+            disabled={currentPlan === 'free' || topupBusy}
+            onClick={async () => {
+              setTopupBusy(true); setError('');
+              try { await startTopup(); } catch (e) { setError(e instanceof Error ? e.message : 'Failed to start checkout'); setTopupBusy(false); }
+            }}
+          >
+            {topupBusy && <Loader2 className="w-4 h-4 animate-spin" />}
+            Buy for {CREDIT_PACK.price}
+          </Button>
+        </div>
+
         <p className="mt-6 text-xs text-gray-600 text-center">
-          Payments are processed securely by Stripe. Cancel anytime from your billing portal.
+          Payments are processed securely by Stripe. Cancel anytime in Settings.
         </p>
       </div>
-    </div>
+    </Page>
   );
 }
 
