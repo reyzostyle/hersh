@@ -10,7 +10,7 @@ settings:
     SWIFT_VERSION: "6.0"
     SWIFT_DEFAULT_ACTOR_ISOLATION: MainActor
     SWIFT_APPROACHABLE_CONCURRENCY: YES
-    MARKETING_VERSION: "0.1.0"
+    MARKETING_VERSION: "1.0.0"
     CURRENT_PROJECT_VERSION: "1"
 packages:
   Supabase:
@@ -48,6 +48,12 @@ targets:
       path: Chumoku/Info.plist
       properties:
         CFBundleDisplayName: Chumoku
+        # Only HTTPS and Apple's own crypto: exempt, so no export questions
+        # on every upload.
+        ITSAppUsesNonExemptEncryption: false
+        # From the build settings above, so a new build is one number there.
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         # The languages Localizable.xcstrings carries; iOS offers them as the
         # app's language and picks one from the phone's list.
         CFBundleDevelopmentRegion: en

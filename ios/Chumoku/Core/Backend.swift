@@ -1,3 +1,4 @@
+import UIKit
 import Foundation
 import Supabase
 import AuthenticationServices
@@ -79,5 +80,42 @@ final class AuthModel {
 
     func signOut() async {
         try? await supabase.auth.signOut()
+    }
+}
+
+// A fresh Sign in with Apple authorization code, asked for right before the
+// account is deleted so delete-account can revoke the Apple grant (App Store
+// 5.1.1(v)). Nil when they close Apple's sheet; the deletion goes ahead.
+final class AppleAuthorizationCode: NSObject, ASAuthorizationControllerDelegate, ASAuthorizationControllerPresentationContextProviding {
+    private var continuation: CheckedContinuation<String?, Never>?
+    private var controller: ASAuthorizationController?
+
+    static func request() async -> String? { await AppleAuthorizationCode().run() }
+
+    private func run() async -> String? {
+        await withCheckedContinuation { c in
+            continuation = c
+            let controller = ASAuthorizationController(authorizationRequests: [ASAuthorizationAppleIDProvider().createRequest()])
+            controller.delegate = self
+            controller.presentationContextProvider = self
+            self.controller = controller
+            controller.performRequests()
+        }
+    }
+
+    func authorizationController(controller: ASAuthorizationController, didCompleteWithAuthorization authorization: ASAuthorization) {
+        let code = (authorization.credential as? ASAuthorizationAppleIDCredential)?.authorizationCode
+        continuation?.resume(returning: code.flatMap { String(data: $0, encoding: .utf8) })
+        continuation = nil
+    }
+
+    func authorizationController(controller: ASAuthorizationController, didCompleteWithError error: Error) {
+        continuation?.resume(returning: nil)
+        continuation = nil
+    }
+
+    func presentationAnchor(for controller: ASAuthorizationController) -> ASPresentationAnchor {
+        let scene = UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }.first
+        return scene?.keyWindow ?? ASPresentationAnchor()
     }
 }

@@ -2,6 +2,7 @@
 import { corsHeaders } from '../_shared/http.ts';
 import Stripe from 'npm:stripe@14.21.0';
 import { createClient } from 'npm:@supabase/supabase-js@2.57.4';
+import { SignJWT, importPKCS8 } from 'npm:jose@5.9.6';
 
 const CORS = corsHeaders({ methods: 'POST, OPTIONS' });
 const OWNER_EMAIL = 'reyzostyle@gmail.com';
@@ -25,6 +26,44 @@ const IMAGES_BUCKET = 'chat-images';
 //
 // The body must say {"confirm": "DELETE"}, so a stray call cannot do this.
 // The owner account cannot be deleted here at all.
+// Sign in with Apple: an app that offers it must also revoke the user's Apple
+// tokens when the account is deleted (App Store 5.1.1(v)). The app asks Apple
+// for a fresh authorization code just before calling here; it is exchanged
+// for a refresh token, and that token is revoked. Needs a Sign in with Apple
+// key from the developer account (APPLE_TEAM_ID, APPLE_SIGNIN_KEY_ID,
+// APPLE_SIGNIN_PRIVATE_KEY = the .p8 file's contents). Without them, or if
+// Apple refuses, the account is deleted anyway: the person asked for that.
+const APPLE_CLIENT_ID = 'co.chumoku.app';
+
+async function revokeApple(code: string): Promise<void> {
+  const teamId = Deno.env.get('APPLE_TEAM_ID');
+  const keyId = Deno.env.get('APPLE_SIGNIN_KEY_ID');
+  const pem = Deno.env.get('APPLE_SIGNIN_PRIVATE_KEY');
+  if (!teamId || !keyId || !pem) { console.warn('[delete-account] apple revoke skipped: no key'); return; }
+  const key = await importPKCS8(pem.replace(/\\n/g, '\n'), 'ES256');
+  const secret = await new SignJWT({})
+    .setProtectedHeader({ alg: 'ES256', kid: keyId })
+    .setIssuer(teamId).setIssuedAt().setExpirationTime('5m')
+    .setAudience('https://appleid.apple.com').setSubject(APPLE_CLIENT_ID)
+    .sign(key);
+  const form = (o: Record<string, string>) => ({
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams(o),
+  });
+  const tokenRes = await fetch('https://appleid.apple.com/auth/token', form({
+    client_id: APPLE_CLIENT_ID, client_secret: secret, code, grant_type: 'authorization_code',
+  }));
+  const tokens = await tokenRes.json().catch(() => ({}));
+  const token = tokens.refresh_token ?? tokens.access_token;
+  if (!token) { console.warn('[delete-account] apple token exchange failed', tokenRes.status, tokens.error); return; }
+  const revoke = await fetch('https://appleid.apple.com/auth/revoke', form({
+    client_id: APPLE_CLIENT_ID, client_secret: secret, token,
+    token_type_hint: tokens.refresh_token ? 'refresh_token' : 'access_token',
+  }));
+  console.log(`[delete-account] apple revoke ${revoke.status}`);
+}
+
 Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') return new Response(null, { status: 200, headers: CORS });
   const json = (body: unknown, status = 200) =>
@@ -74,7 +113,12 @@ Deno.serve(async (req: Request) => {
       console.error('[delete-account] storage', e);
     }
 
-    // 3. The user, and with it every row that is theirs.
+    // 3. Their Sign in with Apple grant, if the app sent a code for it.
+    if (typeof body.appleAuthorizationCode === 'string' && body.appleAuthorizationCode) {
+      try { await revokeApple(body.appleAuthorizationCode); } catch (e) { console.error('[delete-account] apple revoke', e); }
+    }
+
+    // 4. The user, and with it every row that is theirs.
     const { error } = await supabase.auth.admin.deleteUser(user.id);
     if (error) throw error;
     console.log(`[delete-account] deleted ${user.id}`);

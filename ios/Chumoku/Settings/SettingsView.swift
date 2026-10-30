@@ -368,7 +368,12 @@ struct SettingsView: View {
         deleteError = nil
         defer { deleting = false }
         do {
-            try await supabase.functions.invoke("delete-account", options: FunctionInvokeOptions(body: ["confirm": "DELETE"]))
+            var body = ["confirm": "DELETE"]
+            if auth.user?.identities?.contains(where: { $0.provider == "apple" }) == true,
+               let code = await AppleAuthorizationCode.request() {
+                body["appleAuthorizationCode"] = code
+            }
+            try await supabase.functions.invoke("delete-account", options: FunctionInvokeOptions(body: body))
             // The user is gone server-side; only the session on this phone is left.
             try? await supabase.auth.signOut(scope: .local)
         } catch let FunctionsError.httpError(_, data) {
