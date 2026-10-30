@@ -10,7 +10,8 @@ struct IdeasView: View {
     enum Tab: Hashable { case today, saved, dismissed, notes }
     @State private var tab: Tab = .today
     @State private var path = NavigationPath()
-    @AppStorage("ideas.swipe") private var swipe = false
+    // Swipe by default (Ivan, 2026-10-30); the grid is one tap away.
+    @AppStorage("ideas.swipe2") private var swipe = true
 
     private let columns = [GridItem(.flexible(), spacing: 12, alignment: .top), GridItem(.flexible(), spacing: 12, alignment: .top)]
 
@@ -35,10 +36,12 @@ struct IdeasView: View {
                 if swiping {
                     // The stack gets the rest of the screen and sizes itself to
                     // it, so the buttons are never below the fold.
+                    // Clear of the floating tab bar: the round buttons sat
+                    // right under its glass, which bent them (Ivan, 2026-10-30).
                     SwipeStack { path.append($0) }
                         .padding(.horizontal, 20)
                         .padding(.top, 14)
-                        .padding(.bottom, 12)
+                        .padding(.bottom, 34)
                 } else {
                     ScrollView {
                         Group {
@@ -51,6 +54,7 @@ struct IdeasView: View {
                     .refreshable { await reload() }
                 }
             }
+            .scrollEdgeEffectStyle(.soft, for: .bottom)
             .background(Color.bg.ignoresSafeArea())
             .navigationDestination(for: Idea.self) { idea in
                 IdeaDetailView(idea: idea)

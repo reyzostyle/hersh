@@ -586,6 +586,7 @@
     "Add an idea to ${applicationName}": {},
     "Add music from Files": {},
     "Adding…": {},
+    "Admin": {},
     "Advanced": {
       "localizations": {
         "es": {
@@ -782,6 +783,86 @@
           "stringUnit": {
             "state": "translated",
             "value": "Apple не смогла подтвердить покупку."
+          }
+        }
+      }
+    },
+    "Ask about this script": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pregunta sobre este guion"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pergunte sobre este roteiro"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pose une question sur ce script"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Frag zu diesem Skript"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "この台本について質問"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Спроси про этот сценарий"
+          }
+        }
+      }
+    },
+    "Ask anything about this script. Each answer is 1 credit.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pregunta lo que quieras sobre este guion. Cada respuesta cuesta 1 crédito."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pergunte qualquer coisa sobre este roteiro. Cada resposta custa 1 crédito."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pose n'importe quelle question sur ce script. Chaque réponse coûte 1 crédit."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Frag alles zu diesem Skript. Jede Antwort kostet 1 Credit."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "この台本について何でも聞いてください。回答ごとに1クレジットです。"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Спрашивай что угодно про этот сценарий. Каждый ответ стоит 1 кредит."
           }
         }
       }
@@ -2113,6 +2194,46 @@
         }
       }
     },
+    "Could not load the numbers.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No se pudieron cargar los números."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Não foi possível carregar os números."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Impossible de charger les chiffres."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zahlen konnten nicht geladen werden."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "数字を読み込めませんでした。"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Не удалось загрузить цифры."
+          }
+        }
+      }
+    },
     "Could not load today's ideas.": {
       "localizations": {
         "es": {
@@ -2593,6 +2714,46 @@
         }
       }
     },
+    "Creators, feedback, early features": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Creadores, feedback, funciones antes que nadie"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Criadores, feedback, recursos antes de todo mundo"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Créateurs, retours, fonctions en avant-première"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Creator, Feedback, neue Funktionen zuerst"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "クリエイター、フィードバック、新機能の先行公開"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Авторы, фидбек, новые функции раньше всех"
+          }
+        }
+      }
+    },
     "Current password": {
       "localizations": {
         "es": {
@@ -2675,6 +2836,46 @@
     },
     "Cut": {},
     "Cut again": {},
+    "Cut it to 30 seconds": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Recórtalo a 30 segundos"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Corte para 30 segundos"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Réduis-le à 30 secondes"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kürz es auf 30 Sekunden"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "30秒に縮めて"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Сократи до 30 секунд"
+          }
+        }
+      }
+    },
     "Daily ideas only": {
       "localizations": {
         "es": {
@@ -2715,6 +2916,7 @@
         }
       }
     },
+    "Day": {},
     "Delete": {},
     "Delete account": {
       "localizations": {
@@ -3850,6 +4052,46 @@
       }
     },
     "Getting ready": {},
+    "Give me 3 other openings": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dame 3 inicios distintos"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Me dê 3 outras aberturas"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Donne-moi 3 autres débuts"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gib mir 3 andere Einstiege"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "別の冒頭を3つ"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Дай 3 других начала"
+          }
+        }
+      }
+    },
     "Got it": {
       "localizations": {
         "es": {
@@ -3966,46 +4208,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Уже есть аккаунт? Войти"
-          }
-        }
-      }
-    },
-    "Help": {
-      "localizations": {
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Ayuda"
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Ajuda"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Aide"
-          }
-        },
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Hilfe"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "ヘルプ"
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Помощь"
           }
         }
       }
@@ -4612,6 +4814,46 @@
           "stringUnit": {
             "state": "translated",
             "value": "Смотрим твои Shorts"
+          }
+        }
+      }
+    },
+    "Make the hook hit harder": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Haz el gancho más fuerte"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Deixe o gancho mais forte"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rends l'accroche plus forte"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mach den Hook stärker"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "フックをもっと強く"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Сделай хук сильнее"
           }
         }
       }
@@ -5823,6 +6065,46 @@
     },
     "Picking takes · %llds": {},
     "Pictures and clips go on top of you, from where the playhead is. Drag to place, pinch to size.": {},
+    "Plans": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Planes"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Planos"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Formules"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tarife"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "プラン"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Тарифы"
+          }
+        }
+      }
+    },
     "Plans renew automatically at the price shown until you cancel. Cancel any time in your Apple ID's subscription settings, at least 24 hours before the period ends. Payment is charged to your Apple ID.": {
       "localizations": {
         "es": {
@@ -6630,6 +6912,46 @@
           "stringUnit": {
             "state": "translated",
             "value": "Сценарий"
+          }
+        }
+      }
+    },
+    "Script ready": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Guion listo"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Roteiro pronto"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Script prêt"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Skript fertig"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "台本あり"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Сценарий готов"
           }
         }
       }
@@ -8482,6 +8804,46 @@
           "stringUnit": {
             "state": "translated",
             "value": "Что ты снимаешь?"
+          }
+        }
+      }
+    },
+    "What should be on screen?": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "¿Qué debería verse en pantalla?"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O que deve aparecer na tela?"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Qu'est-ce qu'on voit à l'écran ?"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Was soll im Bild sein?"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "画面には何を映す？"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Что показать в кадре?"
           }
         }
       }

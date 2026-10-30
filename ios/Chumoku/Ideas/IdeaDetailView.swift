@@ -121,7 +121,7 @@ struct IdeaDetailView: View {
     // the box: opening it costs nothing. Keeps the idea, as the web does.
     private func continueInChat() {
         if current.liked != true { Task { await store.rule(current, liked: true) } }
-        chat.pending = ("Make the hook of this script hit harder.", current.id)
+        chat.pending = (title: current.outline?.hook ?? current.headline, script: current.script ?? "", ideaId: current.id)
     }
 
     private var header: some View {
@@ -163,10 +163,19 @@ struct IdeaDetailView: View {
             }
             if !Features.filming {
                 // Ideas only: saving is the wide action.
-                Button(current.liked == true ? "Saved" : "Save") {
+                // White while there is something to do; once saved it goes
+                // quiet, gray with a green check, like a done step.
+                Button {
                     Task { await store.rule(current, liked: current.liked == true ? nil : true) }
+                } label: {
+                    HStack(spacing: 8) {
+                        if current.liked == true {
+                            Image(systemName: "checkmark.circle.fill").foregroundStyle(Color.process)
+                        }
+                        Text(current.liked == true ? "Saved" : "Save")
+                    }
                 }
-                .buttonStyle(PillButtonStyle(kind: current.liked == true ? .primary : .secondary))
+                .buttonStyle(PillButtonStyle(kind: current.liked == true ? .secondary : .primary))
                 .sensoryFeedback(.selection, trigger: current.liked == true)
             } else {
             iconButton(current.liked == true ? "heart.fill" : "heart", on: current.liked == true) {

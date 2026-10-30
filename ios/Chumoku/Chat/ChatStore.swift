@@ -40,9 +40,12 @@ final class ChatStore {
     var sending = false
     var error: String?
     // Set from an idea's script ("Continue in Chat"): MainTabs switches to
-    // Chat, which opens a new conversation about that idea with the text
-    // waiting in the composer, not sent, so it costs nothing until they send.
-    var pending: (text: String, ideaId: String)?
+    // Chat, which opens a new conversation about that idea with the script on
+    // screen as a card, so it is plain which script the chat has. Nothing is
+    // typed for them or sent: it costs nothing until they ask something.
+    var pending: (title: String, script: String, ideaId: String)?
+    // The script this conversation is about, shown at its top.
+    var attached: (title: String, script: String)?
     // The idea this conversation is about; sent with every message so the
     // chat has its script.
     var ideaId: String?
@@ -67,6 +70,7 @@ final class ChatStore {
     func open(_ thread: ChatThread) async {
         threadId = thread.id
         ideaId = nil
+        attached = nil
         messages = []
         error = nil
         nonisolated struct Row: Decodable { let id: String; let role: String; let content: String? }
@@ -84,6 +88,7 @@ final class ChatStore {
     func startNew() {
         threadId = nil
         ideaId = nil
+        attached = nil
         messages = []
         error = nil
     }

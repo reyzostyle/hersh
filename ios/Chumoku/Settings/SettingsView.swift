@@ -100,7 +100,7 @@ struct SettingsView: View {
                     // what is inside, so the page fits on a screen closed.
                     fold("account", "Account", value: auth.user?.email) { accountContent }
 
-                    fold("brain", "Chumoku brain", value: loading ? nil : (account?.brain != nil ? String(localized: "Built") : String(localized: "Not built yet"))) {
+                    fold("brain", "Chumoku brain", value: loading ? nil : (account?.brain != nil ? String(localized: "Built") : String(localized: "Not built yet")), ok: account?.brain != nil) {
                         BrainSection(
                             brain: account?.brain,
                             builtAt: account?.brainAt,
@@ -118,7 +118,7 @@ struct SettingsView: View {
                         )
                     }
 
-                    fold("youtube", "YouTube account", value: loading ? nil : (account?.youtubeConnected == true ? (account?.youtubeChannelName ?? String(localized: "Connected")) : String(localized: "Not connected"))) {
+                    fold("youtube", "YouTube account", value: loading ? nil : (account?.youtubeConnected == true ? (account?.youtubeChannelName ?? String(localized: "Connected")) : String(localized: "Not connected")), ok: account?.youtubeConnected == true) {
                         YouTubeSection(
                             connected: account?.youtubeConnected ?? false,
                             channelName: account?.youtubeChannelName,
@@ -221,6 +221,10 @@ struct SettingsView: View {
                 .padding(.horizontal, 20)
                 .padding(.bottom, 40)
             }
+            // The last rows scroll clear of the floating tab bar, and what
+            // passes under its glass fades instead of being cut across.
+            .contentMargins(.bottom, 96, for: .scrollContent)
+            .scrollEdgeEffectStyle(.soft, for: .bottom)
             .background(Color.bg.ignoresSafeArea())
             .toolbar(.hidden, for: .navigationBar)
             .refreshable { await load() }
@@ -362,7 +366,7 @@ struct SettingsView: View {
         linkRow("App language", url: UIApplication.openSettingsURLString)
     }
 
-    private func fold<Content: View>(_ id: String, _ title: LocalizedStringKey, value: String? = nil, @ViewBuilder _ content: () -> Content) -> some View {
+    private func fold<Content: View>(_ id: String, _ title: LocalizedStringKey, value: String? = nil, ok: Bool = false, @ViewBuilder _ content: () -> Content) -> some View {
         let isOpen = open == id
         return VStack(spacing: 0) {
             Button { withAnimation(.ui) { open = isOpen ? nil : id } } label: {
@@ -370,6 +374,8 @@ struct SettingsView: View {
                     Text(title).font(.tBody).foregroundStyle(Color.text)
                     Spacer(minLength: 12)
                     if let value, !isOpen {
+                        // Connected, built: a green check, the app's "done".
+                        if ok { Image(systemName: "checkmark.circle.fill").font(.system(size: 13)).foregroundStyle(Color.process) }
                         Text(verbatim: value).font(.tSmall).foregroundStyle(Color.textFaint).lineLimit(1)
                     }
                     Image(systemName: "chevron.down")

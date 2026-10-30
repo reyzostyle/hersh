@@ -9,6 +9,16 @@ struct ChatView: View {
     @State private var historyOpen = false
     @FocusState private var typing: Bool
 
+    @State private var scriptOpen = false
+
+    // Asked about the script on screen, so they are about it and nothing else.
+    private let scriptStarters = [
+        String(localized: "Make the hook hit harder"),
+        String(localized: "Cut it to 30 seconds"),
+        String(localized: "Give me 3 other openings"),
+        String(localized: "What should be on screen?"),
+    ]
+
     private let starters = [
         "What should I film tomorrow?",
         "Give me 5 hooks for my next Short",
@@ -21,6 +31,7 @@ struct ChatView: View {
             ScrollViewReader { proxy in
                 ScrollView {
                     VStack(alignment: .leading, spacing: 18) {
+                        if let a = chat.attached { attachedCard(a) }
                         if chat.messages.isEmpty && !chat.sending { empty }
                         ForEach(chat.messages) { m in bubble(m).id(m.id) }
                         if chat.sending { Working(label: "Thinking").id("working") }
@@ -42,15 +53,16 @@ struct ChatView: View {
         .background(Color.bg.ignoresSafeArea())
         .sheet(isPresented: $historyOpen) { history }
         .task { await chat.loadThreads() }
-        .task(id: chat.pending?.text) {
+        .task(id: chat.pending?.ideaId) {
             // "Continue in Chat" from a script: a fresh conversation about
-            // that idea, the first line waiting in the box.
+            // that idea, its script on screen and the box left empty.
             guard let p = chat.pending else { return }
             chat.pending = nil
             chat.startNew()
             chat.ideaId = p.ideaId
-            draft = p.text
-            typing = true
+            chat.attached = (p.title, p.script)
+            scriptOpen = false
+            draft = ""
         }
     }
 
@@ -67,12 +79,42 @@ struct ChatView: View {
         .padding(.top, 8)
     }
 
+    // The script the chat took, so there is no guessing whether it did.
+    private func attachedCard(_ a: (title: String, script: String)) -> some View {
+        Button { withAnimation(.ui) { scriptOpen.toggle() } } label: {
+            VStack(alignment: .leading, spacing: 8) {
+                HStack(spacing: 6) {
+                    Image(systemName: "doc.text").font(.system(size: 12, weight: .semibold))
+                    Text("Script").font(.tLabel)
+                    Spacer()
+                    Image(systemName: "chevron.down").font(.system(size: 11, weight: .semibold))
+                        .rotationEffect(.degrees(scriptOpen ? 180 : 0))
+                }
+                .foregroundStyle(Color.textMuted)
+                Text(a.title).font(.geist(15, .medium)).foregroundStyle(Color.text)
+                    .multilineTextAlignment(.leading)
+                if !a.script.isEmpty {
+                    Text(a.script).font(.tSmall).foregroundStyle(Color.textMuted)
+                        .lineLimit(scriptOpen ? nil : 3)
+                        .multilineTextAlignment(.leading)
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(14)
+            .background(RoundedRectangle(cornerRadius: Radius.sm, style: .continuous).fill(Color.raised))
+            .overlay(RoundedRectangle(cornerRadius: Radius.sm, style: .continuous).strokeBorder(Color.line, lineWidth: 1))
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .padding(.top, 12)
+    }
+
     private var empty: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text("Ask anything about your channel, an idea or a script. Each answer is 1 credit.")
+            Text(chat.attached != nil ? "Ask anything about this script. Each answer is 1 credit." : "Ask anything about your channel, an idea or a script. Each answer is 1 credit.")
                 .font(.tSmall).foregroundStyle(Color.textMuted)
                 .padding(.bottom, 6)
-            ForEach(starters, id: \.self) { s in
+            ForEach(chat.attached != nil ? scriptStarters : starters, id: \.self) { s in
                 Button { Task { await chat.send(s) } } label: {
                     Text(s).font(.tBody).foregroundStyle(Color.text)
                         .frame(maxWidth: .infinity, alignment: .leading)
@@ -83,7 +125,7 @@ struct ChatView: View {
                 .buttonStyle(.plain)
             }
         }
-        .padding(.top, 24)
+        .padding(.top, chat.attached != nil ? 4 : 24)
     }
 
     @ViewBuilder private func bubble(_ m: ChatMessage) -> some View {
@@ -111,7 +153,7 @@ struct ChatView: View {
 
     private var composer: some View {
         HStack(alignment: .bottom, spacing: 10) {
-            TextField("", text: $draft, prompt: Text("Message Chumoku").foregroundStyle(Color.textFaint), axis: .vertical)
+            TextField("", text: $draft, prompt: Text(chat.attached != nil ? "Ask about this script" : "Message Chumoku").foregroundStyle(Color.textFaint), axis: .vertical)
                 .font(.geist(15)).foregroundStyle(Color.text)
                 .lineLimit(1...6)
                 .focused($typing)

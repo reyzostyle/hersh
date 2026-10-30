@@ -85,13 +85,14 @@ struct SignedInRoot: View {
 struct MainTabs: View {
     @Environment(NotesStore.self) private var notes
     @Environment(ChatStore.self) private var chat
-    enum T: Hashable { case ideas, chat, create, edit, analytics, settings }
+    enum T: Hashable { case ideas, chat, saved, create, edit, analytics, settings }
     @State private var tab: T = .ideas
 
     var body: some View {
         TabView(selection: $tab) {
             Tab("Ideas", systemImage: "lightbulb", value: T.ideas) { IdeasView() }
             Tab("Chat", systemImage: "bubble.left", value: T.chat) { ChatView() }
+            Tab("Saved", systemImage: "bookmark", value: T.saved) { SavedView() }
             if Features.filming {
                 Tab("Edit", systemImage: "scissors", value: T.edit) { EditHome() }
                 Tab("Create", systemImage: "plus", value: T.create) { FilmHome() }
@@ -103,7 +104,7 @@ struct MainTabs: View {
         // "Record an idea" from Siri or the Lock Screen lands in Notes.
         .onChange(of: notes.recordNow) { _, now in if now { tab = .ideas } }
         // An idea sent to Chat ("Work on it in Chat") brings Chat forward.
-        .onChange(of: chat.pending?.text) { _, text in if text != nil { tab = .chat } }
+        .onChange(of: chat.pending?.ideaId) { _, id in if id != nil { tab = .chat } }
         // Anything that runs out of credits opens the plans.
         .sheet(isPresented: Bindable(Purchases.shared).showPlans) { PlansView() }
         .task { await ContentLanguage.sync() }
