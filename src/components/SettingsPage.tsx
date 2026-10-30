@@ -1,16 +1,16 @@
 import { useState, useEffect } from 'react';
 import { FUNCTIONS_URL, supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
-import { RefreshOutlineIcon as Loader2, EyeOutlineIcon as Eye, EyeClosedOutlineIcon as EyeOff, RefreshOutlineIcon as RefreshCw, LinkOutlineIcon as Link, AltArrowDownOutlineIcon as ChevronDown, Stars2OutlineIcon as Sparkles, UserOutlineIcon as User, BoltOutlineIcon as Zap, ChatRoundOutlineIcon as MessageCircle, SquareArrowRightUpOutlineIcon as ExternalLink, TicketOutlineIcon as Ticket, CpuBoltOutlineIcon as Brain, HandShakeOutlineIcon as Handshake, ArrowRightUpOutlineIcon as ArrowUpRight, UsersGroupRoundedOutlineIcon as Users } from '@solar-icons/react';
+import { RefreshOutlineIcon as Loader2, EyeOutlineIcon as Eye, EyeClosedOutlineIcon as EyeOff, RefreshOutlineIcon as RefreshCw, LinkOutlineIcon as Link, AltArrowDownOutlineIcon as ChevronDown, SquareArrowRightUpOutlineIcon as ExternalLink, ArrowRightUpOutlineIcon as ArrowUpRight, LockKeyholeMinimalisticOutlineIcon as Lock } from '@solar-icons/react';
 import { getSessionToken, fetchWithRetry } from '../lib/supabase';
 
 import { requestBrain, type ChannelBrain, type BrainOverrides } from '../lib/brain';
 import { syncOwnVideos } from '../lib/ownVideos';
 import { displayNameOf } from '../lib/user';
-import { PageHead, Row, Loading, Tile, Button, Collapse, Skeleton } from './Page';
+import { PageHead, Loading, Tile, Button, Collapse, Skeleton } from './Page';
 import { formatViews } from '../lib/competitors';
 import { useUsage } from '../lib/useUsage';
-import { CreditsPanel, creditsLeftLine } from './CreditsPanel';
+import { startTopup, CREDIT_PACK } from './CreditsPanel';
 import { ChannelsSettings } from './ChannelsSettings';
 import { RetentionLessons } from './RetentionLessons';
 
@@ -26,39 +26,6 @@ const glassInput: React.CSSProperties = {
   background: 'rgba(255,255,255,0.06)',
   border: '1px solid rgba(255,255,255,0.1)',
 };
-
-// Grouped settings section: the app's row, opened rather than followed.
-//
-// It used to be its own object - a glass card with a 2xl radius and an icon
-// tile at a size nothing else used - which is how Settings, the hub and
-// Projects ended up as three different-looking lists of the same thing. The
-// plate, the tile and the measure are now `.row` / `.row-group` (index.css),
-// shared with everything else.
-//
-// The sentence under each title is new. A row of six words told you nothing
-// about what was behind it, and the one screen where people go looking for a
-// setting is the worst place to make them open all six to find out.
-function SettingsCard({ icon, iconBg, title, subtitle, open, onToggle, children }: {
-  icon: React.ReactNode; iconBg: string; title: string; subtitle: string;
-  open: boolean; onToggle: () => void; children: React.ReactNode;
-}) {
-  return (
-    <div className="row-group">
-      <button onClick={onToggle} className="row" aria-expanded={open}>
-        <span className="row-icon" style={{ background: iconBg }}>{icon}</span>
-        <span className="flex-1 min-w-0">
-          <span className="block text-[15px] font-medium" style={{ color: 'var(--text)' }}>{title}</span>
-          <span className="block text-[13px] leading-relaxed mt-0.5" style={{ color: 'var(--text-muted)' }}>{subtitle}</span>
-        </span>
-        <ChevronDown
-          className="w-4 h-4 flex-shrink-0 row-chevron"
-          style={{ color: 'var(--text-faint)', transform: open ? 'rotate(180deg)' : 'none' }}
-        />
-      </button>
-      <Collapse open={open}><div className="row-group-body">{children}</div></Collapse>
-    </div>
-  );
-}
 
 // Label for a field inside a card. Sentence case like every other label in
 // the product since the X Money pass; the uppercase tracked version was the
@@ -145,7 +112,6 @@ export function SettingsPage() {
   const [heardVoice, setHeardVoice] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [contextSaving, setContextSaving] = useState(false);
-  const [contextSaved, setContextSaved] = useState(false);
   const [contextError, setContextError] = useState('');
   const [loadFailed, setLoadFailed] = useState(false);
 
@@ -153,8 +119,14 @@ export function SettingsPage() {
   // Google already puts a real name there at sign-in, so most accounts have one
   // without ever opening this field, and no migration was needed to read it.
   const [displayName, setDisplayName] = useState('');
+  const [editingName, setEditingName] = useState(false);
+  const [changingPassword, setChangingPassword] = useState(false);
+  const [editingProfile, setEditingProfile] = useState(false);
+  const [topupBusy, setTopupBusy] = useState(false);
+  const [topupError, setTopupError] = useState('');
+  // The language ideas and scripts come back in (user_tokens.language).
+  const [language, setLanguage] = useState('en');
   const [nameSaving, setNameSaving] = useState(false);
-  const [nameSaved, setNameSaved] = useState(false);
   const [nameError, setNameError] = useState('');
 
   // Password state
@@ -236,7 +208,7 @@ export function SettingsPage() {
         const [{ data, error }] = await Promise.all([
           supabase
             .from('user_tokens')
-            .select('updated_at, access_token, plan, youtube_channel_name, youtube_channel_thumbnail, channel_description, creator_level, brain, brain_at, brain_overrides, voice')
+            .select('updated_at, access_token, plan, youtube_channel_name, youtube_channel_thumbnail, channel_description, creator_level, brain, brain_at, brain_overrides, voice, language')
             .eq('user_id', user.id)
             .maybeSingle(),
           // Waited on, but not forever: it goes out to YouTube, and a slow
@@ -263,6 +235,7 @@ export function SettingsPage() {
         try { localStorage.setItem(PLAN_CACHE_KEY, nextPlan); } catch { /* private mode */ }
         setChannelDescription(data?.channel_description || '');
         setCreatorLevel(data?.creator_level || 'intermediate');
+        setLanguage(data?.language || 'en');
         setBrain((data?.brain as ChannelBrain) ?? null);
         setBrainAt(data?.brain_at ?? null);
         setBrainOverrides((data?.brain_overrides as BrainOverrides) ?? {});
@@ -341,8 +314,6 @@ export function SettingsPage() {
       setContextError('Failed to save: ' + err.message);
       return;
     }
-    setContextSaved(true);
-    setTimeout(() => setContextSaved(false), 2500);
     buildBrain(true);
   };
 
@@ -381,8 +352,7 @@ export function SettingsPage() {
     const { error: err } = await supabase.auth.updateUser({ data: { display_name: displayName.trim() } });
     setNameSaving(false);
     if (err) { setNameError(err.message); return; }
-    setNameSaved(true);
-    setTimeout(() => setNameSaved(false), 2500);
+    setEditingName(false);
   };
 
   const changePassword = async () => {
@@ -429,17 +399,17 @@ export function SettingsPage() {
     }
   };
 
-  // The same 10px between cards that the hub and Projects use between rows -
-  // they are the same object now, so they stack the same way.
-  // The whole list waits for the one query behind it and then arrives at once.
-  // Before, each card decided for itself when it was ready: the profile spun
-  // inside its own card, YouTube spun inside its, and Subscription did not
-  // exist until `plan` landed - so opening Settings was three or four things
-  // appearing at different moments and pushing each other down the page. They
-  // all come from a single row in a single request; there was never a reason
-  // for them to arrive separately.
+  // Laid out like the iOS app's Settings (2026-10-30, Ivan liked it there):
+  // the plan and the balance always on top, then sections that say in their
+  // header what is inside, one open at a time. The whole list waits for the
+  // one query behind it and arrives at once.
+  const isFree = (plan ?? 'free') === 'free';
+  const left = usage ? Math.max(0, usage.creditsLimit - usage.creditsUsed) : 0;
+  const planName = plan === 'agency' ? 'Pro' : plan === 'pro' ? 'Plus' : 'Trial';
+  const go = (tab: string) => window.dispatchEvent(new CustomEvent('chumoku:navigate', { detail: tab }));
+
   return (
-    <div className="sheet min-h-full max-w-5xl mx-auto px-5 sm:px-8 pt-12 sm:pt-16 pb-20">
+    <div className="sheet min-h-full max-w-2xl mx-auto px-5 sm:px-8 pt-12 sm:pt-16 pb-20">
 
       <div className="hidden lg:block">
         <PageHead title="Settings" />
@@ -448,238 +418,87 @@ export function SettingsPage() {
       {loading || usageLoading ? <Loading rows={8} /> : (
       <div className="space-y-2.5 animate-fade-in">
 
-      {/* ── Channel profile ── */}
-      {/* Two fields, and neither of them can be filled in wrongly.
-          It was five: a level, a niche picked from twelve chips or typed, a
-          description, and an audience. Every one of them was a chance to
-          describe the channel you mean to run rather than the one you run, and
-          a wrong profile is worse than an empty one - it steers every adapted
-          idea at a channel that does not exist. Most people left them blank
-          anyway. What the prompts need is derived from these two plus the
-          uploads: see the brain below. */}
-      <SettingsCard
-        {...cardProps('profile')}
-        icon={<Sparkles className="w-[18px] h-[18px] text-[var(--accent)]" />}
-        iconBg="rgba(var(--accent-rgb),0.12)"
-        title="Channel profile"
-        subtitle="Where you are, and anything you want us to know."
-      >
-        {(
-          <div className="space-y-4">
-            <div>
-              <FieldLabel>Where you are</FieldLabel>
-              <div className="flex flex-wrap gap-2">
-                {CREATOR_LEVELS.map(l => (
-                  <button
-                    key={l.value}
-                    type="button"
-                    className="chip"
-                    data-on={creatorLevel === l.value}
-                    onClick={() => setCreatorLevel(l.value)}
-                  >
-                    {l.label}
-                  </button>
-                ))}
-              </div>
-              <p className="mt-2 text-xs" style={{ color: 'var(--text-faint)' }}>
-                {CREATOR_LEVELS.find(l => l.value === creatorLevel)?.hint}
-              </p>
-            </div>
-
-            <div>
-              <FieldLabel>Anything worth knowing</FieldLabel>
-              <textarea
-                value={channelDescription}
-                onChange={e => setChannelDescription(e.target.value)}
-                placeholder="Whatever you want us to know - what you make, who it is for, what you are trying to fix. A sentence is enough."
-                rows={3}
-                className="glass-field w-full px-4 py-3 rounded-lg text-white placeholder-gray-600 text-sm focus:outline-none resize-none leading-relaxed transition-colors"
-                style={glassInput}
-                onFocus={e => { e.currentTarget.style.borderColor = 'var(--accent)'; }}
-                onBlur={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)'; }}
-              />
-              <p className="mt-2 text-xs" style={{ color: 'var(--text-faint)' }}>
-                There is no wrong answer here. Whatever you leave out is read off your uploads.
-              </p>
-            </div>
-
-            {(contextError || loadFailed) && (
-              <p className="text-red-400 text-sm">
-                {contextError || 'Could not read your profile just now, so saving is off to avoid writing over it. Reload the page.'}
-              </p>
-            )}
-
-            <Button variant="primary" onClick={saveContext} disabled={contextSaving || loadFailed}>
-              {contextSaving ? 'Saving' : contextSaved ? 'Saved' : 'Save'}
-            </Button>
+      {/* ── Plan and balance ── */}
+      <div className="row-group" style={{ padding: 20 }}>
+        <div className="flex items-baseline justify-between gap-3">
+          <p className="text-[22px] font-semibold tracking-tight" style={{ color: 'var(--text)' }}>{planName}</p>
+          <p className="text-[13px] tabular-nums" style={{ color: 'var(--text-muted)' }}>
+            {usage && usage.creditsLimit > 0 ? `${left} of ${usage.creditsLimit} credits left` : 'Daily ideas only'}
+          </p>
+        </div>
+        {usage && usage.creditsLimit > 0 && (
+          <div className="mt-3 w-full h-1 rounded-full overflow-hidden" style={{ background: 'var(--line)' }}>
+            <div className="h-full rounded-full transition-all duration-500"
+                 style={{ width: `${(left / Math.max(1, usage.creditsLimit)) * 100}%`, background: 'var(--text)' }} />
           </div>
         )}
-      </SettingsCard>
-
-      {/* ── The brain ── */}
-      <SettingsCard
-        {...cardProps('brain')}
-        /* Not the process green, however tempting on an icon called brain:
-           green in this product means something is running or something
-           worked, and spending it on a permanent tile is exactly how a colour
-           with one meaning stops having one. */
-        icon={<Brain className="w-[18px] h-[18px]" style={{ color: 'var(--text)' }} />}
-        iconBg="rgba(255,255,255,0.05)"
-        title="Chumoku brain"
-        subtitle="What we worked out about your channel, and what every idea is written against."
-      >
-        <BrainCard
-          brain={brain}
-          overrides={brainOverrides}
-          heardVoice={heardVoice}
-          builtAt={brainAt}
-          loading={brainBuilding}
-          error={brainError}
-          onBuild={() => buildBrain(false)}
-          onSaveEdits={async next => {
-            const { error } = await supabase.from('user_tokens').update({ brain_overrides: next }).eq('user_id', user?.id);
-            if (error) throw error;
-            setBrainOverrides(next);
-          }}
-        />
-        {openCard === 'brain' && youtubeStatus?.connected && user?.id && (
-          <RetentionLessons userId={user.id} onReconnect={connectYouTube} />
-        )}
-      </SettingsCard>
-
-      {/* ── Competitor channels (moved here from Ideas, 2026-10-27) ── */}
-      <SettingsCard
-        {...cardProps('channels')}
-        icon={<Users className="w-[18px] h-[18px]" style={{ color: 'var(--text)' }} />}
-        iconBg="rgba(255,255,255,0.05)"
-        title="Competitor channels"
-        subtitle="Channels you follow. Their best Shorts land in your daily ideas."
-      >
-        {openCard === 'channels' && <ChannelsSettings />}
-      </SettingsCard>
-
-      {/* ── YouTube account ── */}
-      <SettingsCard
-        {...cardProps('youtube')}
-        icon={<YouTubeLogo className="w-[18px] h-[18px] text-red-500" />}
-        iconBg="rgba(255,0,0,0.1)"
-        title="YouTube account"
-        subtitle="Your own numbers, your own videos, and a read of what you publish."
-      >
-        {youtubeStatus?.connected ? (
-          <div className="flex items-center justify-between gap-3">
-            <div className="flex items-center gap-3 min-w-0">
-              {youtubeStatus.channelThumbnail ? (
-                <img src={youtubeStatus.channelThumbnail} alt="" className="w-9 h-9 rounded-full object-cover flex-shrink-0" />
-              ) : (
-                <div className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(255,0,0,0.1)' }}>
-                  <YouTubeLogo className="w-4 h-4 text-red-500" />
-                </div>
-              )}
-              <div className="min-w-0">
-                <div className="flex items-center gap-2">
-                  <p className="text-sm text-white font-medium truncate">{youtubeStatus.channelName || 'Connected'}</p>
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block flex-shrink-0" />
-                </div>
-                {youtubeStatus.updatedAt && (
-                  <p className="text-xs text-gray-500 mt-0.5">
-                    Last synced {new Date(youtubeStatus.updatedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-                  </p>
-                )}
-              </div>
-            </div>
-            <Button variant="ghost" size="sm" onClick={connectYouTube} className="flex-shrink-0">
-              <RefreshCw className="w-3.5 h-3.5" />
-              Reconnect
-            </Button>
-          </div>
-        ) : null}
-
-        {youtubeStatus?.connected && <ChannelNumbers />}
-
-        {/* Disconnect (subtle) — only when connected */}
-        {youtubeStatus?.connected && (
-          <div className="mt-4 pt-4" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
-            {confirmDisconnect ? (
-              <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-                <span className="t-small w-full sm:w-auto" style={{ color: 'var(--text-muted)' }}>Disconnect this YouTube account?</span>
-                <Button variant="secondary" size="sm" onClick={() => setConfirmDisconnect(false)}>
-                  Keep
-                </Button>
-                <Button variant="text" onClick={disconnectYouTube} disabled={disconnecting} className="t-small hover:!text-red-400">
-                  {disconnecting ? 'Disconnecting' : 'Yes, disconnect'}
-                </Button>
-              </div>
-            ) : (
-              <Button variant="text" onClick={() => setConfirmDisconnect(true)} className="t-small">
-                Disconnect account
+        <div className="mt-4 flex flex-wrap gap-2">
+          {isFree ? (
+            <Button variant="primary" onClick={() => go('upgrade')} className="w-full sm:w-auto">Upgrade</Button>
+          ) : (
+            <>
+              <Button variant="secondary" disabled={topupBusy} onClick={async () => {
+                setTopupBusy(true); setTopupError('');
+                try { await startTopup(); } catch (e) { setTopupError(e instanceof Error ? e.message : 'Failed to start checkout'); setTopupBusy(false); }
+              }}>
+                {topupBusy && <Loader2 className="w-4 h-4 animate-spin" />}
+                {CREDIT_PACK.credits} more credits · {CREDIT_PACK.price}
               </Button>
-            )}
-          </div>
-        )}
-
-        {!youtubeStatus?.connected && (
-          <div className="flex items-center justify-between gap-3">
-            <div className="flex items-center gap-3 min-w-0">
-              <div className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}>
-                <YouTubeLogo className="w-4 h-4 text-gray-600" />
-              </div>
-              <p className="text-sm text-gray-500">No account connected</p>
-            </div>
-            <Button variant="primary" size="sm" onClick={connectYouTube} className="flex-shrink-0">
-              <Link className="w-3.5 h-3.5" />
-              Connect
-            </Button>
-          </div>
-        )}
-      </SettingsCard>
+              <Button variant="ghost" onClick={() => go('upgrade')}>Change plan</Button>
+            </>
+          )}
+        </div>
+        {topupError && <p className="mt-2 text-red-400 text-sm">{topupError}</p>}
+      </div>
 
       {/* ── Account ── */}
-      <SettingsCard
-        {...cardProps('account')}
-        icon={<User className="w-[18px] h-[18px]" style={{ color: 'var(--text)' }} />}
-        iconBg="rgba(255,255,255,0.05)"
-        title="Account"
-        subtitle="The email you signed in with, and your password."
-      >
+      <Fold {...cardProps('account')} title="Account" value={user?.email}>
         <div className="space-y-5">
-          {/* The hub used to greet people by the part of their email before the
-              @, which is how someone ends up being called kirill.dev2024 every
-              time they open the product. */}
-          <div>
-            <FieldLabel>Name</FieldLabel>
-            <div className="flex gap-2">
+          {/* Editable things say Edit; the email, which cannot change here,
+              says so with a lock instead of looking like a field. */}
+          {editingName ? (
+            <div>
+              <FieldLabel>Name</FieldLabel>
               <input
                 type="text"
                 value={displayName}
+                autoFocus
                 onChange={e => setDisplayName(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter') saveDisplayName(); if (e.key === 'Escape') { setDisplayName(displayNameOf(user)); setEditingName(false); } }}
                 placeholder="What we should call you"
                 maxLength={40}
-                className="glass-field flex-1 min-w-0 px-4 py-2.5 rounded-lg text-white placeholder-gray-600 text-sm focus:outline-none transition-colors"
+                className="glass-field w-full px-4 py-2.5 rounded-lg text-white placeholder-gray-600 text-sm focus:outline-none transition-colors"
                 style={glassInput}
-                onFocus={e => { e.currentTarget.style.borderColor = 'var(--accent)'; }}
-                onBlur={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)'; }}
               />
-              <Button variant="secondary" onClick={saveDisplayName} disabled={nameSaving || !displayName.trim()} className="flex-shrink-0">
-                {nameSaving ? 'Saving' : nameSaved ? 'Saved' : 'Save'}
-              </Button>
+              {nameError && <p className="text-red-400 text-sm mt-2">{nameError}</p>}
+              <div className="flex gap-2 mt-3">
+                <Button variant="secondary" onClick={() => { setDisplayName(displayNameOf(user)); setNameError(''); setEditingName(false); }}>Cancel</Button>
+                <Button variant="primary" onClick={saveDisplayName} disabled={nameSaving || !displayName.trim()}>
+                  {nameSaving ? 'Saving' : 'Save'}
+                </Button>
+              </div>
             </div>
-            {nameError && <p className="text-red-400 text-sm mt-2">{nameError}</p>}
-            <p className="mt-2 text-xs" style={{ color: 'var(--text-faint)' }}>
-              Used where the product speaks to you, starting with the hub.
-            </p>
+          ) : (
+            <div className="flex items-center justify-between gap-3">
+              <span className="text-sm" style={{ color: 'var(--text)' }}>Name</span>
+              <span className="flex items-center gap-3 min-w-0">
+                <span className="text-sm truncate" style={{ color: 'var(--text-muted)' }}>{displayNameOf(user)}</span>
+                <Button variant="text" onClick={() => setEditingName(true)} className="t-small">Edit</Button>
+              </span>
+            </div>
+          )}
+
+          <div className="flex items-center justify-between gap-3">
+            <span className="text-sm" style={{ color: 'var(--text)' }}>Email</span>
+            <span className="flex items-center gap-2 min-w-0 text-sm" style={{ color: 'var(--text-faint)' }} title="Can't be changed">
+              <span className="truncate">{user?.email}</span>
+              <Lock className="w-3.5 h-3.5 flex-shrink-0" />
+            </span>
           </div>
 
-          <div>
-            <FieldLabel>Email</FieldLabel>
-            <div className="px-4 py-2.5 rounded-lg text-gray-400 text-sm truncate" style={glassInput}>
-              {user?.email}
-            </div>
-          </div>
-
-          <div>
-            <FieldLabel>Change password</FieldLabel>
+          {changingPassword ? (
             <div className="space-y-3">
+              <FieldLabel>Change password</FieldLabel>
               <div className="relative">
                 <input
                   type={showCurrent ? 'text' : 'password'}
@@ -688,8 +507,6 @@ export function SettingsPage() {
                   placeholder="Current password"
                   className="glass-field w-full px-4 py-2.5 pr-10 rounded-lg text-white placeholder-gray-600 text-sm focus:outline-none transition-colors"
                   style={glassInput}
-                  onFocus={e => { e.currentTarget.style.borderColor = 'var(--accent)'; }}
-                  onBlur={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)'; }}
                 />
                 <button type="button" onClick={() => setShowCurrent(!showCurrent)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-300">
                   {showCurrent ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
@@ -703,137 +520,203 @@ export function SettingsPage() {
                   placeholder="New password"
                   className="glass-field w-full px-4 py-2.5 pr-10 rounded-lg text-white placeholder-gray-600 text-sm focus:outline-none transition-colors"
                   style={glassInput}
-                  onFocus={e => { e.currentTarget.style.borderColor = 'var(--accent)'; }}
-                  onBlur={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)'; }}
                 />
                 <button type="button" onClick={() => setShowNew(!showNew)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-300">
                   {showNew ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
               </div>
               {pwError && <p className="text-red-400 text-sm">{pwError}</p>}
-              <Button variant="secondary" onClick={changePassword} disabled={pwSaving || !currentPassword || !newPassword}>
-                {pwSaving ? 'Updating' : pwSaved ? 'Updated' : 'Update password'}
+              <div className="flex gap-2">
+                <Button variant="secondary" onClick={() => { setChangingPassword(false); setCurrentPassword(''); setNewPassword(''); setPwError(''); }}>Cancel</Button>
+                <Button variant="primary" onClick={changePassword} disabled={pwSaving || !currentPassword || !newPassword}>
+                  {pwSaving ? 'Updating' : pwSaved ? 'Updated' : 'Update password'}
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <div className="flex items-center justify-between gap-3">
+              <span className="text-sm" style={{ color: 'var(--text)' }}>Password</span>
+              <Button variant="text" onClick={() => setChangingPassword(true)} className="t-small">Change</Button>
+            </div>
+          )}
+        </div>
+      </Fold>
+
+      {/* ── The brain, with what they told us inside it ── */}
+      <Fold {...cardProps('brain')} title="Chumoku brain" value={brain ? 'Built' : 'Not built yet'}>
+        {(!brain || editingProfile) && (
+          <div className="space-y-4 mb-5">
+            <div>
+              <FieldLabel>Where you are</FieldLabel>
+              <div className="flex flex-wrap gap-2">
+                {CREATOR_LEVELS.map(l => (
+                  <button key={l.value} type="button" className="chip" data-on={creatorLevel === l.value} onClick={() => setCreatorLevel(l.value)}>
+                    {l.label}
+                  </button>
+                ))}
+              </div>
+              <p className="mt-2 text-xs" style={{ color: 'var(--text-faint)' }}>
+                {CREATOR_LEVELS.find(l => l.value === creatorLevel)?.hint}
+              </p>
+            </div>
+            <div>
+              <FieldLabel>About you</FieldLabel>
+              <textarea
+                value={channelDescription}
+                onChange={e => setChannelDescription(e.target.value)}
+                placeholder="What you make, who it is for, what you are trying to fix. A sentence is enough."
+                rows={3}
+                className="glass-field w-full px-4 py-3 rounded-lg text-white placeholder-gray-600 text-sm focus:outline-none resize-none leading-relaxed transition-colors"
+                style={glassInput}
+              />
+            </div>
+            {(contextError || loadFailed) && (
+              <p className="text-red-400 text-sm">
+                {contextError || 'Could not read your profile just now, so saving is off to avoid writing over it. Reload the page.'}
+              </p>
+            )}
+            <div className="flex gap-2">
+              {brain && <Button variant="secondary" onClick={() => setEditingProfile(false)}>Cancel</Button>}
+              <Button variant="primary" onClick={async () => { await saveContext(); setEditingProfile(false); }} disabled={contextSaving || loadFailed || brainBuilding}>
+                {(contextSaving || brainBuilding) && <Loader2 className="w-4 h-4 animate-spin" />}
+                {brain ? 'Save and rebuild' : 'Build it'}
               </Button>
             </div>
           </div>
-        </div>
-      </SettingsCard>
+        )}
+        {brain && (
+          <>
+            <BrainCard
+              brain={brain}
+              overrides={brainOverrides}
+              heardVoice={heardVoice}
+              builtAt={brainAt}
+              loading={brainBuilding}
+              error={brainError}
+              onBuild={() => buildBrain(false)}
+              onSaveEdits={async next => {
+                const { error } = await supabase.from('user_tokens').update({ brain_overrides: next }).eq('user_id', user?.id);
+                if (error) throw error;
+                setBrainOverrides(next);
+              }}
+            />
+            {!editingProfile && (
+              <Button variant="text" onClick={() => setEditingProfile(true)} className="t-small mt-3">Edit what you told us</Button>
+            )}
+          </>
+        )}
+        {!brain && brainError && <p className="text-red-400 text-sm">{brainError}</p>}
+        {openCard === 'brain' && youtubeStatus?.connected && user?.id && (
+          <RetentionLessons userId={user.id} onReconnect={connectYouTube} />
+        )}
+      </Fold>
 
-      {/* ── Credits ── */}
-      {/* What is left, and a way to get more. The price of each action is on
-          the action; see CreditsPanel for why this is not a tab any more. */}
-      <SettingsCard
-        {...cardProps('credits')}
-        icon={<Zap className="w-[18px] h-[18px]" style={{ color: 'var(--upgrade)' }} />}
-        iconBg="rgba(245,196,81,0.12)"
-        title="Credits"
-        subtitle={creditsLeftLine(usage)}
-      >
-        <CreditsPanel usage={usage} />
-      </SettingsCard>
+      {/* ── YouTube account ── */}
+      <Fold {...cardProps('youtube')} title="YouTube account"
+        value={youtubeStatus?.connected ? (youtubeStatus.channelName || 'Connected') : 'Not connected'}>
+        {youtubeStatus?.connected ? (
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-3 min-w-0">
+              {youtubeStatus.channelThumbnail ? (
+                <img src={youtubeStatus.channelThumbnail} alt="" className="w-9 h-9 rounded-full object-cover flex-shrink-0" />
+              ) : (
+                <div className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(255,0,0,0.1)' }}>
+                  <YouTubeLogo className="w-4 h-4 text-red-500" />
+                </div>
+              )}
+              <div className="min-w-0">
+                <p className="text-sm text-white font-medium truncate">{youtubeStatus.channelName || 'Connected'}</p>
+                {youtubeStatus.updatedAt && (
+                  <p className="text-xs text-gray-500 mt-0.5">
+                    Last synced {new Date(youtubeStatus.updatedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                  </p>
+                )}
+              </div>
+            </div>
+            <Button variant="ghost" size="sm" onClick={connectYouTube} className="flex-shrink-0">
+              <RefreshCw className="w-3.5 h-3.5" />
+              Reconnect
+            </Button>
+          </div>
+        ) : (
+          <div className="flex items-center justify-between gap-3">
+            <p className="text-sm text-gray-500">No account connected</p>
+            <Button variant="primary" size="sm" onClick={connectYouTube} className="flex-shrink-0">
+              <Link className="w-3.5 h-3.5" />
+              Connect
+            </Button>
+          </div>
+        )}
+
+        {youtubeStatus?.connected && <ChannelNumbers />}
+
+        {youtubeStatus?.connected && (
+          <div className="mt-4 pt-4" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+            {confirmDisconnect ? (
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+                <span className="t-small w-full sm:w-auto" style={{ color: 'var(--text-muted)' }}>Disconnect this YouTube account?</span>
+                <Button variant="secondary" size="sm" onClick={() => setConfirmDisconnect(false)}>Keep</Button>
+                <Button variant="text" onClick={disconnectYouTube} disabled={disconnecting} className="t-small hover:!text-red-400">
+                  {disconnecting ? 'Disconnecting' : 'Yes, disconnect'}
+                </Button>
+              </div>
+            ) : (
+              <Button variant="text" onClick={() => setConfirmDisconnect(true)} className="t-small">Disconnect account</Button>
+            )}
+          </div>
+        )}
+      </Fold>
+
+      {/* ── Competitor channels ── */}
+      <Fold {...cardProps('channels')} title="Competitor channels">
+        {openCard === 'channels' && <ChannelsSettings />}
+      </Fold>
+
+      {/* ── Language ── */}
+      <Fold {...cardProps('language')} title="Language" value={LANGUAGE_NAMES[language] ?? 'English'}>
+        <div className="flex items-center justify-between gap-3">
+          <span className="text-sm" style={{ color: 'var(--text)' }}>Ideas and scripts</span>
+          <select
+            value={language}
+            onChange={async e => {
+              const next = e.target.value;
+              setLanguage(next);
+              await supabase.from('user_tokens').update({ language: next }).eq('user_id', user?.id);
+            }}
+            className="glass-field px-3 py-2 rounded-lg text-sm text-white focus:outline-none"
+            style={glassInput}
+          >
+            {Object.entries(LANGUAGE_NAMES).map(([code, name]) => <option key={code} value={code}>{name}</option>)}
+          </select>
+        </div>
+      </Fold>
 
       {/* ── Subscription ── (paid only) */}
-      {plan && plan !== 'free' && (
-        <SettingsCard
-          {...cardProps('subscription')}
-          /* Amber, the colour this product already uses for the one thing
-             that is about money - the Upgrade link in the sidebar. Not the
-             process green: green here means something is running or something
-             worked (a connected account, a finished bar), and spending it on a
-             permanent tile is how a colour with one meaning stops having one. */
-          icon={<Zap className="w-[18px] h-[18px]" style={{ color: 'var(--upgrade)' }} />}
-          iconBg="rgba(245,196,81,0.12)"
-          title="Subscription"
-          subtitle="What you are on, and how to change it."
-        >
-          {/* Plan summary with an accent badge — distinct from the other cards */}
-          <div className="rounded-xl px-4 py-3.5 flex items-center justify-between gap-3" style={{ background: 'rgba(var(--accent-rgb),0.06)', border: '1px solid rgba(var(--accent-rgb),0.18)' }}>
-            <div className="min-w-0">
-              <p className="text-sm text-white font-semibold">
-                {plan === 'pro' ? 'Plus' : plan === 'agency' ? 'Pro' : plan} Plan
+      {!isFree && (
+        <Fold {...cardProps('subscription')} title="Subscription" value={cancelDone ? 'Cancelled' : `${planName} · renews monthly`}>
+          {cancelDone ? (
+            <p className="text-sm" style={{ color: 'var(--text-muted)' }}>Cancelled. You keep everything until the end of the billing period.</p>
+          ) : confirmCancel ? (
+            <div>
+              <p className="text-xs text-gray-400 leading-relaxed">
+                Cancel your subscription? You'll keep full access until the end of the current billing period.
               </p>
-              <p className="text-xs text-gray-400 mt-0.5">
-                {cancelDone ? 'Access until end of billing period' : 'Renews monthly'}
-              </p>
-            </div>
-            <span
-              className="text-[11px] font-medium px-2.5 py-1 rounded-full flex-shrink-0"
-              style={cancelDone
-                ? { background: 'rgba(148,163,184,0.15)', color: '#94A3B8' }
-                : { background: 'rgba(var(--ok-rgb),0.15)', color: '#34D399' }}
-            >
-              {cancelDone ? 'Cancelled' : 'Active'}
-            </span>
-          </div>
-
-          {!cancelDone && (
-            <div className="mt-4">
-              {confirmCancel ? (
-                <div>
-                  <p className="text-xs text-gray-400 leading-relaxed">
-                    Cancel your subscription? You'll keep full access until the end of the current billing period.
-                  </p>
-                  <div className="flex items-center gap-4 mt-3">
-                    <Button variant="secondary" size="sm" onClick={() => setConfirmCancel(false)}>
-                      Keep plan
-                    </Button>
-                    <Button variant="text" onClick={cancelSubscription} disabled={cancelLoading} className="t-small hover:!text-red-400">
-                      {cancelLoading ? 'Cancelling' : 'Yes, cancel'}
-                    </Button>
-                  </div>
-                </div>
-              ) : (
-                <Button variant="text" onClick={() => setConfirmCancel(true)} className="t-small">
-                  Cancel subscription
+              <div className="flex items-center gap-4 mt-3">
+                <Button variant="secondary" size="sm" onClick={() => setConfirmCancel(false)}>Keep plan</Button>
+                <Button variant="text" onClick={cancelSubscription} disabled={cancelLoading} className="t-small hover:!text-red-400">
+                  {cancelLoading ? 'Cancelling' : 'Yes, cancel'}
                 </Button>
-              )}
+              </div>
             </div>
+          ) : (
+            <Button variant="text" onClick={() => setConfirmCancel(true)} className="t-small">Cancel subscription</Button>
           )}
           {cancelError && <p className="mt-2 text-red-400 text-xs">{cancelError}</p>}
-        </SettingsCard>
+        </Fold>
       )}
 
-      {/* ── Affiliate ── */}
-      {/* A door, not a drawer. The page behind it is a claim flow, a link, a
-          stats table and a payout form - too much to unfold inside a settings
-          card, and it used to hold a permanent slot in the sidebar next to the
-          four tools for something nobody opens daily. */}
-      <Row
-        icon={<Handshake className="w-[18px] h-[18px]" />}
-        title="Affiliate"
-        subtitle="Your link, who signed up through it, and what it has paid."
-        arrow={<ArrowUpRight className="w-4 h-4 row-arrow" />}
-        onClick={() => window.dispatchEvent(new CustomEvent('chumoku:navigate', { detail: 'partners' }))}
-      />
-
-      {/* ── Support ── */}
-      <SettingsCard
-        {...cardProps('support')}
-        icon={<MessageCircle className="w-[18px] h-[18px] text-[#5865F2]" />}
-        iconBg="rgba(88,101,242,0.12)"
-        title="Support"
-        subtitle="Where to reach us, and what to send so it can be answered."
-      >
-        <a
-          href="https://discord.gg/N8S6C95Ry2"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="btn btn--secondary"
-        >
-          <MessageCircle className="w-4 h-4" />
-          Join Discord
-          <ExternalLink className="w-3.5 h-3.5 opacity-60" />
-        </a>
-      </SettingsCard>
-
       {/* ── Redeem code ── */}
-      <SettingsCard
-        {...cardProps('redeem')}
-        icon={<Ticket className="w-[18px] h-[18px]" style={{ color: 'var(--upgrade)' }} />}
-        iconBg="rgba(245,196,81,0.12)"
-        title="Redeem code"
-        subtitle="A code from Discord or a partner goes in here."
-      >
+      <Fold {...cardProps('redeem')} title="Redeem code">
         <div className="flex items-center gap-2">
           <input
             value={redeemCode}
@@ -842,24 +725,61 @@ export function SettingsPage() {
             placeholder="Enter a code"
             className="glass-field flex-1 min-w-0 px-4 py-2.5 rounded-lg text-white placeholder-gray-600 text-sm focus:outline-none transition-colors"
             style={glassInput}
-            onFocus={e => { e.currentTarget.style.borderColor = 'var(--accent)'; }}
-            onBlur={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)'; }}
           />
           <Button variant="secondary" onClick={redeem} disabled={!redeemCode.trim() || redeeming} className="flex-shrink-0">
             {redeeming ? 'Redeeming' : 'Redeem'}
           </Button>
         </div>
         {redeemMsg && (
-          <p className={`mt-2 text-xs ${redeemMsg.type === 'success' ? 'text-emerald-400' : 'text-red-400'}`}>
-            {redeemMsg.text}
-          </p>
+          <p className={`mt-2 text-xs ${redeemMsg.type === 'success' ? 'text-emerald-400' : 'text-red-400'}`}>{redeemMsg.text}</p>
         )}
-      </SettingsCard>
+      </Fold>
+
+      {/* ── Help ── */}
+      <Fold {...cardProps('help')} title="Help">
+        <div className="flex flex-col items-start gap-3">
+          <a href="https://discord.gg/N8S6C95Ry2" target="_blank" rel="noopener noreferrer" className="text-sm flex items-center gap-1.5 hover:underline" style={{ color: 'var(--text)' }}>
+            Join the Discord <ExternalLink className="w-3.5 h-3.5 opacity-60" />
+          </a>
+          <button onClick={() => go('partners')} className="text-sm flex items-center gap-1.5 hover:underline" style={{ color: 'var(--text)' }}>
+            Affiliate <ArrowUpRight className="w-3.5 h-3.5 opacity-60" />
+          </button>
+          <a href="/privacy" className="text-sm hover:underline" style={{ color: 'var(--text-muted)' }}>Privacy</a>
+          <a href="/terms" className="text-sm hover:underline" style={{ color: 'var(--text-muted)' }}>Terms</a>
+        </div>
+      </Fold>
       </div>
       )}
     </div>
   );
 }
+
+// A section: its name, what is in it, and a chevron. Same shape as the iOS
+// app's fold; the old cards had an icon tile and a sentence under every title,
+// which made the page six paragraphs long before anything was opened.
+function Fold({ title, value, open, onToggle, children }: {
+  title: string; value?: string | null; open: boolean; onToggle: () => void; children: React.ReactNode;
+}) {
+  return (
+    <div className="row-group">
+      <button onClick={onToggle} className="row" aria-expanded={open}>
+        <span className="flex-1 min-w-0 text-[15px] font-medium text-left" style={{ color: 'var(--text)' }}>{title}</span>
+        {value && !open && (
+          <span className="text-[13px] truncate max-w-[55%]" style={{ color: 'var(--text-faint)' }}>{value}</span>
+        )}
+        <ChevronDown
+          className="w-4 h-4 flex-shrink-0 row-chevron"
+          style={{ color: 'var(--text-faint)', transform: open ? 'rotate(180deg)' : 'none' }}
+        />
+      </button>
+      <Collapse open={open}><div className="row-group-body">{children}</div></Collapse>
+    </div>
+  );
+}
+
+const LANGUAGE_NAMES: Record<string, string> = {
+  en: 'English', es: 'Español', pt: 'Português', fr: 'Français', de: 'Deutsch', ja: '日本語', ru: 'Русский',
+};
 
 // ─── The brain, on screen ────────────────────────────────────────────────────
 // The profile the model wrote, shown to the person it is about.

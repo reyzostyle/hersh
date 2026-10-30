@@ -20,6 +20,23 @@ const CREDIT_PACK = { id: 'small', credits: 50, price: '$4.99' };
 
 type Usage = ReturnType<typeof useUsage>['usage'];
 
+export { CREDIT_PACK };
+
+// Off to Stripe for the top-up. Shared by this panel and the plan card on top
+// of Settings. Throws with a message the caller shows.
+export async function startTopup(): Promise<void> {
+  const token = await getSessionToken();
+  if (!token) throw new Error('Not authenticated');
+  const res = await fetchWithRetry(`${FUNCTIONS_URL}/create-credit-topup-session`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ pack: CREDIT_PACK.id }),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || 'Failed to start checkout');
+  if (data.url) window.location.href = data.url;
+}
+
 export function creditsLeftLine(usage: Usage): string {
   if (!usage) return 'Your balance';
   const left = Math.max(0, usage.creditsLimit - usage.creditsUsed);
@@ -43,16 +60,7 @@ export function CreditsPanel({ usage }: { usage: Usage }) {
     setBuying(true);
     setBuyError('');
     try {
-      const token = await getSessionToken();
-      if (!token) { setBuyError('Not authenticated'); return; }
-      const res = await fetchWithRetry(`${FUNCTIONS_URL}/create-credit-topup-session`, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ pack: CREDIT_PACK.id }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Failed to start checkout');
-      if (data.url) window.location.href = data.url;
+      await startTopup();
     } catch (err) {
       setBuyError(err instanceof Error ? err.message : 'Failed to start checkout');
     } finally {
