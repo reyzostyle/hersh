@@ -5,86 +5,6 @@
       "shouldTranslate": false
     },
     "%@ / %@": {},
-    "%@ / month": {
-      "localizations": {
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%@ / mes"
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%@ / mês"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%@ / mois"
-          }
-        },
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%@ / Monat"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%@ / 月"
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%@ / мес"
-          }
-        }
-      }
-    },
-    "%@ / year": {
-      "localizations": {
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%@ / año"
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%@ / ano"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%@ / an"
-          }
-        },
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%@ / Jahr"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%@ / 年"
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%@ / год"
-          }
-        }
-      }
-    },
     "%@ s from take %lld": {},
     "%@ views": {
       "localizations": {
@@ -299,86 +219,6 @@
     "+0.1": {},
     "-": {
       "shouldTranslate": false
-    },
-    "100 credits: 3 a script, 1 a message": {
-      "localizations": {
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "100 créditos: 3 por guion, 1 por mensaje"
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "100 créditos: 3 por roteiro, 1 por mensagem"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "100 crédits : 3 par script, 1 par message"
-          }
-        },
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "100 Credits: 3 pro Skript, 1 pro Nachricht"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "100クレジット: 台本は3、メッセージは1"
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "100 кредитов: 3 за сценарий, 1 за сообщение"
-          }
-        }
-      }
-    },
-    "300 credits": {
-      "localizations": {
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "300 créditos"
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "300 créditos"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "300 crédits"
-          }
-        },
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "300 Credits"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "300クレジット"
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "300 кредитов"
-          }
-        }
-      }
     },
     "5 more ideas · %lld credits": {
       "localizations": {
@@ -1347,6 +1187,46 @@
           "stringUnit": {
             "state": "translated",
             "value": "Подтверди почту по ссылке в письме, потом войди."
+          }
+        }
+      }
+    },
+    "Choose a plan": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Elige un plan"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Escolha um plano"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Choisis une formule"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wähle einen Tarif"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "プランを選ぶ"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Выбери тариф"
           }
         }
       }
@@ -3522,46 +3402,6 @@
         }
       }
     },
-    "Everything in Plus": {
-      "localizations": {
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Todo lo de Plus"
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Tudo do Plus"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Tout ce qu'il y a dans Plus"
-          }
-        },
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Alles aus Plus"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Plusのすべて"
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Всё, что в Plus"
-          }
-        }
-      }
-    },
     "Experienced creator, want nuance": {
       "localizations": {
         "es": {
@@ -3603,6 +3443,46 @@
       }
     },
     "Export": {},
+    "Extra credits": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Créditos extra"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Créditos extras"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Crédits en plus"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Extra-Credits"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "追加クレジット"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Дополнительные кредиты"
+          }
+        }
+      }
+    },
     "Failed to save: %@": {
       "localizations": {
         "es": {
@@ -3889,42 +3769,42 @@
       }
     },
     "From saved": {},
-    "Get %@": {
+    "Get %@ · %@": {
       "localizations": {
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Obtener %@"
+            "value": "Obtener %1$@ · %2$@"
           }
         },
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "Assinar %@"
+            "value": "Assinar %1$@ · %2$@"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Prendre %@"
+            "value": "Prendre %1$@ · %2$@"
           }
         },
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "%@ holen"
+            "value": "%1$@ holen · %2$@"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "%@にする"
+            "value": "%1$@にする · %2$@"
           }
         },
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Подключить %@"
+            "value": "Подключить %1$@ · %2$@"
           }
         }
       }
@@ -5943,46 +5823,6 @@
     },
     "Picking takes · %llds": {},
     "Pictures and clips go on top of you, from where the playhead is. Drag to place, pinch to size.": {},
-    "Plans": {
-      "localizations": {
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Planes"
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Planos"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Formules"
-          }
-        },
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Tarife"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "プラン"
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Тарифы"
-          }
-        }
-      }
-    },
     "Plans renew automatically at the price shown until you cancel. Cancel any time in your Apple ID's subscription settings, at least 24 hours before the period ends. Payment is charged to your Apple ID.": {
       "localizations": {
         "es": {
@@ -6794,6 +6634,46 @@
         }
       }
     },
+    "Scripts in your voice, from any idea": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Guiones con tu voz, de cualquier idea"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Roteiros com a sua voz, de qualquer ideia"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Des scripts avec ta voix, à partir de n'importe quelle idée"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Skripte in deiner Stimme, aus jeder Idee"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "どのアイデアからも、あなたの話し方で台本を"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Сценарии твоими словами из любой идеи"
+          }
+        }
+      }
+    },
     "Scroll the strip to move through the video. Tap a clip to trim it by its edges, move or delete it. Split cuts at the white line.": {},
     "See today's ideas": {
       "localizations": {
@@ -7275,86 +7155,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Свайп"
-          }
-        }
-      }
-    },
-    "Switch to monthly": {
-      "localizations": {
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Cambiar a mensual"
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Mudar para mensal"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Passer au mensuel"
-          }
-        },
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Zu monatlich wechseln"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "月額に切り替える"
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Перейти на помесячную"
-          }
-        }
-      }
-    },
-    "Switch to yearly": {
-      "localizations": {
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Cambiar a anual"
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Mudar para anual"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Passer à l'annuel"
-          }
-        },
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Zu jährlich wechseln"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "年額に切り替える"
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Перейти на годовую"
           }
         }
       }
@@ -8927,6 +8727,46 @@
         }
       }
     },
+    "With Plus or Pro. They don't expire.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Con Plus o Pro. No caducan."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Com Plus ou Pro. Não expiram."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Avec Plus ou Pro. Ils n'expirent pas."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mit Plus oder Pro. Sie verfallen nicht."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "PlusまたはProで。有効期限はありません。"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "С Plus или Pro. Не сгорают."
+          }
+        }
+      }
+    },
     "Word": {},
     "Working out what works for you": {
       "localizations": {
@@ -9373,83 +9213,83 @@
         }
       }
     },
-    "Your plan, billed %@": {
+    "Zoom on cuts": {},
+    "a month": {
       "localizations": {
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Tu plan, facturado %@"
+            "value": "al mes"
           }
         },
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "Seu plano, cobrança %@"
+            "value": "por mês"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Ta formule, facturée en %@"
+            "value": "par mois"
           }
         },
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Dein Tarif, %@ abgerechnet"
+            "value": "pro Monat"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "現在のプラン（%@）"
+            "value": "/月"
           }
         },
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Твой тариф, оплата %@"
+            "value": "в месяц"
           }
         }
       }
     },
-    "Zoom on cuts": {},
-    "monthly": {
+    "a month, %@ a year": {
       "localizations": {
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "mensual"
+            "value": "al mes, %@ al año"
           }
         },
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "mensal"
+            "value": "por mês, %@ por ano"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "mensuel"
+            "value": "par mois, %@ par an"
           }
         },
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "monatlich"
+            "value": "pro Monat, %@ im Jahr"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "月額"
+            "value": "/月、年額%@"
           }
         },
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "помесячно"
+            "value": "в месяц, %@ в год"
           }
         }
       }
@@ -9531,46 +9371,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "не проверено"
-          }
-        }
-      }
-    },
-    "yearly": {
-      "localizations": {
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "anual"
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "anual"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "annuel"
-          }
-        },
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "jährlich"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "年額"
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "за год"
           }
         }
       }
