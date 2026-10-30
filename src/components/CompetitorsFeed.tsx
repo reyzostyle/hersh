@@ -52,7 +52,8 @@ type View = 'grid' | 'swipe';
 const VIEW_KEY = 'chumoku:ideas-view';
 
 function readView(): View {
-  try { return localStorage.getItem(VIEW_KEY) === 'swipe' ? 'swipe' : 'grid'; } catch { return 'grid'; }
+  // Swipe unless they chose the grid (2026-10-30: swipe is the default).
+  try { return localStorage.getItem(VIEW_KEY) === 'grid' ? 'grid' : 'swipe'; } catch { return 'swipe'; }
 }
 
 // "5h 12m", "38m". Ticks once a minute: enough for a countdown in hours.

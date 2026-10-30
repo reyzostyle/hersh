@@ -169,10 +169,24 @@ export function CompetitorsPage() {
       return next;
     });
 
-    const { data, error } = await supabase
-      .from('competitor_ideas')
-      .upsert(rows, { onConflict: 'user_id,video_id' })
-      .select();
+    // A row that already exists (every drop item, and all AI ideas) gets only
+    // the decision written. Upserting the whole row wrote the feed's view of
+    // it back over the stored one, and for an AI idea, whose channel and title
+    // fields are empty in the feed, the write failed: the page reloaded and
+    // the swiped card came straight back (Ivan, 2026-10-30).
+    const existing = items.map(it => it.idea?.id).filter((id): id is string => !!id && !id.startsWith('pending-'));
+    const fresh = rows.filter((_, i) => !items[i].idea?.id || items[i].idea!.id.startsWith('pending-'));
+    const decision = { liked, ...(projectId !== undefined ? { project_id: projectId } : {}) };
+    const results = await Promise.all([
+      existing.length
+        ? supabase.from('competitor_ideas').update(decision).in('id', existing).select()
+        : Promise.resolve({ data: [], error: null }),
+      fresh.length
+        ? supabase.from('competitor_ideas').upsert(fresh, { onConflict: 'user_id,video_id' }).select()
+        : Promise.resolve({ data: [], error: null }),
+    ]);
+    const error = results.find(r => r.error)?.error;
+    const data = results.flatMap(r => (r.data ?? []) as CompetitorIdea[]);
 
     if (error) {
       console.error('[CompetitorsPage] rule error:', error);

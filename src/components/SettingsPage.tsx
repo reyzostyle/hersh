@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { FUNCTIONS_URL, supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
-import { RefreshOutlineIcon as Loader2, EyeOutlineIcon as Eye, EyeClosedOutlineIcon as EyeOff, RefreshOutlineIcon as RefreshCw, LinkOutlineIcon as Link, AltArrowDownOutlineIcon as ChevronDown, SquareArrowRightUpOutlineIcon as ExternalLink, ArrowRightUpOutlineIcon as ArrowUpRight, LockKeyholeMinimalisticOutlineIcon as Lock, ChatRoundOutlineIcon as MessageCircle } from '@solar-icons/react';
+import { RefreshOutlineIcon as Loader2, EyeOutlineIcon as Eye, EyeClosedOutlineIcon as EyeOff, RefreshOutlineIcon as RefreshCw, LinkOutlineIcon as Link, AltArrowDownOutlineIcon as ChevronDown, SquareArrowRightUpOutlineIcon as ExternalLink, ArrowRightUpOutlineIcon as ArrowUpRight, LockKeyholeMinimalisticOutlineIcon as Lock, ChatRoundOutlineIcon as MessageCircle, CheckCircleBoldIcon as CheckCircle } from '@solar-icons/react';
 import { getSessionToken, fetchWithRetry } from '../lib/supabase';
 
 import { requestBrain, type ChannelBrain, type BrainOverrides } from '../lib/brain';
@@ -547,7 +547,7 @@ export function SettingsPage() {
       </Fold>
 
       {/* ── The brain, with what they told us inside it ── */}
-      <Fold {...cardProps('brain')} title="Chumoku brain" value={brain ? 'Built' : 'Not built yet'}>
+      <Fold {...cardProps('brain')} title="Chumoku brain" ok={!!brain} value={brain ? 'Built' : 'Not built yet'}>
         {(!brain || editingProfile) && (
           <div className="space-y-4 mb-5">
             <div>
@@ -616,7 +616,7 @@ export function SettingsPage() {
       </Fold>
 
       {/* ── YouTube account ── */}
-      <Fold {...cardProps('youtube')} title="YouTube account"
+      <Fold {...cardProps('youtube')} title="YouTube account" ok={!!youtubeStatus?.connected}
         value={youtubeStatus?.connected ? (youtubeStatus.channelName || 'Connected') : 'Not connected'}>
         {youtubeStatus?.connected ? (
           <div className="flex items-center justify-between gap-3">
@@ -803,15 +803,20 @@ export function SettingsPage() {
 // A section: its name, what is in it, and a chevron. Same shape as the iOS
 // app's fold; the old cards had an icon tile and a sentence under every title,
 // which made the page six paragraphs long before anything was opened.
-function Fold({ title, value, open, onToggle, children }: {
+function Fold({ title, value, ok, open, onToggle, children }: {
   title: string; value?: string | null; open: boolean; onToggle: () => void; children: React.ReactNode;
+  // A green check before the value: connected, built, done.
+  ok?: boolean;
 }) {
   return (
     <div className="row-group">
       <button onClick={onToggle} className="row" aria-expanded={open}>
         <span className="flex-1 min-w-0 text-[15px] font-medium text-left" style={{ color: 'var(--text)' }}>{title}</span>
         {value && !open && (
-          <span className="text-[13px] truncate max-w-[55%]" style={{ color: 'var(--text-faint)' }}>{value}</span>
+          <span className="flex items-center gap-1.5 text-[13px] min-w-0 max-w-[55%]" style={{ color: 'var(--text-faint)' }}>
+            {ok && <CheckCircle className="w-4 h-4 flex-shrink-0" style={{ color: 'rgb(var(--ok-rgb))' }} />}
+            <span className="truncate">{value}</span>
+          </span>
         )}
         <ChevronDown
           className="w-4 h-4 flex-shrink-0 row-chevron"
