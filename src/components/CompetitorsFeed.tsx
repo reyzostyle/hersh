@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { LightbulbOutlineIcon as Lightbulb, RefreshOutlineIcon as Loader2 } from '@solar-icons/react';
+import { LightbulbOutlineIcon as Lightbulb, RefreshOutlineIcon as Loader2, WidgetOutlineIcon as GridIcon, LayersOutlineIcon as StackIcon } from '@solar-icons/react';
 import {
   itemFromIdea,
   type CompetitorIdea, type FeedItem, type IdeaFilter,
@@ -96,14 +96,19 @@ export function CompetitorsFeed({
 
   return (
     <div className="space-y-3">
-      <div className="flex items-center gap-2 flex-wrap">
-        <div className="min-w-0 overflow-x-auto pb-0.5 -mb-0.5">
+      {/* One row on every width, like the app: the filter scrolls if it has
+          to, and the view toggle is two icons rather than two words. */}
+      <div className="flex items-center gap-2">
+        <div className="flex-1 min-w-0 overflow-x-auto pb-0.5 -mb-0.5" style={{ scrollbarWidth: 'none' }}>
           <Seg className="w-max" options={tabs} value={filter} onChange={onFilterChange} />
         </div>
-        <div className="ml-auto flex items-center gap-2">
+        <div className="flex-shrink-0 flex items-center gap-2">
           {filter === 'new' && today.total > 0 && (
             <Seg
-              options={[{ id: 'grid' as View, label: 'Grid' }, { id: 'swipe' as View, label: 'Swipe' }]}
+              options={[
+                { id: 'grid' as View, label: <span className="flex items-center" title="Grid" aria-label="Grid"><GridIcon className="w-[18px] h-[18px]" /></span> },
+                { id: 'swipe' as View, label: <span className="flex items-center" title="Swipe" aria-label="Swipe"><StackIcon className="w-[18px] h-[18px]" /></span> },
+              ]}
               value={view}
               onChange={changeView}
             />

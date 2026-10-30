@@ -52,7 +52,7 @@ const PARTNERS_CODE = 'PARTNERS';
 const PLAN_CACHE_KEY = 'chumoku_last_plan';
 
 export function SettingsPage() {
-  const { user } = useAuth();
+  const { user, signOut } = useAuth();
 
   // Accordion: name of the single expanded card, or null when all collapsed.
   // Opens on Credits when something sent the user here for their balance
@@ -789,6 +789,9 @@ export function SettingsPage() {
         </span>
       </a>
 
+      {/* The sidebar's Sign out is not there on a phone any more. */}
+      <Button variant="ghost" onClick={() => signOut()} className="w-full mt-4">Sign out</Button>
+
       <p className="pt-4 text-center text-[12px]" style={{ color: 'var(--text-faint)' }}>
         <a href="/privacy" className="hover:underline">Privacy</a>
         <span className="mx-2">·</span>
@@ -813,11 +816,10 @@ function Fold({ title, value, ok, open, onToggle, children }: {
       <button onClick={onToggle} className="row" aria-expanded={open}>
         <span className="flex-1 min-w-0 text-[15px] font-medium text-left" style={{ color: 'var(--text)' }}>{title}</span>
         {value && !open && (
-          <span className="flex items-center gap-1.5 text-[13px] min-w-0 max-w-[55%]" style={{ color: 'var(--text-faint)' }}>
-            {ok && <CheckCircle className="w-4 h-4 flex-shrink-0" style={{ color: 'rgb(var(--ok-rgb))' }} />}
-            <span className="truncate">{value}</span>
-          </span>
+          <span className="text-[13px] truncate min-w-0 max-w-[55%]" style={{ color: 'var(--text-faint)' }}>{value}</span>
         )}
+        {/* In a fixed slot by the chevron, so the checks line up. */}
+        {ok && !open && <CheckCircle className="w-4 h-4 flex-shrink-0" style={{ color: 'rgb(var(--ok-rgb))' }} />}
         <ChevronDown
           className="w-4 h-4 flex-shrink-0 row-chevron"
           style={{ color: 'var(--text-faint)', transform: open ? 'rotate(180deg)' : 'none' }}

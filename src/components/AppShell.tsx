@@ -1,5 +1,5 @@
 import { useState, useEffect, createContext, useRef } from 'react';
-import { SettingsOutlineIcon as Settings, LogoutOutlineIcon as LogOut, HamburgerMenuOutlineIcon as Menu, CloseCircleOutlineIcon as X, BoltOutlineIcon as Zap, LightbulbOutlineIcon as Bulb, ChatRoundOutlineIcon as Chat, BookmarkOutlineIcon as Bookmark, SidebarMinimalisticOutlineIcon as PanelLeftClose, SidebarMinimalisticOutlineIcon as PanelLeftOpen, WidgetOutlineIcon as HubIcon, ClapperboardEditOutlineIcon as EditIcon } from '@solar-icons/react';
+import { SettingsOutlineIcon as Settings, LogoutOutlineIcon as LogOut, BoltOutlineIcon as Zap, LightbulbOutlineIcon as Bulb, ChatRoundOutlineIcon as Chat, BookmarkOutlineIcon as Bookmark, SidebarMinimalisticOutlineIcon as PanelLeftClose, SidebarMinimalisticOutlineIcon as PanelLeftOpen, WidgetOutlineIcon as HubIcon, ClapperboardEditOutlineIcon as EditIcon } from '@solar-icons/react';
 import { useAuth } from '../contexts/AuthContext';
 
 export const MobileHeaderContext = createContext<{
@@ -37,6 +37,13 @@ interface AppShellProps {
 // One flat list. The Analyze sub-panel used to hold Video/Hook/Script in a
 // second column, which cost a whole column on desktop and had nowhere sensible
 // to live on a phone. They are tabs like everything else now.
+const MOBILE_TABS: { id: NavTab; label: string; icon: typeof Bulb }[] = [
+  { id: 'competitors', label: 'Ideas', icon: Bulb },
+  { id: 'analyze', label: 'Chat', icon: Chat },
+  { id: 'saved', label: 'Saved', icon: Bookmark },
+  { id: 'settings', label: 'Settings', icon: Settings },
+];
+
 const baseNavItems: NavItem[] = [
   // Ideas first: the product is ideas you steal, then talk through, then keep
   // (2026-09-29). Analytics and Projects were removed that day - the radar was
@@ -60,20 +67,6 @@ const baseNavItems: NavItem[] = [
   { id: 'settings', label: 'Settings', icon: <Settings className="w-4 h-4" /> },
 ];
 
-// Labels for tabs with no sidebar entry, used only for the mobile header title.
-//
-// Affiliate is one of them now. It is a page you visit once, claim a link on,
-// and come back to when you wonder what it has made - which is the same shape
-// as a setting, not the same shape as Analyze. It sat in the sidebar next to
-// the four tools and took a permanent slot for something nobody uses daily;
-// Settings now carries the door to it. The tab id stays 'partners' either way:
-// it is persisted in state, dispatched on the navigate channel and matched
-// against referral_codes.
-const TAB_LABELS: Partial<Record<NavTab, string>> = {
-  home: 'Chumoku',
-  partners: 'Affiliate',
-  'affiliate-admin': 'Affiliate partners',
-};
 
 const SIDEBAR_COLLAPSED_KEY = 'chumoku_sidebar_collapsed';
 
@@ -81,7 +74,7 @@ export function AppShell({ activeTab, onTabChange, children }: AppShellProps) {
   const { user, signOut } = useAuth();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(() => localStorage.getItem(SIDEBAR_COLLAPSED_KEY) === '1');
-  const [rightAction, setRightAction] = useState<React.ReactNode>(null);
+  const [, setRightAction] = useState<React.ReactNode>(null);
 
   useEffect(() => {
     localStorage.setItem(SIDEBAR_COLLAPSED_KEY, collapsed ? '1' : '0');
@@ -238,18 +231,6 @@ export function AppShell({ activeTab, onTabChange, children }: AppShellProps) {
             the chat full of answers it was texture behind text, and the side
             panel never had it, so the same chat looked like two products. The
             grid lives on the landing hero only now. */}
-        <header className="lg:hidden sticky top-0 z-30 flex items-center gap-3 px-4 py-3 flex-shrink-0" style={{ borderBottom: '1px solid rgba(255,255,255,0.08)', background: 'rgba(var(--surface-rgb),0.95)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)' }}>
-          <button
-            onClick={() => setMobileOpen(!mobileOpen)}
-            className="p-2 text-gray-400 hover:text-white transition-colors flex-shrink-0"
-          >
-            {mobileOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-          </button>
-          <span className="flex-1 text-white font-semibold text-sm">
-            {navItems.find(i => i.id === activeTab)?.label ?? TAB_LABELS[activeTab] ?? 'Chumoku'}
-          </span>
-          {rightAction}
-        </header>
 
         {/* The grid is Analyze's alone. It is the one tab that is mostly open
             space — a headline, a composer, and a lot of nothing until the
@@ -260,11 +241,38 @@ export function AppShell({ activeTab, onTabChange, children }: AppShellProps) {
             relative + z-index keeps the page above it, so the chat's sheet can
             cover the lines under the conversation. Without that the grid, being
             the only positioned layer, painted over the text. */}
-        <main ref={mainRef} key={activeTab} className="relative z-[1] flex-1 overflow-y-auto overflow-x-hidden animate-tab-in" style={{ background: 'transparent', overscrollBehavior: 'none' }}>
+        <main ref={mainRef} key={activeTab} className="relative z-[1] flex-1 overflow-y-auto overflow-x-hidden animate-tab-in pb-24 lg:pb-0" style={{ background: 'transparent', overscrollBehavior: 'none' }}>
           <MobileHeaderContext.Provider value={{ setRightAction }}>
             {children}
           </MobileHeaderContext.Provider>
         </main>
+
+        {/* On a phone, the app's tab bar instead of a top bar with a menu
+            (2026-10-30, Ivan: the site should look like the app). Four tabs,
+            a floating glass capsule, the page's own big title above. The
+            sidebar and its menu stay for wide screens. */}
+        <nav className="lg:hidden fixed bottom-0 inset-x-0 z-40 flex justify-center px-4 pointer-events-none"
+             style={{ paddingBottom: 'max(14px, env(safe-area-inset-bottom))' }}>
+          <div className="pointer-events-auto flex items-center gap-1 p-1.5 rounded-full w-full max-w-[420px]"
+               style={{ background: 'rgba(28,28,30,0.72)', border: '1px solid rgba(255,255,255,0.1)', backdropFilter: 'blur(24px) saturate(1.6)', WebkitBackdropFilter: 'blur(24px) saturate(1.6)', boxShadow: '0 10px 30px rgba(0,0,0,0.45)' }}>
+            {MOBILE_TABS.map(t => {
+              const on = activeTab === t.id;
+              const Icon = t.icon;
+              return (
+                <button
+                  key={t.id}
+                  onClick={() => { onTabChange(t.id); window.dispatchEvent(new CustomEvent('chumoku:navigate', { detail: t.id })); }}
+                  className="flex-1 flex flex-col items-center gap-0.5 py-2 rounded-full transition-colors"
+                  style={{ background: on ? 'rgba(255,255,255,0.1)' : 'transparent', color: on ? 'var(--text)' : 'var(--text-muted)' }}
+                  aria-current={on ? 'page' : undefined}
+                >
+                  <Icon className="w-[22px] h-[22px]" />
+                  <span className="text-[11px] font-medium">{t.label}</span>
+                </button>
+              );
+            })}
+          </div>
+        </nav>
       </div>
     </div>
   );

@@ -32,9 +32,11 @@
   --line-strong: rgba(255, 255, 255, 0.14);
 
   /* Three radii and a pill. */
-  --r-sm: 10px;
-  --r-md: 14px;
-  --r-lg: 18px;
+  /* The iOS app's radii (Radius in Theme.swift), so both look like one
+     product (2026-10-30). */
+  --r-sm: 14px;
+  --r-md: 20px;
+  --r-lg: 28px;
 
   /* The grid cell is half the sidebar, so a ruled line falls exactly on the
      sidebar's edge instead of near it. Collapsed, the rail is half a cell
@@ -609,14 +611,14 @@ button.row:active,
   display: inline-flex;
   gap: 2px;
   padding: 3px;
-  border-radius: var(--r-sm);
+  border-radius: 999px;
   background: var(--bg-raised);
   border: 1px solid var(--line);
 }
 .seg > button {
-  padding: 5px 10px;
-  border-radius: 7px;
-  font-size: 12px;
+  padding: 7px 13px;
+  border-radius: 999px;
+  font-size: 13px;
   font-weight: 500;
   color: var(--text-faint);
   white-space: nowrap;
@@ -630,7 +632,7 @@ button.row:active,
 .seg[data-thumb="true"] > button[data-on="true"] { background: transparent; }
 .seg__thumb {
   position: absolute; top: 3px; bottom: 3px; left: 0;
-  border-radius: 7px; background: var(--bg-raised-hover);
+  border-radius: 999px; background: var(--bg-raised-hover);
   transition: transform 0.32s cubic-bezier(0.32, 0.72, 0, 1), width 0.32s cubic-bezier(0.32, 0.72, 0, 1);
 }
 

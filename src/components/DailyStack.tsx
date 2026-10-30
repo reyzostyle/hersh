@@ -63,6 +63,7 @@ export function DailyStack({ remaining, total, nextAt, loading, onSave, onDismis
   const last = useRef<{ x: number; t: number; vx: number }>({ x: 0, t: 0, vx: 0 });
   const rootRef = useRef<HTMLDivElement>(null);
   const [mediaH, setMediaH] = useState<number | null>(null);
+  const [deckW, setDeckW] = useState<number | null>(null);
 
   // A new card on top is never mid-flight. Without this, a card that came
   // back (a save that failed and reloaded) kept the old flight: invisible,
@@ -78,8 +79,16 @@ export function DailyStack({ remaining, total, nextAt, loading, onSave, onDismis
       if (!root || !media) return;
       const rootTop = root.getBoundingClientRect().top + window.scrollY;
       const rest = root.offsetHeight - media.offsetHeight;
-      const room = window.innerHeight - rootTop - rest - BOTTOM_GAP;
-      setMediaH(Math.round(Math.max(MIN_MEDIA, Math.min(media.offsetWidth * 1.25, room))));
+      // The widest the deck may be (.daily's max-width), not what it is now.
+      const maxW = Math.min(440, root.parentElement?.clientWidth ?? 440);
+      // Below the lg breakpoint the app-style tab bar floats over the bottom.
+      const gap = window.innerWidth < 1024 ? BOTTOM_GAP + 96 : BOTTOM_GAP;
+      const room = window.innerHeight - rootTop - rest - gap;
+      const h = Math.round(Math.max(MIN_MEDIA, Math.min(maxW * 1.25, room)));
+      setMediaH(h);
+      // Short on height, narrow the card with it, so it stays a portrait card
+      // like the app's instead of a wide, flat strip on a laptop.
+      setDeckW(Math.max(260, Math.min(maxW, Math.round(h / 1.25))));
     };
     fit();
     window.addEventListener('resize', fit);
@@ -149,7 +158,7 @@ export function DailyStack({ remaining, total, nextAt, loading, onSave, onDismis
   const deck = [top, next].filter((i): i is CompetitorIdea => !!i);
 
   return (
-    <div className="daily" ref={rootRef}>
+    <div className="daily" ref={rootRef} style={deckW ? { maxWidth: deckW } : undefined}>
       <div className="daily__head">
         <span className="daily__count ml-auto">{seen + 1} of {total}</span>
       </div>

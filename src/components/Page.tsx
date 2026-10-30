@@ -40,7 +40,7 @@ export function Page({
       {/* flex column so a child can claim the leftover height - Loading needs
           it to sit in the middle of the page rather than in the middle of an
           arbitrary min-height. */}
-      <div className={`sheet w-full ${COLUMN} flex flex-col px-5 sm:px-8 pt-12 sm:pt-16 pb-20 ${className}`}>
+      <div className={`sheet w-full ${COLUMN} flex flex-col px-5 sm:px-8 pt-8 sm:pt-16 pb-20 ${className}`}>
         {children}
       </div>
     </div>
@@ -68,7 +68,7 @@ export function PageHead({
   action?: React.ReactNode;
 }) {
   return (
-    <header className="mb-10">
+    <header className="mb-6 sm:mb-10">
       {eyebrow && <p className="label-mono mb-4">{eyebrow}</p>}
       {/* The action sits beside the title on a wide screen and drops below it on
           a narrow one. Sharing a row with a segmented control was squeezing the

@@ -12,3 +12,4 @@ dist-ssr
 supabase
 *.mp4
 *.mov
+.preview
